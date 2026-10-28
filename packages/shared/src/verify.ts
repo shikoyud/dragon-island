@@ -5,9 +5,11 @@ import { bytesToHex, hexToBytes, keccak256, type Hex } from 'viem'
  * Server derivation: seed = HMAC-SHA256(S, label); commit = keccak256(S).
  */
 export async function deriveSeed(secretHex: Hex, label: string): Promise<Hex> {
-  const raw = new Uint8Array(hexToBytes(secretHex)) as BufferSource
+  // Copy into plain ArrayBuffers: works under both DOM and Node typings.
+  const raw = new Uint8Array(hexToBytes(secretHex)).slice().buffer as ArrayBuffer
+  const data = new TextEncoder().encode(label).slice().buffer as ArrayBuffer
   const key = await crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(label) as BufferSource)
+  const mac = await crypto.subtle.sign('HMAC', key, data)
   return bytesToHex(new Uint8Array(mac))
 }
 
