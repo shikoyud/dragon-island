@@ -84,15 +84,15 @@ function test_TeamVestingLinear() public { /* deploy VestingWallet(team, uint64(
   - `setEntryFee(uint256 weiAmount)` — operator or owner (`NotOperator()`); emits `EntryFeeSet(uint256)`
   - Errors so far: `ZeroAddress, ZeroAmount, AlreadyEntered, InsufficientEntryFee, TreasuryTransferFailed, NotOperator`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
   - `enter`: exact fee → `entered` true, treasury balance += fee, event; `fee + 1 wei` → treasury receives `fee + 1`, vault ETH balance 0; `fee − 1` → `InsufficientEntryFee`; second call → `AlreadyEntered`; paused → `EnforcedPause`; treasury that rejects ETH (test contract with reverting `receive`) → `TreasuryTransferFailed`
   - `deposit(10_000e18)` → player −10_000e18, vault +9_900e18 (kept 100e18 + credited 9_800e18 stay in the vault), supply −100e18, event `(player, 10_000e18, 9_800e18, 100e18)`; `deposit(1)` → credited 1, burned 0, kept 0, supply unchanged; `deposit(0)` → `ZeroAmount`; without allowance → ERC20 insufficient-allowance revert; paused → `EnforcedPause`
   - fuzz `testFuzz_DepositConserves(uint96 amount)` (`amount > 0`): `credited + burned + kept == amount` and `burned ≤ amount / 100`
   - `setEntryFee` by operator and owner ok; by a stranger → `NotOperator`
-- [ ] **Step 2: Run `forge test`** — expect FAIL
-- [ ] **Step 3: Implement the constructor, `enter`, `deposit`, `setEntryFee` and the fee helpers in `WyrmVault.sol`** — fee math in an internal pure `_split(uint256 amount, uint256 feeBps, uint256 burnBps) returns (uint256 net, uint256 burned, uint256 kept)`
-- [ ] **Step 4: Run `forge test -vv` and `forge fmt --check`** — expect PASS
-- [ ] **Step 5: Commit** `feat(contracts): WyrmVault entry fee and deposits with burn`
+- [x] **Step 2: Run `forge test`** — expect FAIL
+- [x] **Step 3: Implement the constructor, `enter`, `deposit`, `setEntryFee` and the fee helpers in `WyrmVault.sol`** — fee math in an internal pure `_split(uint256 amount, uint256 feeBps, uint256 burnBps) returns (uint256 net, uint256 burned, uint256 kept)`
+- [x] **Step 4: Run `forge test -vv` and `forge fmt --check`** — expect PASS
+- [x] **Step 5: Commit** `feat(contracts): WyrmVault entry fee and deposits with burn`
 
 ### Task 3: EIP-712 cumulative claims with the daily payout cap
 
