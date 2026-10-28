@@ -141,7 +141,7 @@ expect([1, 9, 10, 19, 20, 29].map(foodToNextLevel)).toEqual([4, 324, 800, 2888, 
   - `rollOffspring(a: Parent, b: Parent, ctx: BreedContext, c: Catalog, rng: Rng): BreedRoll`
 - RNG call order (fixed for replay): `int(|A.elements|)`, `int(|B.elements|)`, then if a recipe matches and both levels ≥ 15 `next() < 0.03` → legendary (stop), then `int(totalWeightOfPresentTiers)` for the tier, then `int(tierSize)` for the species. Pity (`ctx.pity[pairKey] >= 10`) drops the common tier when the pool has any rare+ tier.
 
-- [ ] **Step 1: Write failing tests** (use `FIXTURE_CATALOG`; `p = (id, level = 4) => ({ speciesId: id, level })`; `none = { boost: false, pity: {} }`; compare with `toBeCloseTo(x, 6)`)
+- [x] **Step 1: Write failing tests** (use `FIXTURE_CATALOG`; `p = (id, level = 4) => ({ speciesId: id, level })`; `none = { boost: false, pity: {} }`; compare with `toBeCloseTo(x, 6)`)
   - `breedingOdds(p('fire'), p('water'), none)` → `{ 'fw-common': 0.70, 'fw-rare': 0.25, 'fw-epic': 0.05 }`
   - boost → `fw-rare` 35/115, `fw-epic` 10/115
   - `pity: { 'fire+water': 10 }` → `{ 'fw-rare': 25/30, 'fw-epic': 5/30 }`
@@ -152,10 +152,10 @@ expect([1, 9, 10, 19, 20, 29].map(foodToNextLevel)).toEqual([4, 324, 800, 2888, 
   - 20,000 `rollOffspring(p('fire'), p('water'), none, …, createRng(1))` rolls: `fw-epic` share in [0.04, 0.06]
   - two rolls with `createRng(9)` return equal `BreedRoll`s
   - 1,000 rolls with pity 10 never return `fw-common`; every roll has `pairKey === 'fire+water'` and `rarePlus === true`
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement `breeding.ts`** — integer weights for the roll; `breedingOdds` computes the same branches analytically.
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): breeding odds and roll with recipes and pity`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement `breeding.ts`** — integer weights for the roll; `breedingOdds` computes the same branches analytically.
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): breeding odds and roll with recipes and pity`
 
 ### Task 4: Player state, gold eligibility and player XP
 
