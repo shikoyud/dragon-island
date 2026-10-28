@@ -257,7 +257,7 @@ expect(s).toEqual(newPlayer(0))                         // inputs not mutated
 - Produces (`store.ts`): `type StoreItem = { kind: 'skip'; target: 'nest' | 'hatchery' | 'farm'; index: number } | { kind: 'nest' } | { kind: 'foodPack' } | { kind: 'levelUp'; dragonId: string } | { kind: 'oddsBoost' } | { kind: 'hoard' }`; `MAX_NESTS = 4`; `FOOD_PACK = 1_000`; `priceMicroUsd(item: StoreItem, s: PlayerState, nowMs: number): number | null` — `null` when not purchasable now (missing target, nothing to skip, already max)
   - skip 100_000 × ceil(remainingMs / 1_800_000); nest 2M / 4M / 8M by current nest count 1 / 2 / 3; foodPack 500_000; levelUp max(50_000, 500 × foodToNextLevel(level)); oddsBoost 500_000; hoard `HOARD[hoardLevel].costMicroUsd`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```ts
 const L = (dep: number, w: number, sold = 0) => ({ depositedMicroUsd: dep, withdrawnMicroUsd: w, soldMicroUsd: sold })
@@ -287,10 +287,10 @@ expect(priceMicroUsd({ kind: 'hoard' }, newPlayer(0), 0)).toBe(2_000_000)
 // hoardLevel 6 → 60_000_000; hoardLevel 7 → null; foodPack → 500_000; oddsBoost → 500_000
 ```
 
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement `sell.ts` and `store.ts`**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): hoard sell limits and store pricing`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement `sell.ts` and `store.ts`**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): hoard sell limits and store pricing`
 
 ### Task 7: `applyAction` with island and farm actions
 
