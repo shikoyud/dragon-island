@@ -168,15 +168,15 @@
 - `SeasonPanel`: season id, days left, commit hash, SP today/total/cap (`/sp`), daily quests checklist (derived from today's action log is server-only → ruling: show the three quests with their points and "earned today" from the `sp` toasts in this session only), link to Verify.
 - `Verify.tsx` (`/verify/:seasonId`): after reveal, fetches `/season/:id` and `/season/:id/actions?playerId=me`, recomputes every `seedHex` from `seedLabel` with `verifySeed`, and re-runs `applyAction`/`simulateBattle` for each logged action from the previous row's state (first row from `newPlayer`), showing ✓/✗ per row; before reveal, shows the commit hash and "secret not yet revealed".
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
   - `verifySeed(commitHash(S), S, 'p:1', actionSeed(S,'p',1n).seedHex)` true (vectors generated with the server's `seed.ts` and pasted as constants); wrong label false
   - `WalletPanel` with mocked wagmi reads: Deposit disabled on chain 1 with "Switch to Robinhood Chain testnet"; with allowance 0 the primary button says "Approve"; after approve resolves it says "Deposit"; amount above wallet balance disables with "Not enough WYRM"; Withdraw above the in-game balance disabled; a pending voucher renders Claim with the deadline
   - `HoardPanel`: locked copy before `earningUnlocked`; with hoard 1 and 300_000 eligible gold shows "$1.00 left today" and Sell enabled
   - `Verify`: a fixture of 3 logged actions and the revealed secret → 3 ✓; a tampered seedHex → ✗ on that row
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run tests and `pnpm -r typecheck`** — expect PASS
-- [ ] **Step 5: Commit** `feat(web): wallet, deposit/withdraw, hoard, season and re-verify`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run tests and `pnpm -r typecheck`** — expect PASS
+- [x] **Step 5: Commit** `feat(web): wallet, deposit/withdraw, hoard, season and re-verify`
 
 ### Task 7: Playwright smoke tests (spec §20)
 
