@@ -119,17 +119,17 @@
   - `StorePanel`: every `StoreItem` with `priceMicroUsd` and the token equivalent at the current price (from `/me`? The server has no price route → ruling: add `price` to `/me` response is a server change; instead show USD only here and the token charge after the response).
 - Every button is disabled with a reason tooltip when game-core would refuse (computed client-side only for enablement; the server still decides).
 
-- [ ] **Step 1: Write failing tests** (RTL with a fake `api`; state fixtures from `newPlayer(0)`)
+- [x] **Step 1: Write failing tests** (RTL with a fake `api`; state fixtures from `newPlayer(0)`)
   - `useAction().run` sends a UUID key, applies the returned `state` to the `['me']` cache, and after a 422 the cache still holds the previous state and `error.code === 'PLOT_BUSY'`; a thrown `TypeError: fetch failed` retries once with the same key; a 401 clears the session
   - `BreedPanel` with d1/d2 at level 4 shows rows `fire 50.00%` / `water 50.00%` (launch catalog, fallback pool) and with `oddsBoosts: 1` shows "Odds boost active"; Breed is disabled when `nests` has no `null`
   - `HabitatPanel` for h1 at `nowMs = 600_000` shows "20 gold stored" and Upgrade "1,000 gold"; Collect calls `run({ type: 'collectGold', habitatId: 'h1' })`
   - `DragonPanel`: Sell disabled with "Keep at least two dragons" at 2 dragons; Feed shows "4 food"
   - `FarmPanel`: Plant sprout → `run({ type: 'plant', plot: 0, crop: 'sprout' })`; a busy plot shows a `Timer` and Harvest disabled until ready
   - `StorePanel`: skip on a nest egg with 1_800_001 ms left shows "$0.20"; nest 2 shows "$2.00"
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(web): economy panels and the single action hook`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(web): economy panels and the single action hook`
 
 ### Task 5: Battle preview helper, battle scene and PvP/PvE panels
 

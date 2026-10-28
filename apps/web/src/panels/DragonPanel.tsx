@@ -1,0 +1,45 @@
+import { foodToNextLevel, getSpecies, goldPerMinute, LAUNCH_CATALOG, MAX_DRAGON_LEVEL, RARITY } from '@wyrmhaven/game-core'
+import { useAction } from '../state/actions'
+import { useMe } from '../state/me'
+import { formatGold } from '../ui/Money'
+import { ActionButton, Panel } from '../ui/Panel'
+
+export function DragonPanel({ dragonId, onClose }: { dragonId: string; onClose?: () => void }) {
+  const me = useMe()
+  const { run, pending } = useAction()
+  const s = me.data?.state
+  const d = s?.dragons.find(x => x.id === dragonId)
+  if (!s || !d) return null
+  const species = getSpecies(LAUNCH_CATALOG, d.speciesId)
+  const maxed = d.level >= MAX_DRAGON_LEVEL
+  const foodCost = maxed ? 0 : foodToNextLevel(d.level)
+  const sellGold = RARITY[species.rarity].sellGold
+  const inTeam = s.defenceTeam?.includes(d.id) ?? false
+
+  return (
+    <Panel title={`${species.name} (${d.id})`} onClose={onClose}>
+      <p>{species.rarity} · {species.elements.join(' / ')} · level {d.level} · {goldPerMinute(species.rarity, d.level)} gold/min</p>
+      <p>{d.habitatId ? `Lives in ${d.habitatId}` : 'Waiting in the hatchery (no habitat has room)'}{inTeam ? ' · defence team' : ''}</p>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <ActionButton
+          id={`feed-${d.id}`}
+          primary
+          disabled={pending || maxed || s.food < foodCost}
+          reason={maxed ? 'Already at level 30' : 'Not enough food'}
+          onClick={() => void run({ type: 'feed', dragonId: d.id })}
+        >
+          Feed{maxed ? '' : ` · ${formatGold(foodCost)} food`}
+        </ActionButton>
+        <ActionButton
+          id={`sell-${d.id}`}
+          danger
+          disabled={pending || s.dragons.length <= 2}
+          reason="Keep at least two dragons so you can still breed"
+          onClick={() => void run({ type: 'sellDragon', dragonId: d.id })}
+        >
+          Sell · {formatGold(sellGold)} gold
+        </ActionButton>
+      </div>
+    </Panel>
+  )
+}
