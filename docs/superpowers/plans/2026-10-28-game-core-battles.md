@@ -88,7 +88,7 @@ expect(movesFor(getSpecies(C, 'fw-rare')).map(m => m.name)).toEqual(['fire', 'wa
   - `isLegalMove(actor: Combatant, targets: readonly Combatant[], m: PlayerMove): boolean`
   - `simulateBattle(attacker: readonly BattleDragonSpec[], defender: readonly BattleDragonSpec[], moves: readonly PlayerMove[], rng: Rng, c: Catalog): BattleOutcome` — one `damage` call (one `rng.next()`) per attack, no other RNG use; unused trailing moves are ignored
 
-- [ ] **Step 1: Write failing tests** (`spec = (id, level) => ({ speciesId: id, level })`; `three = (id, level) => [spec(id,level), spec(id,level), spec(id,level)]`; `AI_ALL = Array(400).fill({ move: 0, target: 0 })`)
+- [x] **Step 1: Write failing tests** (`spec = (id, level) => ({ speciesId: id, level })`; `three = (id, level) => [spec(id,level), spec(id,level), spec(id,level)]`; `AI_ALL = Array(400).fill({ move: 0, target: 0 })`)
   - `turnOrder`: attacker `[fire L10 (spd 60), water L5 (55)]`, defender `[ice L10 (60), nature L1 (51)]` → `[{attacker,0},{defender,0},{attacker,1},{defender,1}]`; a combatant with `hp: 0` is omitted
   - `aiMove`: actor `fw-rare` vs targets `[water L1 full hp, nature L1 full hp, nature L1 hp 1]` → `{ move: 0, target: 2 }` (fire is ×2 vs nature; lowest HP among them); vs `[water, water, water]` at full HP → `{ move: 1, target: 0 }` (water move ×1 beats fire ×0.5; ties → slot 0); vs `[water hp 0, water, water]` → `target: 1`
   - `isLegalMove`: target hp 0 → false; `target: 3` → false; `move: 2` on a 2-move dragon → false; `move: 1.5` → false
@@ -100,10 +100,10 @@ expect(movesFor(getSpecies(C, 'fw-rare')).map(m => m.name)).toEqual(['fire', 'wa
   - round cap: add `wall` to the fixture (pure `earth`, legendary, `recipeOnly`, `baseSpeed 1`) and run `three('fire', 1)` (atk 13, ×0.5 vs earth → 5–7 damage) vs `three('wall', 30)` (hp 1400, atk 200) with attacker moves `AI_ALL`: the fire team deals at most 3 × 7 × 30 = 630 per defender over 30 rounds and cannot win, while `wall` SPD 31 acts after fire SPD 56; assert `winner: 'defender'` and `rounds <= 30`. Across 50 random seeds with random teams, `rounds` never exceeds 30, and `winner === 'defender'` whenever `rounds === 30` and an attacker is still alive
   - determinism: two runs with `createRng(9)` give `toEqual` outcomes; `createRng(10)` differs in at least one `damage`
   - AI legality fuzz: 200 battles with random teams (3 random non-recipe species each, levels 1–30 via `createRng(seed)`), attacker moves from `aiMove` as well; assert every event targets a living slot and uses a valid move index (replay the log against HP bookkeeping in the test)
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement `sim.ts`** — build `Combatant[]` per side; loop rounds 1..30: compute `turnOrder`, for each living actor pick the move (attacker: `moves[cursor++]`, validate with `isLegalMove`; defender: `aiMove`), apply `damage`, log, check for a winner after every attack.
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): deterministic 3v3 battle simulation with defender ai`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement `sim.ts`** — build `Combatant[]` per side; loop rounds 1..30: compute `turnOrder`, for each living actor pick the move (attacker: `moves[cursor++]`, validate with `isLegalMove`; defender: `aiMove`), apply `damage`, log, check for a winner after every attack.
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): deterministic 3v3 battle simulation with defender ai`
 
 ### Task 3: Trophies, leagues and season reset
 
