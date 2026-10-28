@@ -145,16 +145,16 @@ expect([0, 1000, 1001, 1500, 2001].map(seasonResetTrophies)).toEqual([0, 1000, 1
   - `generateBot(seeker: Seeker, c: Catalog, rng: Rng): OpponentSnapshot` — `trophies = max(0, seeker.trophies + rng.int(201) − 100)`, `level = seeker.level`, team from `generateBotTeam(seeker.teamLevel, …)`
   - `pickOpponents(seeker: Seeker, candidates: readonly OpponentSnapshot[], c: Catalog, rng: Rng): OpponentSnapshot[]` — filter `|trophies − seeker.trophies| ≤ 100` and `|level − seeker.level| ≤ 5`; choose up to 3 without replacement via `rng.int`; fill to 3 with `generateBot`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
   - `generateBotTeam(40, C, createRng(1))` → 3 specs, every level 40 → clamped to 30, every species non-recipe with rarity common or rare
   - `generateBot({ trophies: 50, level: 8, teamLevel: 6 }, C, createRng(2))` → `playerId: null`, `trophies` in [0, 150], `level: 8`, team levels all 6
   - `pickOpponents` with 5 eligible and 2 ineligible candidates (trophies +101, level −6) → 3 results, all from the eligible 5, all distinct `playerId`s
   - with 1 eligible candidate → that candidate plus 2 bots (`playerId: null`)
   - with none → 3 bots; same seed → identical results; `candidates` not mutated
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement `matchmaking.ts`**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): matchmaking window and bot team generation`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement `matchmaking.ts`**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): matchmaking window and bot team generation`
 
 ### Task 5: PvE campaign stages and rewards
 
