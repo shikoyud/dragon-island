@@ -56,7 +56,16 @@ export function StepTasks({
     // Let the link open X in a new tab; record the open alongside, never block the navigation.
     setOpened((o) => ({ ...o, [t]: Date.now() }))
     setNotice(null)
-    void post(`/api/tasks/${t}/open`)
+    void post(`/api/tasks/${t}/open`).then((res) => {
+      if (!isError(res)) return
+      // The server has no open on record, so a countdown here would only end in TASK_NOT_OPENED.
+      setOpened(({ [t]: _dropped, ...rest }) => rest)
+      setNotice(
+        res.error === 'UNAUTHORIZED'
+          ? 'Your session expired. Reload the page and connect X again.'
+          : 'Could not record that you opened this task. Please open it again.',
+      )
+    })
   }
 
   async function onConfirm(t: Task) {

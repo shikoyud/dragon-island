@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { loadConfig } from '../src/server/config'
+import { publicConfig } from '../src/server/publicConfig'
 
 describe('loadConfig', () => {
   it('throws when SESSION_SECRET is missing', () => {
@@ -10,5 +11,20 @@ describe('loadConfig', () => {
   })
   it('reads MIN_X_ACCOUNT_AGE_DAYS from env', () => {
     expect(loadConfig({ SESSION_SECRET: 'x', MIN_X_ACCOUNT_AGE_DAYS: '7' }).MIN_X_ACCOUNT_AGE_DAYS).toBe(7)
+  })
+})
+
+describe('publicConfig', () => {
+  it('falls back to dev placeholders outside production', () => {
+    expect(publicConfig({ NODE_ENV: 'development' })).toMatchObject({ xHandle: 'wyrmhaven', postId: '' })
+  })
+
+  it('throws in production when the X handle or post id is missing', () => {
+    expect(() => publicConfig({ NODE_ENV: 'production', ANNOUNCEMENT_POST_ID: '1' })).toThrow(/X_ACCOUNT_HANDLE/)
+    expect(() => publicConfig({ NODE_ENV: 'production', X_ACCOUNT_HANDLE: 'w' })).toThrow(/ANNOUNCEMENT_POST_ID/)
+    expect(publicConfig({ NODE_ENV: 'production', X_ACCOUNT_HANDLE: '@w', ANNOUNCEMENT_POST_ID: '1' })).toMatchObject({
+      xHandle: 'w',
+      postId: '1',
+    })
   })
 })

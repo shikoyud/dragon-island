@@ -8,6 +8,10 @@ const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID ?? ''
 /** False when NEXT_PUBLIC_REOWN_PROJECT_ID is unset: the wallet step says so instead of crashing. */
 export const walletConfigured = projectId !== ''
 
+if (!walletConfigured && typeof window !== 'undefined') {
+  console.warn('[wyrmhaven] NEXT_PUBLIC_REOWN_PROJECT_ID is not set: wallet connect is disabled.')
+}
+
 const adapter = walletConfigured ? new WagmiAdapter({ networks: [robinhoodTestnet], projectId, ssr: true }) : null
 
 /** Without a project id, a connector-less config keeps wagmi hooks working. */

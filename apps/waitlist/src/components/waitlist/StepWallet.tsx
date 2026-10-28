@@ -24,12 +24,29 @@ function errorText(code: string): string {
   }
 }
 
-export function StepWallet({ handle, onDone }: { handle: string; onDone(): Promise<void> }) {
+export function StepWallet({
+  handle,
+  onDone,
+  onExpired,
+}: {
+  handle: string
+  onDone(): Promise<void>
+  /** Called before onDone when the server no longer accepts the session. */
+  onExpired(): void
+}) {
   const { address, isConnected } = useAccount()
   const { signMessageAsync } = useSignMessage()
   const { disconnect } = useDisconnect()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+
+  /** Errors that mean the panel's step is stale: re-resolve it from /api/me instead of dead-ending here. */
+  async function recover(code: string): Promise<boolean> {
+    if (code === 'UNAUTHORIZED') onExpired()
+    else if (code !== 'BAD_REQUEST') return false
+    await onDone()
+    return true
+  }
 
   async function sign() {
     if (!address) return
@@ -39,7 +56,8 @@ export function StepWallet({ handle, onDone }: { handle: string; onDone(): Promi
       const nonceRes = await fetch('/api/wallet/nonce', { credentials: 'same-origin', cache: 'no-store' })
       const nonceBody = (await nonceRes.json().catch(() => ({}))) as { nonce?: string; error?: string }
       if (!nonceRes.ok || !nonceBody.nonce) {
-        setErr(errorText(nonceBody.error ?? 'NETWORK'))
+        const code = nonceBody.error ?? 'NETWORK'
+        if (!(await recover(code))) setErr(errorText(code))
         return
       }
       let signature: string
@@ -51,7 +69,7 @@ export function StepWallet({ handle, onDone }: { handle: string; onDone(): Promi
       }
       const res = await post<{ wallet: string }>('/api/wallet', { address, signature, nonce: nonceBody.nonce })
       if (isError(res)) {
-        setErr(errorText(res.error))
+        if (!(await recover(res.error))) setErr(errorText(res.error))
         return
       }
       await onDone()
@@ -70,7 +88,7 @@ export function StepWallet({ handle, onDone }: { handle: string; onDone(): Promi
       </p>
       {!walletConfigured ? (
         <p className="notice notice-warn" role="alert">
-          Wallet connect is not configured on this site yet (NEXT_PUBLIC_REOWN_PROJECT_ID is missing).
+          Wallet connection isn&apos;t available right now. Please check back soon.
         </p>
       ) : isConnected && address ? (
         <div className="wallet-row">

@@ -1,4 +1,4 @@
-export type XStatus = 'denied' | 'error' | 'too_new'
+export type XStatus = 'denied' | 'error' | 'too_new' | 'expired'
 
 function message(status: XStatus, minAccountAgeDays: number): string {
   switch (status) {
@@ -6,6 +6,8 @@ function message(status: XStatus, minAccountAgeDays: number): string {
       return 'X sign-in was cancelled. Connect again whenever you are ready.'
     case 'error':
       return 'Something went wrong while signing in with X. Please try again.'
+    case 'expired':
+      return 'Your session expired. Connect X again to pick up where you left off.'
     case 'too_new':
       return `Your X account is too new to join. Accounts must be at least ${minAccountAgeDays} days old.`
   }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { ACTIVE_ART } from '../../art/slots'
 import { Sprite } from '../../art/Sprite'
 import { TASKS } from '../../domain/tasks'
@@ -64,7 +65,12 @@ function Identity({ state, onSignOut }: { state: EntrantState; onSignOut(): void
 
 export function WaitlistPanel(props: WaitlistPanelProps) {
   const { state, refresh } = useEntrant()
-  const xStatus = asXStatus(props.xStatus)
+  const [expired, setExpired] = useState(false)
+  const xStatus: XStatus | null = expired ? 'expired' : asXStatus(props.xStatus)
+
+  useEffect(() => {
+    if (state && state !== 'loading') setExpired(false)
+  }, [state])
 
   async function signOut() {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => undefined)
@@ -107,7 +113,7 @@ export function WaitlistPanel(props: WaitlistPanelProps) {
       {step === 'tasks' && state && (
         <StepTasks tasks={state.tasks} xHandle={props.xHandle} postId={props.postId} onDone={refresh} />
       )}
-      {step === 'wallet' && state && <StepWallet handle={state.handle} onDone={refresh} />}
+      {step === 'wallet' && state && <StepWallet handle={state.handle} onDone={refresh} onExpired={() => setExpired(true)} />}
       {step === 'join' && state && <StepJoin wallet={state.wallet!} onDone={refresh} />}
       {step === 'joined' && state && <Joined state={state} siteUrl={props.siteUrl} />}
     </Panel>
