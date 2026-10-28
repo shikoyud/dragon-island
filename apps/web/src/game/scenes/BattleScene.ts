@@ -23,14 +23,21 @@ export class BattleScene extends Phaser.Scene {
 
   create(): void {
     this.add.rectangle(0, 0, 480, 270, 0x0f1324).setOrigin(0, 0)
-    this.bridge.on('battle', e => {
+    const off = this.bridge.on('battle', e => {
+      if (!this.alive()) return
       if (!e.preview && this.scene.isActive()) this.scene.switch('island')
       this.render(e.preview)
     })
+    this.events.once(Phaser.Scenes.Events.DESTROY, off)
     this.render(this.bridge.battle)
   }
 
+  private alive(): boolean {
+    return Boolean(this.sys?.displayList) && this.sys.settings.status !== Phaser.Scenes.DESTROYED && this.sys.settings.status !== Phaser.Scenes.SHUTDOWN
+  }
+
   render(preview: BattlePreview | null): void {
+    if (!this.alive()) return
     for (const o of this.drawn) o.destroy()
     this.drawn = []
     this.shownLog = 0

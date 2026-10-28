@@ -32,9 +32,14 @@ export class IslandScene extends Phaser.Scene {
       playOrStill(spr, key, s.frames, s.fps, this.bridge.reducedMotion)
       this.layer.add(spr)
     })
-    this.bridge.on('state', () => this.sync())
-    // Switch to the battle scene while a battle is being built; come back when it is cleared.
-    this.bridge.on('battle', e => { if (e.preview) this.scene.switch('battle') })
+    // Bridge subscriptions must die with the scene: React StrictMode (and hot reload) destroys and
+    // recreates the game, and a destroyed scene drawing on a state event crashes Phaser.
+    const offs = [
+      this.bridge.on('state', () => this.sync()),
+      // Switch to the battle scene while a battle is being built; come back when it is cleared.
+      this.bridge.on('battle', e => { if (e.preview && this.alive()) this.scene.switch('battle') }),
+    ]
+    this.events.once(Phaser.Scenes.Events.DESTROY, () => offs.forEach(off => off()))
     this.time.addEvent({ delay: 1000, loop: true, callback: () => this.sync() })
     this.sync()
     this.bridge.emit({ type: 'ready' })
@@ -44,8 +49,14 @@ export class IslandScene extends Phaser.Scene {
     return this.bridge.art ?? FALLBACK_ART
   }
 
+  /** True while this scene can still own display objects. */
+  private alive(): boolean {
+    return Boolean(this.sys?.displayList) && this.sys.settings.status !== Phaser.Scenes.DESTROYED && this.sys.settings.status !== Phaser.Scenes.SHUTDOWN
+  }
+
   /** Rebuilds every dynamic object from the current state. */
   sync(): void {
+    if (!this.alive()) return
     for (const obj of this.drawn) obj.destroy()
     this.drawn = []
     const model = buildIslandModel(this.bridge.state, this.art(), this.catalog, this.bridge.nowMs)
