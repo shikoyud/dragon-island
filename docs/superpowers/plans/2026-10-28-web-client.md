@@ -91,14 +91,14 @@
 - Produces (`IslandScene`): renders from `bridge` state: one platform sprite per habitat with its element colour and `storedGold`-based coin badge (computed with `storedGold` from game-core and the bridge clock), one dragon sprite per resident at `dragonSlots`, eggs on nests with a countdown badge, hatchery eggs and waiting hatchlings, farm plots with crop stage (0–3 by elapsed fraction), the Hoard when `hoardLevel > 0`; pointer down → `bridge.emit({ type: 'select', target })`; hover → `hover`. Idle animations via `playOrStill`.
 - Produces (`GameCanvas.tsx`): mounts the game once, forwards `useMe().data.state` and `Date.now()` ticks (1 s) into the bridge, applies `prefers-reduced-motion`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
   - `habitatSlots(i, n)` for n ≤ 12 returns 12 distinct whole-pixel positions inside `BASE`; `dragonSlots(h, s, 7)` distinct for s < 7; `integerZoom(1920, 1080) === 4`, `(500, 280) === 1`, `(400, 200) === 1`
   - bridge: `on('select')` receives emitted events; `off` unsubscribes; `setState` triggers `on('state')`
   - HEADLESS Island scene with `newPlayer(0)` state: 2 habitat sprites, 2 dragon sprites, 1 empty nest marker, 0 hatchery eggs, 2 farm plots; a state with a waiting hatchling (`habitatId: null`) shows it at `hatcheryPos` with the `noRoom` badge; no two dragons share a position; simulating a pointer down on a habitat emits `{ type: 'select', target: { kind: 'habitat', id: 'h1' } }`
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(web): island scene with pixel-perfect layout and react bridge`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(web): island scene with pixel-perfect layout and react bridge`
 
 ### Task 4: Economy panels and the action hook
 

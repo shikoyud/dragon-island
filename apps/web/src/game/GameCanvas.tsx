@@ -1,0 +1,37 @@
+import { useEffect, useRef } from 'react'
+import type Phaser from 'phaser'
+import type { GameArtSet } from '../art/types'
+import { useMe } from '../state/me'
+import type { Bridge } from './bridge'
+import { createGame } from './config'
+
+/** Mounts the Phaser game once and streams state, time and motion preference into the bridge. */
+export function GameCanvas({ bridge, art }: { bridge: Bridge; art: GameArtSet }) {
+  const host = useRef<HTMLDivElement>(null)
+  const game = useRef<Phaser.Game | null>(null)
+  const me = useMe()
+
+  useEffect(() => {
+    if (!host.current || game.current) return
+    bridge.setArt(art)
+    bridge.setClock(Date.now())
+    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+    bridge.setReducedMotion(mq?.matches ?? false)
+    const onMq = (e: MediaQueryListEvent) => bridge.setReducedMotion(e.matches)
+    mq?.addEventListener?.('change', onMq)
+    game.current = createGame(host.current, bridge)
+    const tick = setInterval(() => bridge.setClock(Date.now()), 1000)
+    return () => {
+      clearInterval(tick)
+      mq?.removeEventListener?.('change', onMq)
+      game.current?.destroy(true)
+      game.current = null
+    }
+  }, [bridge, art])
+
+  useEffect(() => {
+    bridge.setState(me.data?.state ?? null)
+  }, [bridge, me.data?.state])
+
+  return <div ref={host} className="game-canvas" aria-hidden="true" style={{ width: '100%', height: '100%' }} />
+}
