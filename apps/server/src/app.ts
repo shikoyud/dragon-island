@@ -9,6 +9,8 @@ import { balances } from './db/schema'
 import { registerErrorHandler } from './plugins/errors'
 import { requireSession } from './plugins/session'
 import { authRoutes } from './routes/auth'
+import { seasonRoutes } from './routes/season'
+import { getSeasonInfo } from './services/season'
 
 /** Everything the server needs, injected so tests can swap the clock, chain and price. */
 export interface AppDeps {
@@ -25,6 +27,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   registerErrorHandler(app)
 
   authRoutes(app, deps)
+  seasonRoutes(app, deps)
 
   app.get('/me', { preHandler: requireSession(db, clock) }, async req => {
     const p = req.player!
@@ -36,6 +39,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
       balanceWei: (bal?.tokenWei ?? 0n).toString(),
       earningUnlocked: p.earningUnlocked,
       banned: p.bannedAt !== null,
+      season: await getSeasonInfo(db, clock),
     }
   })
 
