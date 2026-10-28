@@ -15,7 +15,7 @@ Success: a visitor can go from landing to a downloaded/posted card in under two 
 | X identity | Sign in with X (OAuth 2.0 + PKCE, scopes `users.read tweet.read`). Gives a real, unique handle and avatar. We never post or keep tokens after reading the profile. |
 | X tasks | **Honor-based.** Follow, like, repost, comment. Each task has Open (X intent link) and Confirm; Confirm unlocks 15 s after Open. The server records both times and rejects a confirm less than 15 s after its open. No X API reads of engagement. |
 | Wallet | Connect an EVM wallet and sign a plain message (no gas, no transaction). Server verifies the signature with viem. |
-| Art | Clean, non-illustrated style: bold type, the nine element colours, glowing egg shapes in SVG/CSS. All art goes through named slots (§6). |
+| Art | **Pixel art**, the same direction as the game. Static and animated sprites generated with PixelLab, a pixel display font, pixel UI frames. All art goes through named slots (§6) so final game assets replace the generated ones without code changes. |
 | Share card | Server-rendered PNG (1200×675). Download button plus "Post on X" intent with a link whose preview is the card. |
 | Referrals | Invite link `?ref=<code>`; the entrant's invite count is shown. No leaderboard, no rewards promised. |
 | Stack | Next.js (App Router) + React, Drizzle ORM + PostgreSQL (`pg` in prod, PGlite in tests, same as `apps/server`), viem, wagmi + Reown AppKit, `next/og` for the card. |
@@ -27,7 +27,7 @@ Honor-based tasks are easy to fake. The task timestamps are stored so that a lat
 One page, top to bottom:
 
 1. **Header**: wordmark, links to sections, X link, "Join" button.
-2. **Hero**: name, one-line pitch ("Breed dragons. Build your island. Battle for the season."), animated egg slot, primary CTA to the waitlist, live entrant count.
+2. **Hero**: name, one-line pitch ("Breed dragons. Build your island. Battle for the season."), animated pixel island scene with hatchlings, primary CTA to the waitlist, live entrant count.
 3. **Pillars**: four cards: Breed, Build, Battle, Seasons. Copy taken from the game spec in our own words.
 4. **Elements strip**: the nine elements with their colour and icon slot.
 5. **Waitlist module** (§4).
@@ -52,26 +52,39 @@ After joining: card preview, Download PNG, Post on X, Copy invite link, invite c
 ## 5. Share card
 
 - Endpoint `GET /api/card/:code.png`, rendered with `next/og`, cached by `code` + art version.
-- Content: wordmark, X avatar and @handle, `#<number>` on the waitlist, **starting element** (= `ELEMENTS[sha256(xUserId)[0] % 9]`), its colour theme and egg slot, site URL.
+- Content: wordmark, X avatar and @handle, `#<number>` on the waitlist, **starting element** (= `ELEMENTS[sha256(xUserId)[0] % 9]`), its colour theme, egg and hatchling sprites (frame 0), site URL. The pixel font is loaded into the renderer.
 - `/c/:code` is a public page with `og:image` / `twitter:card = summary_large_image` pointing at the PNG, so a posted link shows the card. It also offers "Join the waitlist" with `?ref=<code>`.
 - Post on X uses `https://x.com/intent/post?text=…&url=<site>/c/<code>`.
 
-## 6. Art slot system
+## 6. Art style and slot system
 
-`src/art/slots.ts` is the only place art is chosen:
+**Style.** Pixel art at a fixed base resolution, scaled by whole numbers with `image-rendering: pixelated`. Dark night-sky island palette, with the nine element colours as accents. Fonts: a pixel display font for headings and buttons, and a readable sans-serif font for body text. Both come from Google Fonts with OFL licences. UI panels and buttons use 9-slice pixel frames.
+
+**Assets (generated now, replaced later).** PixelLab produces:
+- one egg per element, static plus a 4–8 frame idle wobble;
+- one hatchling dragon per element, with an idle animation;
+- the hero scene: a floating island at night, with a looping animated layer (clouds or water);
+- nine element icons at 16×16 and 32×32;
+- UI frame and button tiles.
+
+Animations ship as horizontal sprite-sheet PNGs and are played with CSS `steps()`. Under reduced motion the first frame shows. Every asset is stored under `public/art/<artVersion>/` with a `manifest.json` (file, size, frames, fps). The prompt used for each asset is recorded in `apps/waitlist/art/prompts.md`. Prompts describe our own designs only. They never name another game or ask for its style (originality rule).
+
+**Slots.** `src/art/slots.ts` is the only place art is chosen:
 
 ```ts
 type Element = 'fire'|'water'|'earth'|'nature'|'electric'|'ice'|'metal'|'dark'|'light'
+interface Sprite { src: string; w: number; h: number; frames: number; fps: number }
 interface ArtSet {
-  version: string                                  // busts the card cache
-  hero: SlotRender                                 // hero visual
-  egg: (e: Element) => SlotRender                  // hero + card
-  elementIcon: (e: Element) => SlotRender          // strip + card badge
-  cardBackground: (e: Element) => SlotRender
+  version: string                          // busts the card cache
+  hero: { base: Sprite; layers: Sprite[] }
+  egg: Record<Element, Sprite>
+  hatchling: Record<Element, Sprite>
+  elementIcon: Record<Element, Sprite>
+  ui: { panel: Sprite; button: Sprite }
 }
 ```
 
-`SlotRender` is either a React component (placeholder SVG) or an image path in `public/art/`. The placeholder set is pure SVG/CSS. Swapping in real art = add files + a new `ArtSet` + flip `ACTIVE_ART`. Element colours live in one token file shared by the page and the card.
+To swap in real art: add a new folder, build its `ArtSet` from that folder's manifest and set `ACTIVE_ART`. The share card uses frame 0 of each sprite, scaled by whole numbers. Element colours live in one token file shared by the page and the card. If a sprite fails to load, a flat element-coloured block takes its place, so the page never breaks.
 
 ## 7. Data
 
