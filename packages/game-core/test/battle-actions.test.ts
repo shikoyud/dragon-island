@@ -19,13 +19,13 @@ const bot: OpponentSnapshot = { playerId: null, trophies: 0, level: 8, team: thr
 const human: OpponentSnapshot = { ...bot, playerId: 'p2' }
 const fireTeam = (level: number, speciesId = 'fire'): Dragon[] => TEAM.map(id => ({ id, speciesId, level, habitatId: 'h1' }))
 const s0 = newPlayer(0)
-const s8: PlayerState = { ...s0, level: 8, dragons: fireTeam(20) }
+const s8: PlayerState = { ...s0, level: 8, dragons: fireTeam(20), defenceTeam: TEAM }
 const weak: PlayerState = { ...s8, dragons: fireTeam(1) }
 // Stage 1 is fire-primary (160 hp) and stage 2 is ice (180 hp): water L30 and fire L30 one-shot them respectively.
 const sWater: PlayerState = { ...s8, dragons: fireTeam(30, 'water') }
 const pvp = (opponent: OpponentSnapshot, moves = AI, team = TEAM): Action => ({ type: 'pvpBattle', team, opponent, moves })
 const pve = (stage: number, moves = AI, team = TEAM): Action => ({ type: 'pveBattle', stage, team, moves })
-const MANY: PlayerMove[] = Array(300).fill({ move: 0, target: 0 })
+const MANY: PlayerMove[] = Array(90).fill({ move: 0, target: 0 })
 
 describe('dayCounterAt', () => {
   it('resets only when the day moves forward', () => {
@@ -52,7 +52,7 @@ describe('setDefenceTeam', () => {
 
 describe('pvpBattle', () => {
   it('needs player level 8 and a valid team', () => {
-    err(run({ ...s0, dragons: fireTeam(20) }, pvp(bot)), 'LEVEL_TOO_LOW')
+    err(run({ ...s0, dragons: fireTeam(20), defenceTeam: TEAM }, pvp(bot)), 'LEVEL_TOO_LOW')
     err(run(s8, pvp(bot, AI, ['d1', 'd2', 'dX'])), 'INVALID_TEAM')
     err(run(s8, pvp(bot, AI, ['d1', 'd1', 'd2'])), 'INVALID_TEAM')
   })
@@ -84,12 +84,6 @@ describe('pvpBattle', () => {
     expect(r.ok && r.effects).toEqual([{ type: 'defenceResult', playerId: 'p2', trophyDelta: 5 }])
     const a = ok(r)
     expect([a.trophies, a.xp, a.gold, a.pvp.count]).toEqual([0, 0, 1000, 1])
-  })
-
-  it('rejects bad move lists without counting the attempt', () => {
-    const r = run(s8, pvp(bot, [{ move: 0, target: 0 }]))
-    err(r, 'MISSING_MOVES')
-    err(run(s8, pvp(bot, [{ move: 0, target: 0 }, { move: 0, target: 0 }, { move: 0, target: 1 }])), 'ILLEGAL_MOVE')
   })
 
   it('enforces the daily attack cap monotonically', () => {

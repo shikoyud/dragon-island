@@ -24,7 +24,11 @@ export type Action =
   | { type: 'sellGold'; gold: number }
   | { type: 'buy'; item: StoreItem }
   | { type: 'setDefenceTeam'; dragonIds: TeamIds }
-  /** `opponent` is built by the server from the other player's saved state, never taken from the client. */
+  /**
+   * `opponent` is built by the server from a stored matchmaking offer, never taken
+   * from the client body (a client-chosen snapshot could pick a trivial bot or aim
+   * `defenceResult` at any player). The server must overwrite it before `applyAction`.
+   */
   | { type: 'pvpBattle'; team: TeamIds; opponent: OpponentSnapshot; moves: PlayerMove[] }
   | { type: 'pveBattle'; stage: number; team: TeamIds; moves: PlayerMove[] }
 
@@ -32,18 +36,19 @@ export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'I
   | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'NO_FREE_NEST' | 'NEST_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'
   | 'NO_HABITAT_SLOT' | 'HABITAT_LIMIT' | 'ELEMENT_MISMATCH' | 'MAX_PLOTS' | 'PLOT_BUSY' | 'PLOT_EMPTY'
   | 'MAX_NESTS' | 'LAST_DRAGONS' | 'EARNING_LOCKED' | 'NO_HOARD' | 'SELL_LIMIT_REACHED' | 'NOTHING_TO_SKIP'
-  | 'INVALID_TEAM' | 'ILLEGAL_MOVE' | 'MISSING_MOVES' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'
+  | 'INVALID_TEAM' | 'NO_DEFENCE_TEAM' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'
 
 /** Side effects the server settles after persisting the new state. */
 export type Effect =
   | { type: 'charge'; microUsd: number }
   | { type: 'payout'; microUsd: number }
-  /** Apply `trophyDelta` to the defending player (spec §11 defence win/loss). */
+  /** Apply to the defending player with `applyTrophies` (floor 0); spec §11 defence win/loss. */
   | { type: 'defenceResult'; playerId: string; trophyDelta: number }
 
 export type BattleReport = Extract<BattleOutcome, { ok: true }>
 
 export type ActionResult =
+  /** `battle` is absent when a battle was forfeited (short or illegal move list). */
   | { ok: true; state: PlayerState; effects: Effect[]; battle?: BattleReport }
   | { ok: false; error: ActionError }
 

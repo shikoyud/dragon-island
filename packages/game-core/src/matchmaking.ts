@@ -12,7 +12,11 @@ export interface OpponentSnapshot {
   team: readonly BattleDragonSpec[]
 }
 
-/** `teamLevel` = rounded mean level of the seeker's defence team (1 if none). */
+/**
+ * `teamLevel` = rounded mean level of the seeker's three highest-level dragons
+ * (server computes). Not the defence team: that is chosen by the seeker, so
+ * basing bot strength on it would let an empty or weak defence buy easy bots.
+ */
 export interface Seeker { trophies: number; level: number; teamLevel: number }
 
 export const MATCH_TROPHY_RANGE = 100
@@ -35,7 +39,10 @@ export function generateBot(seeker: Seeker, c: Catalog, rng: Rng): OpponentSnaps
   return { playerId: null, trophies, level: seeker.level, team: generateBotTeam(seeker.teamLevel, c, rng) }
 }
 
-/** Up to three eligible candidates chosen without replacement, then bots to fill. */
+/**
+ * Up to three eligible candidates chosen without replacement, then bots to fill.
+ * The server passes only other players who have a saved defence team, never the seeker.
+ */
 export function pickOpponents(seeker: Seeker, candidates: readonly OpponentSnapshot[], c: Catalog, rng: Rng): OpponentSnapshot[] {
   const eligible = candidates.filter(o =>
     Math.abs(o.trophies - seeker.trophies) <= MATCH_TROPHY_RANGE && Math.abs(o.level - seeker.level) <= MATCH_LEVEL_RANGE)

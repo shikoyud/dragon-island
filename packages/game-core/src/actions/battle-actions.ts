@@ -1,4 +1,4 @@
-import { simulateBattle, type BattleOutcome } from '../battle/sim'
+import { simulateBattle } from '../battle/sim'
 import type { BattleDragonSpec } from '../battle/stats'
 import { addXp } from '../progression'
 import {
@@ -9,7 +9,7 @@ import type { PlayerState } from '../state'
 import { dayCounterAt } from '../time'
 import { applyTrophies, pvpWinGold, TROPHY } from '../trophy'
 import { earnGold } from '../wallet'
-import { failure, success, type ActionError, type Handler, type TeamIds } from './types'
+import { failure, success, type BattleReport, type Handler, type TeamIds } from './types'
 
 export const PVP_WIN_XP = 20
 
@@ -30,18 +30,22 @@ export const setDefenceTeam: Handler<'setDefenceTeam'> = (s, a) => {
   return success({ ...s, defenceTeam: [...a.dragonIds] })
 }
 
-const simError = (o: Extract<BattleOutcome, { ok: false }>): ActionError => o.error
-
+/**
+ * Once a battle is valid to start, a short or illegal move list is a forfeit
+ * (counted attempt, loss), not a free cancel: otherwise a player could abandon
+ * any battle that goes badly and reroll until they win.
+ */
 export const pvpBattle: Handler<'pvpBattle'> = (s, a, ctx) => {
   if (s.level < PVP_MIN_PLAYER_LEVEL) return failure('LEVEL_TOO_LOW')
+  if (s.defenceTeam === null) return failure('NO_DEFENCE_TEAM')
   const team = resolveTeam(s, a.team)
   if (!team) return failure('INVALID_TEAM')
+  if (!a.opponent.team.every(d => ctx.catalog.species.has(d.speciesId))) return failure('NOT_FOUND')
   const pvp = dayCounterAt(s.pvp, ctx.nowMs)
   if (pvp.count >= PVP_ATTACKS_PER_DAY) return failure('DAILY_CAP_REACHED')
 
   const outcome = simulateBattle(team, a.opponent.team, a.moves, ctx.rng, ctx.catalog)
-  if (!outcome.ok) return failure(simError(outcome))
-  const won = outcome.winner === 'attacker'
+  const won = outcome.ok && outcome.winner === 'attacker'
 
   let next: PlayerState = { ...s, pvp: { ...pvp, count: pvp.count + 1 } }
   // League gold uses trophies before the battle, so a boundary-crossing win pays the old league.
@@ -53,7 +57,7 @@ export const pvpBattle: Handler<'pvpBattle'> = (s, a, ctx) => {
     playerId: a.opponent.playerId,
     trophyDelta: won ? TROPHY.defenceLoss : TROPHY.defenceWin,
   }]
-  return success(next, effects, outcome)
+  return success(next, effects, outcome.ok ? outcome : undefined)
 }
 
 export const pveBattle: Handler<'pveBattle'> = (s, a, ctx) => {
@@ -67,13 +71,13 @@ export const pveBattle: Handler<'pveBattle'> = (s, a, ctx) => {
   if (!firstClear && replays.count >= PVE_REPLAYS_PER_DAY) return failure('DAILY_CAP_REACHED')
 
   const outcome = simulateBattle(team, stageTeam(a.stage, ctx.catalog), a.moves, ctx.rng, ctx.catalog)
-  if (!outcome.ok) return failure(simError(outcome))
+  const report: BattleReport | undefined = outcome.ok ? outcome : undefined
 
   let next: PlayerState = firstClear ? s : { ...s, pve: { ...s.pve, replays: { ...replays, count: replays.count + 1 } } }
-  if (outcome.winner === 'attacker') {
+  if (outcome.ok && outcome.winner === 'attacker') {
     const reward = stageRewards(a.stage, firstClear)
     next = addXp(earnGold({ ...next, food: next.food + reward.food }, reward.gold, true), reward.xp)
     if (firstClear) next = { ...next, pve: { ...next.pve, cleared: a.stage } }
   }
-  return success(next, [], outcome)
+  return success(next, [], report)
 }
