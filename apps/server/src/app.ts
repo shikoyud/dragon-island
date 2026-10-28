@@ -14,6 +14,7 @@ import { seasonRoutes } from './routes/season'
 import type { ActionDeps } from './services/actions'
 import { ManualPriceSource, type PriceSource } from './services/price'
 import { getSeasonInfo } from './services/season'
+import { spForAction, spRoutes } from './services/sp'
 
 /** Everything the server needs, injected so tests can swap the clock, chain and price. */
 export interface AppDeps {
@@ -31,10 +32,14 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   deps.price ??= new ManualPriceSource(db)
   registerErrorHandler(app)
 
-  const actionDeps: ActionDeps = { db, clock, catalog: deps.catalog, price: deps.price }
+  const actionDeps: ActionDeps = {
+    db, clock, catalog: deps.catalog, price: deps.price,
+    awardSp: (tx, args) => spForAction(tx, args, clock),
+  }
   authRoutes(app, deps)
   seasonRoutes(app, deps)
   actionRoutes(app, deps, actionDeps)
+  spRoutes(app, deps)
 
   app.get('/me', { preHandler: requireSession(db, clock) }, async req => {
     const p = req.player!
