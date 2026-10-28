@@ -117,7 +117,7 @@ function test_TeamVestingLinear() public { /* deploy VestingWallet(team, uint64(
   - `setSigner(address)` — owner only; `SignerSet(address)`
   - Errors: `VoucherExpired, InvalidSignature, NothingToClaim, DailyCapExceeded`
 
-- [ ] **Step 1: Write failing tests** (fixture seeds the vault with `400_000_000e18`; helper `sign(pk, player, cumulative, deadline)` builds the digest with the vault's `eip712Domain()` and `vm.sign`)
+- [x] **Step 1: Write failing tests** (fixture seeds the vault with `400_000_000e18`; helper `sign(pk, player, cumulative, deadline)` builds the digest with the vault's `eip712Domain()` and `vm.sign`)
   - valid voucher `cumulative 1_000e18` → player +950e18, supply −25e18, `claimed == 1_000e18`, `paidToday == 1_000e18`, event
   - same voucher again → `NothingToClaim`; voucher with `cumulative 1_500e18` → pays gross 500e18 (net 475e18)
   - voucher signed by another key → `InvalidSignature`; voucher for `player` submitted by `other` → `InvalidSignature` (msg.sender is in the digest); `deadline = block.timestamp − 1` → `VoucherExpired`
@@ -127,10 +127,10 @@ function test_TeamVestingLinear() public { /* deploy VestingWallet(team, uint64(
   - after `setSigner(newSigner)` old-key vouchers → `InvalidSignature`; stranger calling `setSigner` → `OwnableUnauthorizedAccount`
   - paused → `EnforcedPause`
   - fuzz `testFuzz_ClaimSplitConserves(uint96 gross)`: `net + burned + kept == gross`
-- [ ] **Step 2: Run `forge test`** — expect FAIL
-- [ ] **Step 3: Implement `claim`, `_rollDay`, `remainingPayoutToday`, `setSigner`**
-- [ ] **Step 4: Run `forge test -vv` and `forge fmt --check`** — expect PASS
-- [ ] **Step 5: Commit** `feat(contracts): EIP-712 cumulative claims with 2% daily payout cap`
+- [x] **Step 2: Run `forge test`** — expect FAIL
+- [x] **Step 3: Implement `claim`, `_rollDay`, `remainingPayoutToday`, `setSigner`**
+- [x] **Step 4: Run `forge test -vv` and `forge fmt --check`** — expect PASS
+- [x] **Step 5: Commit** `feat(contracts): EIP-712 cumulative claims with 2% daily payout cap`
 
 ### Task 4: Operator burn, rotation, pause, and invariants
 

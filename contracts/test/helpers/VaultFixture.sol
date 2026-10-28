@@ -52,8 +52,15 @@ abstract contract VaultFixture is Test {
         view
         returns (bytes memory)
     {
+        bytes32 structHash = keccak256(abi.encode(target.CLAIM_TYPEHASH(), player, cumulative, deadline));
+        bytes32 digest = keccak256(abi.encodePacked(hex"1901", _domainSeparator(target), structHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
+        return abi.encodePacked(r, s, v);
+    }
+
+    function _domainSeparator(WyrmVault target) internal view returns (bytes32) {
         (, string memory name, string memory version, uint256 chainId, address verifying,,) = target.eip712Domain();
-        bytes32 domain = keccak256(
+        return keccak256(
             abi.encode(
                 keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
                 keccak256(bytes(name)),
@@ -62,10 +69,6 @@ abstract contract VaultFixture is Test {
                 verifying
             )
         );
-        bytes32 structHash = keccak256(abi.encode(target.CLAIM_TYPEHASH(), player, cumulative, deadline));
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domain, structHash));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
-        return abi.encodePacked(r, s, v);
     }
 }
 

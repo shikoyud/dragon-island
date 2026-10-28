@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -35,9 +36,18 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     uint256 public burnDailyLimit;
 
     mapping(address player => bool) public entered;
+    /// @dev Cumulative gross total already paid out per player; vouchers carry the new total.
+    mapping(address player => uint256) public claimed;
+
+    /// @dev Payout cap for the current UTC day, snapshotted from the balance at the day's first claim.
+    ///      `capDay` is stored 1-based (`utcDay + 1`) so the zero value never matches a real day.
+    uint256 public capDay;
+    uint256 public dayCap;
+    uint256 public paidToday;
 
     event Entered(address indexed player, uint256 paidWei);
     event Deposited(address indexed player, uint256 amount, uint256 credited, uint256 burned);
+    event Claimed(address indexed player, uint256 cumulative, uint256 gross, uint256 net, uint256 burned);
     event EntryFeeSet(uint256 weiAmount);
     event OperatorSet(address operator);
     event SignerSet(address signer);
@@ -50,6 +60,10 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     error InsufficientEntryFee(uint256 sent, uint256 required);
     error TreasuryTransferFailed();
     error NotOperator();
+    error VoucherExpired();
+    error InvalidSignature();
+    error NothingToClaim();
+    error DailyCapExceeded(uint256 remaining);
 
     modifier onlyOperator() {
         if (msg.sender != operator) revert NotOperator();
@@ -102,6 +116,39 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
         emit Deposited(msg.sender, amount, credited, burned);
     }
 
+    // ---------------------------------------------------------------- player: claims
+
+    /// @notice Withdraws `cumulative - claimed[msg.sender]` gross, authorised by the server's EIP-712 voucher.
+    ///         5% fee: 2.5% burned, 2.5% stays. At most 2% of the vault's balance leaves per UTC day;
+    ///         a claim over the cap reverts in full and can be retried the next day.
+    /// @dev Replay-safe by construction: a voucher's cumulative total can only be paid once, and the
+    ///      domain binds chain id and vault address. `deadline` limits how long a stale voucher lives.
+    function claim(uint256 cumulative, uint256 deadline, bytes calldata signature) external whenNotPaused nonReentrant {
+        if (block.timestamp > deadline) revert VoucherExpired();
+        bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(CLAIM_TYPEHASH, msg.sender, cumulative, deadline)));
+        if (ECDSA.recover(digest, signature) != signer) revert InvalidSignature();
+        uint256 already = claimed[msg.sender];
+        if (cumulative <= already) revert NothingToClaim();
+        uint256 gross = cumulative - already;
+
+        _rollDay();
+        uint256 remaining = dayCap - paidToday;
+        if (gross > remaining) revert DailyCapExceeded(remaining);
+
+        claimed[msg.sender] = cumulative;
+        paidToday += gross;
+        (uint256 net, uint256 burned,) = _split(gross, CLAIM_FEE_BPS, CLAIM_BURN_BPS);
+        if (burned > 0) token.burn(burned);
+        token.safeTransfer(msg.sender, net);
+        emit Claimed(msg.sender, cumulative, gross, net, burned);
+    }
+
+    /// @notice Gross amount that can still be claimed today (what the next claim would see).
+    function remainingPayoutToday() external view returns (uint256) {
+        if (_dayKey() != capDay) return token.balanceOf(address(this)) * PAYOUT_CAP_BPS / BPS;
+        return dayCap - paidToday;
+    }
+
     // ---------------------------------------------------------------- admin
 
     /// @notice The server's price job keeps the fee at roughly $1 of ETH; the owner can override.
@@ -143,6 +190,21 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     }
 
     // ---------------------------------------------------------------- internals
+
+    /// @dev Starts a new payout day on the first claim after 00:00 UTC.
+    function _rollDay() internal {
+        uint256 today = _dayKey();
+        if (today != capDay) {
+            capDay = today;
+            dayCap = token.balanceOf(address(this)) * PAYOUT_CAP_BPS / BPS;
+            paidToday = 0;
+        }
+    }
+
+    /// @dev 1-based UTC day index (block.timestamp only; block.number is unreliable on Orbit chains).
+    function _dayKey() internal view returns (uint256) {
+        return block.timestamp / 1 days + 1;
+    }
 
     /// @dev Floor division; dust from rounding stays in the vault via `net + burned + kept == amount`.
     function _split(uint256 amount, uint256 feeBps, uint256 burnBps)
