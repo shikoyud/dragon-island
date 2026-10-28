@@ -11,11 +11,17 @@ import type { Db } from './db/client'
 import { balances } from './db/schema'
 import { registerErrorHandler } from './plugins/errors'
 import { requireSession } from './plugins/session'
+import { runBurnBatch } from './jobs/burnBatch'
+import { expireVouchers } from './jobs/voucherExpiry'
 import { actionRoutes } from './routes/actions'
+import { adminRoutes, type JobRegistry } from './routes/admin'
 import { authRoutes } from './routes/auth'
 import { pvpRoutes } from './routes/pvp'
 import { withdrawRoutes } from './routes/withdraw'
 import type { WithdrawDeps } from './services/withdraw'
+import { requireActive } from './services/bans'
+import { runIndexer } from './services/indexer'
+import { ensureCurrentSeason } from './services/season'
 import { seasonRoutes } from './routes/season'
 import type { ActionDeps } from './services/actions'
 import { peekOfferOpponent, resolveOffer, settleDefence } from './services/battles'
@@ -32,6 +38,13 @@ export interface AppDeps {
   price?: PriceSource
   /** Defaults to a viem client when VAULT_ADDRESS is configured, else an in-memory fake (dev/tests). */
   chain?: ChainClient
+}
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    /** Named background jobs, run by the scheduler and by POST /admin/jobs/:name/run. */
+    jobs: JobRegistry
+  }
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
@@ -59,6 +72,18 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   spRoutes(app, deps)
   pvpRoutes(app, deps)
   withdrawRoutes(app, deps, withdrawDeps)
+
+  const chain = deps.chain
+  const jobs: JobRegistry = {
+    indexer: () => runIndexer({ db, chain, confirmations: config.CONFIRMATIONS, clock }),
+    voucherExpiry: () => expireVouchers({ db, clock }),
+    burnBatch: () => runBurnBatch({ db, chain, clock }),
+    season: () => ensureCurrentSeason(db, clock),
+  }
+  app.decorate('jobs', jobs)
+  adminRoutes(app, deps, jobs)
+
+  app.get('/health', async () => ({ ok: true }))
 
   app.get('/me', { preHandler: requireSession(db, clock) }, async req => {
     const p = req.player!

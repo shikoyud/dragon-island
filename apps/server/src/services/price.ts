@@ -1,10 +1,14 @@
 import { eq } from 'drizzle-orm'
-import type { Db } from '../db/client'
+import type { Db, Tx } from '../db/client'
 import { priceOverrides } from '../db/schema'
 
-/** Token price in micro-USD per whole token (1e18 wei); `null` when no price is known. */
+/**
+ * Token price in micro-USD per whole token (1e18 wei); `null` when no price is known.
+ * Callers inside a transaction pass it, so the lookup never runs on a second connection
+ * (which deadlocks on PGlite and can contend for row locks on Postgres).
+ */
 export interface PriceSource {
-  microUsdPerToken(): Promise<bigint | null>
+  microUsdPerToken(tx?: Db | Tx): Promise<bigint | null>
 }
 
 export class FixedPriceSource implements PriceSource {
@@ -17,8 +21,8 @@ export class FixedPriceSource implements PriceSource {
 /** Testnet: an admin-set price (no Uniswap pool yet). Phase 6 adds the 30-minute TWAP source. */
 export class ManualPriceSource implements PriceSource {
   constructor(private readonly db: Db) {}
-  async microUsdPerToken(): Promise<bigint | null> {
-    const [row] = await this.db.select().from(priceOverrides).where(eq(priceOverrides.id, 1))
+  async microUsdPerToken(tx?: Db | Tx): Promise<bigint | null> {
+    const [row] = await (tx ?? this.db).select().from(priceOverrides).where(eq(priceOverrides.id, 1))
     return row?.microUsdPerToken ?? null
   }
 }

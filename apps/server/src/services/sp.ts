@@ -6,6 +6,7 @@ import type { Clock } from '../clock'
 import type { Db, Tx } from '../db/client'
 import { actionLog, players, spLedger } from '../db/schema'
 import { requireSession } from '../plugins/session'
+import { requireActive } from './bans'
 import type { SpArgs } from './actions'
 import { ensureCurrentSeason } from './season'
 
@@ -108,7 +109,7 @@ export async function spForAction(tx: Tx, args: SpArgs, clock: Clock): Promise<{
 
 export function spRoutes(app: FastifyInstance, deps: AppDeps): void {
   const { db, clock } = deps
-  app.get('/sp', { preHandler: requireSession(db, clock) }, async req => {
+  app.get('/sp', { preHandler: [requireSession(db, clock), requireActive] }, async req => {
     const season = await ensureCurrentSeason(db, clock)
     const day = Math.floor(clock() / 86_400_000)
     const totals = await spTotals(db, req.player!.id, season.id, day)

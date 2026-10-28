@@ -98,11 +98,11 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
     } else {
       for (const effect of result.effects) {
         if (effect.type === 'charge') {
-          const price = await deps.price.microUsdPerToken()
+          const price = await deps.price.microUsdPerToken(tx)
           if (price === null) throw new AppError(503, 'PRICE_UNAVAILABLE')
           await charge(tx, playerId, usdToTokenWei(BigInt(effect.microUsd), price), day, `action:${action.type}`)
         } else if (effect.type === 'payout') {
-          const price = await deps.price.microUsdPerToken()
+          const price = await deps.price.microUsdPerToken(tx)
           if (price === null) throw new AppError(503, 'PRICE_UNAVAILABLE')
           await creditEarned(tx, playerId, usdToTokenWei(BigInt(effect.microUsd), price), 'payout')
         } else if (effect.type === 'defenceResult') {

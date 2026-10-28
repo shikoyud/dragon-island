@@ -69,9 +69,9 @@ export async function requestWithdrawal(deps: WithdrawDeps, playerId: string, gr
       .where(and(eq(vouchers.playerId, playerId), isNull(vouchers.claimedAt), isNull(vouchers.expiredAt)))
     if (open.length > 0) throw new AppError(409, 'VOUCHER_PENDING')
 
+    if (maxAllowed !== undefined && grossWei > maxAllowed) throw new AppError(422, 'WITHDRAW_LIMIT')
     const balance = await getBalance(tx, playerId)
     if (grossWei > balance.tokenWei) throw new AppError(402, 'INSUFFICIENT_TOKENS')
-    if (maxAllowed !== undefined && grossWei > maxAllowed) throw new AppError(422, 'WITHDRAW_LIMIT')
     const remaining = await chain.remainingPayoutToday()
     const perRequest = remaining * PER_PLAYER_CAP_BPS / BPS
     if (grossWei > remaining || grossWei > perRequest) throw new AppError(422, 'WITHDRAW_LIMIT')
