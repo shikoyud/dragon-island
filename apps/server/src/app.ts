@@ -10,8 +10,10 @@ import { registerErrorHandler } from './plugins/errors'
 import { requireSession } from './plugins/session'
 import { actionRoutes } from './routes/actions'
 import { authRoutes } from './routes/auth'
+import { pvpRoutes } from './routes/pvp'
 import { seasonRoutes } from './routes/season'
 import type { ActionDeps } from './services/actions'
+import { peekOfferOpponent, resolveOffer, settleDefence } from './services/battles'
 import { ManualPriceSource, type PriceSource } from './services/price'
 import { getSeasonInfo } from './services/season'
 import { spForAction, spRoutes } from './services/sp'
@@ -35,11 +37,13 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const actionDeps: ActionDeps = {
     db, clock, catalog: deps.catalog, price: deps.price,
     awardSp: (tx, args) => spForAction(tx, args, clock),
+    resolveOffer, settleDefence, peekOfferOpponent,
   }
   authRoutes(app, deps)
   seasonRoutes(app, deps)
   actionRoutes(app, deps, actionDeps)
   spRoutes(app, deps)
+  pvpRoutes(app, deps)
 
   app.get('/me', { preHandler: requireSession(db, clock) }, async req => {
     const p = req.player!

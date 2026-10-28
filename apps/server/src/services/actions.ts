@@ -11,7 +11,7 @@ import { charge, creditEarned } from './ledger'
 import type { PriceSource } from './price'
 import { usdToTokenWei } from './price'
 import { ensureCurrentSeason } from './season'
-import { actionSeed, secretFromHex } from './seed'
+import { actionSeed, battleSeed, secretFromHex } from './seed'
 import { migrateState } from './stateMigration'
 
 export interface ActionDeps {
@@ -21,6 +21,8 @@ export interface ActionDeps {
   price: PriceSource
   /** Task 6: turns a client offerId into the stored opponent and battle seed. */
   resolveOffer?: (tx: Tx, playerId: string, offerId: string, nowMs: number) => Promise<ResolvedOffer>
+  /** Task 6: who an offer is against, so both rows can be locked in id order. */
+  peekOfferOpponent?: (tx: Tx, offerId: string) => Promise<string | null>
   /** Task 6: applies a defenceResult effect to the other player. */
   settleDefence?: (tx: Tx, defenderPlayerId: string, trophyDelta: number, nowMs: number) => Promise<void>
   /** Task 5: season points for a successful action. */
@@ -47,6 +49,11 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
   const { db, clock } = deps
   const nowMs = clock()
   return db.transaction(async tx => {
+    // Deadlock avoidance: when a battle touches another player with a lower id, lock that row first.
+    if (request.action.type === 'pvpBattle' && deps.peekOfferOpponent) {
+      const other = await deps.peekOfferOpponent(tx, request.action.offerId)
+      if (other && other < playerId) await tx.select({ id: players.id }).from(players).where(eq(players.id, other)).for('update')
+    }
     const [player] = await tx.select().from(players).where(eq(players.id, playerId)).for('update')
     if (!player) throw new AppError(401, 'UNAUTHORIZED')
     if (player.bannedAt) throw new AppError(403, 'BANNED')
@@ -76,6 +83,8 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       offerRef = { playerId: offer.opponentPlayerId, offerId: client.offerId }
     } else {
       action = client
+      // Battles get their own seed, domain-separated from action seeds (spec §17).
+      if (client.type === 'pveBattle') seed32 = battleSeed(secret, `${playerId}:${nonce}`).seed32
     }
 
     const result = applyAction(state, action, nowMs, createRng(seed32), deps.catalog)
