@@ -172,7 +172,7 @@ expect([0, 1000, 1001, 1500, 2001].map(seasonResetTrophies)).toEqual([0, 1000, 1
   - `interface StageRewards { gold: number; food: number; xp: number }`
   - `stageRewards(stage: number, firstClear: boolean): StageRewards` — first clear `{ gold: 100·stage, food: 20·stage, xp: 15 }`; replay `{ gold: 25·stage, food: 0, xp: 0 }`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```ts
 expect([1, 27, 28, 30].map(stageLevel)).toEqual([3, 29, 30, 30])
@@ -185,10 +185,10 @@ expect(stageRewards(4, true)).toEqual({ gold: 400, food: 80, xp: 15 })
 expect(stageRewards(4, false)).toEqual({ gold: 100, food: 0, xp: 0 })
 ```
 
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement `pve.ts`**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): pve campaign stages and rewards`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement `pve.ts`**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): pve campaign stages and rewards`
 
 ### Task 6: Battle state, actions, validation and public API
 
