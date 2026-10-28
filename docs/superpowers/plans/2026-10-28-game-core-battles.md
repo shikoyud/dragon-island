@@ -50,7 +50,7 @@
   - `movesFor(sp: Species): BattleMove[]` — one per element in species order, `name` = element, `powerPct: 100`; then `{ name: 'Strike', element: 'neutral', powerPct: 80 }` when `sp.elements.length === 1`
   - `damage(atk: number, move: BattleMove, defender: Species, rng: Rng): { amount: number; multiplier: 2 | 1 | 0.5 }` — one `rng.next()` call
 
-- [ ] **Step 1: Write failing tests** (fixture catalog from Phase 1; add species `nature` (pure common) and `fn-rare` (`['fire','nature']`, rare) to `test/fixtures.ts`)
+- [x] **Step 1: Write failing tests** (fixture catalog from Phase 1; add species `nature` (pure common) and `fn-rare` (`['fire','nature']`, rare) to `test/fixtures.ts`)
 
 ```ts
 expect(combatStats({ speciesId: 'fire', level: 10 }, C)).toEqual({ hp: 300, atk: 40, spd: 60 })
@@ -63,10 +63,10 @@ expect(movesFor(getSpecies(C, 'fw-rare')).map(m => m.name)).toEqual(['fire', 'wa
 // damage(…, createRng(5)) twice gives equal results
 ```
 
-- [ ] **Step 2: Run `pnpm --filter @wyrmhaven/game-core test`** — expect FAIL (module missing)
-- [ ] **Step 3: Implement `stats.ts`**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): combat stats, move lists and damage roll`
+- [x] **Step 2: Run `pnpm --filter @wyrmhaven/game-core test`** — expect FAIL (module missing)
+- [x] **Step 3: Implement `stats.ts`**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): combat stats, move lists and damage roll`
 
 ### Task 2: Battle simulation and defender AI
 
