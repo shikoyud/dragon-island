@@ -184,15 +184,15 @@
 - Create: `apps/web/playwright.config.ts` (webServer: server on PGlite with `FakeChainClient` via `E2E=1` env + Vite with `VITE_TEST_WALLET=1`), `apps/web/e2e/helpers.ts` (fresh PGlite dir per run, test account = anvil key 0), `e2e/signin.spec.ts`, `e2e/breed.spec.ts`, `e2e/battle.spec.ts`, `e2e/deposit-withdraw.spec.ts`
 - Modify: `apps/server/src/index.ts` (`E2E=1` → in-memory PGlite, `FakeChainClient` with `remainingPayout` seeded, `FixedPriceSource`, and a `POST /e2e/grant` route that credits tokens and sets `earningUnlocked`, registered only under `E2E=1`)
 
-- [ ] **Step 1: Write the specs** (they fail until wired)
+- [x] **Step 1: Write the specs** (they fail until wired)
   - sign-in: open `/`, click Connect (mock wallet auto-connects), Sign in → ResourcesBar shows "1,000 gold"
   - breed: feed d1 and d2 to level 4 via the panels (food granted by `/e2e/grant`), open Breed, pick both, see "50.00%" rows, Breed → nest shows a 15 s timer; advance by waiting (server clock is real; the tutorial egg is 15 s) → Collect → hatchery timer 15 s → Hatch → a third dragon appears in the Island scene (DOM count of dragon markers = 3)
   - battle: grant level 8 and three level-20 water dragons via `/e2e/grant`, set defence team, open PvP → 3 offers → Fight a bot → choose 3 moves → Submit → result shows "+30 trophies"
   - deposit/withdraw: `/e2e/grant` tokens; Withdraw 1 token → voucher card with a deadline; `/withdraw/pending` shows it; (on-chain Deposit/Claim run only when `E2E_RPC_URL` and contract addresses are set, against a local anvil with the Phase 3 deployment; otherwise `test.skip` with the reason)
-- [ ] **Step 2: Run `pnpm --filter @wyrmhaven/web test:e2e`** — expect FAIL
-- [ ] **Step 3: Implement the E2E server mode and fix what the flows reveal**
-- [ ] **Step 4: Run e2e** — expect PASS (deposit/claim skipped without anvil, stated in the output)
-- [ ] **Step 5: Commit** `test(web): playwright smoke for sign-in, breed, battle, withdraw`
+- [x] **Step 2: Run `pnpm --filter @wyrmhaven/web test:e2e`** — expect FAIL
+- [x] **Step 3: Implement the E2E server mode and fix what the flows reveal**
+- [x] **Step 4: Run e2e** — expect PASS (deposit/claim skipped without anvil, stated in the output)
+- [x] **Step 5: Commit** `test(web): playwright smoke for sign-in, breed, battle, withdraw`
 
 ### Task 8: Pixel art with PixelLab (requires the `pixellab` MCP tools)
 

@@ -57,3 +57,13 @@ canvas, .sprite, img.pixel { image-rendering: pixelated; image-rendering: crisp-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }
+
+.shell { display: flex; flex-direction: column; min-height: 100%; }
+.shell__header { display: flex; gap: 16px; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 2px solid var(--border); flex-wrap: wrap; }
+.shell__welcome { padding: 32px 16px; text-align: center; }
+.shell__main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 12px; padding: 12px; flex: 1; min-height: 0; }
+.shell__canvas { background: #000; display: flex; align-items: center; justify-content: center; min-height: 270px; }
+.shell__side { display: flex; flex-direction: column; gap: 8px; min-width: 0; overflow: auto; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; }
+.shell[data-layout="sheet"] .shell__main { grid-template-columns: 1fr; }
+@media (max-width: 899px) { .shell__main { grid-template-columns: 1fr; } }

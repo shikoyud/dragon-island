@@ -24,6 +24,8 @@ const schema = z.object({
   INDEXER_START_BLOCK: z.coerce.bigint().nonnegative().default(0n),
   INDEXER_CHUNK: z.coerce.bigint().positive().default(2_000n),
   ADMIN_TOKEN: z.string().min(1),
+  /** 1 = Playwright mode: in-memory PGlite, fake chain, fixed price, POST /e2e/grant. Never in production. */
+  E2E: z.enum(['0', '1']).default('0'),
   CATALOG: z.enum(['launch']).default('launch'),
 })
 

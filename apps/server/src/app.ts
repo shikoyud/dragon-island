@@ -15,6 +15,7 @@ import { runBurnBatch } from './jobs/burnBatch'
 import { expireVouchers } from './jobs/voucherExpiry'
 import { actionRoutes } from './routes/actions'
 import { adminRoutes, type JobRegistry } from './routes/admin'
+import { e2eRoutes } from './routes/e2e'
 import { authRoutes } from './routes/auth'
 import { pvpRoutes } from './routes/pvp'
 import { withdrawRoutes } from './routes/withdraw'
@@ -86,6 +87,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   adminRoutes(app, deps, jobs)
 
   app.get('/health', async () => ({ ok: true }))
+  if (config.E2E === '1') e2eRoutes(app, deps)
 
   app.get('/me', { preHandler: requireSession(db, clock) }, async req => {
     const p = req.player!
