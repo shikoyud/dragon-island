@@ -1,5 +1,5 @@
 import type { Element } from './elements'
-import { utcDay } from './time'
+import { utcDay, type DayCounter } from './time'
 
 export type CropId = 'sprout' | 'bushel' | 'harvest' | 'bounty'
 
@@ -30,6 +30,12 @@ export interface PlayerState {
   ledger: { depositedMicroUsd: number; withdrawnMicroUsd: number; soldMicroUsd: number }
   tutorial: { breedDone: boolean; hatchDone: boolean }
   nextId: number
+  /** Saved 3-dragon team other players attack; cleared if a member is sold. */
+  defenceTeam: [string, string, string] | null
+  trophies: number
+  /** PvP attacks today. */
+  pvp: DayCounter
+  pve: { cleared: number; replays: DayCounter }
 }
 
 export const HATCHERY_SLOTS = 3
@@ -53,5 +59,9 @@ export function newPlayer(nowMs: number): PlayerState {
     ledger: { depositedMicroUsd: 0, withdrawnMicroUsd: 0, soldMicroUsd: 0 },
     tutorial: { breedDone: false, hatchDone: false },
     nextId: 3,
+    defenceTeam: null,
+    trophies: 0,
+    pvp: { day: utcDay(nowMs), count: 0 },
+    pve: { cleared: 0, replays: { day: utcDay(nowMs), count: 0 } },
   }
 }

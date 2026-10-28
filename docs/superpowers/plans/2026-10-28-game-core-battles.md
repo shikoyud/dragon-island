@@ -214,7 +214,7 @@ expect(stageRewards(4, false)).toEqual({ gold: 100, food: 0, xp: 0 })
   - `pveBattle`: `LEVEL_TOO_LOW` below 5; `NOT_FOUND` when stage ∉ 1..30; `STAGE_LOCKED` when `stage > cleared + 1`; `INVALID_TEAM`; replay (`stage <= cleared`) → `DAILY_CAP_REACHED` when `replays.count >= 10`. Defender team = `stageTeam(stage)`. On a win: `stageRewards(stage, firstClear)` → `earnGold(eligible)`, `food +`, `addXp`; first clear sets `cleared = stage`; a replay increments `pve.replays.count` whether it was won or lost. A lost first-clear attempt changes nothing but still returns `battle`.
   - `validate.ts`: `dragonIds`/`team` are arrays of 3 strings; `moves` is an array of `{ move, target }` of non-negative integers; `opponent` has `playerId: string | null`, integer `trophies`/`level`, and `team` of 3 `{ speciesId: string, level: integer }`; `stage` is an integer.
 
-- [ ] **Step 1: Write failing tests** (`s8` = `newPlayer(0)` with `level: 8`, three fire dragons `d1 d2 d3` at level 10 in `h1`; `bot = { playerId: null, trophies: 0, level: 8, team: three('nature', 1) }`; `human = { ...bot, playerId: 'p2' }`; `AI = Array(400).fill({ move: 0, target: 0 })`; run with `createRng(1)` and `FIXTURE_CATALOG`)
+- [x] **Step 1: Write failing tests** (`s8` = `newPlayer(0)` with `level: 8`, three fire dragons `d1 d2 d3` at level 10 in `h1`; `bot = { playerId: null, trophies: 0, level: 8, team: three('nature', 1) }`; `human = { ...bot, playerId: 'p2' }`; `AI = Array(400).fill({ move: 0, target: 0 })`; run with `createRng(1)` and `FIXTURE_CATALOG`)
   - `newPlayer(0)` expectation in `state.test.ts` gains the new fields; `dayCounterAt({ day: 2, count: 5 }, 1 * MS_PER_DAY)` → unchanged; at `3 * MS_PER_DAY` → `{ day: 3, count: 0 }`
   - `setDefenceTeam ['d1','d2','d3']` → stored; `['d1','d1','d2']` → `INVALID_TEAM`; `['d1','d2','dX']` → `INVALID_TEAM`; after `sellDragon d3` the team is `null`
   - `pvpBattle` on `newPlayer(0)` → `LEVEL_TOO_LOW`; `s8` vs `bot` with `AI` → ok, `winner: 'attacker'`, `trophies: 30`, `gold: 1000` (Bronze pays 0), `eligibleGold: 0`, `xp: 20`, `pvp.count: 1`, `effects: []`
@@ -229,10 +229,10 @@ expect(stageRewards(4, false)).toEqual({ gold: 100, food: 0, xp: 0 })
   - stage 1 lost (level-1 team vs level-3 stage team with `fw-legend` fixtures excluded — use team `three('fire', 1)` vs stage 30) → state unchanged except nothing, `battle.winner: 'defender'`, `cleared: 0`
   - malformed: `moves: [{ move: '0', target: 0 }]`, `team: ['d1','d2']`, `opponent.team` of 2, `stage: 1.5` → `INVALID_ACTION`
   - `battle-replay.test.ts`: `s8` runs `pvpBattle` vs `human` then `pveBattle` stage 1 twice with a fresh `createRng(77)` per run; the final states, effects and battle logs are `toEqual`
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement** `dayCounterAt`, state fields, `battle-actions.ts`, validation, dispatch, `sellDragon` change, `index.ts` exports (`src/battle/*`, `trophy`, `matchmaking`, `pve`, new types)
-- [ ] **Step 4: Run the full suite and `pnpm -r typecheck`** — expect all PASS (Phase 1 tests unchanged except `state.test.ts`)
-- [ ] **Step 5: Commit** `feat(game-core): defence team, pvp and pve battle actions`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement** `dayCounterAt`, state fields, `battle-actions.ts`, validation, dispatch, `sellDragon` change, `index.ts` exports (`src/battle/*`, `trophy`, `matchmaking`, `pve`, new types)
+- [x] **Step 4: Run the full suite and `pnpm -r typecheck`** — expect all PASS (Phase 1 tests unchanged except `state.test.ts`)
+- [x] **Step 5: Commit** `feat(game-core): defence team, pvp and pve battle actions`
 
 ---
 

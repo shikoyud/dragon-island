@@ -81,5 +81,6 @@ export const sellDragon: Handler<'sellDragon'> = (s, a, ctx) => {
   if (s.dragons.length <= 2) return failure('LAST_DRAGONS')
   const gold = RARITY[getSpecies(ctx.catalog, d.speciesId).rarity].sellGold
   const collected = collectDragonHome(s, d.id, ctx.catalog, ctx.nowMs)
-  return success(earnGold({ ...collected, dragons: collected.dragons.filter(x => x.id !== d.id) }, gold, false))
+  const defenceTeam = s.defenceTeam?.includes(d.id) ? null : s.defenceTeam
+  return success(earnGold({ ...collected, defenceTeam, dragons: collected.dragons.filter(x => x.id !== d.id) }, gold, false))
 }

@@ -2,6 +2,7 @@ import type { Catalog } from '../catalog'
 import { LAUNCH_CATALOG } from '../data/launch-catalog'
 import type { Rng } from '../rng'
 import type { PlayerState } from '../state'
+import { pveBattle, pvpBattle, setDefenceTeam } from './battle-actions'
 import { collectEgg, hatch, startBreed } from './breed-actions'
 import { buy, sellGold } from './economy-actions'
 import { buyFarmPlot, harvest, plant } from './farm-actions'
@@ -30,5 +31,8 @@ export function applyAction(
     case 'hatch': return hatch(s, a, ctx)
     case 'sellGold': return sellGold(s, a, ctx)
     case 'buy': return buy(s, a, ctx)
+    case 'setDefenceTeam': return setDefenceTeam(s, a, ctx)
+    case 'pvpBattle': return pvpBattle(s, a, ctx)
+    case 'pveBattle': return pveBattle(s, a, ctx)
   }
 }

@@ -37,6 +37,12 @@ export function isValidAction(a: unknown): a is Action {
       return typeof x['gold'] === 'number'
     case 'buy':
       return isStoreItem(x['item'])
+    case 'setDefenceTeam':
+      return isTeam(x['dragonIds'])
+    case 'pvpBattle':
+      return isTeam(x['team']) && isOpponent(x['opponent']) && isMoves(x['moves'])
+    case 'pveBattle':
+      return Number.isInteger(x['stage']) && isTeam(x['team']) && isMoves(x['moves'])
     default:
       return false
   }
@@ -44,6 +50,20 @@ export function isValidAction(a: unknown): a is Action {
 
 const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0
 const isIndex = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0
+const isTeam = (v: unknown): boolean => Array.isArray(v) && v.length === 3 && v.every(isId)
+const isMoves = (v: unknown): boolean => Array.isArray(v) && v.every(m =>
+  typeof m === 'object' && m !== null && isIndex((m as Record<string, unknown>)['move']) && isIndex((m as Record<string, unknown>)['target']))
+
+function isOpponent(v: unknown): boolean {
+  if (typeof v !== 'object' || v === null) return false
+  const o = v as Record<string, unknown>
+  const team = o['team']
+  return (o['playerId'] === null || isId(o['playerId']))
+    && Number.isInteger(o['trophies']) && Number.isInteger(o['level'])
+    && Array.isArray(team) && team.length === 3
+    && team.every(d => typeof d === 'object' && d !== null
+      && isId((d as Record<string, unknown>)['speciesId']) && isIndex((d as Record<string, unknown>)['level']))
+}
 
 function isStoreItem(v: unknown): boolean {
   if (typeof v !== 'object' || v === null) return false
