@@ -232,17 +232,17 @@ expect(s).toEqual(newPlayer(0))                         // inputs not mutated
 - Produces (`habitat.ts`): `HABITAT_LEVELS: readonly { cap: number; slots: number; upgradeCost: number | null }[]` (index = level − 1; spec §7 table); `canLiveIn(sp: Species, h: Habitat): boolean`; `residents(s: PlayerState, habitatId: string): Dragon[]`; `storedGold(h: Habitat, residents: readonly Dragon[], c: Catalog, nowMs: number): number` — `min(cap, floor(max(0, now − last) / 60_000) × Σ goldPerMinute)`; `habitatBuildCost(s: PlayerState, e: Element): number` = 500 × 2^(owned of e); `maxHabitats(playerLevel: number): number` = 2 + floor(L / 5)
 - Produces (`farm.ts`): `CROPS: Record<CropId, { growMs: number; cost: number; food: number }>` (sprout 60_000/20/10, bushel 1_800_000/200/150, harvest 14_400_000/1_000/900, bounty 43_200_000/2_500/3_000); `MAX_PLOTS = 6`; `plotCost(currentPlots: number): number` = 500 × 2^(currentPlots − 2)
 
-- [ ] **Step 1: Write failing tests** (fixture catalog; `s = newPlayer(0)`, `h1 = s.habitats[0]`)
+- [x] **Step 1: Write failing tests** (fixture catalog; `s = newPlayer(0)`, `h1 = s.habitats[0]`)
   - `storedGold(h1, residents(s,'h1'), FIXTURE_CATALOG, 600_000) === 20`; at `300 × 60_000` → 500 (cap); at `90_000` → 2; with `lastCollectedMs: 600_000` and now `300_000` → 0
   - `canLiveIn(fw-common, water habitat)` true; `canLiveIn(fire, water habitat)` false
   - `habitatBuildCost(s, 'earth') === 500`; `habitatBuildCost(s, 'fire') === 1000`
   - `[1, 4, 5, 50].map(maxHabitats)` → `[2, 2, 3, 12]`
   - `HABITAT_LEVELS[4]` → `{ cap: 120_000, slots: 7, upgradeCost: null }`
   - `[2, 3, 5].map(plotCost)` → `[500, 1000, 4000]`
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement `habitat.ts` and `farm.ts`**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): habitat income and farm rules`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement `habitat.ts` and `farm.ts`**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): habitat income and farm rules`
 
 ### Task 6: Sell-back limits and store pricing
 
