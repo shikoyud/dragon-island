@@ -46,14 +46,14 @@
 - Produces (`wallet/SignIn.tsx`): Connect (AppKit modal) → "Sign in" builds a SIWE message with `createSiweMessage` (domain = `location.host`, uri = `location.origin`, chainId 46630, nonce from `/auth/nonce`, issuedAt now) → `signMessage` → `verify` → session stored → `/me` loaded. Shows wrong-network and rejected-signature states.
 - Produces (`state/me.ts`): `useMe()` (Query `['me']`), `applyStateFromResponse(qc, state)`.
 
-- [ ] **Step 1: Write failing tests** (`fetchImpl` stub)
+- [x] **Step 1: Write failing tests** (`fetchImpl` stub)
   - `createApi` posts `/actions` with `{ action, idempotencyKey }` and a `Bearer` header, parses `balanceWei` on `/me` to `bigint`, throws `ApiError{ status: 422, code: 'PLOT_BUSY' }` on `{ error }` bodies, and calls `onUnauthorized` exactly once for two concurrent 401s.
   - `messageFor('INSUFFICIENT_GOLD')` is a sentence; `messageFor('WHATEVER')` returns `'WHATEVER'`.
   - `<SignIn>` with a mocked wagmi provider (connected mock account): clicking Sign in requests `/auth/nonce`, signs a message containing `Chain ID: 46630` and the nonce, posts `/auth/verify`, stores the token, and renders the address; a `signMessage` rejection shows "Signature rejected".
-- [ ] **Step 2: Run `pnpm --filter @wyrmhaven/web test`** — expect FAIL
-- [ ] **Step 3: Implement** (and `pnpm install` the dependencies above)
-- [ ] **Step 4: Run tests and `pnpm -r typecheck`** — expect PASS
-- [ ] **Step 5: Commit** `feat(web): vite scaffold, typed api client, siwe sign-in`
+- [x] **Step 2: Run `pnpm --filter @wyrmhaven/web test`** — expect FAIL
+- [x] **Step 3: Implement** (and `pnpm install` the dependencies above)
+- [x] **Step 4: Run tests and `pnpm -r typecheck`** — expect PASS
+- [x] **Step 5: Commit** `feat(web): vite scaffold, typed api client, siwe sign-in`
 
 ### Task 2: Art slots, manifest loader and pixel fallbacks
 

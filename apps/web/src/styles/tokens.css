@@ -1,0 +1,59 @@
+/* Shared with the waitlist site: same element palette, same fonts, same pixel rules. */
+:root {
+  --el-fire: #e4572e;
+  --el-water: #3a86c8;
+  --el-earth: #a0683b;
+  --el-nature: #4caf50;
+  --el-electric: #f4d03f;
+  --el-ice: #9ad7f0;
+  --el-metal: #9aa5b1;
+  --el-dark: #5b4b8a;
+  --el-light: #f7f0c8;
+
+  --bg: #0f1324;
+  --bg-panel: #1b2140;
+  --bg-panel-2: #232b52;
+  --border: #3b4680;
+  --text: #f2f1ea;
+  --text-muted: #a6abc9;
+  --accent: #f4d03f;
+  --danger: #e4572e;
+  --ok: #4caf50;
+
+  --font-display: 'Silkscreen', 'Courier New', monospace;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --px: 1px;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.4;
+}
+h1, h2, h3, .btn, .pixel { font-family: var(--font-display); letter-spacing: 0.5px; }
+canvas, .sprite, img.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+.btn {
+  background: var(--bg-panel-2);
+  color: var(--text);
+  border: 2px solid var(--border);
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn--ghost { background: transparent; }
+.btn--primary { background: var(--accent); color: #1b1300; border-color: #b89a1a; }
+.btn--danger { background: var(--danger); border-color: #9a3a1e; }
+
+.signin { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.signin__address { font-family: var(--font-display); font-size: 12px; }
+.signin__error { color: var(--danger); margin: 0; width: 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
