@@ -45,9 +45,14 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     uint256 public dayCap;
     uint256 public paidToday;
 
+    /// @dev Operator burn tracking for the current UTC day (same 1-based key as `capDay`).
+    uint256 public burnDay;
+    uint256 public burnedToday;
+
     event Entered(address indexed player, uint256 paidWei);
     event Deposited(address indexed player, uint256 amount, uint256 credited, uint256 burned);
     event Claimed(address indexed player, uint256 cumulative, uint256 gross, uint256 net, uint256 burned);
+    event OperatorBurn(uint256 amount, uint256 burnedToday);
     event EntryFeeSet(uint256 weiAmount);
     event OperatorSet(address operator);
     event SignerSet(address signer);
@@ -64,6 +69,7 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     error InvalidSignature();
     error NothingToClaim();
     error DailyCapExceeded(uint256 remaining);
+    error BurnLimitExceeded(uint256 remaining);
 
     modifier onlyOperator() {
         if (msg.sender != operator) revert NotOperator();
@@ -147,6 +153,30 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     function remainingPayoutToday() external view returns (uint256) {
         if (_dayKey() != capDay) return token.balanceOf(address(this)) * PAYOUT_CAP_BPS / BPS;
         return dayCap - paidToday;
+    }
+
+    // ---------------------------------------------------------------- operator: spend burn batch
+
+    /// @notice Burns the burn share of off-chain spend (spec §13: 50% of spend, batched daily).
+    ///         Bounded per UTC day so a compromised operator key can destroy at most `burnDailyLimit`.
+    function burn(uint256 amount) external onlyOperator whenNotPaused {
+        if (amount == 0) revert ZeroAmount();
+        uint256 today = _dayKey();
+        if (today != burnDay) {
+            burnDay = today;
+            burnedToday = 0;
+        }
+        uint256 remaining = burnDailyLimit - burnedToday;
+        if (amount > remaining) revert BurnLimitExceeded(remaining);
+        burnedToday += amount;
+        token.burn(amount);
+        emit OperatorBurn(amount, burnedToday);
+    }
+
+    /// @notice Operator burn allowance left today.
+    function remainingBurnToday() external view returns (uint256) {
+        if (_dayKey() != burnDay) return burnDailyLimit;
+        return burnDailyLimit - burnedToday;
     }
 
     // ---------------------------------------------------------------- admin

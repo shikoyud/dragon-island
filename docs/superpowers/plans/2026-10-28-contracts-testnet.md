@@ -147,7 +147,7 @@ function test_TeamVestingLinear() public { /* deploy VestingWallet(team, uint64(
   - `modifier onlyOperator` → `NotOperator()`; `modifier onlyOwnerOrOperator`
   - Errors: `BurnLimitExceeded`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
   - admin: `burn` by operator within limit burns and emits; over limit → `BurnLimitExceeded(remaining)`; next UTC day resets; stranger → `NotOperator`; owner (not operator) → `NotOperator`
   - rotation: `setOperator(new)` by owner; old operator `burn` → `NotOperator`; `Ownable2Step`: `transferOwnership(newSafe)` then `acceptOwnership` from `newSafe`; stranger on any setter → `OwnableUnauthorizedAccount`
   - pause: operator `pause()` ok, operator `unpause()` → `OwnableUnauthorizedAccount`; owner `unpause()` ok; while paused `enter`/`deposit`/`claim`/`burn` revert `EnforcedPause`, setters still work
@@ -157,10 +157,10 @@ function test_TeamVestingLinear() public { /* deploy VestingWallet(team, uint64(
     - `token.balanceOf(vault) + Σ actor balances + launchBalance + teamBalance + ghostBurned == TOTAL_SUPPLY`
     - `paidToday <= dayCap`; `burnedToday <= burnDailyLimit`
     - for every actor `claimed[actor] == ghostCumulative[actor]` and never decreases
-- [ ] **Step 2: Run `forge test`** — expect FAIL
-- [ ] **Step 3: Implement burn, setters, pause rules, modifiers; write the handler**
-- [ ] **Step 4: Run `forge test -vv` and `forge fmt --check`** — expect PASS (invariants green over 64 runs × depth 32)
-- [ ] **Step 5: Commit** `feat(contracts): operator burn limit, key rotation, pause, invariant tests`
+- [x] **Step 2: Run `forge test`** — expect FAIL
+- [x] **Step 3: Implement burn, setters, pause rules, modifiers; write the handler**
+- [x] **Step 4: Run `forge test -vv` and `forge fmt --check`** — expect PASS (invariants green over 64 runs × depth 32)
+- [x] **Step 5: Commit** `feat(contracts): operator burn limit, key rotation, pause, invariant tests`
 
 ### Task 5: Deploy script, local dry run, documentation
 
