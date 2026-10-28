@@ -55,6 +55,19 @@ rh_mainnet = "${RH_MAINNET_RPC}"
 ```
 Deploy: `forge script script/Deploy.s.sol --rpc-url rh_testnet --broadcast` (key via `--account` keystore, never a plaintext key in `.env` committed to git).
 
+## Deployed addresses (testnet 46630)
+
+Deployed with `contracts/script/Deploy.s.sol` (see `contracts/README.md`). **TBD until the first testnet deployment.**
+
+| Contract | Address | Verified |
+|---|---|---|
+| WyrmToken | TBD | |
+| WyrmVault | TBD | |
+| Team VestingWallet | TBD | |
+| Owner Safe | TBD | |
+
+Only addresses listed here (and later on the official site) are genuine; copycat tokens are common on this chain.
+
 ## Official docs to bookmark (add as project links)
 - Robinhood Chain docs: docs.robinhood.com/chain
 - Arbitrum developer docs: docs.arbitrum.io (Orbit differences, ArbSys, gas)

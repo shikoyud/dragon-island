@@ -172,11 +172,11 @@ function test_TeamVestingLinear() public { /* deploy VestingWallet(team, uint64(
 - Produces: `script Deploy` reading env `OWNER_SAFE`, `TREASURY`, `OPERATOR`, `SIGNER`, `LAUNCH_RECIPIENT`, `ENTRY_FEE_WEI`, `BURN_DAILY_LIMIT`, optional `ALLOW_CHAIN_ID` (default `46630`): reverts `WrongChain(uint256)` if `block.chainid != ALLOW_CHAIN_ID`; deploys `VestingWallet(teamBeneficiary = OWNER_SAFE, start = now, 365 days)`, precomputes the vault address with `vm.computeCreateAddress`, deploys `WyrmToken(launch, predictedVault, vesting)`, then `WyrmVault(token, OWNER_SAFE, TREASURY, OPERATOR, SIGNER, ENTRY_FEE_WEI)`, asserts `address(vault) == predictedVault` and `token.balanceOf(vault) == 400_000_000e18`, calls `vault.setBurnDailyLimit(BURN_DAILY_LIMIT)` (deployer is the initial owner for setup, then `transferOwnership(OWNER_SAFE)`; the Safe must `acceptOwnership`), and logs all addresses.
 - README: install, test, format, the deploy command (`forge script script/Deploy.s.sol --rpc-url rh_testnet --account <keystore> --broadcast --verify` with Blockscout verifier flags), the post-deploy checklist (Safe accepts ownership, publish addresses, verify source), and the security considerations list from Global Constraints.
 
-- [ ] **Step 1: Write the failing test** `contracts/test/Deploy.t.sol`: run the script's `run()` under `vm.chainId(46630)` with env set via `vm.setEnv` → token/vault/vesting deployed, vault holds 40%, vesting holds 10%, launch 50%, `vault.owner()` is the deployer with `pendingOwner() == OWNER_SAFE`, `burnDailyLimit` set; under `vm.chainId(4663)` without `ALLOW_CHAIN_ID` → `WrongChain(4663)`
-- [ ] **Step 2: Run `forge test`** — expect FAIL
-- [ ] **Step 3: Implement `Deploy.s.sol`, `.env.example`, README, docs section**
-- [ ] **Step 4: Run `forge test -vv`, `forge fmt --check`, and a local dry run: `anvil --chain-id 46630 &` then `forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --private-key <anvil key 0> --broadcast`** — expect PASS and logged addresses; stop anvil; `broadcast/` is git-ignored
-- [ ] **Step 5: Commit** `feat(contracts): testnet deploy script, dry run and docs`
+- [x] **Step 1: Write the failing test** `contracts/test/Deploy.t.sol`: run the script's `run()` under `vm.chainId(46630)` with env set via `vm.setEnv` → token/vault/vesting deployed, vault holds 40%, vesting holds 10%, launch 50%, `vault.owner()` is the deployer with `pendingOwner() == OWNER_SAFE`, `burnDailyLimit` set; under `vm.chainId(4663)` without `ALLOW_CHAIN_ID` → `WrongChain(4663)`
+- [x] **Step 2: Run `forge test`** — expect FAIL
+- [x] **Step 3: Implement `Deploy.s.sol`, `.env.example`, README, docs section**
+- [x] **Step 4: Run `forge test -vv`, `forge fmt --check`, and a local dry run: `anvil --chain-id 46630 &` then `forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --private-key <anvil key 0> --broadcast`** — expect PASS and logged addresses; stop anvil; `broadcast/` is git-ignored
+- [x] **Step 5: Commit** `feat(contracts): testnet deploy script, dry run and docs`
 
 ---
 
