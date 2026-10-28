@@ -96,7 +96,7 @@ expect(counts.every(c => c >= 2_000)).toBe(true)
 - Produces (`dragon.ts`): `MAX_DRAGON_LEVEL = 30`; `effLevel(level: number): number`; `goldPerMinute(speciesRarity: Rarity, level: number): number`; `foodToNextLevel(level: number): number` (defined for 1–29)
 - Produces (`test/fixtures.ts`): `FIXTURE_CATALOG` = species `fire`, `water`, `ice` (pure commons), `fw-common`, `fw-rare`, `fw-epic` (elements `['fire','water']`), `fw-legend` (`['fire','water']`, legendary, `recipeOnly`); recipe `{ parents: ['fw-rare','fw-epic'], legendaryId: 'fw-legend' }`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```ts
 expect(RARITY.rare.breedMs).toBe(1_800_000)
@@ -118,10 +118,10 @@ expect(goldPerMinute('legendary', 30)).toBe(600)
 expect([1, 9, 10, 19, 20, 29].map(foodToNextLevel)).toEqual([4, 324, 800, 2888, 6400, 13456])
 ```
 
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement the four source files and `fixtures.ts`** — `DUPLICATE_TIER` keys use `pairKey` (pure species: `'fire+fire'`).
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): rarity, catalog validation, dragon math`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement the four source files and `fixtures.ts`** — `DUPLICATE_TIER` keys use `pairKey` (pure species: `'fire+fire'`).
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): rarity, catalog validation, dragon math`
 
 ### Task 3: Breeding odds and roll
 
