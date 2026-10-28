@@ -4,3 +4,6 @@ packages:
 onlyBuiltDependencies:
   - esbuild
   - "@reown/appkit"
+minimumReleaseAgeExclude:
+  - "@electric-sql/pglite@0.5.13"
+  - viem@2.57.13
