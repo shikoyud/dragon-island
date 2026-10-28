@@ -1,7 +1,8 @@
 import { erc20Abi, wyrmVaultAbi } from '@wyrmhaven/shared'
 import type { ReactNode } from 'react'
 import type { Address, Hex } from 'viem'
-import { useAccount, useReadContract, useWriteContract } from 'wagmi'
+import { useAccount, useConfig, useReadContract, useWriteContract } from 'wagmi'
+import { waitForTransactionReceipt } from 'wagmi/actions'
 import { VaultProvider, type VaultAdapter } from './vault'
 
 const VAULT = (import.meta.env.VITE_VAULT_ADDRESS || undefined) as Address | undefined
@@ -13,6 +14,7 @@ export function WagmiVaultProvider({ children }: { children: ReactNode }) {
   const { address } = useAccount()
   const configured = Boolean(VAULT && TOKEN)
   const { writeContractAsync } = useWriteContract()
+  const wagmiConfig = useConfig()
   const enabled = configured && Boolean(address)
 
   const fee = useReadContract({ address: VAULT, abi: wyrmVaultAbi, functionName: 'entryFeeWei', chainId: CHAIN_ID, query: { enabled } })
@@ -31,6 +33,7 @@ export function WagmiVaultProvider({ children }: { children: ReactNode }) {
     deposit: amount => writeContractAsync({ address: VAULT!, abi: wyrmVaultAbi, functionName: 'deposit', args: [amount], chainId: CHAIN_ID }),
     claim: (cumulative, deadline, signature: Hex) =>
       writeContractAsync({ address: VAULT!, abi: wyrmVaultAbi, functionName: 'claim', args: [cumulative, deadline, signature], chainId: CHAIN_ID }),
+    waitForTx: async hash => (await waitForTransactionReceipt(wagmiConfig, { hash, chainId: CHAIN_ID })).status,
     refetch: async () => { await Promise.all([fee.refetch(), remaining.refetch(), balance.refetch(), allowance.refetch()]) },
   }
   return <VaultProvider adapter={adapter}>{children}</VaultProvider>

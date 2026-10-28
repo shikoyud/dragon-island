@@ -54,15 +54,23 @@ export function aiMove(actor: Combatant, targets: readonly Combatant[]): PlayerM
   return { move, target }
 }
 
+export interface SimOptions {
+  /** Replace the attacker's move list with the AI entirely (for tests). */
+  attackerAi?: boolean
+  /** Missing or illegal attacker moves are filled in by the AI instead of failing (PvE: the seed is secret). */
+  aiFallback?: boolean
+}
+
 /**
  * Deterministic 3v3. Attacker moves come from `moves` (one per attacker action);
  * the defender is AI. One `rng.next()` per hit, nothing else. Trailing unused
- * moves are ignored. `attackerAi` replaces the move list with the AI (for tests).
+ * moves are ignored. A bare boolean sixth argument means `attackerAi`.
  */
 export function simulateBattle(
   attacker: readonly BattleDragonSpec[], defender: readonly BattleDragonSpec[], moves: readonly PlayerMove[],
-  rng: Rng, c: Catalog, attackerAi = false,
+  rng: Rng, c: Catalog, options: boolean | SimOptions = false,
 ): BattleOutcome {
+  const { attackerAi = false, aiFallback = false } = typeof options === 'boolean' ? { attackerAi: options } : options
   const build = (specs: readonly BattleDragonSpec[]): Combatant[] => specs.map(spec => {
     const species = getSpecies(c, spec.speciesId)
     const stats = combatStats(spec, c)
@@ -83,9 +91,15 @@ export function simulateBattle(
         pm = aiMove(actor, targets)
       } else {
         const next = moves[cursor]
-        if (next === undefined) return { ok: false, error: 'MISSING_MOVES', at: cursor }
-        if (!isLegalMove(actor, targets, next)) return { ok: false, error: 'ILLEGAL_MOVE', at: cursor }
-        pm = next
+        if (next === undefined) {
+          if (!aiFallback) return { ok: false, error: 'MISSING_MOVES', at: cursor }
+          pm = aiMove(actor, targets)
+        } else if (!isLegalMove(actor, targets, next)) {
+          if (!aiFallback) return { ok: false, error: 'ILLEGAL_MOVE', at: cursor }
+          pm = aiMove(actor, targets)
+        } else {
+          pm = next
+        }
         cursor++
       }
       const victim = targets[pm.target]!

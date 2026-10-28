@@ -18,8 +18,12 @@ export function useMe() {
   })
 }
 
-/** Replaces the cached state with the one an action response carried. */
-export function applyStateFromResponse(qc: QueryClient, state: PlayerState): void {
+/**
+ * Replaces the cached state with the one an action response carried. An in-flight /me refetch started
+ * before the action is cancelled first so its older snapshot cannot land on top of the newer state.
+ */
+export async function applyStateFromResponse(qc: QueryClient, state: PlayerState): Promise<void> {
+  await qc.cancelQueries({ queryKey: ME_KEY })
   qc.setQueryData<Me>(ME_KEY, old => (old ? { ...old, state } : old))
 }
 

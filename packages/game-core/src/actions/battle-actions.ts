@@ -70,7 +70,8 @@ export const pveBattle: Handler<'pveBattle'> = (s, a, ctx) => {
   const replays = dayCounterAt(s.pve.replays, ctx.nowMs)
   if (!firstClear && replays.count >= PVE_REPLAYS_PER_DAY) return failure('DAILY_CAP_REACHED')
 
-  const outcome = simulateBattle(team, stageTeam(a.stage, ctx.catalog), a.moves, ctx.rng, ctx.catalog)
+  // The PvE seed is never revealed, so the client's plan can only be a guess: the AI finishes it.
+  const outcome = simulateBattle(team, stageTeam(a.stage, ctx.catalog), a.moves, ctx.rng, ctx.catalog, { aiFallback: true })
   const report: BattleReport | undefined = outcome.ok ? outcome : undefined
 
   let next: PlayerState = firstClear ? s : { ...s, pve: { ...s.pve, replays: { ...replays, count: replays.count + 1 } } }

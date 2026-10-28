@@ -16,6 +16,8 @@ export interface VaultAdapter {
   approve(amountWei: bigint): Promise<Hex>
   deposit(amountWei: bigint): Promise<Hex>
   claim(cumulativeWei: bigint, deadlineSec: bigint, signature: Hex): Promise<Hex>
+  /** Resolves once the transaction is mined. */
+  waitForTx(hash: Hex): Promise<'success' | 'reverted'>
   refetch(): Promise<void>
 }
 

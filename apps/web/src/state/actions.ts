@@ -4,10 +4,12 @@ import { useCallback, useRef, useState } from 'react'
 import { useApi } from '../api/ApiProvider'
 import { ApiError } from '../api/client'
 import { sessionStore } from '../api/session'
-import { applyStateFromResponse } from './me'
+import { useToasts } from '../ui/Toast'
+import { applyStateFromResponse, ME_KEY } from './me'
 
 export interface ActionHook {
-  run(action: ClientAction): Promise<ActionResponse>
+  /** Resolves to the response, or `null` after a failure that was already shown as a toast. Never rejects. */
+  run(action: ClientAction): Promise<ActionResponse | null>
   pending: boolean
   error: ApiError | null
   lastSp: { awarded: number; today: number } | null
@@ -17,18 +19,20 @@ export interface ActionHook {
 /**
  * The one way the client changes game state. One action in flight at a time (the server locks the
  * row anyway); a fresh idempotency key per run, reused only when the network failed before a reply.
- * A successful reply replaces the cached state; a 4xx leaves it untouched and exposes the code.
+ * A successful reply replaces the cached state; a failure leaves it untouched, exposes the code and
+ * toasts the mapped message, so panels can `void run(...)` safely.
  */
 export function useAction(): ActionHook {
   const api = useApi()
   const qc = useQueryClient()
+  const toasts = useToasts()
   const inFlight = useRef(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [lastSp, setLastSp] = useState<{ awarded: number; today: number } | null>(null)
 
-  const run = useCallback(async (action: ClientAction): Promise<ActionResponse> => {
-    if (inFlight.current) throw new Error('An action is already in progress')
+  const run = useCallback(async (action: ClientAction): Promise<ActionResponse | null> => {
+    if (inFlight.current) return null
     inFlight.current = true
     setPending(true)
     setError(null)
@@ -42,20 +46,23 @@ export function useAction(): ActionHook {
         // Network failure before any reply: the server may or may not have seen the key; retry once with it.
         res = await api.action(action, key)
       }
-      applyStateFromResponse(qc, res.state)
+      await applyStateFromResponse(qc, res.state)
       if (res.sp && res.sp.awarded > 0) setLastSp(res.sp)
+      // Token charges and payouts change balanceWei / earningUnlocked, which only /me carries.
+      if (res.effects.some(ef => ef.type === 'charge' || ef.type === 'payout')) void qc.invalidateQueries({ queryKey: ME_KEY })
       return res
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status === 401) sessionStore.clear()
         setError(e)
       }
-      throw e
+      toasts.error(e)
+      return null
     } finally {
       inFlight.current = false
       setPending(false)
     }
-  }, [api, qc])
+  }, [api, qc, toasts])
 
   return { run, pending, error, lastSp, clearError: () => setError(null) }
 }

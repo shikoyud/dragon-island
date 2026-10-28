@@ -17,7 +17,7 @@ export function BattlePanel({ battle, onClose }: { battle: BattleHook; onClose?:
 
   return (
     <Panel title={title} onClose={onClose}>
-      {!battle.exactPreview && <p><small>Preview only: the server rolls the real battle, so damage may differ.</small></p>}
+      {!battle.exactPreview && <p><small>Preview only: the server rolls the real battle, so damage may differ. Turns you leave unplanned are played by the AI.</small></p>}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Team label="Your team" fighters={p.attacker} />
         <Team label="Opponent" fighters={p.defender} />
@@ -51,7 +51,7 @@ export function BattlePanel({ battle, onClose }: { battle: BattleHook; onClose?:
       {done && !done.ok && <p role="alert">That move is not legal. Undo and pick again.</p>}
 
       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-        <ActionButton id="battle-undo" disabled={battle.moves.length === 0 || battle.pending} onClick={battle.undo}>Undo</ActionButton>
+        <ActionButton id="battle-undo" disabled={!battle.canUndo || battle.pending} onClick={battle.undo}>Undo</ActionButton>
         <ActionButton id="battle-submit" primary disabled={!battle.canSubmit || battle.pending} reason={battle.setup.mode === 'pvp' ? 'Finish the battle first' : 'Pick at least one move'} onClick={() => void battle.submit()}>
           Submit
         </ActionButton>

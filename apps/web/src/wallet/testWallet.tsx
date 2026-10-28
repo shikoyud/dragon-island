@@ -25,6 +25,7 @@ const vault: VaultAdapter = {
   approve: async () => { throw new Error('no chain in e2e') },
   deposit: async () => { throw new Error('no chain in e2e') },
   claim: async () => { throw new Error('no chain in e2e') },
+  waitForTx: async () => { throw new Error('no chain in e2e') },
   refetch: async () => {},
 }
 

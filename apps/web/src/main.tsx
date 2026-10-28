@@ -14,7 +14,7 @@ const api = createApi({
   getToken: () => sessionStore.get()?.token ?? null,
   onUnauthorized: () => {
     sessionStore.clear()
-    queryClient.removeQueries({ queryKey: ['me'] })
+    queryClient.clear() // nothing cached belongs to the next sign-in
   },
 })
 

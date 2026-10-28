@@ -1,7 +1,24 @@
+import type { PlayerState } from '@wyrmhaven/game-core'
 import { eq, sql } from 'drizzle-orm'
 import type { Db, Tx } from '../db/client'
 import { balances, spendBatches } from '../db/schema'
 import { AppError } from '../plugins/errors'
+import { tokenWeiToUsdCeil, tokenWeiToUsdFloor } from './price'
+
+/**
+ * §14 ledger (deposits/withdrawals in micro-USD) derived from the token ledger at today's price, so the
+ * penalty ratio R and the deposit-repayment limit reflect real chain activity. Stored state is untouched.
+ */
+export function withDerivedLedger(state: PlayerState, b: Balance, priceMicroUsdPerToken: bigint | null, earningUnlocked: boolean): PlayerState {
+  const ledger = priceMicroUsdPerToken === null
+    ? state.ledger
+    : {
+        ...state.ledger,
+        depositedMicroUsd: Number(tokenWeiToUsdFloor(b.depositedWei, priceMicroUsdPerToken)),
+        withdrawnMicroUsd: Number(tokenWeiToUsdCeil(b.withdrawnWei, priceMicroUsdPerToken)),
+      }
+  return { ...state, earningUnlocked, ledger }
+}
 
 export type Balance = typeof balances.$inferSelect
 

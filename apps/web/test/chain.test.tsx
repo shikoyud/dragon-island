@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { ApiProvider } from '../src/api/ApiProvider'
+import { ToastProvider } from '../src/ui/Toast'
 import type { Api } from '../src/api/client'
 import { sessionStore } from '../src/api/session'
 import { VaultProvider, type VaultAdapter } from '../src/chain/vault'
@@ -29,6 +30,7 @@ function vault(overrides: Partial<VaultAdapter> = {}): VaultAdapter {
     approve: vi.fn(async () => '0xtx2' as const),
     deposit: vi.fn(async () => '0xtx3' as const),
     claim: vi.fn(async () => '0xtx4' as const),
+    waitForTx: vi.fn(async () => 'success' as const),
     refetch: vi.fn(async () => {}),
     ...overrides,
   }
@@ -50,7 +52,7 @@ function harness(state: PlayerState, apiOverrides: Partial<Api> = {}, v = vault(
     ...apiOverrides,
   } as unknown as Api
   const wrap = (ui: ReactNode) => render(
-    <QueryClientProvider client={qc}><ApiProvider api={api}><WalletProvider adapter={w}><VaultProvider adapter={v}>{ui}</VaultProvider></WalletProvider></ApiProvider></QueryClientProvider>,
+    <QueryClientProvider client={qc}><ApiProvider api={api}><ToastProvider><WalletProvider adapter={w}><VaultProvider adapter={v}>{ui}</VaultProvider></WalletProvider></ToastProvider></ApiProvider></QueryClientProvider>,
   )
   return { wrap, api, v }
 }
@@ -80,8 +82,8 @@ describe('WalletPanel', () => {
     expect(v.approve).toHaveBeenCalledWith(10n * E18)
     await userEvent.clear(amount)
     await userEvent.type(amount, '500')
-    expect(screen.getByRole('button', { name: /approve|deposit/i })).toBeDisabled()
-    expect(screen.getByText(/not enough wyrm in your wallet/i)).toBeInTheDocument()
+    for (const b of screen.getAllByRole('button', { name: /^approve|^deposit/i })) expect(b).toBeDisabled()
+    expect(screen.getAllByText(/not enough wyrm in your wallet/i).length).toBeGreaterThan(0)
   })
 
   it('shows Deposit once allowance covers the amount, and Enter until earning is unlocked', async () => {

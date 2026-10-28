@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { ApiProvider } from '../src/api/ApiProvider'
+import { ToastProvider } from '../src/ui/Toast'
 import type { Api } from '../src/api/client'
 import { sessionStore } from '../src/api/session'
 import { BattlePanel } from '../src/panels/BattlePanel'
@@ -28,7 +29,7 @@ function harness(state: PlayerState) {
   const action = vi.fn(async () => ({ state, effects: [], battle: undefined }))
   const api = { action, offers: vi.fn(async () => ({ offers: [offer] })) } as unknown as Api
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={qc}><ApiProvider api={api}>{children}</ApiProvider></QueryClientProvider>
+    <QueryClientProvider client={qc}><ApiProvider api={api}><ToastProvider>{children}</ToastProvider></ApiProvider></QueryClientProvider>
   )
   return { wrapper, action, qc }
 }

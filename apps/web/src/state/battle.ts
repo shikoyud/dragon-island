@@ -76,19 +76,21 @@ export function useBattle(catalog: Catalog = LAUNCH_CATALOG) {
   const undo = useCallback(() => setMoves(prev => prev.slice(0, -1)), [])
   const reset = useCallback(() => { setSetup(null); setMoves([]); setResult(null) }, [])
 
-  const submit = useCallback(async (): Promise<ActionResponse> => {
-    if (!setup) throw new Error('No battle set up')
+  const submit = useCallback(async (): Promise<ActionResponse | null> => {
+    if (!setup || result) return null
     const res = setup.mode === 'pvp'
       ? await action.run({ type: 'pvpBattle', offerId: setup.offer.offerId, team: setup.team, moves })
       : await action.run({ type: 'pveBattle', stage: setup.stage, team: setup.team, moves })
-    setResult(res)
+    if (res) setResult(res)
     return res
-  }, [setup, moves, action])
+  }, [setup, moves, action, result])
 
   return {
     setup, moves, preview, result, catalog,
     exactPreview: setup?.mode === 'pvp',
-    canSubmit: setup !== null && (setup.mode === 'pve' ? moves.length > 0 : preview?.done?.ok === true),
+    // PvE: the server's AI finishes any turns the plan does not cover, so one move is enough to send.
+    canSubmit: setup !== null && result === null && (setup.mode === 'pve' ? moves.length > 0 : preview?.done?.ok === true),
+    canUndo: moves.length > 0 && result === null,
     pending: action.pending,
     error: action.error,
     startPvp, startPve, legalMoves, choose, undo, reset, submit,

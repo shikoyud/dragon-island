@@ -7,9 +7,9 @@ import type { Clock } from '../clock'
 import type { Db, Tx } from '../db/client'
 import { actionLog, players } from '../db/schema'
 import { AppError } from '../plugins/errors'
-import { charge, creditEarned, getBalance } from './ledger'
+import { charge, creditEarned, getBalance, withDerivedLedger } from './ledger'
 import type { PriceSource } from './price'
-import { tokenWeiToUsdCeil, tokenWeiToUsdFloor, usdToTokenWei } from './price'
+import { usdToTokenWei } from './price'
 import { ensureCurrentSeason } from './season'
 import { actionSeed, battleSeed, secretFromHex } from './seed'
 import { migrateState } from './stateMigration'
@@ -64,20 +64,9 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       .where(and(eq(actionLog.playerId, playerId), eq(actionLog.idempotencyKey, request.idempotencyKey)))
     if (replay) return { status: replay.status, body: replay.response as ActionResponse | ErrorResponse }
 
-    // players.earning_unlocked (set by the chain indexer) is authoritative over the copy in state, and the
-    // §14 ledger (deposits/withdrawals in micro-USD) is derived from the token ledger at today's price so
-    // the penalty ratio R and the deposit-repayment limit always reflect real chain activity.
+    // players.earning_unlocked (set by the chain indexer) is authoritative over the copy in state.
     const price = await deps.price.microUsdPerToken(tx)
-    const balance = await getBalance(tx, playerId)
-    const stored = migrateState(player.state, nowMs)
-    const ledger = price === null
-      ? stored.ledger
-      : {
-          ...stored.ledger,
-          depositedMicroUsd: Number(tokenWeiToUsdFloor(balance.depositedWei, price)),
-          withdrawnMicroUsd: Number(tokenWeiToUsdCeil(balance.withdrawnWei, price)),
-        }
-    const state: PlayerState = { ...stored, earningUnlocked: player.earningUnlocked, ledger }
+    const state = withDerivedLedger(migrateState(player.state, nowMs), await getBalance(tx, playerId), price, player.earningUnlocked)
     if (price === null && request.action.type === 'sellGold') throw new AppError(503, 'PRICE_UNAVAILABLE')
 
     const season = await ensureCurrentSeason(tx, clock)

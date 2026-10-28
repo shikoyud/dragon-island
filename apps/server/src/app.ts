@@ -1,4 +1,4 @@
-import { LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
+import { LAUNCH_CATALOG, type Catalog, type PlayerState } from '@wyrmhaven/game-core'
 import { eq } from 'drizzle-orm'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { getAddress, type Address, type Hex } from 'viem'
@@ -21,6 +21,7 @@ import { pvpRoutes } from './routes/pvp'
 import { withdrawRoutes } from './routes/withdraw'
 import type { WithdrawDeps } from './services/withdraw'
 import { requireActive } from './services/bans'
+import { withDerivedLedger } from './services/ledger'
 import { runIndexer } from './services/indexer'
 import { ensureCurrentSeason } from './services/season'
 import { seasonRoutes } from './routes/season'
@@ -92,10 +93,11 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   app.get('/me', { preHandler: requireSession(db, clock) }, async req => {
     const p = req.player!
     const [bal] = await db.select().from(balances).where(eq(balances.playerId, p.id))
+    const state = p.state as PlayerState
     return {
       playerId: p.id,
       address: getAddress(p.address),
-      state: p.state,
+      state: bal ? withDerivedLedger(state, bal, await deps.price!.microUsdPerToken(db), p.earningUnlocked) : state,
       balanceWei: (bal?.tokenWei ?? 0n).toString(),
       earningUnlocked: p.earningUnlocked,
       banned: p.bannedAt !== null,

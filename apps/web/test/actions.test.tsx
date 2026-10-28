@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { ApiProvider } from '../src/api/ApiProvider'
+import { ToastProvider } from '../src/ui/Toast'
 import { ApiError, type Api } from '../src/api/client'
 import { sessionStore } from '../src/api/session'
 import { useAction } from '../src/state/actions'
@@ -16,7 +17,7 @@ function setup(actionImpl: Api['action']) {
   sessionStore.set({ token: 't', playerId: 'p1', address: '0xabc' })
   const api = { action: actionImpl } as unknown as Api
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={qc}><ApiProvider api={api}>{children}</ApiProvider></QueryClientProvider>
+    <QueryClientProvider client={qc}><ApiProvider api={api}><ToastProvider>{children}</ToastProvider></ApiProvider></QueryClientProvider>
   )
   return { qc, wrapper, state: () => (qc.getQueryData(ME_KEY) as { state: PlayerState }).state }
 }
@@ -71,7 +72,7 @@ describe('useAction', () => {
     let first!: Promise<unknown>
     act(() => { first = result.current.run({ type: 'buyFarmPlot' }) })
     await waitFor(() => expect(result.current.pending).toBe(true))
-    await expect(result.current.run({ type: 'buyFarmPlot' })).rejects.toThrow(/in progress/i)
+    await expect(result.current.run({ type: 'buyFarmPlot' })).resolves.toBeNull() // overlapping run is refused
     await act(async () => { resolve({ state: newPlayer(0), effects: [] }); await first })
 
     const unauth = vi.fn(async () => { throw new ApiError(401, 'UNAUTHORIZED') })

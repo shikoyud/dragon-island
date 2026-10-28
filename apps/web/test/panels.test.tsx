@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { ApiProvider } from '../src/api/ApiProvider'
+import { ToastProvider } from '../src/ui/Toast'
 import type { Api } from '../src/api/client'
 import { sessionStore } from '../src/api/session'
 import { BreedPanel } from '../src/panels/BreedPanel'
@@ -24,7 +25,7 @@ function harness(state: PlayerState, nowMs = 0) {
   const action = vi.fn(async () => ({ state, effects: [] }))
   const api = { action } as unknown as Api
   const wrap = (ui: ReactNode) => render(
-    <QueryClientProvider client={qc}><ApiProvider api={api}>{ui}</ApiProvider></QueryClientProvider>,
+    <QueryClientProvider client={qc}><ApiProvider api={api}><ToastProvider>{ui}</ToastProvider></ApiProvider></QueryClientProvider>,
   )
   return { wrap, action, nowMs }
 }
