@@ -95,3 +95,12 @@ export async function getEntrantState(deps: Deps, entrantId: string): Promise<En
     position: e.position,
   }
 }
+
+export type CardData = { handle: string; avatarUrl: string | null; position: number; element: Element }
+
+/** Share-card data by referral code. Null for an unknown code or an entrant who has not joined. */
+export async function getCardData(deps: Deps, code: string): Promise<CardData | null> {
+  const [e] = await deps.db.select().from(entrants).where(eq(entrants.refCode, code))
+  if (!e || e.position === null) return null
+  return { handle: e.xHandle, avatarUrl: e.xAvatarUrl, position: e.position, element: e.element as Element }
+}
