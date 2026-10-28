@@ -1,30 +1,28 @@
 import { expect, test } from '@playwright/test'
-import { grant, openPanel, signIn, waterTeam } from './helpers'
+import { openPanel, resetPlayer, signIn, waterTeam } from './helpers'
 
-test('fights a bot in the arena and wins trophies', async ({ page, request }) => {
+test('clears campaign stage 1 and gets offers in the arena', async ({ page, request }) => {
   page.on('pageerror', e => console.log('PAGEERROR', e.message))
-  page.on('console', m => { if (m.type() === 'error') console.log('CONSOLE', m.text().slice(0, 300)) })
   await signIn(page)
-  await grant(request, { state: { level: 8, dragons: waterTeam(20), defenceTeam: ['d1', 'd2', 'd3'] } })
+  await resetPlayer(request, { level: 8, dragons: waterTeam(20), defenceTeam: ['d1', 'd2', 'd3'] })
   await page.reload()
+
+  // Campaign: stage 1 is three level-3 commons; a level-20 team wins whatever moves it picks.
+  await openPanel(page, 'Campaign')
+  await page.getByRole('list', { name: /stages/i }).getByRole('button', { name: /^stage 1 ·/i }).click()
+  for (let turn = 0; turn < 30; turn++) {
+    if (await page.getByText(/you win/i).isVisible()) break
+    await page.getByRole('group', { name: /^move$/i }).getByRole('button', { disabled: false }).first().click()
+    await page.getByRole('group', { name: /^target$/i }).getByRole('button', { disabled: false }).first().click()
+  }
+  await expect(page.getByText(/you win/i)).toBeVisible()
+  await page.getByRole('button', { name: /^submit$/i }).click()
+  await expect(page.getByRole('status').filter({ hasText: /result:/i })).toContainText('victory')
+  await expect(page.getByRole('status', { name: /resources/i })).toContainText('1,100') // 100 gold first clear
+
+  // Arena: with a saved defence team the server offers three opponents (bots on an empty server).
+  await page.getByRole('button', { name: /close/i }).click()
   await openPanel(page, 'Arena')
   await page.getByRole('button', { name: /find opponents/i }).click()
-  const bot = page.getByRole('list', { name: /opponents/i }).getByRole('listitem').filter({ hasText: 'Bot' }).first()
-  await bot.getByRole('button', { name: /fight/i }).click()
-
-  // Bots in the launch catalog are pure commons at our team level (20); water beats fire, so sweep the
-  // targets with the water move when it is strong, otherwise just attack whoever is alive.
-  for (let turn = 0; turn < 30; turn++) {
-    const submit = page.getByRole('button', { name: /^submit$/i })
-    if (await submit.isEnabled()) break
-    const moves = page.getByRole('group', { name: /^move$/i }).getByRole('button')
-    const enabledMove = moves.filter({ hasNot: page.locator('[disabled]') }).first()
-    await enabledMove.click()
-    const target = page.getByRole('group', { name: /^target$/i }).getByRole('button', { disabled: false }).first()
-    await target.click()
-  }
-  await page.getByRole('button', { name: /^submit$/i }).click()
-  await expect(page.getByRole('status').filter({ hasText: /result:/i })).toContainText(/victory|defeat|forfeit/)
-  const trophies = page.getByRole('status', { name: /resources/i }).getByTitle('Trophies')
-  await expect(trophies).not.toHaveText('🏆 0')
+  await expect(page.getByRole('list', { name: /opponents/i }).getByRole('listitem')).toHaveCount(3)
 })

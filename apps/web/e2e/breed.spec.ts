@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test'
-import { grant, openPanel, signIn } from './helpers'
+import { openPanel, resetPlayer, signIn } from './helpers'
 
 test('breeds, collects the egg, hatches a third dragon', async ({ page, request }) => {
   await signIn(page)
   // Both starters at level 4 (breeding needs ≥ 4); the tutorial egg and hatch take 15 s each.
-  await grant(request, { state: { food: 1_000, dragons: [
+  await resetPlayer(request, { food: 1_000, dragons: [
     { id: 'd1', speciesId: 'fire', level: 4, habitatId: 'h1' },
     { id: 'd2', speciesId: 'water', level: 4, habitatId: 'h2' },
-  ] } })
+  ] })
   await page.reload()
   await openPanel(page, 'Breed')
   const panel = page.getByRole('region', { name: 'Breed' })

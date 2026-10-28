@@ -17,7 +17,10 @@ import { SeasonPanel } from './panels/SeasonPanel'
 import { WalletPanel } from './panels/WalletPanel'
 import { useBattle } from './state/battle'
 import { useMe } from './state/me'
+import { ErrorBoundary } from './ui/ErrorBoundary'
+import { ToastProvider, useToasts } from './ui/Toast'
 import { SignIn } from './wallet/SignIn'
+import { Shell } from './Shell'
 
 const TOOLBAR: { id: PanelId; label: string }[] = [
   { id: 'breed', label: 'Breed' },
@@ -32,7 +35,18 @@ const TOOLBAR: { id: PanelId; label: string }[] = [
 ]
 
 export function App() {
+  return (
+    <ErrorBoundary>
+      <ToastProvider>
+        <Game />
+      </ToastProvider>
+    </ErrorBoundary>
+  )
+}
+
+function Game() {
   const session = useSession()
+  const toasts = useToasts()
   const me = useMe()
   const bridge = useMemo(() => createBridge(), [])
   const [art, setArt] = useState<GameArtSet>(FALLBACK_ART)
@@ -47,48 +61,51 @@ export function App() {
     return () => clearInterval(t)
   }, [])
   useEffect(() => { bridge.setBattle(battle.preview) }, [bridge, battle.preview])
+  useEffect(() => { if (battle.error) toasts.error(battle.error) }, [battle.error, toasts])
+  useEffect(() => { if (me.error) toasts.error(me.error) }, [me.error, toasts])
 
   const startPvp = (offer: Offer, team: TeamIds) => { battle.startPvp(offer, team); setNamed(null) }
   const startPve = (stage: number, team: TeamIds) => { battle.startPve(stage, team); setNamed(null) }
   const closeBattle = () => { battle.reset(); bridge.setBattle(null) }
 
-  return (
-    <div className="shell" data-layout="sidebar">
-      <header className="shell__header">
-        <h1 style={{ margin: 0, fontSize: 18 }}>Wyrmhaven</h1>
-        {session && <ResourcesBar />}
-        <SignIn />
-      </header>
-      {!session && (
+  const header = (
+    <>
+      <h1 style={{ margin: 0, fontSize: 18 }}>Wyrmhaven</h1>
+      {session && <ResourcesBar />}
+      <SignIn />
+    </>
+  )
+  if (!session || !me.data) {
+    return (
+      <div className="shell" data-testid="shell">
+        <header className="shell__header">{header}</header>
         <main className="shell__welcome">
           <p>Breed dragons. Build your island. Battle for the season.</p>
           <p><small>Connect a wallet and sign in to start. Signing costs no gas.</small></p>
         </main>
-      )}
-      {session && me.data && (
-        <main className="shell__main">
-          <section className="shell__canvas"><GameCanvas bridge={bridge} art={art} /></section>
-          <aside className="shell__side">
-            <nav aria-label="Panels" className="toolbar">
-              {TOOLBAR.map(t => (
-                <button key={t.id} type="button" className={`btn ${named === t.id ? 'btn--primary' : ''}`} aria-pressed={named === t.id} onClick={() => setNamed(named === t.id ? null : t.id)}>
-                  {t.label}
-                </button>
-              ))}
-            </nav>
-            {battle.setup ? (
-              <BattlePanel battle={battle} onClose={closeBattle} />
-            ) : verifySeason !== null ? (
-              <Verify seasonId={verifySeason} onClose={() => setVerifySeason(null)} />
-            ) : named === 'wallet' ? <WalletPanel onClose={() => setNamed(null)} />
-              : named === 'hoard' ? <HoardPanel nowMs={nowMs} onClose={() => setNamed(null)} />
-              : named === 'pvp' ? <PvpPanel onFight={startPvp} onClose={() => setNamed(null)} />
-              : named === 'pve' ? <PvePanel onFight={startPve} onClose={() => setNamed(null)} nowMs={nowMs} />
-              : named === 'season' ? <SeasonPanel nowMs={nowMs} onClose={() => setNamed(null)} onVerify={id => { setVerifySeason(id); setNamed(null) }} />
-              : <PanelHost bridge={bridge} nowMs={nowMs} named={named} onCloseNamed={() => setNamed(null)} />}
-          </aside>
-        </main>
-      )}
-    </div>
+      </div>
+    )
+  }
+  const side = (
+    <>
+      <nav aria-label="Panels" className="toolbar">
+        {TOOLBAR.map(t => (
+          <button key={t.id} type="button" className={`btn ${named === t.id ? 'btn--primary' : ''}`} aria-pressed={named === t.id} onClick={() => setNamed(named === t.id ? null : t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </nav>
+      {battle.setup ? (
+        <BattlePanel battle={battle} onClose={closeBattle} />
+      ) : verifySeason !== null ? (
+        <Verify seasonId={verifySeason} onClose={() => setVerifySeason(null)} />
+      ) : named === 'wallet' ? <WalletPanel onClose={() => setNamed(null)} />
+        : named === 'hoard' ? <HoardPanel nowMs={nowMs} onClose={() => setNamed(null)} />
+        : named === 'pvp' ? <PvpPanel onFight={startPvp} onClose={() => setNamed(null)} />
+        : named === 'pve' ? <PvePanel onFight={startPve} onClose={() => setNamed(null)} nowMs={nowMs} />
+        : named === 'season' ? <SeasonPanel nowMs={nowMs} onClose={() => setNamed(null)} onVerify={id => { setVerifySeason(id); setNamed(null) }} />
+        : <PanelHost bridge={bridge} nowMs={nowMs} named={named} onCloseNamed={() => setNamed(null)} />}
+    </>
   )
+  return <Shell header={header} canvas={<GameCanvas bridge={bridge} art={art} />} side={side} />
 }

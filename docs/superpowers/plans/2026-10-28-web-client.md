@@ -215,11 +215,11 @@ Must run in a session where the `pixellab` MCP tools are loaded (the server is c
 - Modify: `src/App.tsx`, root `package.json` (`dev` runs server + web with `concurrently`)
 - Test: `apps/web/test/shell.test.tsx`
 
-- [ ] **Step 1: Write failing tests** — at 360 px width the panel host renders as a bottom sheet (`data-layout="sheet"`), at 1280 px as a sidebar; an `ApiError` thrown by a mutation shows one toast with `messageFor(code)`; the boundary renders "Something broke" with a Reload button on a render error; a 401 from `/me` shows `SignIn`
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement**; README: run (`pnpm dev` starts server on :3000 and web on :5173), env vars, test and e2e commands, how art slots work, the testnet checklist (contract addresses, Reown project id)
-- [ ] **Step 4: Run `pnpm -r test`, `pnpm -r typecheck`, `pnpm --filter @wyrmhaven/web build`** — expect PASS
-- [ ] **Step 5: Commit** `feat(web): responsive shell, toasts, error boundary, docs`
+- [x] **Step 1: Write failing tests** — at 360 px width the panel host renders as a bottom sheet (`data-layout="sheet"`), at 1280 px as a sidebar; an `ApiError` thrown by a mutation shows one toast with `messageFor(code)`; the boundary renders "Something broke" with a Reload button on a render error; a 401 from `/me` shows `SignIn`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement**; README: run (`pnpm dev` starts server on :3000 and web on :5173), env vars, test and e2e commands, how art slots work, the testnet checklist (contract addresses, Reown project id)
+- [x] **Step 4: Run `pnpm -r test`, `pnpm -r typecheck`, `pnpm --filter @wyrmhaven/web build`** — expect PASS
+- [x] **Step 5: Commit** `feat(web): responsive shell, toasts, error boundary, docs`
 
 ---
 

@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test'
-import { grant, openPanel, signIn } from './helpers'
+import { openPanel, resetPlayer, signIn } from './helpers'
 
 test('requests a withdrawal voucher from the game balance', async ({ page, request }) => {
   await signIn(page)
-  await grant(request, { tokenWei: (100n * 10n ** 18n).toString(), earningUnlocked: true })
+  await resetPlayer(request, {}, { tokenWei: (100n * 10n ** 18n).toString(), earningUnlocked: true })
   await page.reload()
   await openPanel(page, 'Wallet')
   await expect(page.getByText(/game balance:/i)).toContainText('100 WYRM')

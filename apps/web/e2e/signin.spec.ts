@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test'
-import { signIn } from './helpers'
+import { resetPlayer, signIn } from './helpers'
 
-test('signs in with the test wallet and shows the starting resources', async ({ page }) => {
+test('signs in with the test wallet and shows the starting resources', async ({ page, request }) => {
+  await resetPlayer(request)
   await signIn(page)
   const resources = page.getByRole('status', { name: /resources/i })
   await expect(resources).toContainText('1,000')
