@@ -114,7 +114,7 @@ expect(movesFor(getSpecies(C, 'fw-rare')).map(m => m.name)).toEqual(['fire', 'wa
 **Interfaces:**
 - Produces: `TROPHY = { attackWin: 30, attackLoss: -15, defenceWin: 5, defenceLoss: -10 }`; `LEAGUES: readonly { name: string; min: number }[]` (Bronze 0, Silver 400, Gold 800, Platinum 1200, Diamond 1600, Champion 2000); `leagueIndex(trophies: number): number`; `pvpWinGold(trophies: number): number` = `100 × leagueIndex`; `applyTrophies(trophies: number, delta: number): number` = `max(0, trophies + delta)`; `seasonResetTrophies(t: number): number`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```ts
 expect([0, 399, 400, 1199, 1200, 1999, 2000, 9999].map(leagueIndex)).toEqual([0, 0, 1, 2, 3, 4, 5, 5])
@@ -124,10 +124,10 @@ expect(applyTrophies(10, TROPHY.attackWin)).toBe(40)
 expect([0, 1000, 1001, 1500, 2001].map(seasonResetTrophies)).toEqual([0, 1000, 1000, 1250, 1500])
 ```
 
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement `trophy.ts`**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): trophies, leagues and season reset math`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement `trophy.ts`**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): trophies, leagues and season reset math`
 
 ### Task 4: Matchmaking and bot teams
 
