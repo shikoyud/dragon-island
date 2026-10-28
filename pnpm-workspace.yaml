@@ -1,9 +1,9 @@
 packages:
   - packages/*
   - apps/*
-onlyBuiltDependencies:
-  - esbuild
-  - "@reown/appkit"
+allowBuilds:
+  esbuild: true
+  "@reown/appkit": true
 minimumReleaseAgeExclude:
   - "@electric-sql/pglite@0.5.13"
   - viem@2.57.13

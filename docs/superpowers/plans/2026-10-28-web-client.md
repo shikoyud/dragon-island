@@ -68,15 +68,15 @@
 - Produces (`art/phaserLoader.ts`): `loadArt(scene: Phaser.Scene, art: GameArtSet)` — queues every non-empty sprite as a spritesheet (`frameWidth: w`) and generates canvas textures for empty ones via `drawFallback`; `playOrStill(sprite: Phaser.GameObjects.Sprite, key, fps, reducedMotion)`; `textureKey(slotPath)`.
 - `ACTIVE_ART` built from `public/art/v0/manifest.json` at boot (fetched; version string busts caches).
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
   - manifest `{ 'egg.fire': { file: 'egg-fire.png', w: 32, h: 32, frames: 6, fps: 8 } }` → `art.egg.fire.src === '/art/v1/egg-fire.png'`, `frames 6`; missing `egg.ice` → empty `src`, `32×32`, `frames 1`
   - `dragon` keys come from the catalog species ids (9 for the launch catalog), all empty with `48×48`
   - `drawFallback` on a 32×32 canvas (jsdom canvas via `canvas` package or `vitest-canvas-mock`): fills ≥ 20% of pixels with the element base colour for `egg`; two calls are pixel-identical (deterministic)
   - `loadArt` in a Phaser `HEADLESS` game: after `create`, textures exist for every slot key (fallbacks generated), and `playOrStill` with `reducedMotion: true` never starts an animation
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(web): art slot system with manifest loader and pixel fallbacks`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(web): art slot system with manifest loader and pixel fallbacks`
 
 ### Task 3: Island scene
 
