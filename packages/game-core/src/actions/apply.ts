@@ -6,12 +6,14 @@ import { collectEgg, hatch, startBreed } from './breed-actions'
 import { buy, sellGold } from './economy-actions'
 import { buyFarmPlot, harvest, plant } from './farm-actions'
 import { buildHabitat, collectGold, feed, moveDragon, sellDragon, upgradeHabitat } from './island-actions'
-import type { Action, ActionCtx, ActionResult } from './types'
+import { failure, type Action, type ActionCtx, type ActionResult } from './types'
+import { isValidAction } from './validate'
 
 /** Single entry point: pure, deterministic given (state, action, nowMs, rng, catalog). */
 export function applyAction(
   s: PlayerState, a: Action, nowMs: number, rng: Rng, catalog: Catalog = LAUNCH_CATALOG,
 ): ActionResult {
+  if (!isValidAction(a)) return failure('INVALID_ACTION')
   const ctx: ActionCtx = { nowMs, rng, catalog }
   switch (a.type) {
     case 'collectGold': return collectGold(s, a, ctx)

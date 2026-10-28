@@ -31,7 +31,15 @@ export function dailySellLimitMicroUsd(hoardLevel: number, ledger: PlayerState['
   return base
 }
 
+/**
+ * The sell counter rolled forward to `nowMs`. Monotonic: a clock that steps
+ * back across midnight keeps the stored day and counter instead of resetting.
+ */
+export function sellCounterAt(s: PlayerState, nowMs: number): PlayerState['sell'] {
+  const day = utcDay(nowMs)
+  return day > s.sell.day ? { day, soldTodayMicroUsd: 0 } : s.sell
+}
+
 export function remainingSellMicroUsd(s: PlayerState, nowMs: number): number {
-  const soldToday = s.sell.day === utcDay(nowMs) ? s.sell.soldTodayMicroUsd : 0
-  return Math.max(0, dailySellLimitMicroUsd(s.hoardLevel, s.ledger) - soldToday)
+  return Math.max(0, dailySellLimitMicroUsd(s.hoardLevel, s.ledger) - sellCounterAt(s, nowMs).soldTodayMicroUsd)
 }

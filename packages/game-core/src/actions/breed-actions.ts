@@ -4,6 +4,7 @@ import { canLiveIn, habitatSlots, residents } from '../habitat'
 import { addXp } from '../progression'
 import { RARITY } from '../rarity'
 import { HATCHERY_SLOTS } from '../state'
+import { collectHabitat } from './island-actions'
 import { failure, success, type Handler } from './types'
 
 export const BREED_MIN_LEVEL = 4
@@ -59,10 +60,11 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
   const species = getSpecies(ctx.catalog, egg.speciesId)
   const home = s.habitats.find(h => canLiveIn(species, h) && residents(s, h.id).length < habitatSlots(h))
   const dragon = { id: `d${s.nextId}`, speciesId: egg.speciesId, level: 1, habitatId: home ? home.id : null }
+  const collected = home ? collectHabitat(s, home.id, ctx.catalog, ctx.nowMs) : s
   const next = {
-    ...s,
-    hatchery: s.hatchery.filter((_, i) => i !== a.slot),
-    dragons: [...s.dragons, dragon],
+    ...collected,
+    hatchery: collected.hatchery.filter((_, i) => i !== a.slot),
+    dragons: [...collected.dragons, dragon],
     nextId: s.nextId + 1,
   }
   return success(addXp(next, RARITY[species.rarity].xp))
