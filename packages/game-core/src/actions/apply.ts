@@ -2,6 +2,7 @@ import type { Catalog } from '../catalog'
 import { LAUNCH_CATALOG } from '../data/launch-catalog'
 import type { Rng } from '../rng'
 import type { PlayerState } from '../state'
+import { collectEgg, hatch, startBreed } from './breed-actions'
 import { buyFarmPlot, harvest, plant } from './farm-actions'
 import { buildHabitat, collectGold, feed, moveDragon, sellDragon, upgradeHabitat } from './island-actions'
 import { failure, type Action, type ActionCtx, type ActionResult } from './types'
@@ -21,9 +22,9 @@ export function applyAction(
     case 'buyFarmPlot': return buyFarmPlot(s, a, ctx)
     case 'plant': return plant(s, a, ctx)
     case 'harvest': return harvest(s, a, ctx)
-    case 'startBreed':
-    case 'collectEgg':
-    case 'hatch':
+    case 'startBreed': return startBreed(s, a, ctx)
+    case 'collectEgg': return collectEgg(s, a, ctx)
+    case 'hatch': return hatch(s, a, ctx)
     case 'sellGold':
     case 'buy':
       return failure('NOT_FOUND')

@@ -359,7 +359,7 @@ interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog }
   - `collectEgg`: `NEST_EMPTY`, `NOT_READY`, `HATCHERY_FULL` when `hatchery.length + waiting dragons >= 3`. Moves egg to hatchery with `readyAtMs = now + (tutorial.hatchDone ? hatchMs : 15_000)`; set `hatchDone`.
   - `hatch`: `NOT_FOUND` for a bad slot, `NOT_READY`; creates `d<nextId>` at level 1 in the first habitat (list order) it `canLiveIn` with free slots, else `habitatId: null`; XP `RARITY[r].xp`.
 
-- [ ] **Step 1: Write failing tests** (fixture catalog; `s4` = `newPlayer(0)` with d1, d2 at level 4)
+- [x] **Step 1: Write failing tests** (fixture catalog; `s4` = `newPlayer(0)` with d1, d2 at level 4)
   - startBreed d1 d1 → `INVALID_PARENTS`; d1 dX → `INVALID_PARENTS`; on `newPlayer(0)` (level 1) → `LEVEL_TOO_LOW`
   - startBreed d1 d2 on `s4` at 0 → `nests[0].readyAtMs === 15_000`, `tutorial.breedDone`, `xp === RARITY[rarity of egg species].xp`; a second startBreed → `NO_FREE_NEST`
   - with `tutorial.breedDone: true`, at t = 1_000 → `nests[0].readyAtMs === 1_000 + RARITY[r].breedMs`
@@ -368,10 +368,10 @@ interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog }
   - collectEgg at 14_999 → `NOT_READY`; at 15_000 → `nests[0] === null`, `hatchery[0].readyAtMs === 30_000`, `tutorial.hatchDone`; empty nest → `NEST_EMPTY`
   - hatchery with 2 eggs plus one dragon with `habitatId: null` → `HATCHERY_FULL`, nest unchanged
   - hatch slot 0 of a ready `fw-common` egg → new dragon `{ id: 'd3', speciesId: 'fw-common', level: 1, habitatId: 'h1' }`, hatchery empty, nextId 4; with h1 and h2 full → `habitatId: null`; slot 5 → `NOT_FOUND`; not ready → `NOT_READY`
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement `breed-actions.ts` and wire `apply.ts`**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): breeding, egg collection and hatching actions`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement `breed-actions.ts` and wire `apply.ts`**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): breeding, egg collection and hatching actions`
 
 ### Task 9: Sell-back and store actions, public API, replay
 
