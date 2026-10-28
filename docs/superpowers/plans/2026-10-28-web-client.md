@@ -145,15 +145,15 @@
 - Produces (`PvpPanel`): Offers (GET `/pvp/offers`, Refresh retires the old set per server rule), opponent cards (level, trophies, team), Fight → team picker (3 owned dragons; defence team preselected) → `BattlePanel`. `PvePanel`: 30 stages, cleared/locked state, first-clear rewards from `stageRewards`, replays left (10/day), Fight.
 - Produces (`BattlePanel`): move buttons for `next` actor (`movesFor`), target buttons for living defenders, Undo, Submit (enabled when `preview.done` exists for PvP, or at any time for PvE with a "moves until here" note), result view (winner, trophies/gold/SP from the response).
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
   - game-core: `battlePreview` with no moves returns `next = { side: 'attacker', slot: fastest attacker }` and an empty attacker log (defenders faster than the first attacker have acted); with a full legal move list `done` equals `simulateBattle(...)`; 200 random seeds/teams: for a prefix of moves, `battlePreview(prefix).log` is a prefix of `simulateBattle(full).log`
   - `useBattle` (offer with `seedHex`, water L20 team vs fire L1 bots): `legalMovesFor(next)` has 2 moves × 3 targets; after `choose(0,0)`, `choose(0,1)`, `choose(0,2)`, `preview.done.winner === 'attacker'` and `submit()` posts exactly those three moves with the `offerId`
   - `BattlePanel` disables a target button for a KO'd defender; Submit disabled until `done` (PvP)
   - `PvePanel` shows stage 2 locked when `pve.cleared === 0`, and "Replays left: 10"
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement** (`pnpm --filter @wyrmhaven/game-core test` must stay green)
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(web): battle preview, battle scene, pvp/pve panels`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement** (`pnpm --filter @wyrmhaven/game-core test` must stay green)
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(web): battle preview, battle scene, pvp/pve panels`
 
 ### Task 6: Chain panels (enter, deposit, withdraw), Hoard, season and re-verify
 

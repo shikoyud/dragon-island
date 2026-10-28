@@ -21,6 +21,7 @@ export { BREED_MIN_LEVEL, TUTORIAL_TIMER_MS, hatcheryUsed } from './actions/bree
 export { isValidAction } from './actions/validate'
 export * from './battle/stats'
 export * from './battle/sim'
+export * from './battle/preview'
 export * from './trophy'
 export * from './matchmaking'
 export * from './pve'

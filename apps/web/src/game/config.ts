@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import type { Bridge } from './bridge'
 import { BASE, integerZoom } from './layout'
+import { BattleScene } from './scenes/BattleScene'
 import { BootScene } from './scenes/BootScene'
 import { IslandScene } from './scenes/IslandScene'
 
@@ -26,7 +27,7 @@ export function createGame(parent: HTMLElement, bridge: Bridge, opts: GameOption
     scale: { mode: Phaser.Scale.NONE, width: BASE.w, height: BASE.h, zoom },
     audio: { noAudio: true },
     banner: false,
-    scene: [new BootScene(bridge), new IslandScene(bridge)],
+    scene: [new BootScene(bridge), new IslandScene(bridge), new BattleScene(bridge)],
   })
   if (!opts.headless && typeof ResizeObserver !== 'undefined') {
     const ro = new ResizeObserver(() => {

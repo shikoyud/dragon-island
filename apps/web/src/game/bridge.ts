@@ -1,4 +1,4 @@
-import type { PlayerState } from '@wyrmhaven/game-core'
+import type { BattlePreview, PlayerState } from '@wyrmhaven/game-core'
 import type { GameArtSet } from '../art/types'
 
 /** Something the player can click in a scene. */
@@ -15,6 +15,7 @@ export type GameEvent =
   | { type: 'select'; target: Target }
   | { type: 'hover'; target: Target | null }
   | { type: 'battleTarget'; slot: number }
+  | { type: 'battle'; preview: BattlePreview | null }
   | { type: 'state'; state: PlayerState | null }
   | { type: 'ready' }
 
@@ -31,6 +32,7 @@ export function createBridge() {
     art: null as GameArtSet | null,
     nowMs: 0,
     reducedMotion: false,
+    battle: null as BattlePreview | null,
     selected: { kind: 'empty' } as Target,
     on<T extends GameEvent['type']>(type: T, h: Handler<T>): () => void {
       const set = handlers.get(type) ?? new Set()
@@ -52,6 +54,10 @@ export function createBridge() {
     setArt(art: GameArtSet): void { bridge.art = art },
     setClock(nowMs: number): void { bridge.nowMs = nowMs },
     setReducedMotion(v: boolean): void { bridge.reducedMotion = v },
+    setBattle(preview: BattlePreview | null): void {
+      bridge.battle = preview
+      bridge.emit({ type: 'battle', preview })
+    },
   }
   return bridge
 }

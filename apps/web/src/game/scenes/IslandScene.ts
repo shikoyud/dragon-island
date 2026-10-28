@@ -33,6 +33,8 @@ export class IslandScene extends Phaser.Scene {
       this.layer.add(spr)
     })
     this.bridge.on('state', () => this.sync())
+    // Switch to the battle scene while a battle is being built; come back when it is cleared.
+    this.bridge.on('battle', e => { if (e.preview) this.scene.switch('battle') })
     this.time.addEvent({ delay: 1000, loop: true, callback: () => this.sync() })
     this.sync()
     this.bridge.emit({ type: 'ready' })
