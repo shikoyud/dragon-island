@@ -1,0 +1,31 @@
+import type { Catalog } from '../catalog'
+import { LAUNCH_CATALOG } from '../data/launch-catalog'
+import type { Rng } from '../rng'
+import type { PlayerState } from '../state'
+import { buyFarmPlot, harvest, plant } from './farm-actions'
+import { buildHabitat, collectGold, feed, moveDragon, sellDragon, upgradeHabitat } from './island-actions'
+import { failure, type Action, type ActionCtx, type ActionResult } from './types'
+
+/** Single entry point: pure, deterministic given (state, action, nowMs, rng, catalog). */
+export function applyAction(
+  s: PlayerState, a: Action, nowMs: number, rng: Rng, catalog: Catalog = LAUNCH_CATALOG,
+): ActionResult {
+  const ctx: ActionCtx = { nowMs, rng, catalog }
+  switch (a.type) {
+    case 'collectGold': return collectGold(s, a, ctx)
+    case 'buildHabitat': return buildHabitat(s, a, ctx)
+    case 'upgradeHabitat': return upgradeHabitat(s, a, ctx)
+    case 'moveDragon': return moveDragon(s, a, ctx)
+    case 'feed': return feed(s, a, ctx)
+    case 'sellDragon': return sellDragon(s, a, ctx)
+    case 'buyFarmPlot': return buyFarmPlot(s, a, ctx)
+    case 'plant': return plant(s, a, ctx)
+    case 'harvest': return harvest(s, a, ctx)
+    case 'startBreed':
+    case 'collectEgg':
+    case 'hatch':
+    case 'sellGold':
+    case 'buy':
+      return failure('NOT_FOUND')
+  }
+}

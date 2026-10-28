@@ -330,7 +330,7 @@ interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog }
 - Produces (`apply.ts`): `applyAction(s: PlayerState, a: Action, nowMs: number, rng: Rng, catalog: Catalog = LAUNCH_CATALOG): ActionResult` — `switch` dispatch to one handler per type `(s, a, ctx) => ActionResult`. Breeding and economy cases return `NOT_FOUND` until Tasks 8 and 9 replace them.
 - Rules this task pins: `collectGold` uses `earnGold(…, true)` and sets `lastCollectedMs = max(last, now)`; gold costs use `spendGold`; `buildHabitat` needs `habitats.length < maxHabitats(level)`; `moveDragon` collects source (if any) and target habitats first, same-habitat move is a no-op success; `feed` raises one level, costs `foodToNextLevel`, adds `floor(cost / 10)` XP; `sellDragon` refuses when `dragons.length <= 2`, credits `RARITY.sellGold` as ineligible gold; `plant` requires an empty plot; `harvest` requires `now >= readyAtMs`.
 
-- [ ] **Step 1: Write failing tests** (`s = newPlayer(0)`, `rng = createRng(1)`, `FIXTURE_CATALOG`; `run = (st, a, t) => applyAction(st, a, t, rng, FIXTURE_CATALOG)`)
+- [x] **Step 1: Write failing tests** (`s = newPlayer(0)`, `rng = createRng(1)`, `FIXTURE_CATALOG`; `run = (st, a, t) => applyAction(st, a, t, rng, FIXTURE_CATALOG)`)
   - collect h1 at 600_000 → gold 1020, eligibleGold 20, h1.lastCollectedMs 600_000, effects `[]`; then collect at 300_000 → gold 1020, lastCollectedMs 600_000; collect `'h9'` → `NOT_FOUND`
   - buildHabitat earth at level 1 → `HABITAT_LIMIT`; with `level: 5` → gold 500, new habitat `{ id: 'h3', element: 'earth', level: 1, lastCollectedMs: t }`, nextId 4
   - upgradeHabitat h1 → gold 0, level 2; again with gold 0 → `INSUFFICIENT_GOLD`; at level 5 → `MAX_LEVEL`
@@ -340,10 +340,10 @@ interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog }
   - buyFarmPlot → gold 500, 3 plots; with 6 plots → `MAX_PLOTS`
   - plant plot 0 sprout at 0 → gold 980, `{ crop: 'sprout', readyAtMs: 60_000 }`; plant it again → `PLOT_BUSY`; harvest at 59_999 → `NOT_READY`; at 60_000 → food 110 and plot `{ crop: null, readyAtMs: 0 }`; harvest empty plot → `PLOT_EMPTY`; plant bounty with 1000 gold → `INSUFFICIENT_GOLD`; plot 7 → `NOT_FOUND`
   - after all calls, `s` still equals `newPlayer(0)`
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement `types.ts`, `island-actions.ts`, `farm-actions.ts`, `apply.ts`**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): applyAction with island and farm actions`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement `types.ts`, `island-actions.ts`, `farm-actions.ts`, `apply.ts`**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): applyAction with island and farm actions`
 
 ### Task 8: Breeding, egg and hatch actions
 
