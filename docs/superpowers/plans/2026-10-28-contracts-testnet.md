@@ -45,8 +45,8 @@
   - `error ZeroAddress();`
 - Produces (`foundry.toml`): `solc = "0.8.24"`, `optimizer = true`, `optimizer_runs = 200`, `evm_version = "cancun"`, `[rpc_endpoints] rh_testnet = "${RH_TESTNET_RPC}"`, `[fmt]` defaults, `fuzz.runs = 512`, `invariant.runs = 64`, `invariant.depth = 32`
 
-- [ ] **Step 1: `cd contracts && forge init --no-git --no-commit . && forge install OpenZeppelin/openzeppelin-contracts@v5.1.0 --no-git`** (keep `lib/` vendored? No: add `lib/` to `.gitignore` and record versions in `contracts/README.md` with the install command; the executor records the exact tag that resolved)
-- [ ] **Step 2: Write failing tests**
+- [x] **Step 1: `cd contracts && forge init --no-git --no-commit . && forge install OpenZeppelin/openzeppelin-contracts@v5.1.0 --no-git`** (keep `lib/` vendored? No: add `lib/` to `.gitignore` and record versions in `contracts/README.md` with the install command; the executor records the exact tag that resolved)
+- [x] **Step 2: Write failing tests**
 
 ```solidity
 function test_SupplyAndSplit() public {
@@ -63,10 +63,10 @@ function test_PermitWorks() public { /* sign EIP-2612 permit with vm.sign for a 
 function test_TeamVestingLinear() public { /* deploy VestingWallet(team, uint64(block.timestamp), 365 days) as `team`; warp 182.5 days; release; assert ≈ 50% ± 1e18 */ }
 ```
 
-- [ ] **Step 3: Run `forge test -vv`** — expect FAIL (contract missing)
-- [ ] **Step 4: Implement `WyrmToken.sol`**
-- [ ] **Step 5: Run `forge test -vv` and `forge fmt --check`** — expect PASS, formatted
-- [ ] **Step 6: Commit** `feat(contracts): foundry project and fixed-supply WyrmToken`
+- [x] **Step 3: Run `forge test -vv`** — expect FAIL (contract missing)
+- [x] **Step 4: Implement `WyrmToken.sol`**
+- [x] **Step 5: Run `forge test -vv` and `forge fmt --check`** — expect PASS, formatted
+- [x] **Step 6: Commit** `feat(contracts): foundry project and fixed-supply WyrmToken`
 
 ### Task 2: `WyrmVault` entry and deposits
 
