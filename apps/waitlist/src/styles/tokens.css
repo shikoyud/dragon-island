@@ -1,0 +1,30 @@
+:root {
+  --el-fire: #e8532f;
+  --el-water: #2f8fd8;
+  --el-earth: #a8794a;
+  --el-nature: #4fb35a;
+  --el-electric: #f2c635;
+  --el-ice: #7fd6e6;
+  --el-metal: #9aa6b8;
+  --el-dark: #7c4fb8;
+  --el-light: #f4e4b0;
+
+  /* Set by next/font in the layout (see src/styles/fonts.ts). */
+  --font-display: var(--font-silkscreen), monospace;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+}
+
+@keyframes wh-sprite-play {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: calc(-1 * var(--wh-sheet-w)) 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wh-sprite {
+    animation: none !important;
+  }
+}
