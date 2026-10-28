@@ -53,6 +53,7 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     event Deposited(address indexed player, uint256 amount, uint256 credited, uint256 burned);
     event Claimed(address indexed player, uint256 cumulative, uint256 gross, uint256 net, uint256 burned);
     event OperatorBurn(uint256 amount, uint256 burnedToday);
+    event PayoutDayStarted(uint256 indexed day, uint256 cap);
     event EntryFeeSet(uint256 weiAmount);
     event OperatorSet(address operator);
     event SignerSet(address signer);
@@ -70,6 +71,7 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     error NothingToClaim();
     error DailyCapExceeded(uint256 remaining);
     error BurnLimitExceeded(uint256 remaining);
+    error RenounceDisabled();
 
     modifier onlyOperator() {
         if (msg.sender != operator) revert NotOperator();
@@ -127,12 +129,15 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     /// @notice Withdraws `cumulative - claimed[msg.sender]` gross, authorised by the server's EIP-712 voucher.
     ///         5% fee: 2.5% burned, 2.5% stays. At most 2% of the vault's balance leaves per UTC day;
     ///         a claim over the cap reverts in full and can be retried the next day.
+    ///      The server must size vouchers to fit `remainingPayoutToday()`: a single voucher larger than
+    ///      the day's cap can never be paid, since the cap only shrinks as the vault drains.
     /// @dev Replay-safe by construction: a voucher's cumulative total can only be paid once, and the
     ///      domain binds chain id and vault address. `deadline` limits how long a stale voucher lives.
     function claim(uint256 cumulative, uint256 deadline, bytes calldata signature) external whenNotPaused nonReentrant {
         if (block.timestamp > deadline) revert VoucherExpired();
         bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(CLAIM_TYPEHASH, msg.sender, cumulative, deadline)));
-        if (ECDSA.recover(digest, signature) != signer) revert InvalidSignature();
+        (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(digest, signature);
+        if (err != ECDSA.RecoverError.NoError || recovered != signer) revert InvalidSignature();
         uint256 already = claimed[msg.sender];
         if (cumulative <= already) revert NothingToClaim();
         uint256 gross = cumulative - already;
@@ -166,7 +171,7 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
             burnDay = today;
             burnedToday = 0;
         }
-        uint256 remaining = burnDailyLimit - burnedToday;
+        uint256 remaining = _saturatingSub(burnDailyLimit, burnedToday);
         if (amount > remaining) revert BurnLimitExceeded(remaining);
         burnedToday += amount;
         token.burn(amount);
@@ -176,7 +181,7 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     /// @notice Operator burn allowance left today.
     function remainingBurnToday() external view returns (uint256) {
         if (_dayKey() != burnDay) return burnDailyLimit;
-        return burnDailyLimit - burnedToday;
+        return _saturatingSub(burnDailyLimit, burnedToday);
     }
 
     // ---------------------------------------------------------------- admin
@@ -185,6 +190,11 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     function setEntryFee(uint256 weiAmount) external onlyOwnerOrOperator {
         entryFeeWei = weiAmount;
         emit EntryFeeSet(weiAmount);
+    }
+
+    /// @notice Disabled: an ownerless vault could never be unpaused or have its signer rotated.
+    function renounceOwnership() public view override onlyOwner {
+        revert RenounceDisabled();
     }
 
     function setOperator(address operator_) external onlyOwner {
@@ -228,12 +238,17 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
             capDay = today;
             dayCap = token.balanceOf(address(this)) * PAYOUT_CAP_BPS / BPS;
             paidToday = 0;
+            emit PayoutDayStarted(today, dayCap);
         }
     }
 
     /// @dev 1-based UTC day index (block.timestamp only; block.number is unreliable on Orbit chains).
     function _dayKey() internal view returns (uint256) {
         return block.timestamp / 1 days + 1;
+    }
+
+    function _saturatingSub(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a > b ? a - b : 0;
     }
 
     /// @dev Floor division; dust from rounding stays in the vault via `net + burned + kept == amount`.
