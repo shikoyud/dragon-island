@@ -189,7 +189,7 @@ HATCHERY_SLOTS = 3
 - Produces (`wallet.ts`): `earnGold(s: PlayerState, amount: number, eligible: boolean): PlayerState`; `spendGold(s: PlayerState, amount: number): PlayerState | null` — `null` if `amount > gold`; consumes `gold − eligibleGold` first, then eligible gold
 - Produces (`progression.ts`): `MAX_PLAYER_LEVEL = 50`; `xpToNext(level: number): number` = 50·L²; `addXp(s: PlayerState, xp: number): PlayerState` — levels up while `xp ≥ xpToNext(level)` (subtracting), stops at 50 and keeps accumulating XP there
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```ts
 expect(newPlayer(0)).toEqual({
@@ -216,10 +216,10 @@ expect(addXp({ ...s, level: 50, xp: 0 }, 999_999)).toMatchObject({ level: 50, xp
 expect(s).toEqual(newPlayer(0))                         // inputs not mutated
 ```
 
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement the three files**
-- [ ] **Step 4: Run tests** — expect PASS
-- [ ] **Step 5: Commit** `feat(game-core): player state, gold eligibility, player xp`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement the three files**
+- [x] **Step 4: Run tests** — expect PASS
+- [x] **Step 5: Commit** `feat(game-core): player state, gold eligibility, player xp`
 
 ### Task 5: Habitat and farm rules
 
