@@ -27,6 +27,7 @@ function loadFont(): Buffer {
 
 async function defaultFetchImage(url: string): Promise<ArrayBuffer | null> {
   try {
+    if (!url.startsWith('https://pbs.twimg.com/')) return null
     const res = await fetch(url, { signal: AbortSignal.timeout(3000) })
     return res.ok ? await res.arrayBuffer() : null
   } catch {
@@ -34,15 +35,14 @@ async function defaultFetchImage(url: string): Promise<ArrayBuffer | null> {
   }
 }
 
-function sniffMime(buf: Buffer): string {
-  if (buf[0] === 0x89 && buf[1] === 0x50) return 'image/png'
-  if (buf[0] === 0xff && buf[1] === 0xd8) return 'image/jpeg'
-  if (buf.subarray(0, 3).toString() === 'GIF') return 'image/gif'
-  if (buf.subarray(8, 12).toString() === 'WEBP') return 'image/webp'
-  return 'image/png'
+/** PNG or JPEG by magic bytes only; anything else (HTML, WebP, garbage) is rejected. */
+function sniffMime(buf: Buffer): 'image/png' | 'image/jpeg' | null {
+  if (buf.length >= 8 && buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png'
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg'
+  return null
 }
 
-const dataUrl = (buf: Buffer, mime = sniffMime(buf)) => `data:${mime};base64,${buf.toString('base64')}`
+const dataUrl = (buf: Buffer, mime: string) => `data:${mime};base64,${buf.toString('base64')}`
 
 /** Sprite as a data URL read from public/, or null when the slot is empty or unreadable. */
 function spriteDataUrl(s: Sprite): string | null {
@@ -91,7 +91,11 @@ export async function renderCard(data: CardData, opts: RenderOpts = {}): Promise
   if (data.avatarUrl) {
     try {
       const buf = await fetchImage(data.avatarUrl)
-      if (buf && buf.byteLength > 0) avatar = dataUrl(Buffer.from(buf))
+      if (buf) {
+        const bytes = Buffer.from(buf)
+        const mime = sniffMime(bytes)
+        if (mime) avatar = dataUrl(bytes, mime)
+      }
     } catch {
       avatar = null
     }
