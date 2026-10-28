@@ -7,6 +7,10 @@ import type { Db } from '../../src/db/client'
 import { testDb } from './testDb'
 import { signSiwe } from './wallet'
 
+/** Well-known test keys: anvil account 1 as the voucher signer; a fixed vault address for the EIP-712 domain. */
+export const TEST_SIGNER_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const
+export const TEST_VAULT = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0' as const
+
 export interface TestApp {
   app: FastifyInstance
   db: Db
@@ -20,7 +24,10 @@ export interface TestApp {
 export async function testApp(overrides: Partial<AppDeps> = {}, startMs = 0): Promise<TestApp> {
   const { db, close } = await testDb()
   const clock = mutableClock(startMs)
-  const config = loadConfig({ SESSION_SECRET: 't'.repeat(32), ADMIN_TOKEN: 'admin-token' })
+  const config = loadConfig({
+    SESSION_SECRET: 't'.repeat(32), ADMIN_TOKEN: 'admin-token',
+    SIGNER_PRIVATE_KEY: TEST_SIGNER_KEY, VAULT_ADDRESS: TEST_VAULT,
+  })
   const deps: AppDeps = { db, clock, config, ...overrides }
   const app = await buildApp(deps)
   await app.ready()

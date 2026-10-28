@@ -1,7 +1,10 @@
 import { LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
 import { eq } from 'drizzle-orm'
 import Fastify, { type FastifyInstance } from 'fastify'
-import { getAddress } from 'viem'
+import { getAddress, type Address, type Hex } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { createViemChainClient, type ChainClient } from './chain/client'
+import { FakeChainClient } from './chain/fake'
 import type { Clock } from './clock'
 import type { Config } from './config'
 import type { Db } from './db/client'
@@ -11,6 +14,8 @@ import { requireSession } from './plugins/session'
 import { actionRoutes } from './routes/actions'
 import { authRoutes } from './routes/auth'
 import { pvpRoutes } from './routes/pvp'
+import { withdrawRoutes } from './routes/withdraw'
+import type { WithdrawDeps } from './services/withdraw'
 import { seasonRoutes } from './routes/season'
 import type { ActionDeps } from './services/actions'
 import { peekOfferOpponent, resolveOffer, settleDefence } from './services/battles'
@@ -25,6 +30,8 @@ export interface AppDeps {
   config: Config
   catalog?: Catalog
   price?: PriceSource
+  /** Defaults to a viem client when VAULT_ADDRESS is configured, else an in-memory fake (dev/tests). */
+  chain?: ChainClient
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
@@ -32,6 +39,13 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const { db, clock } = deps
   deps.catalog ??= LAUNCH_CATALOG
   deps.price ??= new ManualPriceSource(db)
+  const { config } = deps
+  deps.chain ??= config.VAULT_ADDRESS && config.RPC_URL
+    ? createViemChainClient({ rpcUrl: config.RPC_URL, vault: config.VAULT_ADDRESS as Address, operatorKey: config.OPERATOR_PRIVATE_KEY as Hex | undefined })
+    : new FakeChainClient()
+  const withdrawDeps: WithdrawDeps | null = config.SIGNER_PRIVATE_KEY && config.VAULT_ADDRESS
+    ? { db, clock, chain: deps.chain, signer: privateKeyToAccount(config.SIGNER_PRIVATE_KEY as Hex), vault: config.VAULT_ADDRESS as Address, chainId: config.CHAIN_ID }
+    : null
   registerErrorHandler(app)
 
   const actionDeps: ActionDeps = {
@@ -44,6 +58,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   actionRoutes(app, deps, actionDeps)
   spRoutes(app, deps)
   pvpRoutes(app, deps)
+  withdrawRoutes(app, deps, withdrawDeps)
 
   app.get('/me', { preHandler: requireSession(db, clock) }, async req => {
     const p = req.player!
