@@ -87,8 +87,8 @@ describe('auth start', () => {
     expect(loc.searchParams.get('state')!.length).toBeGreaterThanOrEqual(22)
   })
 
-  it('the 21st start in a minute from one IP is 429', async () => {
-    for (let i = 0; i < 20; i++) expect((await handlers.authStart(d, req('/api/auth/x'))).status).toBe(302)
+  it('the 31st start in a minute from one IP is 429', async () => {
+    for (let i = 0; i < 30; i++) expect((await handlers.authStart(d, req('/api/auth/x'))).status).toBe(302)
     const res = await handlers.authStart(d, req('/api/auth/x'))
     expect(res.status).toBe(429)
     expect(await res.json()).toEqual({ error: 'RATE_LIMITED' })
@@ -170,6 +170,27 @@ describe('auth callback', () => {
     expect(await countEntrants()).toBe(0)
   })
 
+  it('is not rate limited: 25 callbacks from one IP all redirect', async () => {
+    for (let i = 0; i < 25; i++) {
+      const res = await handlers.authCallback(d, req('/api/auth/x/callback?state=s&code=c'))
+      expect(res.status).toBe(302)
+      expect(res.headers.get('location')).toBe('/?x=error#join')
+    }
+  })
+
+  it('carries the ref code from wh_oauth through fail redirects', async () => {
+    const jar: Jar = {}
+    absorb(await handlers.authStart(d, req('/api/auth/x?ref=FRIEND42')), jar)
+    const denied = await handlers.authCallback(d, req('/api/auth/x/callback?error=access_denied&state=s', { jar }))
+    expect(denied.headers.get('location')).toBe('/?x=denied&ref=FRIEND42#join')
+    const forged = await handlers.authCallback(d, req('/api/auth/x/callback?state=forged&code=c', { jar }))
+    expect(forged.headers.get('location')).toBe('/?x=error&ref=FRIEND42#join')
+
+    d.x = new FakeXClient({ siteUrl: '', profile: { createdAt: new Date(d.clock.now().getTime() - 86_400_000) } })
+    const young = await signIn({}, '?ref=FRIEND42')
+    expect(young.headers.get('location')).toBe('/?x=too_new&ref=FRIEND42#join')
+  })
+
   it('?ref=CODE on auth start reaches upsertFromX', async () => {
     const a: Jar = {}
     await signIn(a)
@@ -208,7 +229,7 @@ describe('authed routes', () => {
       expect(await res.json()).toEqual({ confirmedAt: d.clock.now().toISOString() })
     }
 
-    const nonceRes = await handlers.walletNonce(d, req('/api/wallet/nonce', { jar }))
+    const nonceRes = await handlers.walletNonce(d, req('/api/wallet/nonce', { method: 'POST', jar }))
     expect(nonceRes.status).toBe(200)
     const { nonce } = (await nonceRes.json()) as { nonce: string }
     const acct = privateKeyToAccount(generatePrivateKey())
@@ -269,7 +290,7 @@ describe('authed routes', () => {
       handlers.me(d, req('/api/me', { jar })),
       handlers.openTask(d, req('/api/tasks/follow/open', { method: 'POST', jar }), { task: 'follow' }),
       handlers.confirmTask(d, req('/api/tasks/follow/confirm', { method: 'POST', jar }), { task: 'follow' }),
-      handlers.walletNonce(d, req('/api/wallet/nonce', { jar })),
+      handlers.walletNonce(d, req('/api/wallet/nonce', { method: 'POST', jar })),
       handlers.wallet(d, req('/api/wallet', { method: 'POST', jar, body: { address: '0x', signature: '0x00', nonce: 'n' } })),
       handlers.join(d, req('/api/join', { method: 'POST', jar })),
     ]
@@ -319,7 +340,7 @@ describe('authed routes', () => {
   it('wallet bound to another X account is WALLET_TAKEN 409', async () => {
     const acct = privateKeyToAccount(generatePrivateKey())
     const bindAs = async (jar: Jar, handle: string) => {
-      const { nonce } = (await (await handlers.walletNonce(d, req('/api/wallet/nonce', { jar }))).json()) as {
+      const { nonce } = (await (await handlers.walletNonce(d, req('/api/wallet/nonce', { method: 'POST', jar }))).json()) as {
         nonce: string
       }
       const signature = await acct.signMessage({ message: walletMessage(handle, acct.address, nonce) })
@@ -337,11 +358,19 @@ describe('authed routes', () => {
     expect(await res.json()).toEqual({ error: 'WALLET_TAKEN' })
   })
 
-  it('the 11th join in a minute from one IP is 429', async () => {
+  it('the 21st join in a minute from one IP is 429', async () => {
     const jar: Jar = {}
     await signIn(jar)
-    for (let i = 0; i < 10; i++) expect((await handlers.join(d, req('/api/join', { method: 'POST', jar }))).status).toBe(409)
+    for (let i = 0; i < 20; i++) expect((await handlers.join(d, req('/api/join', { method: 'POST', jar }))).status).toBe(409)
     expect((await handlers.join(d, req('/api/join', { method: 'POST', jar }))).status).toBe(429)
+  })
+
+  it('the 31st wallet call in a minute from one IP is 429', async () => {
+    const jar: Jar = {}
+    await signIn(jar)
+    const nonce = () => handlers.walletNonce(d, req('/api/wallet/nonce', { method: 'POST', jar }))
+    for (let i = 0; i < 30; i++) expect((await nonce()).status).toBe(200)
+    expect((await nonce()).status).toBe(429)
   })
 
   it('logout clears the session cookie', async () => {

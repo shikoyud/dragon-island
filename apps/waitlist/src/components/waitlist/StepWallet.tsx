@@ -13,8 +13,10 @@ function errorText(code: string): string {
     case 'WALLET_TAKEN':
       return 'This wallet is already linked to another X account. Try a different wallet.'
     case 'NONCE_INVALID':
-    case 'INVALID_SIGNATURE':
       return 'The signature check failed. Please sign again.'
+    case 'INVALID_SIGNATURE':
+      // Smart-contract wallets sign via EIP-1271, which the server's EOA signature check does not verify.
+      return 'That signature could not be verified. Smart-contract wallets (such as Safe or Coinbase Smart Wallet) are not supported yet, so please use a regular wallet.'
     case 'RATE_LIMITED':
       return 'Too many attempts. Wait a minute, then try again.'
     case 'REJECTED':
@@ -53,21 +55,21 @@ export function StepWallet({
     setBusy(true)
     setErr(null)
     try {
-      const nonceRes = await fetch('/api/wallet/nonce', { credentials: 'same-origin', cache: 'no-store' })
-      const nonceBody = (await nonceRes.json().catch(() => ({}))) as { nonce?: string; error?: string }
-      if (!nonceRes.ok || !nonceBody.nonce) {
-        const code = nonceBody.error ?? 'NETWORK'
+      const nonceRes = await post<{ nonce?: string }>('/api/wallet/nonce')
+      const nonce = isError(nonceRes) ? undefined : nonceRes.nonce
+      if (!nonce) {
+        const code = isError(nonceRes) ? nonceRes.error : 'NETWORK'
         if (!(await recover(code))) setErr(errorText(code))
         return
       }
       let signature: string
       try {
-        signature = await signMessageAsync({ message: walletMessage(handle, address, nonceBody.nonce) })
+        signature = await signMessageAsync({ message: walletMessage(handle, address, nonce) })
       } catch {
         setErr(errorText('REJECTED'))
         return
       }
-      const res = await post<{ wallet: string }>('/api/wallet', { address, signature, nonce: nonceBody.nonce })
+      const res = await post<{ wallet: string }>('/api/wallet', { address, signature, nonce })
       if (isError(res)) {
         if (!(await recover(res.error))) setErr(errorText(res.error))
         return

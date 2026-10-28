@@ -47,6 +47,19 @@ describe('issueNonce', () => {
     expect(row!.expiresAt).toEqual(new Date(d.clock.now().getTime() + 600_000))
     expect(row!.entrantId).toBe(a)
   })
+
+  it("deletes that entrant's expired nonces, keeping live ones and other entrants'", async () => {
+    const old = await issueNonce(d, a)
+    const othersOld = await issueNonce(d, b)
+    d.clock.advance(600_001)
+    const live = await issueNonce(d, a)
+    await issueNonce(d, a)
+    expect(await nonceRows(old)).toHaveLength(0)
+    expect(await nonceRows(live)).toHaveLength(1)
+    expect(await nonceRows(othersOld)).toHaveLength(1)
+    const mine = await d.db.select().from(walletNonces).where(eq(walletNonces.entrantId, a))
+    expect(mine).toHaveLength(2)
+  })
 })
 
 describe('bindWallet', () => {

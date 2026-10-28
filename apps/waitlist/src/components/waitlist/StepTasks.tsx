@@ -35,11 +35,14 @@ export function StepTasks({
   xHandle,
   postId,
   onDone,
+  onExpired,
 }: {
   tasks: EntrantState['tasks']
   xHandle: string
   postId: string
   onDone(): Promise<void>
+  /** Called before onDone when the server no longer accepts the session. */
+  onExpired(): void
 }) {
   // Local click time per task: this client's clock, so the countdown is not thrown off by server skew.
   const [opened, setOpened] = useState<Partial<Record<Task, number>>>({})
@@ -60,11 +63,12 @@ export function StepTasks({
       if (!isError(res)) return
       // The server has no open on record, so a countdown here would only end in TASK_NOT_OPENED.
       setOpened(({ [t]: _dropped, ...rest }) => rest)
-      setNotice(
-        res.error === 'UNAUTHORIZED'
-          ? 'Your session expired. Reload the page and connect X again.'
-          : 'Could not record that you opened this task. Please open it again.',
-      )
+      if (res.error === 'UNAUTHORIZED') {
+        onExpired()
+        void onDone()
+        return
+      }
+      setNotice('Could not record that you opened this task. Please open it again.')
     })
   }
 
@@ -73,7 +77,8 @@ export function StepTasks({
     setNotice(null)
     const res = await post<{ confirmedAt: string }>(`/api/tasks/${t}/confirm`)
     if (isError(res)) {
-      if (res.error === 'TOO_EARLY') setNotice('Not yet. Give it a few more seconds, then confirm.')
+      if (res.error === 'UNAUTHORIZED') onExpired()
+      else if (res.error === 'TOO_EARLY') setNotice('Not yet. Give it a few more seconds, then confirm.')
       else if (res.error === 'TASK_NOT_OPENED') setNotice('Open the task on X first, then confirm.')
       else setNotice('Could not confirm that task. Please try again.')
     }

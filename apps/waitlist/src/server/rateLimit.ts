@@ -22,7 +22,7 @@ export function rateLimit(key: string, limit: number, windowMs: number, now: Dat
 }
 
 export const LIMITS = {
-  auth: { limit: 20, windowMs: 60_000 },
-  wallet: { limit: 20, windowMs: 60_000 },
-  join: { limit: 10, windowMs: 60_000 },
+  auth: { limit: 30, windowMs: 60_000 },
+  wallet: { limit: 30, windowMs: 60_000 },
+  join: { limit: 20, windowMs: 60_000 },
 } as const

@@ -47,6 +47,19 @@ describe('upsertFromX', () => {
     expect(await rows()).toHaveLength(0)
   })
 
+  it('checks account age only on creation: a returning entrant always signs in', async () => {
+    const id = idOf(await upsertFromX(d, profile()))
+    // The minimum is raised after this entrant joined (or X reports a different creation date).
+    d.config = { ...d.config, MIN_X_ACCOUNT_AGE_DAYS: 1000 }
+    expect(await upsertFromX(d, profile({ username: 'ember2' }))).toEqual({ entrantId: id })
+    expect((await rowOf(id)).xHandle).toBe('ember2')
+    const young = profile({ createdAt: new Date(d.clock.now().getTime() - DAY) })
+    expect(await upsertFromX(d, young)).toEqual({ entrantId: id })
+    // A new account under the raised minimum is still refused.
+    expect(await upsertFromX(d, profile({ id: '2002' }))).toEqual({ error: 'X_ACCOUNT_TOO_NEW' })
+    expect(await rows()).toHaveLength(1)
+  })
+
   it('accepts an account exactly at the minimum age', async () => {
     const ok = profile({ createdAt: new Date(d.clock.now().getTime() - 30 * DAY) })
     expect('entrantId' in (await upsertFromX(d, ok))).toBe(true)

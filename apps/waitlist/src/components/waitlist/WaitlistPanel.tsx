@@ -63,9 +63,29 @@ function Identity({ state, onSignOut }: { state: EntrantState; onSignOut(): void
   )
 }
 
+/** Shown when /api/me failed for a reason other than 401; the panel keeps its last known step. */
+function RetryNotice({ onRetry }: { onRetry(): Promise<void> }) {
+  const [busy, setBusy] = useState(false)
+  async function retry() {
+    setBusy(true)
+    await onRetry()
+    setBusy(false)
+  }
+  return (
+    <p className="notice notice-warn" role="alert">
+      Could not load your progress. Check your connection, then{' '}
+      <button type="button" className="btn-link" disabled={busy} onClick={() => void retry()}>
+        {busy ? 'retrying…' : 'retry'}
+      </button>
+      .
+    </p>
+  )
+}
+
 export function WaitlistPanel(props: WaitlistPanelProps) {
-  const { state, refresh } = useEntrant()
+  const { state, failed, refresh } = useEntrant()
   const [expired, setExpired] = useState(false)
+  const onExpired = () => setExpired(true)
   const xStatus: XStatus | null = expired ? 'expired' : asXStatus(props.xStatus)
 
   useEffect(() => {
@@ -80,9 +100,13 @@ export function WaitlistPanel(props: WaitlistPanelProps) {
   if (state === 'loading') {
     return (
       <Panel className="waitlist-panel">
-        <p className="step-text" aria-busy="true">
-          Loading your progress…
-        </p>
+        {failed ? (
+          <RetryNotice onRetry={refresh} />
+        ) : (
+          <p className="step-text" aria-busy="true">
+            Loading your progress…
+          </p>
+        )}
       </Panel>
     )
   }
@@ -107,14 +131,22 @@ export function WaitlistPanel(props: WaitlistPanelProps) {
 
       {state ? <Identity state={state} onSignOut={() => void signOut()} /> : null}
 
+      {failed ? <RetryNotice onRetry={refresh} /> : null}
+
       {step === 'x' && (
         <StepX xStatus={xStatus} refCode={props.refCode} minAccountAgeDays={props.minAccountAgeDays} />
       )}
       {step === 'tasks' && state && (
-        <StepTasks tasks={state.tasks} xHandle={props.xHandle} postId={props.postId} onDone={refresh} />
+        <StepTasks
+          tasks={state.tasks}
+          xHandle={props.xHandle}
+          postId={props.postId}
+          onDone={refresh}
+          onExpired={onExpired}
+        />
       )}
-      {step === 'wallet' && state && <StepWallet handle={state.handle} onDone={refresh} onExpired={() => setExpired(true)} />}
-      {step === 'join' && state && <StepJoin wallet={state.wallet!} onDone={refresh} />}
+      {step === 'wallet' && state && <StepWallet handle={state.handle} onDone={refresh} onExpired={onExpired} />}
+      {step === 'join' && state && <StepJoin wallet={state.wallet!} onDone={refresh} onExpired={onExpired} />}
       {step === 'joined' && state && <Joined state={state} siteUrl={props.siteUrl} />}
     </Panel>
   )

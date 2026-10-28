@@ -57,16 +57,22 @@ function sameString(a: string, b: string): boolean {
   return x.length === y.length && timingSafeEqual(x, y)
 }
 
+/**
+ * Not rate limited: the signed single-use state cookie and X's single-use code already gate it,
+ * and a 429 here would strand the user on a JSON page mid sign-in.
+ */
 export async function authCallback(deps: Deps, req: Request): Promise<Response> {
-  if (limited(deps, req, 'auth')) return error('RATE_LIMITED')
   const clearOAuth = clearCookie(deps, OAUTH_COOKIE)
-  const fail = (x: 'denied' | 'error' | 'too_new') => redirect(`/?x=${x}#join`, [clearOAuth])
+  const saved = await readOAuthCookie(deps, req)
+  // Keep the referral through a failed sign-in, so "Connect X" again still credits the inviter.
+  const ref = refSchema.safeParse(saved?.ref)
+  const refParam = ref.success ? `&ref=${encodeURIComponent(ref.data)}` : ''
+  const fail = (x: 'denied' | 'error' | 'too_new') => redirect(`/?x=${x}${refParam}#join`, [clearOAuth])
 
   const params = new URL(req.url).searchParams
   const xError = params.get('error')
   if (xError) return fail(xError === 'access_denied' ? 'denied' : 'error')
 
-  const saved = await readOAuthCookie(deps, req)
   const state = params.get('state')
   const code = params.get('code')
   if (!saved || !state || !code || !sameString(saved.state, state)) return fail('error')

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { cardImagePath } from '../../card/cardUrl'
 import type { EntrantState } from '../../server/entrants'
 
 export function shareText(position: number): string {
@@ -11,7 +12,7 @@ export function Joined({ state, siteUrl }: { state: EntrantState; siteUrl: strin
   const [copied, setCopied] = useState(false)
   const [downloadErr, setDownloadErr] = useState(false)
   const code = encodeURIComponent(state.refCode)
-  const cardSrc = `/api/card/${code}.png`
+  const cardSrc = cardImagePath(state.refCode)
   const site = (siteUrl || (typeof window === 'undefined' ? '' : window.location.origin)).replace(/\/+$/, '')
   const cardPage = `${site}/c/${code}`
   const invite = `${site}/?ref=${code}`

@@ -14,10 +14,10 @@ Copy `.env.example` to `.env.local` (never commit it).
 | `X_CLIENT_ID`, `X_CLIENT_SECRET` | X OAuth 2.0 credentials (see below). |
 | `X_ACCOUNT_HANDLE` | The project X account people follow (required in production). |
 | `ANNOUNCEMENT_POST_ID` | ID of the post to like, repost and comment on (required in production). |
-| `NEXT_PUBLIC_REOWN_PROJECT_ID` | Reown (WalletConnect) project id. Without it the wallet step is disabled. |
+| `NEXT_PUBLIC_REOWN_PROJECT_ID` | Reown (WalletConnect) project id. Needed at build time. Required in production (the page fails on its first request without it); in development the wallet step shows a notice instead. |
 | `NEXT_PUBLIC_RH_TESTNET_RPC` | Robinhood Chain testnet (chain id 46630) RPC. Only used to configure the wallet library. |
 | `NEXT_PUBLIC_SITE_URL` | Public origin, e.g. `https://wyrmhaven.example`. Used for the OAuth callback and card URLs. |
-| `ADMIN_TOKEN` | Bearer token for the CSV export. Export is disabled if unset. |
+| `ADMIN_TOKEN` | Bearer token for the CSV export. Export is disabled if unset. In production a set token must be at least 32 characters. |
 | `MIN_X_ACCOUNT_AGE_DAYS` | Minimum X account age (default 30). |
 | `X_FAKE`, `X_FAKE_ID`, `X_FAKE_USERNAME`, `PGLITE_DIR` | Local dev / tests only (below). `X_FAKE=1` is refused in production. |
 
@@ -50,7 +50,7 @@ With `DATABASE_URL` unset, data lives in a file-backed PGlite in `PGLITE_DIR` (d
 
 ## Deploy
 
-1. Set the environment above (production needs `DATABASE_URL`, a 32+ character `SESSION_SECRET`, `X_ACCOUNT_HANDLE`, `ANNOUNCEMENT_POST_ID`, X credentials, `NEXT_PUBLIC_SITE_URL`).
+1. Set the environment above (production needs `DATABASE_URL`, a 32+ character `SESSION_SECRET`, `X_ACCOUNT_HANDLE`, `ANNOUNCEMENT_POST_ID`, `NEXT_PUBLIC_REOWN_PROJECT_ID`, X credentials, `NEXT_PUBLIC_SITE_URL`, and a 32+ character `ADMIN_TOKEN` if you want the export).
 2. **Required deploy step: run migrations.** The app does not migrate Postgres on boot.
    ```
    DATABASE_URL=postgres://... pnpm --filter @wyrmhaven/waitlist db:migrate
@@ -66,7 +66,7 @@ With `DATABASE_URL` unset, data lives in a file-backed PGlite in `PGLITE_DIR` (d
 curl -H "Authorization: Bearer $ADMIN_TOKEN" <site>/api/admin/export > waitlist.csv
 ```
 
-Rows are ordered by waitlist position and include handle, wallet and referral data. Treat the file as personal data.
+Rows are ordered by waitlist position. Columns: `position,handle,wallet,element,invites`, then `<task>_opened_at,<task>_confirmed_at` for follow, like, repost and comment, then `joined_at`. Handles have no leading `@` (spreadsheets read it as a formula). Treat the file as personal data.
 
 ## Swapping in real art
 

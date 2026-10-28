@@ -3,7 +3,7 @@ import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { CONFIRM_DELAY_MS, TASKS, type Task } from '../src/domain/tasks'
 import { walletMessage } from '../src/domain/walletMessage'
-import { entrants } from '../src/server/db/schema'
+import { entrants, taskEvents } from '../src/server/db/schema'
 import { getEntrantState, upsertFromX } from '../src/server/entrants'
 import { exportCsv } from '../src/server/export'
 import { join } from '../src/server/join'
@@ -131,12 +131,24 @@ describe('exportCsv', () => {
     const csv = await exportCsv(d)
     const lines = csv.trimEnd().split('\n')
     expect(lines[0]).toBe(
-      'position,handle,wallet,element,invites,follow_confirmed_at,like_confirmed_at,repost_confirmed_at,comment_confirmed_at,joined_at',
+      'position,handle,wallet,element,invites,follow_opened_at,follow_confirmed_at,like_opened_at,like_confirmed_at,repost_opened_at,repost_confirmed_at,comment_opened_at,comment_confirmed_at,joined_at',
     )
     expect(lines).toHaveLength(3)
-    expect(lines[1]!.startsWith('1,@tide,0x')).toBe(true)
-    expect(lines[2]!.startsWith('2,@ember,0x')).toBe(true)
+    // Plain handles: a leading @ would start a formula in Excel.
+    expect(lines[1]!.startsWith('1,tide,0x')).toBe(true)
+    expect(lines[2]!.startsWith('2,ember,0x')).toBe(true)
     expect(lines[2]!).toMatch(/Z$/)
+  })
+
+  it('writes opened and confirmed times for each task', async () => {
+    const a = await makeEntrant('1', 'ember')
+    const opened = d.clock.now().toISOString()
+    await doTasks(a)
+    const confirmed = d.clock.now().toISOString()
+    await bind(a, 'ember')
+    await join(d, a)
+    const cells = (await exportCsv(d)).trimEnd().split('\n')[1]!.split(',')
+    expect(cells.slice(5, 13)).toEqual([opened, confirmed, opened, confirmed, opened, confirmed, opened, confirmed])
   })
 
   it('escapes commas and quotes in a field', async () => {
@@ -144,7 +156,37 @@ describe('exportCsv', () => {
     await join(d, a)
     await d.db.update(entrants).set({ xHandle: 'we,ird"x' })
     const csv = await exportCsv(d)
-    expect(csv).toContain('"@we,ird""x"')
+    expect(csv).toContain(',"we,ird""x",')
+  })
+
+  it('exports 1,000 joined entrants well under a second', async () => {
+    const at = d.clock.now()
+    const rows = Array.from({ length: 1000 }, (_, i) => ({
+      xUserId: `bulk-${i}`,
+      xHandle: `bulk_${i}`,
+      xName: `Bulk ${i}`,
+      xCreatedAt: at,
+      wallet: `0x${i.toString(16).padStart(40, '0')}`,
+      position: i + 1,
+      element: 'fire',
+      refCode: `BULK${i}`,
+      joinedAt: at,
+    }))
+    const ids = await d.db.insert(entrants).values(rows).returning({ id: entrants.id })
+    await d.db
+      .insert(taskEvents)
+      .values(ids.flatMap(({ id }) => TASKS.map((task) => ({ entrantId: id, task, openedAt: at, confirmedAt: at }))))
+    // Non-joined entrants with events must not slow or pollute the export.
+    const extra = await makeEntrant('x1', 'pending')
+    await openTask(d, extra, 'follow')
+
+    const t0 = performance.now()
+    const lines = (await exportCsv(d)).trimEnd().split('\n')
+    const ms = performance.now() - t0
+    expect(lines).toHaveLength(1001)
+    expect(lines[1000]!.startsWith('1000,bulk_999,')).toBe(true)
+    expect(lines[1000]!.split(',').slice(5, 13).every((c) => c === at.toISOString())).toBe(true)
+    expect(ms).toBeLessThan(500)
   })
 
   it('counts joined referrals as invites and leaves nulls empty', async () => {

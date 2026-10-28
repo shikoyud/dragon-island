@@ -3,7 +3,16 @@
 import { useState } from 'react'
 import { isError, post } from './api'
 
-export function StepJoin({ wallet, onDone }: { wallet: string; onDone(): Promise<void> }) {
+export function StepJoin({
+  wallet,
+  onDone,
+  onExpired,
+}: {
+  wallet: string
+  onDone(): Promise<void>
+  /** Called before onDone when the server no longer accepts the session. */
+  onExpired(): void
+}) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -11,10 +20,11 @@ export function StepJoin({ wallet, onDone }: { wallet: string; onDone(): Promise
     setBusy(true)
     setErr(null)
     const res = await post<{ position: number }>('/api/join')
-    if (isError(res) && res.error === 'RATE_LIMITED') setErr('Too many attempts. Wait a minute, then try again.')
+    if (isError(res) && res.error === 'UNAUTHORIZED') onExpired()
+    else if (isError(res) && res.error === 'RATE_LIMITED') setErr('Too many attempts. Wait a minute, then try again.')
     else if (isError(res) && res.error !== 'TASKS_INCOMPLETE' && res.error !== 'WALLET_REQUIRED')
       setErr('Could not join right now. Please try again.')
-    // On success, or when a step turns out to be incomplete, the refreshed state picks the right step.
+    // On success, an expired session, or a step that turns out incomplete, the refreshed state picks the step.
     await onDone()
     setBusy(false)
   }

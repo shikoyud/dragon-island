@@ -39,15 +39,16 @@ function entrant(over: Partial<EntrantState> = {}): EntrantState {
 
 const allDone = { follow: done, like: done, repost: done, comment: done }
 
-type Me = EntrantState | null
+type Me = EntrantState | null | Response
 type Extra = Record<string, unknown | ((init?: RequestInit) => Response)>
 
-/** Route fetch by path; `/api/me` returns `me` (null gives 401). Extra values are JSON or a Response factory. */
+/** Route fetch by path; `/api/me` returns `me` (null gives 401, a Response is sent as is). Extra values are JSON or a Response factory. */
 function mockFetch(me: Me | (() => Me), extra: Extra = {}) {
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = String(input)
     if (path === '/api/me') {
       const current = typeof me === 'function' ? me() : me
+      if (current instanceof Response) return current
       return current ? Response.json(current) : Response.json({ error: 'UNAUTHORIZED' }, { status: 401 })
     }
     if (path in extra) {
@@ -150,7 +151,7 @@ describe('WaitlistPanel', () => {
     mockFetch(entrant({ tasks: allDone, wallet: '0x1111111111111111111111111111111111111111', position: 7 }))
     render(<WaitlistPanel {...props} />)
     const img = (await screen.findByRole('img', { name: /card/i })) as HTMLImageElement
-    expect(img.getAttribute('src')).toMatch(/^\/api\/card\/abc123/)
+    expect(img.getAttribute('src')).toMatch(/^\/api\/card\/abc123\.png\?v=[^&]+$/)
     const post = screen.getByRole('link', { name: /post on x/i })
     const href = post.getAttribute('href')!
     expect(href.startsWith('https://x.com/intent/post?')).toBe(true)
@@ -167,6 +168,7 @@ describe('WaitlistPanel', () => {
     await waitFor(() =>
       expect(fetchFn).toHaveBeenCalledWith('/api/wallet', expect.objectContaining({ method: 'POST' })),
     )
+    expect(fetchFn).toHaveBeenCalledWith('/api/wallet/nonce', expect.objectContaining({ method: 'POST' }))
     expect(wallet.signMessageAsync).toHaveBeenCalledWith({
       message: 'Wyrmhaven waitlist\nX: @drake\nAddress: 0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed\nNonce: n0nce',
     })
@@ -218,5 +220,104 @@ describe('WaitlistPanel', () => {
     fireEvent.click(row.querySelector('a')!)
     expect(await screen.findByText(/could not record/i)).toBeTruthy()
     expect(row.querySelector('button')!.textContent).toBe('Confirm')
+  })
+
+  it('explains that smart-contract wallets are not supported on INVALID_SIGNATURE', async () => {
+    wallet.account = { address: '0x1111111111111111111111111111111111111111', isConnected: true }
+    mockFetch(entrant({ tasks: allDone }), {
+      '/api/wallet/nonce': { nonce: 'n0nce' },
+      '/api/wallet': () => Response.json({ error: 'INVALID_SIGNATURE' }, { status: 400 }),
+    })
+    render(<WaitlistPanel {...props} />)
+    fireEvent.click(await screen.findByRole('button', { name: /sign message/i }))
+    expect(await screen.findByText(/smart-contract wallets.*safe.*coinbase smart wallet.*regular wallet/i)).toBeTruthy()
+  })
+
+  it('returns to the X step when the session expired at confirm', async () => {
+    // Real timers here: opened a minute before the real now, so Confirm is already unlocked.
+    const openedAt = new Date(Date.now() - 60_000).toISOString()
+    const tasks = { follow: { openedAt, confirmedAt: null }, like: none, repost: none, comment: none }
+    let me: Me = entrant({ tasks })
+    mockFetch(() => me, {
+      '/api/tasks/follow/confirm': () => {
+        me = null
+        return Response.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+      },
+    })
+    render(<WaitlistPanel {...props} />)
+    const row = await screen.findByTestId('task-follow')
+    await waitFor(() => expect(row.querySelector('button')!.disabled).toBe(false))
+    fireEvent.click(row.querySelector('button')!)
+    expect(await screen.findByRole('link', { name: /connect x/i })).toBeTruthy()
+    expect(screen.getByText(/session expired/i)).toBeTruthy()
+  })
+
+  it('returns to the X step when the session expired at open', async () => {
+    let me: Me = entrant()
+    mockFetch(() => me, {
+      '/api/tasks/follow/open': () => {
+        me = null
+        return Response.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+      },
+    })
+    render(<WaitlistPanel {...props} />)
+    const row = await screen.findByTestId('task-follow')
+    fireEvent.click(row.querySelector('a')!)
+    expect(await screen.findByRole('link', { name: /connect x/i })).toBeTruthy()
+    expect(screen.getByText(/session expired/i)).toBeTruthy()
+    expect(screen.queryByText(/reload the page/i)).toBeNull()
+  })
+
+  it('returns to the X step when the session expired at join', async () => {
+    let me: Me = entrant({ tasks: allDone, wallet: '0x1111111111111111111111111111111111111111' })
+    mockFetch(() => me, {
+      '/api/join': () => {
+        me = null
+        return Response.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+      },
+    })
+    render(<WaitlistPanel {...props} />)
+    fireEvent.click(await screen.findByRole('button', { name: /join the waitlist/i }))
+    expect(await screen.findByRole('link', { name: /connect x/i })).toBeTruthy()
+    expect(screen.getByText(/session expired/i)).toBeTruthy()
+  })
+
+  it('keeps the current step and offers a retry when /api/me fails with a non-401', async () => {
+    const signedIn = entrant({ tasks: allDone, wallet: '0x1111111111111111111111111111111111111111' })
+    let me: Me = signedIn
+    mockFetch(() => me, {
+      '/api/join': () => {
+        me = new Response('upstream down', { status: 503 })
+        return Response.json({ error: 'TASKS_INCOMPLETE' }, { status: 409 })
+      },
+    })
+    render(<WaitlistPanel {...props} />)
+    fireEvent.click(await screen.findByRole('button', { name: /join the waitlist/i }))
+    expect(await screen.findByText(/could not load your progress/i)).toBeTruthy()
+    // Still signed in on the same step, not bounced to Connect X.
+    expect(screen.getByRole('button', { name: /join the waitlist/i })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: /connect x/i })).toBeNull()
+
+    me = { ...signedIn, position: 4 }
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }))
+    expect(await screen.findByRole('img', { name: /card/i })).toBeTruthy()
+    expect(screen.queryByText(/could not load your progress/i)).toBeNull()
+  })
+
+  it('shows a retry notice, not the X step, when the first /api/me call fails on the network', async () => {
+    let fail = true
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input) === '/api/me' && fail) throw new TypeError('network down')
+        return Response.json(entrant())
+      }),
+    )
+    render(<WaitlistPanel {...props} />)
+    expect(await screen.findByText(/could not load your progress/i)).toBeTruthy()
+    expect(screen.queryByRole('link', { name: /connect x/i })).toBeNull()
+    fail = false
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }))
+    expect(await screen.findByRole('heading', { name: /do the x tasks/i })).toBeTruthy()
   })
 })

@@ -7,8 +7,8 @@ export function Footer({ xHandle }: { xHandle: string }) {
           <p className="footer-note">Built for Robinhood Chain testnet.</p>
         </div>
         <p className="footer-note">
-          Privacy: we keep your X handle, name and avatar, your wallet address and your task times, only to run this
-          waitlist. We never post for you.
+          Privacy: we keep your X handle, name, avatar and account creation date, your wallet address, your referral
+          link and your task times, only to run this waitlist. We never post for you.
         </p>
         <nav aria-label="Social">
           <a href={`https://x.com/${encodeURIComponent(xHandle)}`} target="_blank" rel="noopener noreferrer">

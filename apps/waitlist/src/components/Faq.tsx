@@ -17,7 +17,7 @@ const faqs = (xHandle: string): { q: string; a: string }[] => [
   },
   {
     q: 'What do you store?',
-    a: 'Your X handle, display name and avatar, your wallet address, and the times you opened and confirmed each task. We never post for you and we do not keep your X access token.',
+    a: 'Your X handle, display name, avatar and account creation date (to check the minimum account age), your wallet address, your referral link and who invited you, and the times you opened and confirmed each task. We never post for you and we do not keep your X access token.',
   },
 ]
 

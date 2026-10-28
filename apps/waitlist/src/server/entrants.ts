@@ -26,6 +26,7 @@ function largeAvatar(url: string): string {
 
 /**
  * Create the entrant for an X profile, or refresh handle/name/avatar if it exists.
+ * The account-age check applies only on creation: a returning entrant can always sign in.
  * `refCode` only counts on creation: ON CONFLICT never touches referred_by.
  */
 export async function upsertFromX(
@@ -35,7 +36,8 @@ export async function upsertFromX(
 ): Promise<{ entrantId: string } | { error: 'X_ACCOUNT_TOO_NEW' }> {
   const { db, clock, config } = deps
   const now = clock.now()
-  if (now.getTime() - profile.createdAt.getTime() < config.MIN_X_ACCOUNT_AGE_DAYS * DAY_MS) {
+  const [existing] = await db.select({ id: entrants.id }).from(entrants).where(eq(entrants.xUserId, profile.id))
+  if (!existing && now.getTime() - profile.createdAt.getTime() < config.MIN_X_ACCOUNT_AGE_DAYS * DAY_MS) {
     return { error: 'X_ACCOUNT_TOO_NEW' }
   }
 

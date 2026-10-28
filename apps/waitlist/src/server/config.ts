@@ -20,7 +20,10 @@ const schema = z.object({
   PGLITE_DIR: z.string().optional(),
 })
 
-/** Sessions are HS256 JWTs; a short secret is brute-forceable. Use 32+ random bytes (e.g. `openssl rand -base64 48`). */
+/**
+ * Sessions are HS256 JWTs and the admin export is bearer-token gated; short secrets are brute-forceable.
+ * Use 32+ random bytes (e.g. `openssl rand -base64 48`).
+ */
 const MIN_PROD_SECRET_LENGTH = 32
 
 export type Config = z.infer<typeof schema>
@@ -30,8 +33,14 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
   // Treat empty strings (as in a copied .env.example) as unset.
   const cleaned = Object.fromEntries(Object.entries(env).filter(([, v]) => v !== undefined && v !== ''))
   const config = schema.parse(cleaned)
-  if (config.NODE_ENV === 'production' && config.SESSION_SECRET.length < MIN_PROD_SECRET_LENGTH) {
-    throw new Error(`SESSION_SECRET must be at least ${MIN_PROD_SECRET_LENGTH} characters in production`)
+  if (config.NODE_ENV === 'production') {
+    if (config.SESSION_SECRET.length < MIN_PROD_SECRET_LENGTH) {
+      throw new Error(`SESSION_SECRET must be at least ${MIN_PROD_SECRET_LENGTH} characters in production`)
+    }
+    // Unset keeps the export disabled; a set token must not be guessable.
+    if (config.ADMIN_TOKEN !== undefined && config.ADMIN_TOKEN.length < MIN_PROD_SECRET_LENGTH) {
+      throw new Error(`ADMIN_TOKEN must be at least ${MIN_PROD_SECRET_LENGTH} characters in production`)
+    }
   }
   return config
 }

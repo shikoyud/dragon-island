@@ -922,6 +922,25 @@ h3 {
   color: var(--ink-dim);
 }
 
+/* ---------- Card page (/c/<code>) ---------- */
+
+.card-page {
+  padding-bottom: 56px;
+}
+
+.card-page-title {
+  margin: 4px 0 20px;
+  font-size: clamp(26px, 7vw, 40px);
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow: 3px 3px 0 var(--frame);
+  overflow-wrap: anywhere;
+}
+
+.card-page-pitch {
+  margin: 24px 0 20px;
+}
+
 /* ---------- FAQ ---------- */
 
 .faq {

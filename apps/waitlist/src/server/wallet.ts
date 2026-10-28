@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, lt } from 'drizzle-orm'
 import { getAddress, isAddress, verifyMessage } from 'viem'
 import { walletMessage } from '../domain/walletMessage'
 import type { Deps } from './deps'
@@ -9,12 +9,14 @@ export const NONCE_TTL_MS = 10 * 60 * 1000
 
 export type BindWalletError = 'NONCE_INVALID' | 'INVALID_SIGNATURE' | 'WALLET_TAKEN' | 'BAD_REQUEST'
 
-/** Issue a single-use nonce for the entrant to sign; valid for 10 minutes. */
+/** Issue a single-use nonce for the entrant to sign; valid for 10 minutes. Drops the entrant's expired nonces. */
 export async function issueNonce(deps: Deps, entrantId: string): Promise<string> {
+  const now = deps.clock.now()
   const nonce = randomBytes(16).toString('hex')
   await deps.db
-    .insert(walletNonces)
-    .values({ nonce, entrantId, expiresAt: new Date(deps.clock.now().getTime() + NONCE_TTL_MS) })
+    .delete(walletNonces)
+    .where(and(eq(walletNonces.entrantId, entrantId), lt(walletNonces.expiresAt, now)))
+  await deps.db.insert(walletNonces).values({ nonce, entrantId, expiresAt: new Date(now.getTime() + NONCE_TTL_MS) })
   return nonce
 }
 
