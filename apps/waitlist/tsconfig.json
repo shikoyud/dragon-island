@@ -9,6 +9,6 @@
     "plugins": [{ "name": "next" }],
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["next-env.d.ts", "src", "test", "drizzle.config.ts", "next.config.ts", "vitest.config.ts", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "src", "test", "drizzle.config.ts", "next.config.ts", "vitest.config.ts", "playwright.config.ts", "e2e", "scripts", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }

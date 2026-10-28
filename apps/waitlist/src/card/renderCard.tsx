@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import path from 'node:path'
 import { ImageResponse } from 'next/og'
 import { ACTIVE_ART } from '../art/slots'
@@ -18,9 +17,10 @@ let fontData: Buffer | undefined
 /** Silkscreen latin-400 .woff from the npm package (satori reads ttf/otf/woff, not woff2). */
 function loadFont(): Buffer {
   if (!fontData) {
-    const require = createRequire(import.meta.url)
-    const pkg = require.resolve('@fontsource/silkscreen/package.json')
-    fontData = readFileSync(path.join(path.dirname(pkg), 'files', 'silkscreen-latin-400-normal.woff'))
+    // From the app dir (as for sprites and migrations): require.resolve is rewritten by the Next bundler.
+    fontData = readFileSync(
+      path.join(process.cwd(), 'node_modules', '@fontsource', 'silkscreen', 'files', 'silkscreen-latin-400-normal.woff'),
+    )
   }
   return fontData
 }

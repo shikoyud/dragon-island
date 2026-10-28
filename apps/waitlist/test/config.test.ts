@@ -12,6 +12,11 @@ describe('loadConfig', () => {
   it('reads MIN_X_ACCOUNT_AGE_DAYS from env', () => {
     expect(loadConfig({ SESSION_SECRET: 'x', MIN_X_ACCOUNT_AGE_DAYS: '7' }).MIN_X_ACCOUNT_AGE_DAYS).toBe(7)
   })
+  it('requires a SESSION_SECRET of at least 32 characters in production only', () => {
+    expect(() => loadConfig({ NODE_ENV: 'production', SESSION_SECRET: 's'.repeat(31) })).toThrow(/at least 32/)
+    expect(loadConfig({ NODE_ENV: 'production', SESSION_SECRET: 's'.repeat(32) }).NODE_ENV).toBe('production')
+    expect(loadConfig({ NODE_ENV: 'development', SESSION_SECRET: 'short' }).SESSION_SECRET).toBe('short')
+  })
 })
 
 describe('publicConfig', () => {
