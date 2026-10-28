@@ -44,8 +44,8 @@
 - Produces: `type Element = 'fire'|'water'|'earth'|'nature'|'electric'|'ice'|'metal'|'dark'|'light'`; `ELEMENTS: readonly Element[]` (that order); `STRENGTHS: Record<Element, readonly Element[]>` (spec §3 table); `elementMultiplier(move: Element | 'neutral', defender: Element): 2 | 1 | 0.5`; `pairKey(a: Element, b: Element): string` (alphabetical, joined by `+`: `'fire+water'`, `'ice+ice'`)
 - Produces: `interface Rng { next(): number; int(maxExclusive: number): number }`; `createRng(seed: number): Rng` (mulberry32, seed `>>> 0`; `int(n) = Math.floor(next() * n)`)
 
-- [ ] **Step 1: `git init`; create the root and package files; `pnpm add -Dw typescript vitest`**
-- [ ] **Step 2: Write failing tests**
+- [x] **Step 1: `git init`; create the root and package files; `pnpm add -Dw typescript vitest`**
+- [x] **Step 2: Write failing tests**
 
 ```ts
 // elements.test.ts
@@ -76,10 +76,10 @@ for (let i = 0; i < 10_000; i++) counts[r.int(4)]!++
 expect(counts.every(c => c >= 2_000)).toBe(true)
 ```
 
-- [ ] **Step 3: Run `pnpm --filter @wyrmhaven/game-core test`** — expect FAIL (modules missing)
-- [ ] **Step 4: Implement `elements.ts` and `rng.ts`** — multiplier checks "move strong vs defender" before the reverse check, so dark/light give 2.
-- [ ] **Step 5: Run tests and `pnpm -r typecheck`** — expect PASS, no type errors
-- [ ] **Step 6: Commit** `chore: scaffold monorepo; feat(game-core): elements and seeded rng`
+- [x] **Step 3: Run `pnpm --filter @wyrmhaven/game-core test`** — expect FAIL (modules missing)
+- [x] **Step 4: Implement `elements.ts` and `rng.ts`** — multiplier checks "move strong vs defender" before the reverse check, so dark/light give 2.
+- [x] **Step 5: Run tests and `pnpm -r typecheck`** — expect PASS, no type errors
+- [x] **Step 6: Commit** `chore: scaffold monorepo; feat(game-core): elements and seeded rng`
 
 ### Task 2: Rarity, catalog and dragon math
 

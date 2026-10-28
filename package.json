@@ -1,0 +1,13 @@
+{
+  "name": "wyrmhaven",
+  "private": true,
+  "packageManager": "pnpm@12.14.0",
+  "scripts": {
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
+  }
+}
