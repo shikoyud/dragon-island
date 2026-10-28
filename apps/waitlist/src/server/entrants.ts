@@ -1,5 +1,6 @@
 import { and, count, eq, isNotNull } from 'drizzle-orm'
-import { pickElement, type Element } from '../domain/elements'
+import type { Element } from '../domain/elements'
+import { pickElement } from '../domain/pickElement'
 import { TASKS, type Task } from '../domain/tasks'
 import type { Deps, XProfile } from './deps'
 import { entrants, taskEvents } from './db/schema'

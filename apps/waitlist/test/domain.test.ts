@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { ELEMENTS, ELEMENT_COLORS, pickElement } from '../src/domain/elements'
+import { ELEMENTS, ELEMENT_COLORS } from '../src/domain/elements'
+import { pickElement } from '../src/domain/pickElement'
 import { walletMessage } from '../src/domain/walletMessage'
 import { CONFIRM_DELAY_MS, TASKS, canConfirm, taskIntentUrl } from '../src/domain/tasks'
 import { newRefCode } from '../src/domain/refCode'

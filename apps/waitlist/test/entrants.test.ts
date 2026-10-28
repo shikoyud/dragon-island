@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { entrants } from '../src/server/db/schema'
-import { pickElement } from '../src/domain/elements'
+import { pickElement } from '../src/domain/pickElement'
 import { TASKS } from '../src/domain/tasks'
 import type { XProfile } from '../src/server/deps'
 import { getEntrantState, upsertFromX } from '../src/server/entrants'

@@ -4,3 +4,4 @@ test-results
 next-env.d.ts
 *.tsbuildinfo
 .pglite
+AGENTS.md

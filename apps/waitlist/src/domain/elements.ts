@@ -1,13 +1,5 @@
-import { createHash } from 'node:crypto'
-
 export const ELEMENTS = ['fire', 'water', 'earth', 'nature', 'electric', 'ice', 'metal', 'dark', 'light'] as const
 export type Element = (typeof ELEMENTS)[number]
-
-/** Starting element: first byte of sha256(UTF-8 xUserId) modulo 9. */
-export function pickElement(xUserId: string): Element {
-  const first = createHash('sha256').update(xUserId, 'utf8').digest()[0]!
-  return ELEMENTS[first % ELEMENTS.length]!
-}
 
 /** Original palette, tuned to read on a dark night-sky background. */
 export const ELEMENT_COLORS: Record<Element, { base: string; light: string; dark: string }> = {
