@@ -7,9 +7,9 @@ import type { Clock } from '../clock'
 import type { Db, Tx } from '../db/client'
 import { actionLog, players } from '../db/schema'
 import { AppError } from '../plugins/errors'
-import { charge, creditEarned } from './ledger'
+import { charge, creditEarned, getBalance } from './ledger'
 import type { PriceSource } from './price'
-import { usdToTokenWei } from './price'
+import { tokenWeiToUsdCeil, tokenWeiToUsdFloor, usdToTokenWei } from './price'
 import { ensureCurrentSeason } from './season'
 import { actionSeed, battleSeed, secretFromHex } from './seed'
 import { migrateState } from './stateMigration'
@@ -29,7 +29,7 @@ export interface ActionDeps {
   awardSp?: (tx: Tx, args: SpArgs) => Promise<{ awarded: number; today: number } | null>
 }
 
-export interface ResolvedOffer { opponent: OpponentSnapshot; opponentPlayerId: string | null; seed32: number }
+export interface ResolvedOffer { opponent: OpponentSnapshot; opponentPlayerId: string | null; seed32: number; seedHex: `0x${string}` }
 export interface SpArgs {
   player: typeof players.$inferSelect
   seasonId: number
@@ -64,27 +64,51 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       .where(and(eq(actionLog.playerId, playerId), eq(actionLog.idempotencyKey, request.idempotencyKey)))
     if (replay) return { status: replay.status, body: replay.response as ActionResponse | ErrorResponse }
 
-    // The players.earning_unlocked column (set by the chain indexer) is authoritative over the copy in state.
-    const state: PlayerState = { ...migrateState(player.state, nowMs), earningUnlocked: player.earningUnlocked }
+    // players.earning_unlocked (set by the chain indexer) is authoritative over the copy in state, and the
+    // §14 ledger (deposits/withdrawals in micro-USD) is derived from the token ledger at today's price so
+    // the penalty ratio R and the deposit-repayment limit always reflect real chain activity.
+    const price = await deps.price.microUsdPerToken(tx)
+    const balance = await getBalance(tx, playerId)
+    const stored = migrateState(player.state, nowMs)
+    const ledger = price === null
+      ? stored.ledger
+      : {
+          ...stored.ledger,
+          depositedMicroUsd: Number(tokenWeiToUsdFloor(balance.depositedWei, price)),
+          withdrawnMicroUsd: Number(tokenWeiToUsdCeil(balance.withdrawnWei, price)),
+        }
+    const state: PlayerState = { ...stored, earningUnlocked: player.earningUnlocked, ledger }
+    if (price === null && request.action.type === 'sellGold') throw new AppError(503, 'PRICE_UNAVAILABLE')
+
     const season = await ensureCurrentSeason(tx, clock)
     const nonce = player.actionNonce + 1n
     const secret = secretFromHex(season.secretHex)
     let { seedHex, seed32 } = actionSeed(secret, playerId, nonce)
+    let seedLabel = `${playerId}:${nonce}`
 
     // Server-only shaping: a pvpBattle names a stored offer; the server supplies the opponent.
     let action: Action
+    let logged: unknown
     let offerRef: { playerId: string | null; offerId: string } | null = null
     const client: ClientAction = request.action
     if (client.type === 'pvpBattle') {
       if (!deps.resolveOffer) throw new AppError(409, 'OFFER_NOT_FOUND')
       const offer = await deps.resolveOffer(tx, playerId, client.offerId, nowMs)
       action = { type: 'pvpBattle', team: client.team, opponent: offer.opponent, moves: client.moves }
+      logged = { ...action, offerId: client.offerId }
       seed32 = offer.seed32
+      seedHex = offer.seedHex
+      seedLabel = `battle:${client.offerId}`
       offerRef = { playerId: offer.opponentPlayerId, offerId: client.offerId }
     } else {
       action = client
+      logged = client
       // Battles get their own seed, domain-separated from action seeds (spec §17).
-      if (client.type === 'pveBattle') seed32 = battleSeed(secret, `${playerId}:${nonce}`).seed32
+      if (client.type === 'pveBattle') {
+        const label = `${playerId}:${nonce}`
+        ;({ seedHex, seed32 } = battleSeed(secret, label))
+        seedLabel = `battle:${label}`
+      }
     }
 
     const result = applyAction(state, action, nowMs, createRng(seed32), deps.catalog)
@@ -98,11 +122,9 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
     } else {
       for (const effect of result.effects) {
         if (effect.type === 'charge') {
-          const price = await deps.price.microUsdPerToken(tx)
           if (price === null) throw new AppError(503, 'PRICE_UNAVAILABLE')
           await charge(tx, playerId, usdToTokenWei(BigInt(effect.microUsd), price), day, `action:${action.type}`)
         } else if (effect.type === 'payout') {
-          const price = await deps.price.microUsdPerToken(tx)
           if (price === null) throw new AppError(503, 'PRICE_UNAVAILABLE')
           await creditEarned(tx, playerId, usdToTokenWei(BigInt(effect.microUsd), price), 'payout')
         } else if (effect.type === 'defenceResult') {
@@ -126,8 +148,8 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       .set({ actionNonce: nonce, trophies: mirror.trophies, defenceTeam: mirror.defenceTeam, level: mirror.level })
       .where(eq(players.id, playerId))
     await tx.insert(actionLog).values({
-      playerId, nonce, idempotencyKey: request.idempotencyKey, seasonId: season.id, seedHex,
-      action: action as unknown as Record<string, unknown>, status, response: body as unknown as Record<string, unknown>,
+      playerId, nonce, idempotencyKey: request.idempotencyKey, seasonId: season.id, seedHex, seedLabel,
+      action: logged as Record<string, unknown>, status, response: body as unknown as Record<string, unknown>,
       createdAt: new Date(nowMs),
     })
     return { status, body }
@@ -136,4 +158,3 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
 
 /** `ORDER BY` helper for multi-player locking: lower id first to avoid deadlocks. */
 export const lockOrder = (a: string, b: string): [string, string] => (a < b ? [a, b] : [b, a])
-

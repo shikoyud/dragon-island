@@ -34,6 +34,17 @@ export async function setManualPrice(db: Db, microUsdPerToken: bigint): Promise<
     .onConflictDoUpdate({ target: priceOverrides.id, set: { microUsdPerToken, setAt: new Date() } })
 }
 
+/** Token wei → micro-USD, rounded down (deposits in §14's ledger). */
+export function tokenWeiToUsdFloor(wei: bigint, priceMicroUsdPerToken: bigint): bigint {
+  return wei * priceMicroUsdPerToken / 10n ** 18n
+}
+
+/** Token wei → micro-USD, rounded up (withdrawals in §14's ledger). */
+export function tokenWeiToUsdCeil(wei: bigint, priceMicroUsdPerToken: bigint): bigint {
+  const num = wei * priceMicroUsdPerToken
+  return (num + 10n ** 18n - 1n) / 10n ** 18n
+}
+
 /** `ceil(microUsd × 1e18 / price)`: the player never pays less than the USD price. */
 export function usdToTokenWei(microUsd: bigint, priceMicroUsdPerToken: bigint): bigint {
   if (microUsd <= 0n) return 0n

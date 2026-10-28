@@ -36,6 +36,7 @@ export function seasonRoutes(app: FastifyInstance, deps: AppDeps): void {
       actions: rows.map(r => ({
         nonce: r.nonce.toString(),
         seedHex: r.seedHex,
+        seedLabel: r.seedLabel,
         action: r.action,
         status: r.status,
         createdAtMs: r.createdAt.getTime(),

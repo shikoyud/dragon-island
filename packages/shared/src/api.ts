@@ -54,6 +54,8 @@ export interface PendingWithdrawResponse { voucher: WithdrawResponse | null }
 export interface ActionLogEntry {
   nonce: BigString
   seedHex: `0x${string}`
+  /** What the seed was derived from: `<player>:<nonce>` or `battle:<id>`; verify with HMAC-SHA256(S, label). */
+  seedLabel: string
   action: unknown
   status: number
   createdAtMs: number

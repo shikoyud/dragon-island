@@ -10,6 +10,9 @@ export class FakeChainClient implements ChainClient {
   entryFee = 500_000_000_000_000n
   claimedMap = new Map<string, bigint>()
   burns: bigint[] = []
+  /** Status the next burn's receipt will report; resets to success after each burn. */
+  nextTxStatus: 'success' | 'reverted' = 'success'
+  txStatus = new Map<string, 'success' | 'reverted'>()
 
   async blockNumber(): Promise<bigint> {
     return this.head
@@ -28,8 +31,14 @@ export class FakeChainClient implements ChainClient {
   }
   async burn(amountWei: bigint): Promise<Hex> {
     this.burns.push(amountWei)
-    this.remainingBurn -= amountWei
-    return `0x${this.burns.length.toString(16).padStart(64, '0')}`
+    const hash = `0x${(this.txStatus.size + 1).toString(16).padStart(64, '0')}` as Hex
+    this.txStatus.set(hash, this.nextTxStatus)
+    if (this.nextTxStatus === 'success') this.remainingBurn -= amountWei
+    this.nextTxStatus = 'success'
+    return hash
+  }
+  async waitForTx(hash: Hex): Promise<'success' | 'reverted'> {
+    return this.txStatus.get(hash) ?? 'success'
   }
   async remainingBurnToday(): Promise<bigint> {
     return this.remainingBurn

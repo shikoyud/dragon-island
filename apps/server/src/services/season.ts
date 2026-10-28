@@ -24,6 +24,7 @@ export async function ensureCurrentSeason(db: Db | Tx, clock: Clock, random: () 
   // If more than one season elapsed with no traffic, skip ahead so the current window is correct.
   const start = startsAt + Math.floor(Math.max(0, now - startsAt) / SEASON_MS) * SEASON_MS
   const secret = random()
+  // unique(starts_at) + DO NOTHING: concurrent callers at a rollover all converge on one row.
   const [created] = await db
     .insert(seasons)
     .values({
@@ -32,8 +33,11 @@ export async function ensureCurrentSeason(db: Db | Tx, clock: Clock, random: () 
       secretHex: bytesToHex(secret),
       commitHash: commitHash(secret),
     })
+    .onConflictDoNothing({ target: seasons.startsAt })
     .returning()
-  return created!
+  if (created) return created
+  const [existing] = await db.select().from(seasons).where(eq(seasons.startsAt, new Date(start)))
+  return existing!
 }
 
 export function toSeasonInfo(s: Season): SeasonInfo {

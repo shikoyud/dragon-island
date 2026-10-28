@@ -8,6 +8,7 @@ import type { Config } from '../config'
 import type { Db } from '../db/client'
 import { balances, players, sessions, siweNonces } from '../db/schema'
 import { AppError } from '../plugins/errors'
+import { applyPendingEvents } from './indexer'
 
 export const NONCE_TTL_MS = 10 * 60_000
 
@@ -45,6 +46,8 @@ export async function verifyAndLogin(
     if (existing) return existing.id
     const [created] = await tx.insert(players).values({ address, state: newPlayer(clock()) }).returning({ id: players.id })
     await tx.insert(balances).values({ playerId: created!.id })
+    // Deposits or entries made before this wallet ever signed in.
+    await applyPendingEvents(tx, created!.id, address, clock)
     return created!.id
   })
 

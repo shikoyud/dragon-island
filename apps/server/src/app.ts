@@ -38,6 +38,8 @@ export interface AppDeps {
   price?: PriceSource
   /** Defaults to a viem client when VAULT_ADDRESS is configured, else an in-memory fake (dev/tests). */
   chain?: ChainClient
+  /** Fastify logger option; production passes true, tests leave it off. */
+  logger?: boolean
 }
 
 declare module 'fastify' {
@@ -48,7 +50,7 @@ declare module 'fastify' {
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
-  const app = Fastify({ logger: false })
+  const app = Fastify({ logger: deps.logger ?? false })
   const { db, clock } = deps
   deps.catalog ??= LAUNCH_CATALOG
   deps.price ??= new ManualPriceSource(db)
@@ -75,8 +77,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   const chain = deps.chain
   const jobs: JobRegistry = {
-    indexer: () => runIndexer({ db, chain, confirmations: config.CONFIRMATIONS, clock }),
-    voucherExpiry: () => expireVouchers({ db, clock }),
+    indexer: () => runIndexer({ db, chain, confirmations: config.CONFIRMATIONS, clock, startBlock: config.INDEXER_START_BLOCK, chunk: config.INDEXER_CHUNK }),
+    voucherExpiry: () => expireVouchers({ db, clock, chain }),
     burnBatch: () => runBurnBatch({ db, chain, clock }),
     season: () => ensureCurrentSeason(db, clock),
   }

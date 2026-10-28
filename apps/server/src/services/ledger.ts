@@ -52,6 +52,20 @@ export async function debitForWithdrawal(tx: Tx, playerId: string, wei: bigint):
     .where(eq(balances.playerId, playerId))
 }
 
+/**
+ * A claim paid on-chain after the server had already refunded it: take the tokens back
+ * (down to zero; anything already spent is reported to the caller as a shortfall).
+ */
+export async function forceDebit(tx: Tx, playerId: string, wei: bigint): Promise<{ shortfall: bigint }> {
+  const b = await getBalance(tx, playerId)
+  const taken = wei < b.tokenWei ? wei : b.tokenWei
+  await tx
+    .update(balances)
+    .set({ tokenWei: b.tokenWei - taken, withdrawnWei: b.withdrawnWei + wei, updatedAt: new Date() })
+    .where(eq(balances.playerId, playerId))
+  return { shortfall: wei - taken }
+}
+
 /** Reverses a withdrawal whose voucher expired unclaimed. */
 export async function refundWithdrawal(tx: Tx, playerId: string, wei: bigint): Promise<void> {
   const b = await getBalance(tx, playerId)

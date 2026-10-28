@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
-  bigint, bigserial, boolean, customType, integer, jsonb, pgTable, primaryKey, serial, text, timestamp, uniqueIndex, uuid,
+  bigint, bigserial, boolean, customType, index, integer, jsonb, pgTable, primaryKey, serial, text, timestamp, uniqueIndex, uuid,
 } from 'drizzle-orm/pg-core'
 
 /** Exact integer money: numeric(78,0) on disk, bigint in TypeScript. */
@@ -35,7 +35,7 @@ export const sessions = pgTable('sessions', {
   playerId: uuid('player_id').notNull().references(() => players.id),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   createdAt: createdAt(),
-})
+}, t => [index('sessions_player_idx').on(t.playerId)])
 
 export const siweNonces = pgTable('siwe_nonces', {
   nonce: text('nonce').primaryKey(),
@@ -50,7 +50,7 @@ export const seasons = pgTable('seasons', {
   commitHash: text('commit_hash').notNull(),
   revealed: boolean('revealed').notNull().default(false),
   createdAt: createdAt(),
-})
+}, t => [uniqueIndex('seasons_starts_at_unique').on(t.startsAt)])
 
 export const actionLog = pgTable('action_log', {
   id: bigserial('id', { mode: 'bigint' }).primaryKey(),
@@ -59,11 +59,16 @@ export const actionLog = pgTable('action_log', {
   idempotencyKey: text('idempotency_key').notNull(),
   seasonId: integer('season_id').notNull().references(() => seasons.id),
   seedHex: text('seed_hex').notNull(),
+  /** What the seed was derived from: `<player>:<nonce>` for actions, `battle:<id>` for battles (spec §17). */
+  seedLabel: text('seed_label').notNull().default(''),
   action: jsonb('action').notNull(),
   status: integer('status').notNull(),
   response: jsonb('response').notNull(),
   createdAt: createdAt(),
-}, t => [uniqueIndex('action_log_player_key').on(t.playerId, t.idempotencyKey)])
+}, t => [
+  uniqueIndex('action_log_player_key').on(t.playerId, t.idempotencyKey),
+  index('action_log_season_player_idx').on(t.seasonId, t.playerId, t.nonce),
+])
 
 export const spLedger = pgTable('sp_ledger', {
   id: bigserial('id', { mode: 'bigint' }).primaryKey(),
@@ -85,7 +90,7 @@ export const battleOffers = pgTable('battle_offers', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   usedAt: timestamp('used_at', { withTimezone: true }),
   createdAt: createdAt(),
-})
+}, t => [index('battle_offers_player_idx').on(t.playerId)])
 
 export const balances = pgTable('balances', {
   playerId: uuid('player_id').primaryKey().references(() => players.id),
@@ -108,7 +113,7 @@ export const vouchers = pgTable('vouchers', {
   claimedAt: timestamp('claimed_at', { withTimezone: true }),
   expiredAt: timestamp('expired_at', { withTimezone: true }),
   createdAt: createdAt(),
-})
+}, t => [index('vouchers_open_idx').on(t.playerId).where(sql`claimed_at is null and expired_at is null`)])
 
 export const chainEvents = pgTable('chain_events', {
   txHash: text('tx_hash').notNull(),
@@ -116,6 +121,8 @@ export const chainEvents = pgTable('chain_events', {
   blockNumber: bigint('block_number', { mode: 'bigint' }).notNull(),
   name: text('name').notNull(),
   args: jsonb('args').notNull(),
+  /** False when the wallet had no player yet; applied on that wallet's first sign-in. */
+  applied: boolean('applied').notNull().default(true),
   processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [primaryKey({ columns: [t.txHash, t.logIndex] })])
 
@@ -129,6 +136,17 @@ export const spendBatches = pgTable('spend_batches', {
   spentWei: wei('spent_wei').notNull().default(sql`0`),
   burnedWei: wei('burned_wei').notNull().default(sql`0`),
   burnTx: text('burn_tx'),
+  updatedAt: updatedAt(),
+})
+
+/** Operator burns, recorded before sending so a crash can never burn the same batch twice. */
+export const burnAttempts = pgTable('burn_attempts', {
+  id: bigserial('id', { mode: 'bigint' }).primaryKey(),
+  day: integer('day').notNull(),
+  amountWei: wei('amount_wei').notNull(),
+  txHash: text('tx_hash'),
+  status: text('status').notNull().default('pending'), // pending | confirmed | reverted
+  createdAt: createdAt(),
   updatedAt: updatedAt(),
 })
 

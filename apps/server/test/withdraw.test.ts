@@ -75,7 +75,8 @@ describe('POST /withdraw', () => {
       txHash: '0x01', logIndex: 0, blockNumber: 1n, name: 'Claimed',
       args: { player: alice.address, cumulative: first.cumulativeWei, gross: first.grossWei, net: '0', burned: '0' },
     })
-    await runIndexer({ db: t.db, chain, confirmations: 1, clock: t.clock })
+    await runIndexer({ db: t.db, chain, confirmations: 1, clock: t.clock, startBlock: 0n, chunk: 1_000n })
+    t.clock.advance(86_400_000) // the per-player daily allowance (10% of the cap) was used up by the first voucher
     const second = (await withdraw((2n * E18).toString())).json()
     expect(second.cumulativeWei).toBe((7n * E18).toString())
   })
@@ -84,13 +85,13 @@ describe('POST /withdraw', () => {
     const r = await withdraw((5n * E18).toString())
     expect(r.statusCode).toBe(200)
     t.clock.set(1_000 + VOUCHER_TTL_MS + VOUCHER_GRACE_MS - 1)
-    expect(await expireVouchers({ db: t.db, clock: t.clock })).toBe(0)
+    expect(await expireVouchers({ db: t.db, clock: t.clock, chain })).toBe(0)
     t.clock.set(1_000 + VOUCHER_TTL_MS + VOUCHER_GRACE_MS + 1)
-    expect(await expireVouchers({ db: t.db, clock: t.clock })).toBe(1)
+    expect(await expireVouchers({ db: t.db, clock: t.clock, chain })).toBe(1)
     const b = await balance()
     expect(b.tokenWei).toBe(100n * E18)
     expect(b.withdrawnWei).toBe(0n)
-    expect(await expireVouchers({ db: t.db, clock: t.clock })).toBe(0)
+    expect(await expireVouchers({ db: t.db, clock: t.clock, chain })).toBe(0)
     expect((await t.db.select().from(vouchers))[0]!.expiredAt).not.toBeNull()
     expect((await t.app.inject({ method: 'GET', url: '/withdraw/pending', headers: bearer(token) })).json()).toEqual({ voucher: null })
   })

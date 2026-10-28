@@ -3,7 +3,7 @@ import {
   type OpponentSnapshot, type PlayerState, type Seeker,
 } from '@wyrmhaven/game-core'
 import type { Offer } from '@wyrmhaven/shared'
-import { and, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm'
+import { and, eq, gt, isNotNull, isNull, ne, sql } from 'drizzle-orm'
 import { hexToBytes } from 'viem'
 import type { Clock } from '../clock'
 import type { Db, Tx } from '../db/client'
@@ -73,6 +73,12 @@ export async function createOffers(deps: { db: Db; clock: Clock; catalog: Catalo
     const team = defenceSpecs(migrateState(r.state, nowMs))
     if (team) candidates.push({ playerId: r.id, trophies: r.trophies, level: r.level, team })
   }
+  // One live offer set per player: a new GET retires unused earlier offers, so revealed seeds cannot be
+  // collected and cherry-picked (Phase 4 review).
+  await db
+    .update(battleOffers)
+    .set({ expiresAt: new Date(nowMs - 1) })
+    .where(and(eq(battleOffers.playerId, seeker.id), isNull(battleOffers.usedAt), gt(battleOffers.expiresAt, new Date(nowMs))))
   const me: Seeker = { trophies: state.trophies, level: state.level, teamLevel: teamLevelOf(state) }
   const rng = createRng(battleSeed(secret, `offers:${seeker.id}:${nowMs}`).seed32)
   const picked = pickOpponents(me, candidates, catalog, rng)
@@ -102,7 +108,7 @@ export async function resolveOffer(tx: Tx, playerId: string, offerId: string, no
   if (!o || o.playerId !== playerId || o.usedAt) throw new AppError(409, 'OFFER_NOT_FOUND')
   if (o.expiresAt.getTime() < nowMs) throw new AppError(409, 'OFFER_EXPIRED')
   await tx.update(battleOffers).set({ usedAt: new Date(nowMs) }).where(eq(battleOffers.id, offerId))
-  return { opponent: o.opponent as OpponentSnapshot, opponentPlayerId: o.opponentPlayerId, seed32: seed32Of(o.seedHex) }
+  return { opponent: o.opponent as OpponentSnapshot, opponentPlayerId: o.opponentPlayerId, seed32: seed32Of(o.seedHex), seedHex: o.seedHex as `0x${string}` }
 }
 
 /** Applies a defenceResult effect to the other player (locked in the caller's transaction). */

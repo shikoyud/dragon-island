@@ -20,7 +20,7 @@ Without `DATABASE_URL` the server runs on a file-backed PGlite (Postgres in WASM
 | `GET /me` | bearer | player state, token balance, season info |
 | `POST /actions` `{ action, idempotencyKey }` | bearer | runs one game-core action under the player row lock |
 | `GET /sp` | bearer | season points: total, today, cap |
-| `GET /pvp/offers` | bearer | three opponents (players with a defence team, bots to fill) with revealed battle seeds |
+| `GET /pvp/offers` | bearer | three opponents (players with a defence team, bots to fill) with revealed battle seeds; a new call retires the previous unused set |
 | `POST /withdraw` `{ grossWei }`, `GET /withdraw/pending` | bearer | EIP-712 claim voucher, one open at a time |
 | `GET /season`, `GET /season/:id`, `GET /season/:id/actions?playerId=` | – / bearer (self) | commit hash, reveal, own action log for re-verification |
 | `POST /admin/ban`, `/admin/unban`, `/admin/price`, `/admin/season/:id/reveal`, `/admin/jobs/:name/run` | `x-admin-token` | operations |
@@ -33,18 +33,20 @@ Errors are `{ error: CODE }`: 400 `INVALID_ACTION`, 401 `UNAUTHORIZED`, 402 `INS
 
 ## Jobs (scheduler in `src/jobs`)
 
-- `indexer` (15 s): vault events up to `head − CONFIRMATIONS`; `Entered` unlocks earning, `Deposited` credits `credited`, `Claimed` closes the voucher. Idempotent by `(txHash, logIndex)`.
-- `voucherExpiry` (60 s): refunds vouchers unclaimed 10 minutes past their deadline, once.
-- `burnBatch` (10 min): burns 50% of past days' spend through the operator key, within the vault's daily burn limit.
+- `indexer` (15 s): vault events from `INDEXER_START_BLOCK` up to `head − CONFIRMATIONS`, in `INDEXER_CHUNK` ranges; `Entered` unlocks earning, `Deposited` credits `credited`, `Claimed` closes the voucher (and takes the tokens back if the server had already refunded it). Events for wallets that have not signed in yet are stored and applied on their first sign-in. Idempotent by `(txHash, logIndex)`.
+- `voucherExpiry` (60 s): for vouchers unclaimed 10 minutes past their deadline, asks the chain whether the player's cumulative total already covers them (late claim → mark claimed) and refunds the rest, once.
+- `burnBatch` (10 min): burns 50% of past days' spend through the operator key, within the vault's daily burn limit. Each burn is recorded as a pending attempt before it is sent and booked only on a successful receipt; a Postgres advisory lock keeps the scheduler and `POST /admin/jobs/burnBatch/run` from overlapping.
 - `season` (60 s): rolls the 14-day season and creates the next commit hash.
 
 ## Provably fair (spec §17)
 
-`GET /season` publishes `keccak256(S)`. After the season ends an admin (later the close job) reveals `S`; a player fetches `GET /season/:id/actions?playerId=<me>` and checks each row with `verifyActionSeed(commitHash, S, playerId, nonce, seedHex)` from `src/services/seed.ts`, then replays `applyAction` with `createRng(seed32)`.
+`GET /season` publishes `keccak256(S)`. After the season ends an admin (later the close job) reveals `S`; a player fetches `GET /season/:id/actions?playerId=<me>` and checks each row: `seedHex == HMAC-SHA256(S, seedLabel)` where `seedLabel` is `<playerId>:<nonce>` for actions and `battle:<playerId>:<nonce>` / `battle:<offerId>` for battles, then replays `applyAction` with `createRng(first 4 bytes)`.
 
 ## Withdrawals
 
-One open voucher per player; each at most 10% of the vault's `remainingPayoutToday()` and never more than the balance; 1-hour deadline; cumulative totals continue from the previous voucher (or the chain's `claimed`). Banned players can withdraw only `deposited − withdrawn`.
+One open voucher per player; each at most 10% of the vault's `remainingPayoutToday()` minus every voucher still open anywhere, and at most 10% of the chain's remaining cap per player per UTC day; never more than the balance; 1-hour deadline; cumulative totals continue from `max(previous voucher, chain.claimed)`. Chain reads happen before the player lock is taken. Banned players can withdraw only `deposited − withdrawn`.
+
+The §14 sell-back ledger (`state.ledger.depositedMicroUsd` / `withdrawnMicroUsd`) is derived on every action from the token balances at the current price (deposits rounded down, withdrawals up), so the penalty ratio and deposit-repayment limit follow real chain activity.
 
 ## Testnet prerequisites
 

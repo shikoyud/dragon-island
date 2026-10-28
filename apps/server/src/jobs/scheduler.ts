@@ -12,9 +12,10 @@ export const DEFAULT_INTERVALS_MS = {
   season: 60_000,
 } as const
 
-export function startScheduler(opts: SchedulerOptions): { stop: () => void } {
+export function startScheduler(opts: SchedulerOptions): { stop: () => Promise<void> } {
   const log = opts.log ?? ((level, message, extra) => console[level === 'error' ? 'error' : 'log'](message, extra ?? ''))
   const running = new Set<string>()
+  const inFlight = new Map<string, Promise<void>>()
   const timers: NodeJS.Timeout[] = []
   for (const [name, job] of Object.entries(opts.jobs)) {
     const interval = opts.intervalsMs[name]
@@ -22,15 +23,26 @@ export function startScheduler(opts: SchedulerOptions): { stop: () => void } {
     const tick = async () => {
       if (running.has(name)) return // never overlap a slow run with itself
       running.add(name)
-      try {
-        await job()
-      } catch (err) {
-        log('error', `job ${name} failed`, err)
-      } finally {
-        running.delete(name)
-      }
+      const run = (async () => {
+        try {
+          await job()
+        } catch (err) {
+          log('error', `job ${name} failed`, err)
+        } finally {
+          running.delete(name)
+          inFlight.delete(name)
+        }
+      })()
+      inFlight.set(name, run)
+      await run
     }
     timers.push(setInterval(() => void tick(), interval))
   }
-  return { stop: () => timers.forEach(clearInterval) }
+  return {
+    /** Stops scheduling and waits for runs already in progress (a burn mid-flight must finish). */
+    stop: async () => {
+      timers.forEach(clearInterval)
+      await Promise.all([...inFlight.values()])
+    },
+  }
 }

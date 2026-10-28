@@ -8,14 +8,14 @@ async function main(): Promise<void> {
   const config = loadConfig()
   const { db, close } = config.DATABASE_URL ? createPgDb(config.DATABASE_URL) : await createPgliteDb(config.PGLITE_DIR)
   await migrate(db)
-  const app = await buildApp({ db, clock: systemClock, config })
+  const app = await buildApp({ db, clock: systemClock, config, logger: true })
   const scheduler = startScheduler({
     jobs: app.jobs,
     intervalsMs: DEFAULT_INTERVALS_MS,
     log: (level, message, extra) => app.log[level](extra ? { extra } : {}, message),
   })
   const shutdown = async () => {
-    scheduler.stop()
+    await scheduler.stop()
     await app.close()
     await close()
     process.exit(0)

@@ -23,6 +23,8 @@ export interface ChainClient {
   /** Operator burn of the spend batch; returns the tx hash. */
   burn(amountWei: bigint): Promise<Hex>
   remainingBurnToday(): Promise<bigint>
+  /** Resolves once the transaction is mined. */
+  waitForTx(hash: Hex): Promise<'success' | 'reverted'>
 }
 
 export const robinhoodTestnet = defineChain({
@@ -66,5 +68,9 @@ export function createViemChainClient(opts: { rpcUrl: string; vault: Address; op
       return wallet.writeContract({ address: opts.vault, abi: wyrmVaultAbi, functionName: 'burn', args: [amountWei], account: operator, chain })
     },
     remainingBurnToday: () => read<bigint>('remainingBurnToday'),
+    async waitForTx(hash) {
+      const receipt = await pub.waitForTransactionReceipt({ hash })
+      return receipt.status === 'success' ? 'success' : 'reverted'
+    },
   }
 }

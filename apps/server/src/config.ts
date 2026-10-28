@@ -20,6 +20,9 @@ const schema = z.object({
   SIGNER_PRIVATE_KEY: hex32.optional(),
   OPERATOR_PRIVATE_KEY: hex32.optional(),
   CONFIRMATIONS: z.coerce.number().int().min(0).default(1),
+  /** First block the indexer scans (the vault's deployment block) and the getLogs range per call. */
+  INDEXER_START_BLOCK: z.coerce.bigint().nonnegative().default(0n),
+  INDEXER_CHUNK: z.coerce.bigint().positive().default(2_000n),
   ADMIN_TOKEN: z.string().min(1),
   CATALOG: z.enum(['launch']).default('launch'),
 })

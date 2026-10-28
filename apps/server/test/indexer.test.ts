@@ -25,7 +25,7 @@ afterEach(async () => {
 const log = (block: bigint, name: VaultLog['name'], args: Record<string, string>, txHash = `0x${block.toString(16).padStart(64, '0')}`, logIndex = 0): VaultLog =>
   ({ txHash: txHash as `0x${string}`, logIndex, blockNumber: block, name, args })
 
-const index = () => runIndexer({ db: t.db, chain, confirmations: 1, clock: t.clock })
+const index = () => runIndexer({ db: t.db, chain, confirmations: 1, clock: t.clock, startBlock: 0n, chunk: 1_000n })
 
 describe('indexer', () => {
   it('processes only confirmed blocks, credits deposits by `credited`, and is idempotent', async () => {
