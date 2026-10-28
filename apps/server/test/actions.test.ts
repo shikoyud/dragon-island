@@ -1,0 +1,146 @@
+import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
+import { eq } from 'drizzle-orm'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { actionLog, balances, players, spendBatches } from '../src/db/schema'
+import { FixedPriceSource } from '../src/services/price'
+import { bearer, testApp, type TestApp } from './helpers/testApp'
+import { TEST_KEYS, wallet } from './helpers/wallet'
+
+const E18 = 10n ** 18n
+let t: TestApp
+let token: string
+let playerId: string
+
+beforeEach(async () => {
+  t = await testApp({ price: new FixedPriceSource(50_000n) }, 0) // $0.05 per token
+  ;({ token, playerId } = await t.login(wallet(TEST_KEYS.alice)))
+  await t.db.update(balances).set({ tokenWei: 100n * E18 }).where(eq(balances.playerId, playerId))
+})
+afterEach(async () => {
+  await t.close()
+})
+
+const post = (action: unknown, idempotencyKey: string = crypto.randomUUID(), tok = token) =>
+  t.app.inject({ method: 'POST', url: '/actions', headers: bearer(tok), payload: { action, idempotencyKey } })
+
+async function setState(patch: Partial<PlayerState>) {
+  const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+  await t.db.update(players).set({ state: { ...(p!.state as PlayerState), ...patch } }).where(eq(players.id, playerId))
+}
+
+describe('POST /actions', () => {
+  it('applies an action, logs it with a seed, and returns the new state', async () => {
+    t.clock.set(600_000)
+    const r = await post({ type: 'collectGold', habitatId: 'h1' }, 'k1')
+    expect(r.statusCode).toBe(200)
+    const body = r.json()
+    expect(body.state.gold).toBe(1020)
+    expect(body.effects).toEqual([])
+    const [log] = await t.db.select().from(actionLog).where(eq(actionLog.playerId, playerId))
+    expect(log!.nonce).toBe(1n)
+    expect(log!.seedHex).toMatch(/^0x[0-9a-f]{64}$/)
+    expect(log!.status).toBe(200)
+    expect(log!.idempotencyKey).toBe('k1')
+  })
+
+  it('replays an idempotency key with the original response', async () => {
+    t.clock.set(600_000)
+    const first = await post({ type: 'collectGold', habitatId: 'h1' }, 'same')
+    const replay = await post({ type: 'buy', item: { kind: 'foodPack' } }, 'same')
+    expect(replay.statusCode).toBe(200)
+    expect(replay.json()).toEqual(first.json())
+    expect(await t.db.select().from(actionLog)).toHaveLength(1)
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    expect(p!.actionNonce).toBe(1n)
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(100n * E18)
+  })
+
+  it('charges store purchases in tokens and records the spend batch', async () => {
+    const r = await post({ type: 'buy', item: { kind: 'foodPack' } })
+    expect(r.statusCode).toBe(200)
+    expect(r.json().state.food).toBe(1_100)
+    expect(r.json().effects).toEqual([{ type: 'charge', microUsd: 500_000 }])
+    const [b] = await t.db.select().from(balances)
+    expect(b!.tokenWei).toBe(90n * E18)
+    const [batch] = await t.db.select().from(spendBatches)
+    expect(batch!.spentWei).toBe(10n * E18)
+  })
+
+  it('refuses a purchase the balance cannot cover and persists nothing', async () => {
+    await t.db.update(balances).set({ tokenWei: 5n * E18 })
+    const r = await post({ type: 'buy', item: { kind: 'foodPack' } })
+    expect(r.statusCode).toBe(402)
+    expect(r.json()).toEqual({ error: 'INSUFFICIENT_TOKENS' })
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    expect((p!.state as PlayerState).food).toBe(100)
+    expect(await t.db.select().from(actionLog)).toHaveLength(0)
+  })
+
+  it('fails closed when no price is available', async () => {
+    await t.close()
+    t = await testApp({ price: new FixedPriceSource(null) }, 0)
+    ;({ token } = await t.login(wallet(TEST_KEYS.alice)))
+    const r = await post({ type: 'buy', item: { kind: 'foodPack' } })
+    expect(r.statusCode).toBe(503)
+    expect(r.json()).toEqual({ error: 'PRICE_UNAVAILABLE' })
+  })
+
+  it('credits gold sell-back payouts to the earned balance', async () => {
+    await setState({ gold: 300_000, eligibleGold: 300_000, hoardLevel: 1 })
+    await t.db.update(players).set({ earningUnlocked: true }).where(eq(players.id, playerId))
+    const r = await post({ type: 'sellGold', gold: 100_000 })
+    expect(r.statusCode).toBe(200)
+    expect(r.json().effects).toEqual([{ type: 'payout', microUsd: 500_000 }])
+    const [b] = await t.db.select().from(balances)
+    expect(b!.tokenWei).toBe(110n * E18)
+    expect(b!.earnedWei).toBe(10n * E18)
+  })
+
+  it('maps game-core errors to 422 and still consumes the nonce', async () => {
+    await post({ type: 'plant', plot: 0, crop: 'sprout' })
+    const r = await post({ type: 'plant', plot: 0, crop: 'sprout' })
+    expect(r.statusCode).toBe(422)
+    expect(r.json()).toEqual({ error: 'PLOT_BUSY' })
+    const logs = await t.db.select().from(actionLog)
+    expect(logs.map(l => l.status)).toEqual([200, 422])
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    expect(p!.actionNonce).toBe(2n)
+  })
+
+  it('rejects malformed bodies before touching the player', async () => {
+    const r = await post({ type: 'plant', plot: 0, crop: 'constructor' })
+    expect(r.statusCode).toBe(400)
+    expect(r.json()).toEqual({ error: 'INVALID_ACTION' })
+    expect((await t.app.inject({ method: 'POST', url: '/actions', headers: bearer(token), payload: { action: { type: 'buyFarmPlot' } } })).statusCode).toBe(400)
+    expect(await t.db.select().from(actionLog)).toHaveLength(0)
+  })
+
+  it('requires a stored offer for pvp battles', async () => {
+    const r = await post({ type: 'pvpBattle', offerId: crypto.randomUUID(), team: ['d1', 'd2', 'd1'], moves: [] })
+    expect(r.statusCode).toBe(409)
+    expect(r.json()).toEqual({ error: 'OFFER_NOT_FOUND' })
+  })
+
+  it('serialises concurrent actions through the row lock', async () => {
+    await setState({ food: 1_000 })
+    const results = await Promise.all(Array.from({ length: 10 }, () => post({ type: 'feed', dragonId: 'd1' })))
+    const codes = results.map(r => r.statusCode).sort()
+    // Sequentially: d1 L1→L2 (4), →3 (16), →4 (36), →5 (64), →6 (100), →7 (144), →8 (196), →9 (256)
+    // costs 816 food total, leaving 184 < 324 for L9→10, so exactly 8 succeed.
+    expect(codes.filter(c => c === 200)).toHaveLength(8)
+    expect(codes.filter(c => c === 422)).toHaveLength(2)
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const s = p!.state as PlayerState
+    expect(s.dragons[0]!.level).toBe(9)
+    expect(s.food).toBe(184)
+    expect(p!.actionNonce).toBe(10n)
+  })
+
+  it('keeps the players table columns in sync with state', async () => {
+    await setState({ ...newPlayer(0), level: 8 })
+    const r = await post({ type: 'setDefenceTeam', dragonIds: ['d1', 'd2', 'd2'] })
+    expect(r.statusCode).toBe(422)
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    expect(p!.level).toBe(8)
+  })
+})
