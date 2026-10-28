@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { getAddress, isAddress, verifyMessage } from 'viem'
 import { walletMessage } from '../domain/walletMessage'
 import type { Deps } from './deps'
@@ -40,7 +40,7 @@ export async function bindWallet(
   const address = getAddress(input.address)
 
   return db.transaction(async (tx) => {
-    const [entrant] = await tx.select().from(entrants).where(eq(entrants.id, entrantId))
+    const [entrant] = await tx.select().from(entrants).where(eq(entrants.id, entrantId)).for('update')
     if (!entrant || entrant.position !== null || entrant.joinedAt !== null) return { error: 'BAD_REQUEST' as const }
 
     // Consume only this entrant's nonce; a foreign or unknown nonce is left untouched.
@@ -66,9 +66,14 @@ export async function bindWallet(
     const wallet = address.toLowerCase()
     try {
       // Savepoint, so a unique violation does not abort the outer transaction (the nonce stays consumed).
-      await tx.transaction(async (sp) => {
-        await sp.update(entrants).set({ wallet, walletSignedAt: now }).where(eq(entrants.id, entrantId))
-      })
+      const updated = await tx.transaction((sp) =>
+        sp
+          .update(entrants)
+          .set({ wallet, walletSignedAt: now })
+          .where(and(eq(entrants.id, entrantId), isNull(entrants.position)))
+          .returning({ id: entrants.id }),
+      )
+      if (updated.length === 0) return { error: 'BAD_REQUEST' as const }
     } catch (e) {
       if (isUniqueViolation(e)) return { error: 'WALLET_TAKEN' as const }
       throw e

@@ -95,6 +95,16 @@ describe('bindWallet', () => {
     expect(await bindWallet(d, a, { address: acct.address, signature: sig, nonce })).toEqual({ error: 'NONCE_INVALID' })
   })
 
+  it('a nonce used at exactly +10 minutes is still accepted', async () => {
+    const acct = newKey()
+    const nonce = await issueNonce(d, a)
+    d.clock.advance(600_000)
+    const sig = await signFor(acct, 'ember', nonce)
+    expect(await bindWallet(d, a, { address: acct.address, signature: sig, nonce })).toEqual({
+      wallet: acct.address.toLowerCase(),
+    })
+  })
+
   it('another entrant nonce is NONCE_INVALID and is not consumed', async () => {
     const acct = newKey()
     const nonce = await issueNonce(d, b)
@@ -149,6 +159,7 @@ describe('bindWallet', () => {
     const n2 = await issueNonce(d, b)
     const sig = await signFor(acct, 'tide', n2)
     expect(await bindWallet(d, b, { address: acct.address, signature: sig, nonce: n2 })).toEqual({ error: 'WALLET_TAKEN' })
+    expect(await nonceRows(n2)).toHaveLength(0)
   })
 
   it('rebinding before Join replaces the wallet', async () => {
