@@ -387,7 +387,7 @@ interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog }
   - `sellGold`: checks in order `EARNING_LOCKED`, `NO_HOARD`, `INVALID_AMOUNT` (not a positive integer), `INSUFFICIENT_GOLD` (`gold > eligibleGold`), `SELL_LIMIT_REACHED` (`gold × 5 > remaining`). Deducts from `gold` and `eligibleGold`; resets `sell` to today first; adds the value to `sell.soldTodayMicroUsd` and `ledger.soldMicroUsd`; effects `[{ type: 'payout', microUsd }]`.
   - `buy`: validate (`NOT_FOUND` missing target, `NOTHING_TO_SKIP`, `MAX_NESTS`, `MAX_LEVEL` for level-up at 30 or Hoard at 7, `LEVEL_TOO_LOW` for Hoard below player level 5), apply the effect (skip sets `readyAtMs = now`; nest appends `null`; foodPack +1,000 food; levelUp +1 level with no food or XP; oddsBoost +1 charge; hoard +1 level), effects `[{ type: 'charge', microUsd: priceMicroUsd(item, s, now) }]`.
 
-- [ ] **Step 1: Write failing tests** (`base = { ...newPlayer(0), earningUnlocked: true, hoardLevel: 1, gold: 300_000, eligibleGold: 300_000 }`)
+- [x] **Step 1: Write failing tests** (`base = { ...newPlayer(0), earningUnlocked: true, hoardLevel: 1, gold: 300_000, eligibleGold: 300_000 }`)
   - `newPlayer(0)` sell 1 → `EARNING_LOCKED`; `{ ...base, hoardLevel: 0 }` → `NO_HOARD`; `0`, `-1`, `1.5` → `INVALID_AMOUNT`; `{ ...base, eligibleGold: 10 }` sell 11 → `INSUFFICIENT_GOLD`
   - sell 100_000 → gold 200_000, eligibleGold 200_000, `sell.soldTodayMicroUsd` 500_000, `ledger.soldMicroUsd` 500_000, effects `[{ type: 'payout', microUsd: 500_000 }]`
   - then sell 100_001 → `SELL_LIMIT_REACHED`; sell 100_000 → ok (1_000_000 today); then sell 1 → `SELL_LIMIT_REACHED`; at `86_400_000` sell 100_000 → ok with `sell = { day: 1, soldTodayMicroUsd: 500_000 }`
@@ -396,10 +396,10 @@ interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog }
   - buy levelUp d1 → level 2, food unchanged, charge 50_000; at level 30 → `MAX_LEVEL`
   - buy oddsBoost → `oddsBoosts` 1; buy hoard at player level 4 → `LEVEL_TOO_LOW`; at level 5 → `hoardLevel` 1, charge 2_000_000; at hoardLevel 7 → `MAX_LEVEL`
   - replay: from `{ ...newPlayer(0), food: 200 }` with `FIXTURE_CATALOG` and a fresh `createRng(123)` each run, apply: collectGold h1 @60_000; plant 0 sprout @60_000; harvest 0 @120_000; feed d1 ×3 and feed d2 ×3 @120_000; startBreed d1 d2 @120_000; collectEgg 0 @135_000; hatch 0 @150_000. Every result is `ok`, and the two runs' final states and effect lists are equal.
-- [ ] **Step 2: Run tests** — expect FAIL
-- [ ] **Step 3: Implement `economy-actions.ts`, wire `apply.ts`, write `index.ts`**
-- [ ] **Step 4: Run the full suite and `pnpm -r typecheck`** — expect all PASS, no type errors
-- [ ] **Step 5: Commit** `feat(game-core): sell-back and store actions, public api, replay test`
+- [x] **Step 2: Run tests** — expect FAIL
+- [x] **Step 3: Implement `economy-actions.ts`, wire `apply.ts`, write `index.ts`**
+- [x] **Step 4: Run the full suite and `pnpm -r typecheck`** — expect all PASS, no type errors
+- [x] **Step 5: Commit** `feat(game-core): sell-back and store actions, public api, replay test`
 
 ---
 
