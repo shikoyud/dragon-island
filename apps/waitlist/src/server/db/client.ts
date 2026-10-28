@@ -5,8 +5,7 @@ import { migrate as migratePglite } from 'drizzle-orm/pglite/migrator'
 import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import { Pool } from 'pg'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import * as schema from './schema'
 
 /** One database type for both drivers, so query builders type-check identically. */
@@ -16,7 +15,13 @@ export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 type PgliteDb = ReturnType<typeof drizzlePglite<typeof schema>>
 type NodePgDb = ReturnType<typeof drizzlePg<typeof schema>>
 
-const migrationsFolder = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'drizzle')
+/**
+ * Migrations live in `<app dir>/drizzle`. Resolved from the working directory (Next, Vitest and
+ * drizzle-kit all run from the app dir) rather than `import.meta.url`, which bundling rewrites.
+ */
+export function defaultMigrationsFolder(): string {
+  return process.env.WAITLIST_MIGRATIONS_DIR || join(process.cwd(), 'drizzle')
+}
 
 /** In-memory (or file-backed) Postgres for tests and local development. */
 export async function createPgliteDb(dataDir?: string): Promise<{ db: Db; close: () => Promise<void> }> {
@@ -31,7 +36,7 @@ export function createPgDb(url: string): { db: Db; close: () => Promise<void> } 
   return { db: drizzlePg(pool, { schema }) as unknown as Db, close: () => pool.end() }
 }
 
-export async function migrate(db: Db): Promise<void> {
+export async function migrate(db: Db, migrationsFolder: string = defaultMigrationsFolder()): Promise<void> {
   const client = (db as unknown as { $client?: unknown }).$client
   if (client instanceof PGlite) {
     await migratePglite(db as unknown as PgliteDb, { migrationsFolder })

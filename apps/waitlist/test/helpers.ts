@@ -2,6 +2,7 @@ import { newRefCode } from '../src/domain/refCode'
 import { loadConfig } from '../src/server/config'
 import { createPgliteDb, migrate, type Db } from '../src/server/db/client'
 import type { Clock, Deps } from '../src/server/deps'
+import { FakeXClient } from '../src/server/x'
 
 /** A fresh, migrated in-memory Postgres. */
 export async function makeTestDb(): Promise<{ db: Db; close(): Promise<void> }> {
@@ -26,17 +27,13 @@ export class FakeClock implements Clock {
   }
 }
 
-const unused = (): never => {
-  throw new Error('not used')
-}
-
-/** Deps over a fresh migrated PGlite db, a fake clock and a stub X client. */
+/** Deps over a fresh migrated PGlite db, a fake clock and the fake X client. */
 export async function makeTestDeps(): Promise<Deps & { clock: FakeClock; close(): Promise<void> }> {
   const { db, close } = await makeTestDb()
   return {
     db,
     clock: new FakeClock(),
-    x: { authorizeUrl: unused, exchangeCode: unused, me: unused },
+    x: new FakeXClient({ siteUrl: '' }),
     newCode: newRefCode,
     config: loadConfig({ SESSION_SECRET: 'test-secret-test-secret-test-secret!' }),
     close,
