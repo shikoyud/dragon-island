@@ -1,7 +1,8 @@
-import { homeStripObstacles, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
+import { homeStripObstacles, LAUNCH_CATALOG, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import { artSetFromManifest } from '../src/art/fromManifest'
 import { createBridge } from '../src/game/bridge'
 import { IslandMapPanel } from '../src/panels/IslandMapPanel'
 import { ObstaclePanel } from '../src/panels/ObstaclePanel'
@@ -41,6 +42,15 @@ describe('IslandMapPanel', () => {
     const { wrap } = harness({ ...base, level: 12, gold: 10 })
     wrap(<IslandMapPanel view="home" onView={vi.fn()} />)
     expect(screen.getByText('Not enough gold')).toBeInTheDocument()
+  })
+
+  it('shows each island map icon when the art set has one', () => {
+    const art = artSetFromManifest('v1', { assets: { 'map.home': { file: 'map-home.png', w: 32, h: 32, frames: 1, fps: 0 } } }, LAUNCH_CATALOG)
+    const { wrap } = harness({ ...base, level: 3, gold: 10 })
+    const { container } = wrap(<IslandMapPanel view="home" onView={vi.fn()} art={art} />)
+    const imgs = [...container.querySelectorAll('img')]
+    expect(imgs.map(i => i.getAttribute('src'))).toEqual(['/art/v1/map-home.png'])
+    expect(imgs[0]).toHaveAttribute('width', '32')
   })
 
   it('asks for a legendary dragon first at Dawnspire', () => {

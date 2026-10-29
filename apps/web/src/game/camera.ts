@@ -1,10 +1,15 @@
 import { HOME_MAX_STEP, homeSize, islandSize, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
 import { BASE, integerZoom, pointerToCell, worldSize } from './layout'
 
-/** World size in pixels of the viewed island (the camera's scroll bounds). */
+/** Cells shown on home: the unlocked square plus a two-cell ring of locked land (the next two expansions). */
+function homeShown(state: PlayerState): { w: number; h: number } {
+  return homeSize(Math.min(state.islands.homeStep + 2, HOME_MAX_STEP))
+}
+
+/** World size in pixels of the viewed island (the camera's scroll bounds), including home's locked ring. */
 export function cameraBounds(state: PlayerState | null, view: IslandId): { w: number; h: number } {
   if (!state) return { w: BASE.w, h: BASE.h }
-  const { w, h } = islandSize(state, view)
+  const { w, h } = view === 'home' ? homeShown(state) : islandSize(state, view)
   return worldSize(w, h)
 }
 
@@ -32,11 +37,11 @@ export function stepZoom(zoom: number, dir: -1 | 1, range: { min: number; max: n
   return Math.min(range.max, Math.max(range.min, zoom - dir))
 }
 
-/** Home-island cells that are still locked: inside the fully expanded square but outside the current one. */
+/** Home-island cells that are still locked and on screen: inside the shown ring but outside the current square. */
 export function lockedTiles(state: PlayerState | null, view: IslandId): { col: number; row: number }[] {
   if (!state || view !== 'home') return []
   const cur = homeSize(state.islands.homeStep)
-  const max = homeSize(HOME_MAX_STEP)
+  const max = homeShown(state)
   const out: { col: number; row: number }[] = []
   for (let row = 0; row < max.h; row++) for (let col = 0; col < max.w; col++) if (col >= cur.w || row >= cur.h) out.push({ col, row })
   return out

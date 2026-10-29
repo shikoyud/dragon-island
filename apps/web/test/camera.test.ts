@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { cameraBounds, groundCell, isClick, lockedTiles, stepZoom, zoomRange } from '../src/game/camera'
 
 describe('island camera logic', () => {
-  it('bounds follow the viewed island', () => {
+  it('bounds follow the viewed island, with a two-cell ring of locked land around home', () => {
     const s = newPlayer(0)
     s.islands.unlocked = ['home', 'isle2']
-    expect(cameraBounds(s, 'home')).toEqual({ w: 192, h: 192 })
+    expect(cameraBounds(s, 'home')).toEqual({ w: 224, h: 224 })
+    expect(cameraBounds({ ...s, islands: { ...s.islands, homeStep: 11 } }, 'home')).toEqual({ w: 384, h: 384 })
+    expect(cameraBounds({ ...s, islands: { ...s.islands, homeStep: 12 } }, 'home')).toEqual({ w: 384, h: 384 })
     expect(cameraBounds(s, 'isle2')).toEqual({ w: 256, h: 256 })
     expect(cameraBounds(null, 'home')).toEqual({ w: 480, h: 270 })
   })
@@ -36,10 +38,12 @@ describe('island camera logic', () => {
     expect(stepZoom(1, 1, r)).toBe(1)
   })
 
-  it('draws locked tiles on the home island only, outside the unlocked cells', () => {
+  it('draws locked tiles on the home island only, in the visible ring outside the unlocked cells', () => {
     const s = newPlayer(0)
     const tiles = lockedTiles(s, 'home')
-    expect(tiles.length).toBe(24 * 24 - 12 * 12)
+    expect(tiles.length).toBe(14 * 14 - 12 * 12)
+    expect(tiles).not.toContainEqual({ col: 14, row: 0 })
+    expect(lockedTiles({ ...s, islands: { ...s.islands, homeStep: 12 } }, 'home')).toEqual([])
     expect(tiles).not.toContainEqual({ col: 0, row: 0 })
     expect(tiles).toContainEqual({ col: 12, row: 0 })
     expect(lockedTiles(s, 'isle2')).toEqual([])

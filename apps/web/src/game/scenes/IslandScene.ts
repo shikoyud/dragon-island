@@ -1,6 +1,6 @@
-import { LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
+import { islandSize, LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
-import { playOrStill } from '../../art/phaserLoader'
+import { playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet } from '../../art/types'
 import type { Bridge, Target } from '../bridge'
@@ -23,6 +23,7 @@ const EMPTY: IslandMarkers = {
  */
 export class IslandScene extends Phaser.Scene {
   private ground!: Phaser.GameObjects.Graphics
+  private locked!: Phaser.GameObjects.Container
   private layer!: Phaser.GameObjects.Container
   private drawn: Phaser.GameObjects.GameObject[] = []
   private current: IslandMarkers = EMPTY
@@ -38,6 +39,7 @@ export class IslandScene extends Phaser.Scene {
 
   create(): void {
     this.ground = this.add.graphics()
+    this.locked = this.add.container(0, 0)
     this.layer = this.add.container(0, 0)
     // Bridge subscriptions must die with the scene: React StrictMode (and hot reload) destroys and
     // recreates the game, and a destroyed scene drawing on a state event crashes Phaser.
@@ -122,13 +124,16 @@ export class IslandScene extends Phaser.Scene {
     if (key === this.groundKey) return
     this.groundKey = key
     const g = this.ground.clear()
+    this.locked.removeAll(true)
     if (!state) return
-    for (const t of lockedTiles(state, view)) g.fillStyle(0x0b0f1c, 1).fillRect(t.col * CELL, t.row * CELL, CELL, CELL)
-    const b = cameraBounds(state, view)
-    g.fillStyle(0x24402f, 1).fillRect(0, 0, b.w, b.h)
+    // Unlocked cells get the grass and grid; the locked ring around home is one locked-land sprite per cell.
+    const { w, h } = islandSize(state, view)
+    g.fillStyle(0x24402f, 1).fillRect(0, 0, w * CELL, h * CELL)
     g.lineStyle(1, 0xffffff, 0.08)
-    for (let x = 0; x <= b.w; x += CELL) g.lineBetween(x, 0, x, b.h)
-    for (let y = 0; y <= b.h; y += CELL) g.lineBetween(0, y, b.w, y)
+    for (let x = 0; x <= w * CELL; x += CELL) g.lineBetween(x, 0, x, h * CELL)
+    for (let y = 0; y <= h * CELL; y += CELL) g.lineBetween(0, y, w * CELL, y)
+    const lockedKey = textureKey('island.locked')
+    for (const t of lockedTiles(state, view)) this.locked.add(this.add.image(t.col * CELL, t.row * CELL, lockedKey).setOrigin(0, 0))
   }
 
   markers(): IslandMarkers {

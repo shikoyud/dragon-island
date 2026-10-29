@@ -27,7 +27,7 @@ export function PanelHost({ bridge, nowMs, named, onCloseNamed }: { bridge: Brid
   const startPlacing = useStartPlacing()
 
   if (named === 'build') return <BuildShopPanel view={view} onPlace={(what, size) => { startPlacing(what, size); onCloseNamed() }} onClose={onCloseNamed} />
-  if (named === 'map') return <IslandMapPanel view={view} onView={id => bridge.setView(id)} onClose={onCloseNamed} />
+  if (named === 'map') return <IslandMapPanel view={view} onView={id => bridge.setView(id)} onClose={onCloseNamed} art={bridge.art} />
   if (named === 'breed') return <BreedPanel onClose={onCloseNamed} />
   if (named === 'store') return <StorePanel nowMs={nowMs} onClose={onCloseNamed} />
   if (named === 'nests') return <NestsPanel nowMs={nowMs} onClose={onCloseNamed} />
