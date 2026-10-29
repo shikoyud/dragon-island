@@ -203,7 +203,7 @@ function BetaTab({ api }: { api: AdminApi }) {
   })
   return (
     <section>
-      <p>{count === null ? 'Loading…' : `${count} wallets allowed`}</p>
+      <p>{count === null ? 'Loadingâ€¦' : `${count} wallets allowed`}</p>
       <label>Wallets <textarea value={text} onChange={e => setText(e.target.value)} rows={8} style={{ width: '100%' }} placeholder="One 0x address per line, or paste the waitlist CSV" /></label>
       <p><small>{wallets.length} valid addresses found.</small></p>
       <button type="button" className="btn btn--primary" disabled={wallets.length === 0 || r.busy} onClick={() => void submit()}>Allow wallets</button>

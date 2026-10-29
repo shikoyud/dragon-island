@@ -105,5 +105,4 @@ describe('Admin page', () => {
     await waitFor(() => expect(api.betaAllow).toHaveBeenCalledWith([a, b]))
     expect(await screen.findByRole('status')).toHaveTextContent('"added": 2')
   })
-
 })
