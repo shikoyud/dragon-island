@@ -7,8 +7,8 @@ import { seasonInflows } from '../services/inflows'
 import { creditEarned } from '../services/ledger'
 import { standings } from '../services/standings'
 
-/** Postgres advisory lock id: one close run at a time (scheduler and admin trigger). */
-const CLOSE_LOCK_ID = 7_302
+/** Postgres advisory lock id: one close run at a time (scheduler, admin trigger, season backfill). */
+export const CLOSE_LOCK_ID = 7_302
 /**
  * Actions pick their season when their transaction starts, so one that began just before `endsAt`
  * may commit SP and inflows a little after it. Closing waits this long past `endsAt` so they count.
