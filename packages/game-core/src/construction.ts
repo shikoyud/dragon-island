@@ -50,3 +50,8 @@ export function startConstruction(
     tutorial: { ...s.tutorial, buildsStarted: s.tutorial.buildsStarted + 1 },
   }
 }
+
+/** A new building still being built: it does nothing yet. A building under upgrade keeps working. */
+export function isUnfinished(s: PlayerState, ref: BuildingRef): boolean {
+  return s.constructions.some(c => c.kind === 'build' && sameBuilding(c.building, ref))
+}

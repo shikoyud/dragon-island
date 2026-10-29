@@ -165,3 +165,27 @@ describe('startUpgrade / finishConstruction', () => {
     expect(hatcherySlots(h.hatcheryLevel)).toBe(4)
   })
 })
+
+describe('upgrading buildings keep working (spec 6)', () => {
+  const up = (b: object): PlayerState => ({ ...s, constructions: [{ kind: 'upgrade', building: b, readyAtMs: 999_999 } as never] })
+  const unfinished = (b: object): PlayerState => ({ ...s, constructions: [{ kind: 'build', building: b, readyAtMs: 999_999 } as never] })
+
+  it('a habitat under upgrade takes a moved and a hatched dragon', () => {
+    const base = { ...s, dragons: [...s.dragons, { id: 'd9', speciesId: 'fire', level: 1, habitatId: null }] }
+    const upgrading = { ...base, constructions: up({ type: 'habitat', id: 'h1' }).constructions }
+    expect(ok(run(upgrading, { type: 'moveDragon', dragonId: 'd9', habitatId: 'h1' }, 0)).dragons.find(d => d.id === 'd9')!.habitatId).toBe('h1')
+    const hatching = { ...upgrading, hatchery: [{ speciesId: 'fire', readyAtMs: 0 }] }
+    const hatched = ok(run(hatching, { type: 'hatch', slot: 0 }, 0))
+    expect(hatched.dragons.find(d => d.id === `d${hatching.nextId}`)!.habitatId).toBe('h1')
+  })
+
+  it('a farm plot under upgrade can be planted, an unfinished one cannot', () => {
+    expect(ok(run(up({ type: 'farm', index: 0 }), { type: 'plant', plot: 0, crop: 'sprout' }, 0)).farms[0]!.crop).toBe('sprout')
+    err(run(unfinished({ type: 'farm', index: 0 }), { type: 'plant', plot: 0, crop: 'sprout' }, 0), 'UNDER_CONSTRUCTION')
+  })
+
+  it('an unfinished habitat still refuses dragons', () => {
+    const st = { ...unfinished({ type: 'habitat', id: 'h1' }), dragons: [...s.dragons, { id: 'd9', speciesId: 'fire', level: 1, habitatId: null }] }
+    err(run(st, { type: 'moveDragon', dragonId: 'd9', habitatId: 'h1' }, 0), 'UNDER_CONSTRUCTION')
+  })
+})

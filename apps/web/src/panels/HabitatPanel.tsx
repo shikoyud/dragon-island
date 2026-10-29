@@ -1,4 +1,4 @@
-import { canLiveIn, getSpecies, HABITAT_LEVELS, habitatSlots, isUnderConstruction, LAUNCH_CATALOG, residents, storedGold } from '@wyrmhaven/game-core'
+import { canLiveIn, getSpecies, HABITAT_LEVELS, habitatSlots, isUnfinished, LAUNCH_CATALOG, residents, storedGold } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatGold } from '../ui/Money'
@@ -16,7 +16,7 @@ export function HabitatPanel({ habitatId, nowMs, onClose }: { habitatId: string;
   const gold = storedGold(h, live, catalog, nowMs)
   const level = HABITAT_LEVELS[h.level - 1]!
   const free = habitatSlots(h) - live.length
-  const building = isUnderConstruction(s, { type: 'habitat', id: h.id })
+  const building = isUnfinished(s, { type: 'habitat', id: h.id })
   const movable = s.dragons.filter(d => d.habitatId !== h.id && canLiveIn(getSpecies(catalog, d.speciesId), h))
 
   return (

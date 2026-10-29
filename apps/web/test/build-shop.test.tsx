@@ -5,6 +5,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { messageFor } from '../src/api/errors'
 import { createBridge } from '../src/game/bridge'
 import { BuildShopPanel } from '../src/panels/BuildShopPanel'
+import { FarmPanel } from '../src/panels/FarmPanel'
+import { HabitatPanel } from '../src/panels/HabitatPanel'
 import { NestsPanel } from '../src/panels/NestsPanel'
 import { PanelHost } from '../src/panels/PanelHost'
 import { UpgradeSection } from '../src/panels/UpgradeSection'
@@ -131,6 +133,35 @@ describe('UpgradeSection', () => {
     expect(start).toHaveBeenCalledWith({ kind: 'move', target: h1 }, 5, s.habitats[0]!.placement)
     await userEvent.click(screen.getByRole('button', { name: 'Turn' }))
     expect(action).toHaveBeenCalledWith({ type: 'moveBuilding', target: h1, placement: { ...s.habitats[0]!.placement, facing: 0 } }, expect.any(String))
+  })
+})
+
+describe('Finish button and upgrades that keep working', () => {
+  it('offers a manual Finish once the timer is up', async () => {
+    const { wrap, action } = harness({ ...base, constructions: [{ kind: 'upgrade', building: h1, readyAtMs: 100 }] })
+    const r = wrap(<UpgradeSection building={h1} nowMs={0} />)
+    expect(screen.queryByRole('button', { name: 'Finish' })).toBeNull()
+    r.rerender(<UpgradeSection building={h1} nowMs={100} />)
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1)) // the one automatic attempt
+    await userEvent.click(screen.getByRole('button', { name: 'Finish' }))
+    expect(action).toHaveBeenCalledTimes(2)
+    expect(action).toHaveBeenLastCalledWith({ type: 'finishConstruction', index: 0 }, expect.any(String))
+  })
+
+  it('lets dragons move into a habitat that is only being upgraded', async () => {
+    const waiting = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'fire', level: 1, habitatId: null }], constructions: [{ kind: 'upgrade' as const, building: h1, readyAtMs: 99 }] }
+    harness(waiting).wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
+    expect(screen.getByRole('button', { name: /d9/ })).toBeEnabled()
+  })
+
+  it('plots under upgrade can be planted but unfinished ones cannot', () => {
+    const farm0 = { type: 'farm' as const, index: 0 }
+    const up = harness({ ...base, constructions: [{ kind: 'upgrade', building: farm0, readyAtMs: 99 }] })
+    const r = up.wrap(<FarmPanel nowMs={0} />)
+    expect(screen.getAllByRole('button', { name: /^plant$/i })[0]).toBeEnabled()
+    r.unmount()
+    harness({ ...base, constructions: [{ kind: 'build', building: farm0, readyAtMs: 99 }] }).wrap(<FarmPanel nowMs={0} />)
+    expect(screen.getAllByRole('button', { name: /^plant$/i })[0]).toBeDisabled()
   })
 })
 

@@ -1,6 +1,6 @@
 import { getSpecies, type Catalog } from '../catalog'
 import { foodToNextLevel, MAX_DRAGON_LEVEL } from '../dragon'
-import { isUnderConstruction } from '../construction'
+import { isUnfinished } from '../construction'
 import { canLiveIn, habitatSlots, residents, storedGold } from '../habitat'
 import { addXp } from '../progression'
 import { RARITY } from '../rarity'
@@ -36,7 +36,7 @@ export const moveDragon: Handler<'moveDragon'> = (s, a, ctx) => {
   const target = s.habitats.find(x => x.id === a.habitatId)
   if (!d || !target) return failure('NOT_FOUND')
   if (d.habitatId === target.id) return success(s)
-  if (isUnderConstruction(s, { type: 'habitat', id: target.id })) return failure('UNDER_CONSTRUCTION')
+  if (isUnfinished(s, { type: 'habitat', id: target.id })) return failure('UNDER_CONSTRUCTION')
   if (!canLiveIn(getSpecies(ctx.catalog, d.speciesId), target)) return failure('ELEMENT_MISMATCH')
   if (residents(s, target.id).length >= habitatSlots(target)) return failure('NO_HABITAT_SLOT')
   const collected = collectHabitat(collectDragonHome(s, d.id, ctx.catalog, ctx.nowMs), target.id, ctx.catalog, ctx.nowMs)

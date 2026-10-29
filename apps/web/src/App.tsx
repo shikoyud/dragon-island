@@ -104,7 +104,12 @@ function Game() {
     if (!ghostAction) return
     void run(ghostAction).then(res => { if (res) dispatch({ type: 'cancel' }) })
   }
-  const startPlacing: StartPlacing = (what, size, from) => dispatch({ type: 'start', what, size, island: view, from })
+  const startPlacing: StartPlacing = (what, size, from) => {
+    // Show the island the thing belongs on: a move stays where it is, the Hoard is home-only, the Nexus Dawnspire-only.
+    const island = from?.island ?? (what.kind === 'hoard' ? 'home' : what.kind === 'nexus' ? 'dawnspire' : view)
+    if (island !== view) bridge.setView(island)
+    dispatch({ type: 'start', what, size, island, from })
+  }
   const side = (
     <StartPlacingProvider value={startPlacing}>
       {placing && (

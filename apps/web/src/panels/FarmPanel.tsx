@@ -1,4 +1,4 @@
-import { CROPS, farmFood, isUnderConstruction, priceMicroUsd, type CropId } from '@wyrmhaven/game-core'
+import { CROPS, farmFood, isUnfinished, priceMicroUsd, type CropId } from '@wyrmhaven/game-core'
 import { useState } from 'react'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -23,7 +23,7 @@ export function FarmPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => v
         {s.farms.map((plot, i) => {
           const crop = choice[i] ?? 'sprout'
           const info = CROPS[crop]
-          const building = isUnderConstruction(s, { type: 'farm', index: i })
+          const building = isUnfinished(s, { type: 'farm', index: i })
           const skip = priceMicroUsd({ kind: 'skip', target: 'farm', index: i }, s, nowMs)
           return (
             <li key={i} style={{ marginBottom: 6 }}>
@@ -47,7 +47,7 @@ export function FarmPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => v
                     Crop{' '}
                     <select value={crop} onChange={e => setChoice({ ...choice, [i]: e.target.value as CropId })}>
                       {CROP_IDS.map(c => (
-                        <option key={c} value={c}>{c} · {formatGold(CROPS[c].cost)}g → {formatGold(CROPS[c].food)} food · {timerLabel(CROPS[c].growMs, 0)}</option>
+                        <option key={c} value={c}>{c} · {formatGold(CROPS[c].cost)}g → {formatGold(farmFood(CROPS[c].food, plot.level))} food · {timerLabel(CROPS[c].growMs, 0)}</option>
                       ))}
                     </select>
                   </label>

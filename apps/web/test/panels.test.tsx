@@ -121,7 +121,7 @@ describe('NestsPanel and FarmPanel', () => {
     expect(action).toHaveBeenCalledWith({ type: 'hatch', slot: 0 }, expect.any(String))
   })
 
-  it('plants, harvests when ready and buys plots', async () => {
+  it('plants and harvests when ready', async () => {
     const { wrap, action } = harness(base)
     wrap(<FarmPanel nowMs={0} />)
     await userEvent.selectOptions(screen.getAllByLabelText(/crop/i)[0]!, 'sprout')

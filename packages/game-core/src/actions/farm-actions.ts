@@ -1,5 +1,5 @@
 import { farmFood } from '../buildings'
-import { isUnderConstruction } from '../construction'
+import { isUnfinished } from '../construction'
 import { CROPS } from '../farm'
 import { spendGold } from '../wallet'
 import { failure, success, type Handler } from './types'
@@ -7,7 +7,7 @@ import { failure, success, type Handler } from './types'
 export const plant: Handler<'plant'> = (s, a, ctx) => {
   const plot = s.farms[a.plot]
   if (!plot) return failure('NOT_FOUND')
-  if (isUnderConstruction(s, { type: 'farm', index: a.plot })) return failure('UNDER_CONSTRUCTION')
+  if (isUnfinished(s, { type: 'farm', index: a.plot })) return failure('UNDER_CONSTRUCTION')
   if (plot.crop !== null) return failure('PLOT_BUSY')
   const crop = CROPS[a.crop]
   const paid = spendGold(s, crop.cost)

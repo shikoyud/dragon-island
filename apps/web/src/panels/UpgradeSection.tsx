@@ -47,6 +47,11 @@ export function UpgradeSection({ building, nowMs }: { building: BuildingRef; now
       {con ? (
         <>
           <span>{con.kind === 'build' ? 'Building' : `Upgrading to ${level + 1}`} · <Timer readyAtMs={con.readyAtMs} nowMs={nowMs} /></span>
+          {nowMs >= con.readyAtMs && (
+            <ActionButton id={`finish-construction-${id}`} primary disabled={pending} onClick={() => void run({ type: 'finishConstruction', index })}>
+              Finish
+            </ActionButton>
+          )}
           {skip !== null && (
             <ActionButton id={`skip-construction-${id}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'construction', index } })}>
               Skip · {formatMicroUsd(skip)}

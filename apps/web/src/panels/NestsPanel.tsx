@@ -1,4 +1,4 @@
-import { getSpecies, hatcherySlots, isUnderConstruction, LAUNCH_CATALOG, priceMicroUsd } from '@wyrmhaven/game-core'
+import { getSpecies, hatcherySlots, isUnfinished, LAUNCH_CATALOG, priceMicroUsd } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatMicroUsd } from '../ui/Money'
@@ -37,7 +37,7 @@ export function NestsPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
                       </ActionButton>
                     )}
                   </>
-                ) : <span><small>{isUnderConstruction(s, { type: 'nest', index: i }) ? 'being built' : 'empty'}</small></span>}
+                ) : <span><small>{isUnfinished(s, { type: 'nest', index: i }) ? 'being built' : 'empty'}</small></span>}
               </div>
               <UpgradeSection building={{ type: 'nest', index: i }} nowMs={nowMs} />
             </li>
