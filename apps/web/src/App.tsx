@@ -13,6 +13,7 @@ import { PanelHost, type PanelId } from './panels/PanelHost'
 import { PvePanel } from './panels/PvePanel'
 import { PvpPanel } from './panels/PvpPanel'
 import { ResourcesBar } from './panels/ResourcesBar'
+import { ReferralPanel } from './panels/ReferralPanel'
 import { SeasonPanel } from './panels/SeasonPanel'
 import { WalletPanel } from './panels/WalletPanel'
 import { useBattle } from './state/battle'
@@ -31,6 +32,7 @@ const TOOLBAR: { id: PanelId; label: string }[] = [
   { id: 'pve', label: 'Campaign' },
   { id: 'pvp', label: 'Arena' },
   { id: 'season', label: 'Season' },
+  { id: 'referral', label: 'Referral' },
   { id: 'wallet', label: 'Wallet' },
 ]
 
@@ -103,6 +105,7 @@ function Game() {
         : named === 'hoard' ? <HoardPanel nowMs={nowMs} onClose={() => setNamed(null)} />
         : named === 'pvp' ? <PvpPanel onFight={startPvp} onClose={() => setNamed(null)} />
         : named === 'pve' ? <PvePanel onFight={startPve} onClose={() => setNamed(null)} nowMs={nowMs} />
+        : named === 'referral' ? <ReferralPanel onClose={() => setNamed(null)} />
         : named === 'season' ? <SeasonPanel nowMs={nowMs} onClose={() => setNamed(null)} onVerify={id => { setVerifySeason(id); setNamed(null) }} />
         : <PanelHost bridge={bridge} nowMs={nowMs} named={named} onCloseNamed={() => setNamed(null)} />}
     </>

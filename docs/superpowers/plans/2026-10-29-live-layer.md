@@ -226,11 +226,11 @@ it('ranks at most 100 players', () => {
 - Season panel: prize pool so far (`Tokens`), top 10 with the caller's row highlighted and `Your rank: #n` (or `Unranked`), "Last season: you won X WYRM" when `prizeMe(previous id)` is non-null; previous id = `season.id − 1` when > 0.
 - Referral panel: your code with a copy button, `n referred · earned X WYRM`, and an input + `Claim code` button that is disabled once `referrer === true`; errors shown through the toast copy map (`REFERRAL_SELF: "You can't refer yourself"`, `REFERRAL_ALREADY_SET`, `REFERRAL_AFTER_SPEND: "Referral codes must be entered before your first purchase"`, `REFERRAL_SAME_DEVICE: "That code can't be used from this device or network"`).
 
-- [ ] **Step 1: Write failing tests** — leaderboard renders rank rows and the caller's rank; referral code shown and claim posts the code; claim error maps to the copy; `x-device-id` header is on every request and stable across `createApi` calls.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/web exec vitest run test/live.test.tsx` — Expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the web suite, typecheck, `pnpm --filter @wyrmhaven/web build`** — Expected: pass.
-- [ ] **Step 5: Commit** `git add apps/web/src apps/web/test/live.test.tsx && git commit -m "feat(web): leaderboard, prizes, referral panel"`
+- [x] **Step 1: Write failing tests** — leaderboard renders rank rows and the caller's rank; referral code shown and claim posts the code; claim error maps to the copy; `x-device-id` header is on every request and stable across `createApi` calls.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/web exec vitest run test/live.test.tsx` — Expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the web suite, typecheck, `pnpm --filter @wyrmhaven/web build`** — Expected: pass.
+- [x] **Step 5: Commit** `git add apps/web/src apps/web/test/live.test.tsx && git commit -m "feat(web): leaderboard, prizes, referral panel"`
 
 ---
 

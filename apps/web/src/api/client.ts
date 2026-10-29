@@ -1,7 +1,8 @@
 import type {
   ActionLogEntry, ActionRequest, ActionResponse, ClientAction, MeResponse, NonceResponse, OffersResponse,
-  PendingWithdrawResponse, SeasonInfo, SpResponse, VerifyResponse, WithdrawResponse,
+  LeaderboardResponse, PendingWithdrawResponse, PrizeResponse, ReferralClaimRequest, ReferralMeResponse, SeasonInfo, SpResponse, VerifyResponse, WithdrawResponse,
 } from '@wyrmhaven/shared'
+import { deviceId } from './device'
 
 /** A server `{ error }` reply, mapped straight from the HTTP status and code (spec §19). */
 export class ApiError extends Error {
@@ -33,6 +34,7 @@ export function createApi(opts: ApiOptions) {
     if (body !== undefined) headers.set('content-type', 'application/json')
     const token = opts.getToken()
     if (token) headers.set('authorization', `Bearer ${token}`)
+    headers.set('x-device-id', deviceId())
     const res = await fetchImpl(`${opts.baseUrl}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
     if (res.status === 204) return undefined as T
     const json = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -72,6 +74,10 @@ export function createApi(opts: ApiOptions) {
     seasonById: (id: number) => call<SeasonInfo>('GET', `/season/${id}`),
     seasonActions: (id: number, playerId: string) =>
       call<{ actions: ActionLogEntry[] }>('GET', `/season/${id}/actions?playerId=${encodeURIComponent(playerId)}`),
+    leaderboard: (id: number) => call<LeaderboardResponse>('GET', `/season/${id}/leaderboard`),
+    prizeMe: (id: number) => call<PrizeResponse>('GET', `/season/${id}/prizes/me`),
+    referralMe: () => call<ReferralMeResponse>('GET', '/referral/me'),
+    claimReferral: (code: string) => call<{ ok: true }>('POST', '/referral/claim', { code } satisfies ReferralClaimRequest),
   }
 }
 

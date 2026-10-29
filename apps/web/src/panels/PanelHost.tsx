@@ -7,7 +7,7 @@ import { HabitatPanel } from './HabitatPanel'
 import { NestsPanel } from './NestsPanel'
 import { StorePanel } from './StorePanel'
 
-export type PanelId = 'breed' | 'store' | 'nests' | 'farm' | 'wallet' | 'pvp' | 'pve' | 'season' | 'hoard'
+export type PanelId = 'breed' | 'store' | 'nests' | 'farm' | 'wallet' | 'pvp' | 'pve' | 'season' | 'hoard' | 'referral'
 
 /** Opens the panel for whatever the player clicked in the scene, or a named panel from the toolbar. */
 export function PanelHost({ bridge, nowMs, named, onCloseNamed }: { bridge: Bridge; nowMs: number; named: PanelId | null; onCloseNamed: () => void }) {
