@@ -17,7 +17,7 @@ packages/game-core/   pure rules engine + battle sim (TypeScript, Vitest)
 packages/shared/      API types, zod schemas
 apps/server/          Fastify + PostgreSQL, SIWE, /actions, jobs, indexer, voucher signer
 apps/web/             Phaser 3 + React + Reown AppKit/wagmi/viem
-contracts/            Foundry: DrisToken (ERC-20), DrisVault
+contracts/            Foundry: DrisToken (ERC-20), DrisVault, DrisDeployer
 docs/                 specs, plans, reference
 ```
 
@@ -25,6 +25,7 @@ docs/                 specs, plans, reference
 - Install: `pnpm install`
 - Test game-core: `pnpm --filter @wyrmhaven/game-core test`
 - Typecheck all: `pnpm -r typecheck`
+- Server tests on real Postgres: `TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/test pnpm --filter @wyrmhaven/server test` (default is in-process PGlite; files run serially and wipe the database)
 - Contracts: `cd contracts && forge test -vv`
 
 ## Workflow
