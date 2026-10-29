@@ -1,7 +1,10 @@
+import { existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 import { ELEMENTS, LAUNCH_CATALOG } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { drawFallback, fallbackKey, FALLBACK_PALETTE } from '../src/art/fallback'
 import { artSetFromManifest, type Manifest } from '../src/art/fromManifest'
+import { ART_VERSION } from '../src/art/slots'
 import { SLOT_SIZES } from '../src/art/types'
 
 const manifest: Manifest = {
@@ -11,6 +14,51 @@ const manifest: Manifest = {
     'ui.panel': { file: 'panel.png', w: 24, h: 24, frames: 1, fps: 0 },
   },
 }
+
+describe('art v1 manifest', () => {
+  const dir = path.join(__dirname, '..', 'public', 'art', 'v1')
+  const v1 = JSON.parse(readFileSync(path.join(dir, 'manifest.json'), 'utf8')) as Manifest
+  const art = artSetFromManifest('v1', v1, LAUNCH_CATALOG)
+
+  it('is the active art version', () => {
+    expect(ART_VERSION).toBe('v1')
+  })
+
+  it('fills every slot with a real sprite', () => {
+    const sprites: [string, { src: string }][] = [
+      ...ELEMENTS.flatMap(e => [
+        [`egg.${e}`, art.egg[e]], [`hatchling.${e}`, art.hatchling[e]],
+        [`habitat.${e}`, art.habitat[e]], [`icon.${e}`, art.elementIcon[e]],
+      ] as [string, { src: string }][]),
+      ...Object.entries(art.dragon).map(([id, s]) => [`dragon.${id}`, s] as [string, { src: string }]),
+      ['nest', art.building.nest], ['hatchery', art.building.hatchery], ['farmPlot', art.building.farmPlot],
+      ['hoard', art.building.hoard], ...Object.entries(art.building.cropStage).map(([c, s]) => [`crop.${c}`, s] as [string, { src: string }]),
+      ['ui.panel', art.ui.panel], ['ui.button', art.ui.button], ['ui.cursor', art.ui.cursor], ['island.base', art.island.base],
+    ]
+    for (const [key, s] of sprites) expect(s.src, key).not.toBe('')
+    expect(art.island.layers.length).toBeGreaterThan(0)
+    for (const c of Object.values(art.building.cropStage)) expect(c.frames).toBe(4)
+  })
+
+  it('points every entry at a PNG on disk whose size matches w × frames by h', () => {
+    for (const [key, a] of Object.entries(v1.assets)) {
+      const file = path.join(dir, a.file)
+      expect(existsSync(file), key).toBe(true)
+      const png = readFileSync(file)
+      expect(png.readUInt32BE(16), `${key} width`).toBe(a.w * a.frames)
+      expect(png.readUInt32BE(20), `${key} height`).toBe(a.h)
+    }
+  })
+
+  it('uses the same egg and hatchling pixels as the waitlist site', () => {
+    const wl = path.join(__dirname, '..', '..', 'waitlist', 'public', 'art', 'v1')
+    for (const e of ELEMENTS) {
+      for (const f of [`egg-${e}.png`, `hatchling-${e}.png`]) {
+        expect(readFileSync(path.join(dir, f)).equals(readFileSync(path.join(wl, f))), f).toBe(true)
+      }
+    }
+  })
+})
 
 describe('artSetFromManifest', () => {
   const art = artSetFromManifest('v1', manifest, LAUNCH_CATALOG)

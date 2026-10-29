@@ -16,6 +16,8 @@ export interface IslandObject {
   target: Target
   badge?: string
   scale?: number
+  /** Static frame of a multi-frame sheet to show (crop growth stages). */
+  frame?: number
 }
 
 export interface IslandMarkers {
@@ -57,17 +59,21 @@ export function buildIslandModel(state: PlayerState | null, art: GameArtSet, cat
   if (!state) return { objects, markers }
   const n = state.habitats.length
 
+  // Each habitat with its dragons is one group; groups are drawn back row first so front tiles overlap.
+  const groups: { y: number; objects: IslandObject[] }[] = []
   state.habitats.forEach((h, i) => {
     const p = habitatSlots(i, n)
     const gold = storedGold(h, residents(state, h.id), catalog, nowMs)
-    objects.push({ id: `habitat:${h.id}`, key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element], ...p, target: { kind: 'habitat', id: h.id }, badge: gold > 0 ? `${gold}g` : undefined })
+    const group: IslandObject[] = [{ id: `habitat:${h.id}`, key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element], ...p, target: { kind: 'habitat', id: h.id }, badge: gold > 0 ? `${gold}g` : undefined }]
     markers.habitats.push(h.id)
     residents(state, h.id).forEach((d, slot) => {
       const dp = dragonSlots(i, slot, 7, n)
-      objects.push({ id: `dragon:${d.id}`, key: dragonKey(d.speciesId, art), sprite: art.dragon[d.speciesId] ?? art.dragon['fire']!, ...dp, target: { kind: 'dragon', id: d.id } })
+      group.push({ id: `dragon:${d.id}`, key: dragonKey(d.speciesId, art), sprite: art.dragon[d.speciesId] ?? art.dragon['fire']!, ...dp, target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
     })
+    groups.push({ y: p.y, objects: group })
   })
+  for (const g of groups.sort((a, b) => a.y - b.y)) objects.push(...g.objects)
 
   state.nests.forEach((egg, index) => {
     const p = nestPos(index)
@@ -100,7 +106,12 @@ export function buildIslandModel(state: PlayerState | null, art: GameArtSet, cat
     if (plot.crop) {
       const grow = CROPS[plot.crop].growMs
       const fraction = Math.min(1, Math.max(0, 1 - (plot.readyAtMs - nowMs) / grow))
-      objects.push({ id: `crop:${i}`, key: textureKey(`crop.${plot.crop}`), sprite: art.building.cropStage[plot.crop], x: p.x, y: p.y - 10, target: { kind: 'farm', plot: i }, badge: timerLabel(plot.readyAtMs, nowMs), scale: 0.5 + 0.5 * fraction })
+      const sprite = art.building.cropStage[plot.crop]
+      // A stage sheet shows growth by frame; a single still (or fallback) grows by scale.
+      const growth = sprite.frames > 1
+        ? { frame: Math.min(sprite.frames - 1, Math.floor(fraction * sprite.frames)) }
+        : { scale: 0.5 + 0.5 * fraction }
+      objects.push({ id: `crop:${i}`, key: textureKey(`crop.${plot.crop}`), sprite, x: p.x, y: p.y - 10, target: { kind: 'farm', plot: i }, badge: timerLabel(plot.readyAtMs, nowMs), ...growth })
     }
     markers.farms.push({ plot: i, crop: plot.crop })
   })

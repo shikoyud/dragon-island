@@ -29,6 +29,28 @@ describe('layout', () => {
     for (const p of spots) expect(Math.abs(p.x - platform.x)).toBeLessThan(48)
   })
 
+  it('fits 12 v1 habitat tiles (96×64, bottom-centre origin) on the island without side overlap', () => {
+    const spots = Array.from({ length: 12 }, (_, i) => habitatSlots(i, 12))
+    for (const p of spots) {
+      expect(p.x - 48).toBeGreaterThanOrEqual(0)
+      expect(p.x + 48).toBeLessThanOrEqual(BASE.w)
+      expect(p.y - 64).toBeGreaterThanOrEqual(36) // below the farm strip
+      expect(p.y).toBeLessThanOrEqual(nestPos(0).y - 32) // above the nests and hatchery
+    }
+    for (const a of spots) for (const b of spots) {
+      if (a !== b && a.y === b.y) expect(Math.abs(a.x - b.x)).toBeGreaterThanOrEqual(96)
+    }
+  })
+
+  it('stands dragons on the tile face, not its front wall', () => {
+    for (let s = 0; s < 7; s++) {
+      const p = dragonSlots(0, s, 7, 12)
+      const platform = habitatSlots(0, 12)
+      expect(platform.y - p.y).toBeGreaterThanOrEqual(20)
+      expect(platform.y - p.y).toBeLessThanOrEqual(44)
+    }
+  })
+
   it('has fixed spots for nests, hatchery, farm plots and the hoard', () => {
     const fixed = [nestPos(0), nestPos(3), hatcheryPos(0), hatcheryPos(2), farmPos(0), farmPos(5), hoardPos()]
     for (const p of fixed) {

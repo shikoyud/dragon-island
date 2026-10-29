@@ -1,5 +1,6 @@
-import { LAUNCH_CATALOG, newPlayer, type Dragon } from '@wyrmhaven/game-core'
+import { CROPS, LAUNCH_CATALOG, newPlayer, type Dragon } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
+import { artSetFromManifest } from '../src/art/fromManifest'
 import { textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
@@ -65,6 +66,38 @@ describe('island model', () => {
     const crop = objects.find(o => o.id === 'crop:0')!
     expect(crop.scale).toBeCloseTo(0.75, 5) // half grown
     expect(crop.badge).toBe('30s')
+  })
+
+  it('draws habitats back to front, each before its own dragons', () => {
+    const base = newPlayer(0)
+    const s = {
+      ...base,
+      habitats: [...base.habitats, { ...base.habitats[0]!, id: 'h3' }],
+      dragons: [...base.dragons, { ...base.dragons[0]!, id: 'd3', habitatId: 'h3' }],
+    }
+    const ids = model(s).objects.map(o => o.id)
+    const at = (id: string) => ids.indexOf(id)
+    // h3 is the third habitat, which sits on the back row, so it is drawn before the middle-row ones.
+    expect(at('habitat:h3')).toBeLessThan(at('habitat:h1'))
+    expect(at('habitat:h3')).toBeLessThan(at('dragon:d3'))
+    expect(at('dragon:d3')).toBeLessThan(at('habitat:h1'))
+    expect(at('habitat:h1')).toBeLessThan(at('dragon:d1'))
+    expect(model(s).markers.habitats).toEqual(['h1', 'h2', 'h3'])
+  })
+
+  it('picks the growth-stage frame when the crop sprite is a stage sheet', () => {
+    const art = artSetFromManifest('v1', {
+      assets: { 'crop.sprout': { file: 'crop-sprout.png', w: 16, h: 16, frames: 4, fps: 0 } },
+    }, C)
+    const s = (readyAtMs: number) => ({ ...newPlayer(0), farms: [{ crop: 'sprout' as const, readyAtMs }] })
+    const crop = (readyAtMs: number, nowMs: number) =>
+      buildIslandModel(s(readyAtMs), art, C, nowMs).objects.find(o => o.id === 'crop:0')!
+    const grow = CROPS.sprout.growMs
+    expect(crop(grow, 0)).toMatchObject({ frame: 0 })
+    expect(crop(grow, 0).scale).toBeUndefined()
+    expect(crop(grow, grow / 2)).toMatchObject({ frame: 2 })
+    expect(crop(grow, grow - 1)).toMatchObject({ frame: 3 })
+    expect(crop(grow, grow * 2)).toMatchObject({ frame: 3 })
   })
 
   it('maps every object to a click target the bridge can carry', () => {

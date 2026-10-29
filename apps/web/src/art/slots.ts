@@ -3,7 +3,7 @@ import { artSetFromManifest, type Manifest } from './fromManifest'
 import type { GameArtSet } from './types'
 
 /** The art folder in use. Bump when a new PixelLab set lands under public/art/<version>/. */
-export const ART_VERSION = 'v0'
+export const ART_VERSION = 'v1'
 
 const EMPTY: Manifest = { assets: {} }
 

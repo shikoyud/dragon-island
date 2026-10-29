@@ -71,6 +71,7 @@ export class IslandScene extends Phaser.Scene {
   private draw(o: IslandObject): void {
     const spr = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1)
     playOrStill(spr, o.key, o.sprite.frames, o.sprite.fps, this.bridge.reducedMotion)
+    if (o.frame) spr.setFrame(o.frame)
     if (o.scale) spr.setScale(o.scale)
     spr.setInteractive({ useHandCursor: true })
     spr.on('pointerdown', () => this.bridge.emit({ type: 'select', target: o.target }))

@@ -202,11 +202,13 @@
 
 Must run in a session where the `pixellab` MCP tools are loaded (the server is configured on this machine for the Claude CLI; the Phase 4/5 session did not have them). If unavailable, stop and report; every other task works on fallbacks.
 
-- [ ] **Step 1:** Write one shared style line (our own: "chunky pixel art, 1-px dark outline, limited palette, warm island daylight, transparent background") and one design line per species in `prompts.md` (shape, horns/fins/wings, element colour from `tokens.css`); reuse the waitlist's egg/hatchling designs for continuity (same prompts, same sizes) so the two apps share a look.
-- [ ] **Step 2:** Generate: 9 eggs (32×32, 6-frame wobble), 9 hatchlings (32×32, idle 4–8 frames), 9 adult pure dragons (48×48, idle 4–8 frames), 9 habitat platforms (96×64 static), nest, hatchery, farm plot (static) + 4 crop stages × 4 crops as a single 16×16 sheet, Hoard (static), island base (480×270) + one animated layer (6–8 frames), 9 element icons (16×16), UI panel/button 9-slice and a cursor. Save as horizontal sprite sheets; record prompt, size and frame count in `prompts.md`.
-- [ ] **Step 3:** Write `manifest.json`; run the Task 2 tests against it (`artSetFromManifest` yields no empty `src` for the keys above); view `/` and the battle scene at zoom 1–4 for alignment; fix offsets in `layout.ts` if a sprite's feet are not on the platform.
-- [ ] **Step 4:** `pnpm --filter @wyrmhaven/web test` → PASS
-- [ ] **Step 5:** Commit `feat(web): PixelLab art v1`
+- [x] **Step 1:** Write one shared style line (our own: "chunky pixel art, 1-px dark outline, limited palette, warm island daylight, transparent background") and one design line per species in `prompts.md` (shape, horns/fins/wings, element colour from `tokens.css`); reuse the waitlist's egg/hatchling designs for continuity (same prompts, same sizes) so the two apps share a look.
+- [x] **Step 2:** Generate: 9 eggs (32×32, 6-frame wobble), 9 hatchlings (32×32, idle 4–8 frames), 9 adult pure dragons (48×48, idle 4–8 frames), 9 habitat platforms (96×64 static), nest, hatchery, farm plot (static) + 4 crop stages × 4 crops as a single 16×16 sheet, Hoard (static), island base (480×270) + one animated layer (6–8 frames), 9 element icons (16×16), UI panel/button 9-slice and a cursor. Save as horizontal sprite sheets; record prompt, size and frame count in `prompts.md`.
+- [x] **Step 3:** Write `manifest.json`; run the Task 2 tests against it (`artSetFromManifest` yields no empty `src` for the keys above); view `/` and the battle scene at zoom 1–4 for alignment; fix offsets in `layout.ts` if a sprite's feet are not on the platform.
+- [x] **Step 4:** `pnpm --filter @wyrmhaven/web test` → PASS
+- [x] **Step 5:** Commit `feat(web): PixelLab art v1`
+
+> Done 2026-10-29. Layout changed for the real sprite sizes: habitats fill a 4×3 grid of 96×64 tiles from the meadow centre outward, are drawn back row first, and dragons stand on the tile face. Crop sheets are growth stages chosen by frame. The PixelLab trial (40 generations) covered every slot; idle animations, the water layer, three habitat recolours (metal, dark, light) and the UI frames were made in code from the PixelLab images. Alignment was checked with an offline composite of the layout; the battle scene was not viewed in a running client. See `apps/web/art/prompts.md`.
 
 ### Task 9: Shell, responsiveness, error states, README
 

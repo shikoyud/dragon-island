@@ -3,23 +3,24 @@ export const BASE = { w: 480, h: 270 } as const
 
 export interface Pos { x: number; y: number }
 
-/** Habitat platforms: two staggered rows across the island body (up to 12). */
+/** Grid cells [col, row] in fill order: the open meadow in the middle first, the edges last. */
+const HABITAT_ORDER: readonly (readonly [number, number])[] = [
+  [1, 1], [2, 1], [1, 0], [2, 0], [1, 2], [2, 2], [0, 1], [3, 1], [0, 0], [3, 0], [0, 2], [3, 2],
+]
+
+/** Habitat platforms (96×64 tiles, bottom-centre origin): a 4×3 grid across the island body (up to 12). */
 export function habitatSlots(index: number, _count: number): Pos {
-  const col = index % 6
-  const row = Math.floor(index / 6)
-  const x = 56 + col * 72 + (row % 2) * 24
-  const y = 96 + row * 72
-  return { x, y }
+  const [col, row] = HABITAT_ORDER[index % HABITAT_ORDER.length]!
+  // Rows overlap by 12 px so a front tile hides the back tile's wall; drawn back to front.
+  return { x: 96 + col * 96, y: 100 + row * 52 }
 }
 
-/** Dragon spots on a platform: a 4+3 arrangement centred on the platform. */
+/** Dragon spots on a platform: a 4+3 arrangement standing on the tile's top face. */
 export function dragonSlots(habitatIndex: number, slot: number, _slots: number, count: number): Pos {
   const p = habitatSlots(habitatIndex, count)
   const row = slot < 4 ? 0 : 1
   const col = slot < 4 ? slot : slot - 4
-  const x = p.x - 24 + col * 16 + row * 8
-  const y = p.y - 18 + row * 12
-  return { x, y }
+  return { x: p.x - 30 + col * 20 + row * 10, y: p.y - 36 + row * 12 }
 }
 
 /** Nests along the bottom-left shore. */
