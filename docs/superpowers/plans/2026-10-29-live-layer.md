@@ -206,11 +206,11 @@ it('ranks at most 100 players', () => {
 - `GET /admin/stats` → `{ players, earningUnlocked, banned, actions24h, openVouchers }`.
 - Keep the existing ban/unban/price/reveal/jobs routes.
 
-- [ ] **Step 1: Write failing tests** — wrong token 401 and a 31-char `ADMIN_TOKEN` is refused by `loadConfig`; player lookup by id and address; summary after a seeded inflow; duplicate buyback ref 409; close on an active season 409; stats counts.
-- [ ] **Step 2: Run** — Expected: FAIL. (Existing tests use `ADMIN_TOKEN: 'admin-token'`: update `test/helpers/testApp.ts` to a 32+ char token in this task.)
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the file, suite, typecheck** — Expected: pass.
-- [ ] **Step 5: Commit** `git add apps/server/src/routes/admin.ts apps/server/src/config.ts apps/server/src/app.ts apps/server/test/admin-live.test.ts apps/server/test/helpers/testApp.ts && git commit -m "feat(server): live-ops admin routes, constant-time admin token"`
+- [x] **Step 1: Write failing tests** — wrong token 401 and a 31-char `ADMIN_TOKEN` is refused by `loadConfig`; player lookup by id and address; summary after a seeded inflow; duplicate buyback ref 409; close on an active season 409; stats counts.
+- [x] **Step 2: Run** — Expected: FAIL. (Existing tests use `ADMIN_TOKEN: 'admin-token'`: update `test/helpers/testApp.ts` to a 32+ char token in this task.)
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the file, suite, typecheck** — Expected: pass.
+- [x] **Step 5: Commit** `git add apps/server/src/routes/admin.ts apps/server/src/config.ts apps/server/src/app.ts apps/server/test/admin-live.test.ts apps/server/test/helpers/testApp.ts && git commit -m "feat(server): live-ops admin routes, constant-time admin token"`
 
 ---
 

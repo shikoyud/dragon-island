@@ -68,10 +68,10 @@ describe('clock and config', () => {
   })
 
   it('parses config with defaults and rejects a bad chain id', () => {
-    const cfg = loadConfig({ SESSION_SECRET: 's'.repeat(32), ADMIN_TOKEN: 'a' })
+    const cfg = loadConfig({ SESSION_SECRET: 's'.repeat(32), ADMIN_TOKEN: 'a'.repeat(32) })
     expect(cfg.CHAIN_ID).toBe(46630)
     expect(cfg.CONFIRMATIONS).toBe(1)
     expect(cfg.PORT).toBe(3000)
-    expect(() => loadConfig({ SESSION_SECRET: 's'.repeat(32), ADMIN_TOKEN: 'a', CHAIN_ID: '4663' })).toThrow()
+    expect(() => loadConfig({ SESSION_SECRET: 's'.repeat(32), ADMIN_TOKEN: 'a'.repeat(32), CHAIN_ID: '4663' })).toThrow()
   })
 })

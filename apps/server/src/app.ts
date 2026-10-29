@@ -54,7 +54,7 @@ declare module 'fastify' {
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
-  const app = Fastify({ logger: deps.logger ?? false })
+  const app = Fastify({ logger: deps.logger ?? false, trustProxy: deps.config.TRUST_PROXY })
   const { db, clock } = deps
   deps.catalog ??= LAUNCH_CATALOG
   deps.price ??= new ManualPriceSource(db)

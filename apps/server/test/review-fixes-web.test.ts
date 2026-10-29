@@ -9,7 +9,7 @@ import { TEST_KEYS, wallet } from './helpers/wallet'
 
 const E18 = 10n ** 18n
 const ANVIL_1 = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
-const base = { SESSION_SECRET: 's'.repeat(32), ADMIN_TOKEN: 'a' }
+const base = { SESSION_SECRET: 's'.repeat(32), ADMIN_TOKEN: 'a'.repeat(32) }
 
 describe('I6: E2E mode cannot run against anything real', () => {
   it('refuses E2E=1 with a non-anvil signer, a database url, or NODE_ENV=production', () => {

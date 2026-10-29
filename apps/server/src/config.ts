@@ -23,7 +23,10 @@ const schema = z.object({
   /** First block the indexer scans (the vault's deployment block) and the getLogs range per call. */
   INDEXER_START_BLOCK: z.coerce.bigint().nonnegative().default(0n),
   INDEXER_CHUNK: z.coerce.bigint().positive().default(2_000n),
-  ADMIN_TOKEN: z.string().min(1),
+  /** Compared in constant time; long enough that guessing is hopeless. */
+  ADMIN_TOKEN: z.string().min(32),
+  /** Behind a reverse proxy, take the client IP from X-Forwarded-For (rate limits, referral checks). */
+  TRUST_PROXY: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
   /** 1 = Playwright mode: in-memory PGlite, fake chain, fixed price, POST /e2e/grant. Never in production. */
   E2E: z.enum(['0', '1']).default('0'),
   CATALOG: z.enum(['launch']).default('launch'),

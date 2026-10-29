@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeChainClient } from '../src/chain/fake'
 import { balances, sessions } from '../src/db/schema'
 import { FixedPriceSource } from '../src/services/price'
-import { bearer, testApp, type TestApp } from './helpers/testApp'
+import { bearer, TEST_ADMIN_TOKEN, testApp, type TestApp } from './helpers/testApp'
 import { TEST_KEYS, wallet } from './helpers/wallet'
 
 const E18 = 10n ** 18n
 const alice = wallet(TEST_KEYS.alice)
-const admin = { 'x-admin-token': 'admin-token' }
+const admin = { 'x-admin-token': TEST_ADMIN_TOKEN }
 let t: TestApp
 let chain: FakeChainClient
 let token: string

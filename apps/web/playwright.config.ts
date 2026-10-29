@@ -18,7 +18,7 @@ export default defineConfig({
       timeout: 120_000,
       env: {
         E2E: '1', PORT: '3000',
-        SESSION_SECRET: 'e2e-session-secret-at-least-32-characters-long', ADMIN_TOKEN: 'e2e-admin',
+        SESSION_SECRET: 'e2e-session-secret-at-least-32-characters-long', ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef-32',
         SIWE_DOMAIN: 'localhost:5173', SIWE_URI: 'http://localhost:5173',
         // Voucher signing needs a signer key and a vault address for the EIP-712 domain (anvil account 1, dummy vault).
         SIGNER_PRIVATE_KEY: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',

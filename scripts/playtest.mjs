@@ -12,7 +12,7 @@ const run = (name, args, env) => {
 const server = run('server', ['--filter', '@wyrmhaven/server', 'start'], {
   E2E: '1', PORT: '3000',
   SESSION_SECRET: 'playtest-session-secret-at-least-32-characters',
-  ADMIN_TOKEN: 'playtest-admin',
+  ADMIN_TOKEN: 'playtest-admin-token-0123456789abcdef',
   SIWE_DOMAIN: 'localhost:5173', SIWE_URI: 'http://localhost:5173',
   // Anvil account 1 and a dummy vault address, as in playwright.config.ts: test values only.
   SIGNER_PRIVATE_KEY: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
