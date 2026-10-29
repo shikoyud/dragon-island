@@ -1,0 +1,1 @@
+ALTER TABLE "balances" ADD CONSTRAINT "balances_token_wei_nonneg" CHECK ("balances"."token_wei" >= 0);

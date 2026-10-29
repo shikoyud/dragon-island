@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
-  bigint, bigserial, boolean, customType, index, integer, jsonb, pgTable, primaryKey, serial, text, timestamp, uniqueIndex, uuid,
+  bigint, bigserial, boolean, check, customType, index, integer, jsonb, pgTable, primaryKey, serial, text, timestamp, uniqueIndex, uuid,
 } from 'drizzle-orm/pg-core'
 
 /** Exact integer money: numeric(78,0) on disk, bigint in TypeScript. */
@@ -147,7 +147,7 @@ export const balances = pgTable('balances', {
   /** Payouts and prizes; forfeited on ban. */
   earnedWei: wei('earned_wei').notNull().default(sql`0`),
   updatedAt: updatedAt(),
-})
+}, t => [check('balances_token_wei_nonneg', sql`${t.tokenWei} >= 0`)])
 
 export const vouchers = pgTable('vouchers', {
   id: uuid('id').primaryKey().defaultRandom(),

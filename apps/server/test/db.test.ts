@@ -32,6 +32,14 @@ describe('db layer', () => {
     expect(b!.depositedWei).toBe(0n)
   })
 
+  it('refuses a negative token balance', async () => {
+    const [p] = await db.insert(players).values({ address: '0xneg', state: {} }).returning()
+    await db.insert(balances).values({ playerId: p!.id, tokenWei: 5n })
+    await expect(db.update(balances).set({ tokenWei: -1n }).where(eq(balances.playerId, p!.id))).rejects.toThrow()
+    const [b] = await db.select().from(balances).where(eq(balances.playerId, p!.id))
+    expect(b!.tokenWei).toBe(5n)
+  })
+
   it('serialises writers with SELECT ... FOR UPDATE', async () => {
     const [p] = await db.insert(players).values({ address: '0xlock', state: { n: 0 } }).returning()
     const order: string[] = []

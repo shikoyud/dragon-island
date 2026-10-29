@@ -15,6 +15,7 @@ import { runBurnBatch } from './jobs/burnBatch'
 import { createChainWatch } from './jobs/chainWatch'
 import { expireVouchers } from './jobs/voucherExpiry'
 import { closeSeasons } from './jobs/seasonClose'
+import { prune } from './jobs/prune'
 import { actionRoutes } from './routes/actions'
 import { adminRoutes, type JobRegistry } from './routes/admin'
 import { e2eRoutes } from './routes/e2e'
@@ -90,6 +91,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     burnBatch: () => runBurnBatch({ db, chain, clock }),
     season: () => ensureCurrentSeason(db, clock),
     seasonClose: () => closeSeasons({ db, clock }),
+    prune: () => prune({ db, clock }),
   }
   // Watches the real vault only; state lives in the closure for the life of the process.
   if (config.VAULT_ADDRESS) {
