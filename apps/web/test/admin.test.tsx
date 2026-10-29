@@ -22,7 +22,7 @@ function fakeAdmin(over: Partial<AdminApi> = {}): AdminApi {
     revealSeason: vi.fn(async () => ({ seasonId: 1, secret: '0x' })),
     recordInflow: vi.fn(async () => ({ ok: true as const, seasonId: 1 })),
     setPrice: vi.fn(async () => ({ ok: true as const, microUsdPerToken: '50000' })),
-    runJob: vi.fn(async () => ({ job: 'seasonClose', result: [] })),
+    runJob: vi.fn(async () => ({ job: 'seasonClose', result: { closed: [], busy: false } })),
     stats: vi.fn(async () => ({ players: 1, earningUnlocked: 1, banned: 0, actions24h: 0, openVouchers: 0 })),
     ...over,
   } as unknown as AdminApi

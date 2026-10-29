@@ -25,7 +25,9 @@ test('a season closes: prizes land in the balance and the next season shows the 
   await setServerClock(request, 15 * DAY)
   const run = await request.post(`${SERVER}/admin/jobs/seasonClose/run`, { headers: { 'x-admin-token': ADMIN_TOKEN } })
   expect(run.ok(), await run.text()).toBe(true)
-  expect((await run.json()).result).toHaveLength(1)
+  const { result } = await run.json()
+  expect(result.closed).toHaveLength(1)
+  expect(result.busy).toBe(false)
 
   await signIn(page)
   await openPanel(page, 'Season')

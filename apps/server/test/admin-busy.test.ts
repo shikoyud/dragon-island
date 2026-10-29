@@ -1,3 +1,4 @@
+// Real advisory-lock contention can only be exercised on real Postgres (the CI server-postgres job); PGlite has one connection.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ensureCurrentSeason, SEASON_MS } from '../src/services/season'
 import { TEST_ADMIN_TOKEN, testApp, type TestApp } from './helpers/testApp'
