@@ -19,3 +19,13 @@ export function mutableClock(start: number): Clock & { set: (ms: number) => void
   clock.advance = ms => { t += ms }
   return clock
 }
+
+/** Real time plus an offset that E2E specs set through POST /e2e/clock. */
+export interface OffsetClock extends Clock { setOffset(ms: number): void }
+export function offsetClock(): OffsetClock {
+  let offset = 0
+  const clock = (() => Date.now() + offset) as OffsetClock
+  clock.setOffset = ms => { offset = ms }
+  return clock
+}
+export const isOffsetClock = (c: Clock): c is OffsetClock => typeof (c as OffsetClock).setOffset === 'function'

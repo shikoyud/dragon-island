@@ -23,7 +23,18 @@ Without `DATABASE_URL` the server runs on a file-backed PGlite (Postgres in WASM
 | `GET /pvp/offers` | bearer | three opponents (players with a defence team, bots to fill) with revealed battle seeds; a new call retires the previous unused set |
 | `POST /withdraw` `{ grossWei }`, `GET /withdraw/pending` | bearer | EIP-712 claim voucher, one open at a time |
 | `GET /season`, `GET /season/:id`, `GET /season/:id/actions?playerId=` | – / bearer (self) | commit hash, reveal, own action log for re-verification |
+| `GET /season/:id/leaderboard`, `GET /season/:id/prizes/me` | – (bearer adds `me`) / bearer | top 100 by SP, prize pool so far, own rank and prize |
+| `GET /referral/me`, `POST /referral/claim { code }` | bearer | your code and earnings; enter someone's code once, before your first purchase |
 | `POST /admin/ban`, `/admin/unban`, `/admin/price`, `/admin/season/:id/reveal`, `/admin/jobs/:name/run` | `x-admin-token` | operations |
+| `GET /admin/players/:id`, `GET /admin/players?address=`, `GET /admin/season/:id/summary`, `POST /admin/inflow`, `POST /admin/season/:id/close`, `GET /admin/stats` | `x-admin-token` | live ops (Phase 6); the token is at least 32 chars and compared in constant time |
+
+### Vault inflows and prizes (spec §12)
+
+Every token amount the vault keeps is written to `vault_inflows` for the current season: the vault's half of each spend (minus the referrer's 5%), the vault's share of deposit and claim fees (from indexed events), balances forfeited on a ban, and buybacks the treasury records through `POST /admin/inflow { source: "buyback", wei, ref }`. The prize pool is 30% of the season total; `seasonClose` pays 70% of it by SP tier (200/500/1,000/2,000 → 10/20/30/40%, highest tier only, equal shares) and 30% to the top 100 weighted by 101 − rank. Unreached tiers and rounding stay in the vault. Prizes are credited as earned balance (forfeitable on ban).
+
+### Referrals (spec §16)
+
+A code is the first 8 hex characters of a player id. `POST /referral/claim` is refused for yourself, after a code is already set, after any purchase, and when the referrer's last sign-in came from the same IP or the same `x-device-id` (both stored as salted hashes). Set `TRUST_PROXY=true` behind a reverse proxy so the IP is the client's.
 
 Errors are `{ error: CODE }`: 400 `INVALID_ACTION`, 401 `UNAUTHORIZED`, 402 `INSUFFICIENT_TOKENS`, 403 `BANNED`/`FORBIDDEN`, 409 `OFFER_NOT_FOUND`/`OFFER_EXPIRED`/`VOUCHER_PENDING`/`SEASON_ACTIVE`, 422 game-core codes and `WITHDRAW_LIMIT`, 429 `RATE_LIMITED`, 503 `PRICE_UNAVAILABLE`/`WITHDRAWALS_DISABLED`.
 
@@ -37,6 +48,7 @@ Errors are `{ error: CODE }`: 400 `INVALID_ACTION`, 401 `UNAUTHORIZED`, 402 `INS
 - `voucherExpiry` (60 s): for vouchers unclaimed 10 minutes past their deadline, asks the chain whether the player's cumulative total already covers them (late claim → mark claimed) and refunds the rest, once.
 - `burnBatch` (10 min): burns 50% of past days' spend through the operator key, within the vault's daily burn limit. Each burn is recorded as a pending attempt before it is sent and booked only on a successful receipt; a Postgres advisory lock keeps the scheduler and `POST /admin/jobs/burnBatch/run` from overlapping.
 - `season` (60 s): rolls the 14-day season and creates the next commit hash.
+- `seasonClose` (60 s): for each ended, unclosed season (advisory lock): computes prizes from the inflow ledger and the eligible standings (earning unlocked, not banned), credits them, resets trophies above 1,000 to 1,000 + half the excess, reveals the secret and stamps `closed_at`. Also runnable through `POST /admin/season/:id/close`.
 
 ## Provably fair (spec §17)
 

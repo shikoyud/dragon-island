@@ -258,8 +258,8 @@ it('ranks at most 100 players', () => {
 - Create: `apps/web/e2e/season.spec.ts`
 - Modify: `apps/web/README.md`, `apps/server/README.md` (admin routes, inflow bookkeeping), `docs/superpowers/reports/` entry comes from the executor's final report.
 
-- [ ] **Step 1: Write the failing e2e** — grant SP via `/e2e/grant` (extend with `sp`), record an inflow, advance the clock 15 days, run `seasonClose` via `/admin/jobs/seasonClose/run`, reload: Season panel shows "Last season: you won … WYRM" and the leaderboard shows season 2.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/web test:e2e` — Expected: the new spec fails.
-- [ ] **Step 3: Implement** the e2e routes and helpers; write the docs.
-- [ ] **Step 4: Run e2e twice, `pnpm -r test`, `pnpm -r typecheck`** — Expected: all green.
-- [ ] **Step 5: Commit** `git add apps/server/src/routes/e2e.ts apps/server/src/index.ts apps/web/e2e apps/web/README.md apps/server/README.md && git commit -m "test(e2e): season close flow; docs for admin and inflows"`
+- [x] **Step 1: Write the failing e2e** — grant SP via `/e2e/grant` (extend with `sp`), record an inflow, advance the clock 15 days, run `seasonClose` via `/admin/jobs/seasonClose/run`, reload: Season panel shows "Last season: you won … WYRM" and the leaderboard shows season 2.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/web test:e2e` — Expected: the new spec fails.
+- [x] **Step 3: Implement** the e2e routes and helpers; write the docs.
+- [x] **Step 4: Run e2e twice, `pnpm -r test`, `pnpm -r typecheck`** — Expected: all green.
+- [x] **Step 5: Commit** `git add apps/server/src/routes/e2e.ts apps/server/src/index.ts apps/web/e2e apps/web/README.md apps/server/README.md && git commit -m "test(e2e): season close flow; docs for admin and inflows"`

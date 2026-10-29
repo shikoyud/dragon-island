@@ -1,7 +1,7 @@
 import { buildApp } from './app'
 import { FakeChainClient } from './chain/fake'
 import { FixedPriceSource } from './services/price'
-import { systemClock } from './clock'
+import { offsetClock, systemClock } from './clock'
 import { loadConfig } from './config'
 import { createPgDb, createPgliteDb, migrate } from './db/client'
 import { DEFAULT_INTERVALS_MS, startScheduler } from './jobs/scheduler'
@@ -17,7 +17,9 @@ async function main(): Promise<void> {
     chain.remainingPayout = 1_000n * 10n ** 18n
     chain.remainingBurn = 1_000_000n * 10n ** 18n
   }
-  const app = await buildApp({ db, clock: systemClock, config, logger: !e2e, ...(e2e ? { chain, price: new FixedPriceSource(50_000n) } : {}) })
+  // E2E specs move the clock through POST /e2e/clock; production time is never adjustable.
+  const clock = e2e ? offsetClock() : systemClock
+  const app = await buildApp({ db, clock, config, logger: !e2e, ...(e2e ? { chain, price: new FixedPriceSource(50_000n) } : {}) })
   const scheduler = startScheduler({
     jobs: app.jobs,
     intervalsMs: DEFAULT_INTERVALS_MS,

@@ -4,8 +4,10 @@ import type { FastifyInstance } from 'fastify'
 import { getAddress } from 'viem'
 import { z } from 'zod'
 import type { AppDeps } from '../app'
-import { balances, players } from '../db/schema'
+import { isOffsetClock } from '../clock'
+import { balances, players, spLedger } from '../db/schema'
 import { AppError } from '../plugins/errors'
+import { ensureCurrentSeason } from '../services/season'
 
 const grantBody = z.object({
   address: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
@@ -13,7 +15,10 @@ const grantBody = z.object({
   earningUnlocked: z.boolean().optional(),
   /** Shallow patch merged over the stored PlayerState (level, dragons, food, gold, …). */
   state: z.record(z.string(), z.unknown()).optional(),
+  /** Season Points to add in the current season (one `seed` ledger row). */
+  sp: z.number().int().positive().optional(),
 })
+const clockBody = z.object({ offsetMs: z.number().int() })
 
 /**
  * Test-only setup route, registered only when E2E=1: creates the player if needed and grants
@@ -40,8 +45,20 @@ export function e2eRoutes(app: FastifyInstance, deps: AppDeps): void {
         ...(body.earningUnlocked !== undefined ? { earningUnlocked: body.earningUnlocked } : {}),
       }).where(eq(players.id, p.id))
       if (body.tokenWei) await tx.update(balances).set({ tokenWei: BigInt(body.tokenWei) }).where(eq(balances.playerId, p.id))
+      if (body.sp) {
+        const season = await ensureCurrentSeason(tx, clock)
+        await tx.insert(spLedger).values({ playerId: p.id, seasonId: season.id, day: Math.floor(clock() / 86_400_000), source: 'seed', points: body.sp, ref: `e2e:${clock()}` })
+      }
       return p.id
     })
     return { playerId: id }
+  })
+
+  /** Shifts the server clock from real time so specs can end a season; `offsetMs: 0` restores it. */
+  app.post('/e2e/clock', async req => {
+    const { offsetMs } = clockBody.parse(req.body)
+    if (!isOffsetClock(clock)) throw new AppError(409, 'CLOCK_NOT_ADJUSTABLE')
+    clock.setOffset(offsetMs)
+    return { nowMs: clock() }
   })
 }

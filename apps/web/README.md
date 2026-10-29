@@ -33,6 +33,9 @@ The e2e server (`E2E=1`) runs on an in-memory PGlite with a fake chain, a fixed 
 | `src/art` | art slots: manifest → `GameArtSet`, programmatic pixel fallbacks, Phaser loader |
 | `src/panels` | React panels (habitat, dragon, breed, nests, farm, store, wallet, hoard, arena, campaign, season) |
 | `src/pages/Verify.tsx` | spec §17 re-verification of a season's action log |
+| `src/pages/Admin.tsx` | operator console at `#/admin` (token kept in sessionStorage): player lookup and bans, season summary / close / reveal, buyback entry, price, jobs |
+
+The Season panel shows the leaderboard (top 10, your rank), the prize pool so far and last season's prize; the Referral panel shows your code and lets you enter someone else's once, before your first purchase. Every request carries a random per-browser `x-device-id` so the server can refuse self-referrals.
 
 ## Art slots
 

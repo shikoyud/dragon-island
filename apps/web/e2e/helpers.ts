@@ -4,9 +4,18 @@ export const SERVER = 'http://localhost:3000'
 /** Anvil dev account 0 (the VITE_TEST_WALLET adapter signs with its key). */
 export const TEST_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
 
-/** Creates/patches the test player on the E2E server. */
-export async function grant(request: APIRequestContext, patch: { tokenWei?: string; earningUnlocked?: boolean; state?: Record<string, unknown> }) {
+/** Must match playwright.config.ts. */
+export const ADMIN_TOKEN = 'e2e-admin-token-0123456789abcdef-32'
+
+/** Creates/patches the test player on the E2E server; `sp` adds Season Points in the current season. */
+export async function grant(request: APIRequestContext, patch: { tokenWei?: string; earningUnlocked?: boolean; state?: Record<string, unknown>; sp?: number }) {
   const r = await request.post(`${SERVER}/e2e/grant`, { data: { address: TEST_ADDRESS, ...patch } })
+  expect(r.ok(), await r.text()).toBe(true)
+}
+
+/** Shifts the E2E server's clock by `offsetMs` from real time (0 restores it). */
+export async function setServerClock(request: APIRequestContext, offsetMs: number) {
+  const r = await request.post(`${SERVER}/e2e/clock`, { data: { offsetMs } })
   expect(r.ok(), await r.text()).toBe(true)
 }
 
