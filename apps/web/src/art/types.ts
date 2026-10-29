@@ -25,6 +25,8 @@ export interface GameArtSet {
     hatchery: Sprite
     farmPlot: Sprite
     cropStage: Record<CropId, Sprite>
+    /** Ripe-stage sway loop per crop, when the manifest has one (else the last growth frame stays still). */
+    cropSway: Partial<Record<CropId, Sprite>>
     hoard: Sprite
     /** The all-element habitat on Dawnspire. */
     nexus: Sprite

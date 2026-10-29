@@ -37,6 +37,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
       hatchery: get('building.hatchery', 'hatchery'),
       farmPlot: get('building.farmPlot', 'farmPlot'),
       cropStage: Object.fromEntries(CROPS.map(c => [c, get(`crop.${c}`, 'crop')])) as Record<CropId, Sprite>,
+      cropSway: Object.fromEntries(CROPS.flatMap(c => { const s = present(`crop.${c}.sway`); return s ? [[c, s]] : [] })),
       hoard: get('building.hoard', 'hoard'),
       nexus: get('building.nexus', 'nexus'),
     },

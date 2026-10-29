@@ -315,7 +315,7 @@ export class IslandScene extends Phaser.Scene {
     if (tiles.water) {
       const b = cameraBounds(state, view)
       const pad = 2048 // the sea also fills the screen beyond the camera bounds when zoomed out
-      this.water = this.add.tileSprite(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, textureKey('ground.water'), 0).setOrigin(0, 0).setDepth(-1)
+      this.water = this.add.tileSprite(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, textureKey('ground.water'), 0).setOrigin(0, 0).setDepth(-1).setAlpha(0.4) // softened: the sea is backdrop, not the subject
       const w = tiles.water
       if (w.frames > 1 && w.fps > 0 && !this.bridge.reducedMotion) {
         let f = 0
@@ -326,11 +326,8 @@ export class IslandScene extends Phaser.Scene {
     const bottom = cellTop(shown.w, shown.h)
     const right = cellTop(shown.w, 0)
     const down = (p: Pos, d: number): Pos => ({ x: p.x, y: p.y + d })
-    if (tiles.cliffSw && tiles.cliffSe) {
-      // One 8 px piece under each edge cell's segment.
-      for (let col = 0; col < shown.w; col++) { const t = cellTop(col, shown.h); tile('ground.cliff.sw', t.x, t.y) }
-      for (let row = 0; row < shown.h; row++) { const t = cellTop(shown.w, row); tile('ground.cliff.se', t.x - 8, t.y) }
-    } else {
+    // The drawn skirt always goes first: it backs the cliff tiles, whose stepped bottoms would otherwise show sea between them.
+    {
       g.fillStyle(GROUND.cliffLeft, 1).fillPoints(points([left, bottom, down(bottom, SKIRT), down(left, SKIRT)]), true)
       g.fillStyle(GROUND.cliffRight, 1).fillPoints(points([bottom, right, down(right, SKIRT), down(bottom, SKIRT)]), true)
       g.lineStyle(1, GROUND.strata, 0.6)
@@ -339,6 +336,11 @@ export class IslandScene extends Phaser.Scene {
       g.fillStyle(GROUND.lip, 1)
       g.fillPoints(points([left, bottom, down(bottom, 2), down(left, 2)]), true)
       g.fillPoints(points([bottom, right, down(right, 2), down(bottom, 2)]), true)
+    }
+    if (tiles.cliffSw && tiles.cliffSe) {
+      // A 16x16 piece per front edge cell, drawn over the cell's bounding box; its face hangs below the cell's edge.
+      for (let col = 0; col < shown.w; col++) { const t = cellTop(col, shown.h - 1); tile('ground.cliff.sw', t.x - 8, t.y) }
+      for (let row = 0; row < shown.h; row++) { const t = cellTop(shown.w - 1, row); tile('ground.cliff.se', t.x - 8, t.y) }
     }
     // A diamond's 16x8 tile has its top-left corner 8 px left of the cell's top vertex.
     const { w, h } = islandSize(state, view)

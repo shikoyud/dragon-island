@@ -114,3 +114,14 @@ describe('Dialog', () => {
     expect(screen.getByRole('dialog', { name: 'Battle' })).toHaveAttribute('aria-modal', 'false')
   })
 })
+
+describe('HUD skin', () => {
+  it('turns present ui.* art into CSS variables and skin classes, nothing for missing keys', async () => {
+    const { hudSkin } = await import('../src/hud/skin')
+    const sprite = (src: string) => ({ src, w: 48, h: 48, frames: 1, fps: 0 })
+    const skin = hudSkin({ 'ui.button.round': sprite('/a/r.png'), 'ui.pill': sprite('/a/p.png') })
+    expect(skin.style).toEqual({ '--ui-round': 'url("/a/r.png")', '--ui-pill': 'url("/a/p.png")' })
+    expect(skin.className.split(' ').sort()).toEqual(['skin-pill', 'skin-round'])
+    expect(hudSkin({})).toEqual({ className: '', style: {} })
+  })
+})

@@ -1,7 +1,7 @@
 import { CROPS, LAUNCH_CATALOG, newPlayer, outerObstacles, type Dragon } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { artSetFromManifest } from '../src/art/fromManifest'
-import { textureKey } from '../src/art/phaserLoader'
+import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
 import { badgeY, buildIslandModel, timerLabel } from '../src/game/islandModel'
@@ -98,6 +98,22 @@ describe('island model', () => {
     expect(at('farm:0')).toBeLessThan(at('farm:1'))
     expect(at('hatchery')).toBeGreaterThan(at('habitat:h1'))
     expect(at('habitat:h2')).toBeLessThan(at('farm:0')) // (5,0)x5 sums to 10, (10,0)x2 to 12
+  })
+
+  it('swaps a ripe crop to its sway loop when the art has one', () => {
+    const art = artSetFromManifest('v1', {
+      assets: {
+        'crop.sprout': { file: 'crop-sprout.png', w: 16, h: 16, frames: 4, fps: 0 },
+        'crop.sprout.sway': { file: 'crop-sprout-sway.png', w: 16, h: 16, frames: 4, fps: 4 },
+      },
+    }, C)
+    const s = (readyAtMs: number) => ({ ...newPlayer(0), farms: [{ ...newPlayer(0).farms[0]!, crop: 'sprout' as const, readyAtMs }] })
+    const crop = (nowMs: number) => buildIslandModel(s(CROPS.sprout.growMs), art, C, nowMs, 'home', null).objects.find(o => o.id === 'crop:0')!
+    expect(crop(0)).toMatchObject({ key: textureKey('crop.sprout'), frame: 0 })
+    const ripe = crop(CROPS.sprout.growMs)
+    expect(ripe).toMatchObject({ key: textureKey('crop.sprout.sway'), sprite: { fps: 4, frames: 4 } })
+    expect(ripe.frame).toBeUndefined()
+    expect(artEntries(art).map(r => r.key)).toContain(textureKey('crop.sprout.sway'))
   })
 
   it('picks the growth-stage frame when the crop sprite is a stage sheet', () => {

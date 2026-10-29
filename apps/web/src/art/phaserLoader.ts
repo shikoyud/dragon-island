@@ -21,6 +21,7 @@ export function artEntries(art: GameArtSet): Entry[] {
   add('building.hatchery', art.building.hatchery, 'hatchery')
   add('building.farmPlot', art.building.farmPlot, 'farmPlot')
   for (const [c, s] of Object.entries(art.building.cropStage)) add(`crop.${c}`, s, 'crop', 'nature')
+  for (const [c, s] of Object.entries(art.building.cropSway)) if (s) add(`crop.${c}.sway`, s, 'crop', 'nature')
   add('building.hoard', art.building.hoard, 'hoard')
   add('building.nexus', art.building.nexus, 'nexus')
   for (const [d, s] of Object.entries(art.decoration)) add(`decoration.${d}`, s, 'decoration', DECORATIONS[d as keyof typeof DECORATIONS].island ? 'light' : 'nature')

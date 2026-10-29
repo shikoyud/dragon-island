@@ -9,6 +9,7 @@ import { GameCanvas } from './game/GameCanvas'
 import { Dialog } from './hud/Dialog'
 import { Hud, type DialogKey } from './hud/Hud'
 import { HudArtContext } from './hud/Icon'
+import { hudSkin } from './hud/skin'
 import { Admin } from './pages/Admin'
 import { Verify } from './pages/Verify'
 import { BattlePanel } from './panels/BattlePanel'
@@ -65,6 +66,7 @@ function Game() {
   useEffect(() => { if (battle.error) toasts.error(battle.error) }, [battle.error, toasts])
   useEffect(() => { if (me.error) toasts.error(me.error) }, [me.error, toasts])
   const close = useCallback(() => setDialog(null), [setDialog])
+  const skin = useMemo(() => hudSkin(art.hud), [art])
 
   const signedIn = Boolean(session && me.data)
   if (!signedIn || !me.data) {
@@ -114,7 +116,7 @@ function Game() {
   return (
     <HudArtContext.Provider value={art.hud}>
       <StartPlacingProvider value={startPlacing}>
-        <div className="game-root" data-testid="shell">
+        <div className={`game-root ${skin.className}`} style={skin.style} data-testid="shell">
           <GameCanvas bridge={bridge} art={art} />
           <Hud
             battle={Boolean(battle.setup)}

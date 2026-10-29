@@ -79,14 +79,14 @@ describe('art v1 manifest', () => {
     expect(v1.assets['island.locked']!.top).toBe(0)
   })
 
-  it('uses the same egg and hatchling pixels as the waitlist site', () => {
-    const wl = path.join(__dirname, '..', '..', 'waitlist', 'public', 'art', 'v1')
+  it('animates eggs and hatchlings at the 32x32 frame the waitlist site uses', () => {
+    // Since the animation art (fb78b8c) the game's sheets are 4-frame loops; the waitlist keeps its own stills.
     for (const e of ELEMENTS) {
-      for (const f of [`egg-${e}.png`, `hatchling-${e}.png`]) {
-        expect(readFileSync(path.join(dir, f)).equals(readFileSync(path.join(wl, f))), f).toBe(true)
-      }
+      expect(art.egg[e]).toMatchObject({ w: 32, h: 32, frames: 4 })
+      expect(art.hatchling[e]).toMatchObject({ w: 32, h: 32, frames: 4 })
     }
   })
+
 })
 
 describe('artSetFromManifest', () => {

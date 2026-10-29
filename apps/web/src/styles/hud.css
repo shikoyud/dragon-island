@@ -143,3 +143,44 @@
   .hud-round__plate { width: 44px; height: 44px; }
   .hud-pill .hud-icon { width: 18px; height: 18px; }
 }
+
+/* ---- ui.* art (docs/art/hud-art-list.md), applied per piece when the manifest has it (hud/skin.ts) ---- */
+.skin-round .hud-round__plate {
+  width: 56px; height: 56px; border: 0; box-shadow: none; image-rendering: pixelated;
+  background: var(--ui-round) center / 100% 100% no-repeat;
+}
+.skin-round .hud-round--small .hud-round__plate { width: 44px; height: 44px; }
+.skin-round .hud-round:active .hud-round__plate { box-shadow: none; }
+.skin-round-active .hud-round--active .hud-round__plate { background-image: var(--ui-round-active); box-shadow: none; }
+.skin-avatar .hud-avatar__badge {
+  width: 52px; height: 52px; border: 0; box-shadow: none; color: var(--text); image-rendering: pixelated;
+  background: var(--ui-avatar) center / 100% 100% no-repeat; padding-bottom: 6px;
+  text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink);
+}
+/* Pill, XP bar and tab art have empty rows above (and below) the frame: each is nine-sliced at 2x with the slice
+   taking the empty rows plus the outline row, and border-image-outset pushing the empty rows outside the box, so
+   the outline sits on the box edge at the same 2 px everywhere. */
+.skin-pill .hud-pill {
+  background: none; box-shadow: none; border-radius: 0; image-rendering: pixelated; min-height: 32px;
+  border: solid transparent; border-width: 2px 12px; padding: 0 0 0 0;
+  border-image: var(--ui-pill) 5 6 5 6 fill / 10px 12px / 8px 0 stretch;
+}
+.skin-pill .hud-pill__plus { box-shadow: none; }
+.skin-xp .hud-xp {
+  background: none; border: solid transparent; border-width: 4px 6px; border-radius: 0; height: 20px; image-rendering: pixelated;
+  border-width: 2px 8px; border-image: var(--ui-xp) 2 4 2 4 fill / 4px 8px / 2px 0 stretch;
+}
+.skin-xp .hud-xp__fill { inset: 1px auto 1px -2px; opacity: 0.85; }
+.skin-close .panel header .btn--ghost[aria-label="Close"] {
+  width: 32px; height: 32px; color: transparent; border: 0; box-shadow: none; border-radius: 0; image-rendering: pixelated;
+  background: var(--ui-close) center / 100% 100% no-repeat;
+}
+.skin-tab .hud-tab {
+  border: solid transparent; border-width: 2px 12px 0; border-radius: 0; background: none; image-rendering: pixelated;
+  border-image: var(--ui-tab) 2 6 1 6 fill / 4px 12px 2px / 2px 0 0 stretch; color: var(--text);
+}
+.skin-tab .hud-tab[aria-selected="true"] { filter: brightness(1.35) saturate(1.2); color: #fff; }
+@media (max-width: 699px) {
+  .skin-round .hud-round__plate { width: 48px; height: 48px; }
+  .skin-round .hud-round--small .hud-round__plate { width: 38px; height: 38px; }
+}
