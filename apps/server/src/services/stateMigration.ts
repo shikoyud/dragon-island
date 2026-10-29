@@ -1,4 +1,4 @@
-import { utcDay, type PlayerState } from '@wyrmhaven/game-core'
+import { layoutLegacyState, utcDay, type PlayerState } from '@wyrmhaven/game-core'
 
 /**
  * Loads a stored PlayerState, filling in fields added by later game-core versions so rows written
@@ -15,5 +15,7 @@ export function migrateState(raw: unknown, nowMs: number): PlayerState {
   if (typeof out['trophies'] !== 'number') out['trophies'] = 0
   if (typeof out['pvp'] !== 'object' || out['pvp'] === null) out['pvp'] = { day, count: 0 }
   if (typeof out['pve'] !== 'object' || out['pve'] === null) out['pve'] = { cleared: 0, replays: { day, count: 0 } }
+  // Base building: states saved before the grid get islands, placements, Nest objects and farm levels.
+  if (!('islands' in out)) return layoutLegacyState(out)
   return out as unknown as PlayerState
 }

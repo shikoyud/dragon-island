@@ -115,6 +115,20 @@ describe('POST /actions', () => {
     expect(await t.db.select().from(actionLog)).toHaveLength(0)
   })
 
+  it('runs placeBuilding and finishConstruction through /actions and charges a construction skip', async () => {
+    const placed = await post({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { island: 'home', col: 6, row: 7, facing: 0 } })
+    expect(placed.statusCode).toBe(200)
+    expect(placed.json().state.constructions).toHaveLength(1)
+    const skipped = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } })
+    expect(skipped.statusCode).toBe(200)
+    expect(skipped.json().effects).toEqual([{ type: 'charge', microUsd: 100_000 }])
+    expect(skipped.json().state.farms).toHaveLength(3)
+    expect(skipped.json().state.constructions).toEqual([])
+    const late = await post({ type: 'finishConstruction', index: 0 })
+    expect(late.statusCode).toBe(422)
+    expect(late.json()).toEqual({ error: 'NOT_FOUND' })
+  })
+
   it('requires a stored offer for pvp battles', async () => {
     const r = await post({ type: 'pvpBattle', offerId: crypto.randomUUID(), team: ['d1', 'd2', 'd1'], moves: [] })
     expect(r.statusCode).toBe(409)

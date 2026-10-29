@@ -38,7 +38,7 @@ A code is the first 8 hex characters of a player id. `POST /referral/claim` is r
 
 Seasons close `CLOSE_GRACE_MS` (5 minutes) after `endsAt`, so an action that started in the old season and commits after the boundary still counts for prizes.
 
-Errors are `{ error: CODE }`: 400 `INVALID_ACTION`, 401 `UNAUTHORIZED`, 402 `INSUFFICIENT_TOKENS`, 403 `BANNED`/`FORBIDDEN`, 409 `OFFER_NOT_FOUND`/`OFFER_EXPIRED`/`VOUCHER_PENDING`/`SEASON_ACTIVE`, 422 game-core codes and `WITHDRAW_LIMIT`, 429 `RATE_LIMITED`, 503 `PRICE_UNAVAILABLE`/`WITHDRAWALS_DISABLED`.
+Errors are `{ error: CODE }`: 400 `INVALID_ACTION`, 401 `UNAUTHORIZED`, 402 `INSUFFICIENT_TOKENS`, 403 `BANNED`/`FORBIDDEN`, 409 `OFFER_NOT_FOUND`/`OFFER_EXPIRED`/`VOUCHER_PENDING`/`SEASON_ACTIVE`, 422 game-core codes (including the base-building ones `OUT_OF_BOUNDS`, `OVERLAP`, `BUILDERS_BUSY`, `ISLAND_LOCKED`, `MAX_ISLAND`, `WRONG_ISLAND`, `UNDER_CONSTRUCTION`, `NO_LEGENDARY`, `NEXUS_EXISTS`, `MAX_EXPANSION`) and `WITHDRAW_LIMIT`, 429 `RATE_LIMITED`, 503 `PRICE_UNAVAILABLE`/`WITHDRAWALS_DISABLED`.
 
 ## How an action runs
 
