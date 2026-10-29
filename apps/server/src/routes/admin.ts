@@ -6,7 +6,7 @@ import { getAddress } from 'viem'
 import { z } from 'zod'
 import type { AppDeps } from '../app'
 import type { Db } from '../db/client'
-import { actionLog, balances, players, seasonPrizes, vouchers } from '../db/schema'
+import { actionLog, balances, betaAllowlist, players, seasonPrizes, vouchers } from '../db/schema'
 import { CLOSE_GRACE_MS, closeSeasons } from '../jobs/seasonClose'
 import { AppError } from '../plugins/errors'
 import { banPlayer, unbanPlayer } from '../services/bans'
@@ -25,6 +25,7 @@ const inflowBody = z.object({ source: z.literal('buyback'), wei: z.string().rege
 const idParam = z.object({ id: z.coerce.number().int().positive() })
 const playerParam = z.object({ id: z.string().uuid() })
 const addressQuery = z.object({ address: z.string().regex(/^0x[0-9a-fA-F]{40}$/) })
+const betaBody = z.object({ addresses: z.array(z.string().regex(/^0x[0-9a-fA-F]{40}$/)).min(1).max(500) })
 const jobParam = z.object({ name: z.string().min(1) })
 
 const str = (v: bigint) => v.toString()
@@ -37,6 +38,17 @@ export function adminRoutes(app: FastifyInstance, deps: AppDeps, jobs: JobRegist
     if (given.length !== expected.length || !timingSafeEqual(given, expected)) throw new AppError(401, 'UNAUTHORIZED')
   }
   const opts = { preHandler: requireAdmin }
+
+  app.post('/admin/beta/allow', opts, async req => {
+    const { addresses } = betaBody.parse(req.body)
+    const unique = [...new Set(addresses.map(a => a.toLowerCase()))]
+    const inserted = await db.insert(betaAllowlist).values(unique.map(address => ({ address }))).onConflictDoNothing().returning({ a: betaAllowlist.address })
+    return { added: inserted.length }
+  })
+  app.get('/admin/beta', opts, async () => {
+    const [row] = await db.select({ n: count() }).from(betaAllowlist)
+    return { count: row?.n ?? 0 }
+  })
 
   app.post('/admin/ban', opts, async req => {
     const { playerId, reason } = banBody.parse(req.body)

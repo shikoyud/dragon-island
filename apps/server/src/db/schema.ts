@@ -46,6 +46,12 @@ export const siweNonces = pgTable('siwe_nonces', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 })
 
+/** Closed-beta allowlist: lowercase wallet addresses permitted to sign in while BETA_CLOSED is on. */
+export const betaAllowlist = pgTable('beta_allowlist', {
+  address: text('address').primaryKey(),
+  addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const seasons = pgTable('seasons', {
   id: serial('id').primaryKey(),
   startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),

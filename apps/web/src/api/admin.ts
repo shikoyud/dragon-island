@@ -30,6 +30,8 @@ export interface AdminApi {
   recordInflow(source: string, wei: string, ref: string): Promise<{ ok: true; seasonId: number }>
   setPrice(microUsdPerToken: string): Promise<{ ok: true; microUsdPerToken: string }>
   runJob(name: string): Promise<{ job: string; result: unknown }>
+  betaCount(): Promise<{ count: number }>
+  betaAllow(addresses: string[]): Promise<{ added: number }>
   stats(): Promise<AdminStats>
 }
 
@@ -54,6 +56,8 @@ export function createAdminApi(baseUrl: string, token: string, fetchImpl: typeof
     recordInflow: (source, wei, ref) => call('POST', '/admin/inflow', { source, wei, ref }),
     setPrice: microUsdPerToken => call('POST', '/admin/price', { microUsdPerToken }),
     runJob: name => call('POST', `/admin/jobs/${encodeURIComponent(name)}/run`),
+    betaCount: () => call('GET', '/admin/beta'),
+    betaAllow: addresses => call('POST', '/admin/beta/allow', { addresses }),
     stats: () => call('GET', '/admin/stats'),
   }
 }

@@ -23,6 +23,8 @@ function fakeAdmin(over: Partial<AdminApi> = {}): AdminApi {
     recordInflow: vi.fn(async () => ({ ok: true as const, seasonId: 1 })),
     setPrice: vi.fn(async () => ({ ok: true as const, microUsdPerToken: '50000' })),
     runJob: vi.fn(async () => ({ job: 'seasonClose', result: { closed: [], busy: false } })),
+    betaCount: vi.fn(async () => ({ count: 4 })),
+    betaAllow: vi.fn(async () => ({ added: 2 })),
     stats: vi.fn(async () => ({ players: 1, earningUnlocked: 1, banned: 0, actions24h: 0, openVouchers: 0 })),
     ...over,
   } as unknown as AdminApi
@@ -83,4 +85,25 @@ describe('Admin page', () => {
     expect(url).toBe('/api/admin/stats')
     expect((init.headers as Headers).get('x-admin-token')).toBe(TOKEN)
   })
+
+  it('pastes addresses or a waitlist CSV into the beta allowlist', async () => {
+    sessionStorage.setItem('dris.admin', TOKEN)
+    const api = fakeAdmin()
+    render(<Admin makeApi={() => api} />)
+    await userEvent.click(await screen.findByRole('tab', { name: /beta/i }))
+    expect(await screen.findByText(/4 wallets allowed/i)).toBeInTheDocument()
+    const box = screen.getByLabelText(/wallets/i)
+    const a = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+    const b = '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
+    await userEvent.click(box)
+    await userEvent.paste(`position,handle,wallet,element
+1,a,${a},fire
+2,b,,water
+3,c,${b},ice
+`)
+    await userEvent.click(screen.getByRole('button', { name: /allow wallets/i }))
+    await waitFor(() => expect(api.betaAllow).toHaveBeenCalledWith([a, b]))
+    expect(await screen.findByRole('status')).toHaveTextContent('"added": 2')
+  })
+
 })

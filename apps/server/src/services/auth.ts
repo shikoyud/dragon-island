@@ -6,7 +6,7 @@ import { generateSiweNonce, parseSiweMessage, validateSiweMessage } from 'viem/s
 import type { Clock } from '../clock'
 import type { Config } from '../config'
 import type { Db } from '../db/client'
-import { balances, players, sessions, signInOrigins, siweNonces } from '../db/schema'
+import { balances, betaAllowlist, players, sessions, signInOrigins, siweNonces } from '../db/schema'
 import { AppError } from '../plugins/errors'
 import { applyPendingEvents } from './indexer'
 
@@ -46,6 +46,11 @@ export async function verifyAndLogin(
   if (consumed.length === 0) throw new AppError(401, 'UNAUTHORIZED')
 
   const address = parsed.address.toLowerCase() as Address
+  // After the nonce is spent, so a refused wallet cannot replay the same signed message.
+  if (config.BETA_CLOSED) {
+    const [listed] = await db.select({ a: betaAllowlist.address }).from(betaAllowlist).where(eq(betaAllowlist.address, address))
+    if (!listed) throw new AppError(403, 'BETA_CLOSED')
+  }
   const playerId = await db.transaction(async tx => {
     const [existing] = await tx.select({ id: players.id }).from(players).where(eq(players.address, address))
     let id: string

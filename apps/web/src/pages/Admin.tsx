@@ -1,11 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { createAdminApi, type AdminApi, type AdminPlayer, type AdminSeasonSummary, type AdminStats } from '../api/admin'
 import { ApiError } from '../api/client'
 import { formatWei } from '../ui/Money'
 
 const TOKEN_KEY = 'dris.admin'
 const JOBS = ['indexer', 'voucherExpiry', 'burnBatch', 'season', 'seasonClose']
-const TABS = ['Player', 'Season', 'Inflows', 'Price', 'Jobs'] as const
+const TABS = ['Player', 'Season', 'Inflows', 'Price', 'Beta', 'Jobs'] as const
 type Tab = (typeof TABS)[number]
 
 const readToken = (): string => { try { return sessionStorage.getItem(TOKEN_KEY) ?? '' } catch { return '' } }
@@ -49,6 +49,7 @@ function Console({ api, onLock }: { api: AdminApi; onLock: () => void }) {
         {tab === 'Season' && <SeasonTab api={api} />}
         {tab === 'Inflows' && <InflowsTab api={api} />}
         {tab === 'Price' && <PriceTab api={api} />}
+        {tab === 'Beta' && <BetaTab api={api} />}
         {tab === 'Jobs' && <JobsTab api={api} />}
       </div>
     </main>
@@ -171,6 +172,41 @@ function PriceTab({ api }: { api: AdminApi }) {
       <label>Micro-USD per token <input value={price} onChange={e => setPrice(e.target.value)} inputMode="numeric" /></label>
       <p><small>50,000 = $0.05 per DRIS. Used until the pool TWAP exists.</small></p>
       <button type="button" className="btn btn--primary" disabled={!/^[0-9]+$/.test(price) || r.busy} onClick={() => void r.run(() => api.setPrice(price))}>Set price</button>
+      {r.view}
+    </section>
+  )
+}
+
+const ADDRESS = /^0x[0-9a-fA-F]{40}$/
+/** One address per line, or a waitlist CSV export (header has a `wallet` column). Blank and malformed cells are skipped. */
+export function parseWallets(text: string): string[] {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+  const header = lines[0]?.split(',').map(c => c.trim().toLowerCase()) ?? []
+  const col = header.indexOf('wallet')
+  const cells = col >= 0
+    ? lines.slice(1).map(l => (l.split(',')[col] ?? '').trim().replace(/^"|"$/g, ''))
+    : lines.flatMap(l => l.split(/[\s,;]+/))
+  return [...new Set(cells.filter(c => ADDRESS.test(c)))]
+}
+
+function BetaTab({ api }: { api: AdminApi }) {
+  const [text, setText] = useState('')
+  const [count, setCount] = useState<number | null>(null)
+  const r = useResult()
+  useEffect(() => { void api.betaCount().then(c => setCount(c.count)).catch(() => undefined) }, [api])
+  const wallets = parseWallets(text)
+  const submit = () => r.run(async () => {
+    let added = 0
+    for (let i = 0; i < wallets.length; i += 500) added += (await api.betaAllow(wallets.slice(i, i + 500))).added
+    setCount((await api.betaCount()).count)
+    return { added }
+  })
+  return (
+    <section>
+      <p>{count === null ? 'Loading…' : `${count} wallets allowed`}</p>
+      <label>Wallets <textarea value={text} onChange={e => setText(e.target.value)} rows={8} style={{ width: '100%' }} placeholder="One 0x address per line, or paste the waitlist CSV" /></label>
+      <p><small>{wallets.length} valid addresses found.</small></p>
+      <button type="button" className="btn btn--primary" disabled={wallets.length === 0 || r.busy} onClick={() => void submit()}>Allow wallets</button>
       {r.view}
     </section>
   )

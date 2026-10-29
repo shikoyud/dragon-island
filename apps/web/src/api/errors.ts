@@ -35,6 +35,7 @@ export const errorMessages: Record<string, string> = {
   UNAUTHORIZED: 'Please sign in again.',
   INSUFFICIENT_TOKENS: 'Not enough tokens in your game balance.',
   BANNED: 'This account is suspended. You can still withdraw your deposits.',
+  BETA_CLOSED: 'Dragon Island is in a closed beta right now. Join the waitlist to get an invite.',
   FORBIDDEN: 'You cannot view that.',
   OFFER_NOT_FOUND: 'That opponent offer is gone. Refresh the offers.',
   OFFER_EXPIRED: 'That opponent offer expired. Refresh the offers.',

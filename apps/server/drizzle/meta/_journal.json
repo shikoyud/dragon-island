@@ -36,6 +36,13 @@
       "when": 1793281443014,
       "tag": "0004_housekeeping",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793281775057,
+      "tag": "0005_beta_allowlist",
+      "breakpoints": true
     }
   ]
 }

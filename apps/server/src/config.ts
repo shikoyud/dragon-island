@@ -26,6 +26,8 @@ const schema = z.object({
   /** Compared in constant time; long enough that guessing is hopeless. */
   ADMIN_TOKEN: z.string().min(32),
   /** Behind a reverse proxy, take the client IP from X-Forwarded-For (rate limits, referral checks). */
+  /** Closed beta: only wallets in `beta_allowlist` may sign in. Existing sessions are unaffected. */
+  BETA_CLOSED: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
   TRUST_PROXY: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
   /** 1 = Playwright mode: in-memory PGlite, fake chain, fixed price, POST /e2e/grant. Never in production. */
   E2E: z.enum(['0', '1']).default('0'),
