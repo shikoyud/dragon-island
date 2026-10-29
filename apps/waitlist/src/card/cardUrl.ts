@@ -11,7 +11,7 @@ export function cardImagePath(code: string): string {
 
 /** Social preview tags for `/c/<code>`. `site` is NEXT_PUBLIC_SITE_URL without a trailing slash. */
 export function cardPageMetadata(data: { handle: string; position: number }, code: string, site: string): Metadata {
-  const title = `@${data.handle} is #${data.position} on the Wyrmhaven waitlist`
+  const title = `@${data.handle} is #${data.position} on the Dragon Island waitlist`
   const image = `${site}${cardImagePath(code)}`
   return {
     title,

@@ -47,7 +47,7 @@ test('a joined entrant card page carries the social preview tags', async ({ page
   const ogImage = page.locator('meta[property="og:image"]')
   await expect(ogImage).toHaveAttribute('content', new RegExp(`/api/card/${E2E_CARD_CODE}\\.png\\?v=[^&]+$`))
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image')
-  await expect(page.getByRole('img', { name: /Wyrmhaven card for @seeded_dragon/ })).toBeVisible()
+  await expect(page.getByRole('img', { name: /Dragon Island card for @seeded_dragon/ })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Join the waitlist' })).toHaveAttribute(
     'href',
     `/?ref=${E2E_CARD_CODE}#join`,

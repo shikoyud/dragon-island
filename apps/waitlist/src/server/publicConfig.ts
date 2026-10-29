@@ -2,7 +2,7 @@
 export type PublicConfig = { xHandle: string; postId: string; siteUrl: string; minAccountAgeDays: number }
 
 /** Placeholders for local dev only; production must set both (see publicConfig). */
-const DEV_HANDLE = 'wyrmhaven'
+const DEV_HANDLE = 'dragonisland'
 const DEV_POST_ID = ''
 
 /** Keys a production deploy must set. The page throws on its first request without them. */

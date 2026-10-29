@@ -1,4 +1,4 @@
-# Wyrmhaven waitlist
+# Dragon Island waitlist
 
 Next.js 16 waitlist site: sign in with X, do four X tasks, bind a wallet by signing a message, join, get a share card.
 Package `@wyrmhaven/waitlist`. Run commands from the repo root with `pnpm --filter @wyrmhaven/waitlist <script>`, or from `apps/waitlist`.
@@ -16,7 +16,7 @@ Copy `.env.example` to `.env.local` (never commit it).
 | `ANNOUNCEMENT_POST_ID` | ID of the post to like, repost and comment on (required in production). |
 | `NEXT_PUBLIC_REOWN_PROJECT_ID` | Reown (WalletConnect) project id. Needed at build time. Required in production (the page fails on its first request without it); in development the wallet step shows a notice instead. |
 | `NEXT_PUBLIC_RH_TESTNET_RPC` | Robinhood Chain testnet (chain id 46630) RPC. Only used to configure the wallet library. |
-| `NEXT_PUBLIC_SITE_URL` | Public origin, e.g. `https://wyrmhaven.example`. Used for the OAuth callback and card URLs. |
+| `NEXT_PUBLIC_SITE_URL` | Public origin, e.g. `https://dragonisland.example`. Used for the OAuth callback and card URLs. |
 | `ADMIN_TOKEN` | Bearer token for the CSV export. Export is disabled if unset. In production a set token must be at least 32 characters. |
 | `MIN_X_ACCOUNT_AGE_DAYS` | Minimum X account age (default 30). |
 | `X_FAKE`, `X_FAKE_ID`, `X_FAKE_USERNAME`, `PGLITE_DIR` | Local dev / tests only (below). `X_FAKE=1` is refused in production. |

@@ -36,7 +36,7 @@ describe('publicConfig', () => {
   const prod = { NODE_ENV: 'production', X_ACCOUNT_HANDLE: '@w', ANNOUNCEMENT_POST_ID: '1', NEXT_PUBLIC_REOWN_PROJECT_ID: 'p' }
 
   it('falls back to dev placeholders outside production', () => {
-    expect(publicConfig({ NODE_ENV: 'development' })).toMatchObject({ xHandle: 'wyrmhaven', postId: '' })
+    expect(publicConfig({ NODE_ENV: 'development' })).toMatchObject({ xHandle: 'dragonisland', postId: '' })
   })
 
   it('throws in production when the X handle or post id is missing', () => {

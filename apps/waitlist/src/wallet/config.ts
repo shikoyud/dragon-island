@@ -9,7 +9,7 @@ const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID ?? ''
 export const walletConfigured = projectId !== ''
 
 if (!walletConfigured && typeof window !== 'undefined') {
-  console.warn('[wyrmhaven] NEXT_PUBLIC_REOWN_PROJECT_ID is not set: wallet connect is disabled.')
+  console.warn('[dragon-island] NEXT_PUBLIC_REOWN_PROJECT_ID is not set: wallet connect is disabled.')
 }
 
 const adapter = walletConfigured ? new WagmiAdapter({ networks: [robinhoodTestnet], projectId, ssr: true }) : null
@@ -34,7 +34,7 @@ export function initWallet(): AppKit | null {
     networks: [robinhoodTestnet],
     projectId,
     metadata: {
-      name: 'Wyrmhaven',
+      name: 'Dragon Island',
       description: 'Breed dragons. Build your island. Battle for the season.',
       url: window.location.origin,
       icons: [],

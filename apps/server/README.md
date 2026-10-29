@@ -1,4 +1,4 @@
-# Wyrmhaven server
+# Dragon Island server
 
 Authoritative game server: Fastify + PostgreSQL (Drizzle). Game rules live entirely in `@wyrmhaven/game-core`; the server adds wallet sign-in, locking, idempotency, provably-fair seeds, Season Points, matchmaking, the token ledger, chain indexing, withdrawal vouchers, bans and jobs.
 

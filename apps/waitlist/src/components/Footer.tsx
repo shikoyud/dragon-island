@@ -3,7 +3,7 @@ export function Footer({ xHandle }: { xHandle: string }) {
     <footer className="site-footer">
       <div className="wrap footer-inner">
         <div>
-          <p className="wordmark wordmark-small">Wyrmhaven</p>
+          <p className="wordmark wordmark-small">Dragon Island</p>
           <p className="footer-note">Built for Robinhood Chain testnet.</p>
         </div>
         <p className="footer-note">

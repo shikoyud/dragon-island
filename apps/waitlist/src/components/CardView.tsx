@@ -7,9 +7,9 @@ export function CardView({ code, handle, position }: { code: string; handle: str
     <>
       <header className="site-header">
         <div className="wrap header-inner">
-          <a className="wordmark" href="/" aria-label="Wyrmhaven home">
+          <a className="wordmark" href="/" aria-label="Dragon Island home">
             <span className="wordmark-gem" aria-hidden="true" />
-            Wyrmhaven
+            Dragon Island
           </a>
         </div>
       </header>
@@ -22,7 +22,7 @@ export function CardView({ code, handle, position }: { code: string; handle: str
           <img
             className="joined-card"
             src={cardImagePath(code)}
-            alt={`Wyrmhaven card for @${handle}, #${position}`}
+            alt={`Dragon Island card for @${handle}, #${position}`}
             width={1200}
             height={675}
           />

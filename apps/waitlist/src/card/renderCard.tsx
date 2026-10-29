@@ -118,7 +118,7 @@ export async function renderCard(data: CardData, opts: RenderOpts = {}): Promise
           borderTop: `16px solid ${colors.base}`,
         }}
       >
-        <div style={{ ...text, fontSize: 44, color: colors.light, letterSpacing: 6 }}>WYRMHAVEN</div>
+        <div style={{ ...text, fontSize: 44, color: colors.light, letterSpacing: 6 }}>DRAGON ISLAND</div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>

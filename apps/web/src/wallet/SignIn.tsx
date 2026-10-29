@@ -33,7 +33,7 @@ export function SignIn() {
         uri: location.origin,
         nonce,
         version: '1',
-        statement: 'Sign in to Wyrmhaven. This costs no gas.',
+        statement: 'Sign in to Dragon Island. This costs no gas.',
       })
       let signature: `0x${string}`
       try {

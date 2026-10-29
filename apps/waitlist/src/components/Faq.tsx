@@ -1,11 +1,11 @@
 const faqs = (xHandle: string): { q: string; a: string }[] => [
   {
-    q: 'What is Wyrmhaven?',
+    q: 'What is Dragon Island?',
     a: 'An original dragon game for the web, drawn in pixel art. You breed dragons in nests, build an island of element habitats and battle 3v3, turn by turn, in 14-day seasons.',
   },
   {
     q: 'Which chain is it on?',
-    a: 'Wyrmhaven is being built for Robinhood Chain. We start on the Robinhood Chain testnet.',
+    a: 'Dragon Island is being built for Robinhood Chain. We start on the Robinhood Chain testnet.',
   },
   {
     q: 'When does it launch?',

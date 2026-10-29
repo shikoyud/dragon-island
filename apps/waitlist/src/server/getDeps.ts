@@ -40,15 +40,15 @@ export async function buildDeps(env: Record<string, string | undefined>): Promis
 }
 
 // Cached on globalThis so dev-server module reloads do not open the PGlite dir twice.
-const g = globalThis as typeof globalThis & { __wyrmhavenWaitlistDeps?: Promise<AppDeps> }
+const g = globalThis as typeof globalThis & { __dragonIslandWaitlistDeps?: Promise<AppDeps> }
 
 /** Lazy process-wide Deps for route handlers. A failed build is not cached, so the next request retries. */
 export function getDeps(): Promise<AppDeps> {
-  if (!g.__wyrmhavenWaitlistDeps) {
-    g.__wyrmhavenWaitlistDeps = buildDeps(process.env).catch((e: unknown) => {
-      g.__wyrmhavenWaitlistDeps = undefined
+  if (!g.__dragonIslandWaitlistDeps) {
+    g.__dragonIslandWaitlistDeps = buildDeps(process.env).catch((e: unknown) => {
+      g.__dragonIslandWaitlistDeps = undefined
       throw e
     })
   }
-  return g.__wyrmhavenWaitlistDeps
+  return g.__dragonIslandWaitlistDeps
 }

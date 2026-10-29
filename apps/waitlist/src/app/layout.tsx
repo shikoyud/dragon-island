@@ -8,9 +8,9 @@ const site = process.env.NEXT_PUBLIC_SITE_URL
 
 export const metadata: Metadata = {
   ...(site ? { metadataBase: new URL(site) } : {}),
-  title: 'Wyrmhaven — Join the waitlist',
+  title: 'Dragon Island — Join the waitlist',
   description:
-    'Wyrmhaven is an original pixel-art dragon game: breed dragons in nests, build an island of element habitats and battle 3v3 in 14-day seasons. Join the waitlist.',
+    'Dragon Island is an original pixel-art dragon game: breed dragons in nests, build an island of element habitats and battle 3v3 in 14-day seasons. Join the waitlist.',
 }
 
 export const viewport: Viewport = { themeColor: '#0b0f24', width: 'device-width', initialScale: 1 }

@@ -2,9 +2,9 @@ export function Header({ xHandle }: { xHandle: string }) {
   return (
     <header className="site-header">
       <div className="wrap header-inner">
-        <a className="wordmark" href="#top" aria-label="Wyrmhaven home">
+        <a className="wordmark" href="#top" aria-label="Dragon Island home">
           <span className="wordmark-gem" aria-hidden="true" />
-          Wyrmhaven
+          Dragon Island
         </a>
         <nav className="header-nav" aria-label="Sections">
           <a href="#game">Game</a>

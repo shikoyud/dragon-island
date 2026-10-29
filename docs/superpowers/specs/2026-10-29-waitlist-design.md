@@ -1,4 +1,4 @@
-# Wyrmhaven Waitlist Site — Design Spec
+# Dragon Island Waitlist Site — Design Spec
 
 Status: for review (2026-10-29). Lives in `apps/waitlist`. Game identity comes from `2026-10-28-wyrmhaven-design.md`.
 
@@ -44,7 +44,7 @@ A four-step panel, the same order as the references, resumable at any step:
 
 1. **Connect X.** Redirect to X OAuth, callback stores the entrant, sets a session cookie, returns to `/#join`. If the X account already exists, the user resumes where they left off (this is also the "already joined on another device" path).
 2. **X tasks.** Four rows: Follow `@<account>`, Like, Repost, Comment on the announcement post. Open → `POST /api/tasks/:task/open` then opens the X intent in a new tab. Confirm enabled 15 s later → `POST /api/tasks/:task/confirm`.
-3. **Wallet.** Connect via AppKit, sign `Wyrmhaven waitlist\nX: @handle\nAddress: 0x…\nNonce: <server nonce>`. `POST /api/wallet` verifies and stores the lowercase address. A wallet already bound to another X account is refused.
+3. **Wallet.** Connect via AppKit, sign `Dragon Island waitlist\nX: @handle\nAddress: 0x…\nNonce: <server nonce>`. `POST /api/wallet` verifies and stores the lowercase address. A wallet already bound to another X account is refused.
 4. **Join.** Enabled when all four tasks are confirmed and a wallet is bound. Assigns the next waitlist number and shows the card.
 
 After joining: card preview, Download PNG, Post on X, Copy invite link, invite count.

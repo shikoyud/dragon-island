@@ -31,7 +31,7 @@ export function Hero() {
       <div className="hero-copy">
         <p className="kicker">An original pixel dragon game</p>
         <h1 id="hero-title" className="hero-title">
-          Wyrmhaven
+          Dragon Island
         </h1>
         <p className="hero-pitch">Breed dragons. Build your island. Battle for the season.</p>
         <div className="hero-cta">

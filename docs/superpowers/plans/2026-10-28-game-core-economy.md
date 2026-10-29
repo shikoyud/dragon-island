@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A pure, deterministic TypeScript package implementing every Wyrmhaven economy rule (elements, breeding odds, nests/hatchery, habitats, farms, leveling, player XP, gold eligibility, Hoard sell limits, store pricing and effects) behind one `applyAction` entry point.
+**Goal:** A pure, deterministic TypeScript package implementing every Dragon Island economy rule (elements, breeding odds, nests/hatchery, habitats, farms, leveling, player XP, gold eligibility, Hoard sell limits, store pricing and effects) behind one `applyAction` entry point.
 
 **Architecture:** pnpm monorepo with `packages/game-core` (zero runtime deps). Pure rule modules (one responsibility each) feed thin action handlers grouped by area; `applyAction(state, action, nowMs, rng, catalog)` returns a new state plus side-effect requests (`charge` / `payout`) for the server to settle in tokens. Time and RNG are always injected.
 

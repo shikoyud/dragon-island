@@ -1,4 +1,4 @@
-# Wyrmhaven — Claude Code guide
+# Dragon Island — Claude Code guide
 
 Original dragon-breeding web game with play-and-earn on Robinhood Chain (Arbitrum Orbit L2).
 Design source of truth: `docs/superpowers/specs/2026-10-28-wyrmhaven-design.md`.

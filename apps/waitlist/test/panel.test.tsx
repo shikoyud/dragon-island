@@ -63,9 +63,9 @@ function mockFetch(me: Me | (() => Me), extra: Extra = {}) {
 }
 
 const props: WaitlistPanelProps = {
-  xHandle: 'wyrmhaven',
+  xHandle: 'dragonisland',
   postId: '1850000000000000000',
-  siteUrl: 'https://wyrmhaven.test',
+  siteUrl: 'https://dragonisland.test',
   minAccountAgeDays: 30,
 }
 
@@ -108,7 +108,7 @@ describe('WaitlistPanel', () => {
     })
 
     expect(screen.getAllByText(/^done$/i)).toHaveLength(2)
-    expect(screen.getByText('Follow @wyrmhaven')).toBeTruthy()
+    expect(screen.getByText('Follow @dragonisland')).toBeTruthy()
 
     const row = screen.getByTestId('task-repost')
     const open = row.querySelector('a')!
@@ -155,7 +155,7 @@ describe('WaitlistPanel', () => {
     const post = screen.getByRole('link', { name: /post on x/i })
     const href = post.getAttribute('href')!
     expect(href.startsWith('https://x.com/intent/post?')).toBe(true)
-    expect(href).toContain(encodeURIComponent('https://wyrmhaven.test/c/abc123'))
+    expect(href).toContain(encodeURIComponent('https://dragonisland.test/c/abc123'))
     expect(screen.getByText(/#7/)).toBeTruthy()
   })
 
@@ -170,7 +170,7 @@ describe('WaitlistPanel', () => {
     )
     expect(fetchFn).toHaveBeenCalledWith('/api/wallet/nonce', expect.objectContaining({ method: 'POST' }))
     expect(wallet.signMessageAsync).toHaveBeenCalledWith({
-      message: 'Wyrmhaven waitlist\nX: @drake\nAddress: 0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed\nNonce: n0nce',
+      message: 'Dragon Island waitlist\nX: @drake\nAddress: 0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed\nNonce: n0nce',
     })
     const call = fetchFn.mock.calls.find(([p]) => p === '/api/wallet')!
     expect(JSON.parse(String(call[1]!.body))).toEqual({

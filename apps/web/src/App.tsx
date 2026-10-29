@@ -75,7 +75,7 @@ function Game() {
 
   const header = (
     <>
-      <h1 style={{ margin: 0, fontSize: 18 }}>Wyrmhaven</h1>
+      <h1 style={{ margin: 0, fontSize: 18 }}>Dragon Island</h1>
       {session && <ResourcesBar />}
       <SignIn />
     </>

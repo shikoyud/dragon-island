@@ -1,6 +1,6 @@
-# Wyrmhaven contracts
+# Dragon Island contracts
 
-Foundry project for the two on-chain pieces of Wyrmhaven (spec §13):
+Foundry project for the two on-chain pieces of Dragon Island (spec §13):
 
 - **`WyrmToken`**: ERC-20, fixed supply 1,000,000,000 WYRM, no owner, no mint, not upgradeable. Burnable by holders, EIP-2612 permit. Minted once: 50% launch, 40% vault seed, 10% team (`VestingWallet`, 12 months linear).
 - **`WyrmDeployer`**: single-use contract whose constructor deploys the vesting wallet, token and vault in one transaction, so the 40% vault seed can never be minted to an address that fails to deploy.

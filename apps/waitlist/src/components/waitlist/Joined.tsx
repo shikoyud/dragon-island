@@ -5,7 +5,7 @@ import { cardImagePath } from '../../card/cardUrl'
 import type { EntrantState } from '../../server/entrants'
 
 export function shareText(position: number): string {
-  return `I'm #${position} on the Wyrmhaven waitlist. Breed dragons. Build your island. Battle for the season.`
+  return `I'm #${position} on the Dragon Island waitlist. Breed dragons. Build your island. Battle for the season.`
 }
 
 export function Joined({ state, siteUrl }: { state: EntrantState; siteUrl: string }) {
@@ -26,7 +26,7 @@ export function Joined({ state, siteUrl }: { state: EntrantState; siteUrl: strin
       const url = URL.createObjectURL(await res.blob())
       const a = document.createElement('a')
       a.href = url
-      a.download = `wyrmhaven-${state.handle}.png`
+      a.download = `dragon-island-${state.handle}.png`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -51,7 +51,7 @@ export function Joined({ state, siteUrl }: { state: EntrantState; siteUrl: strin
     <div className="step joined">
       <p className="joined-kicker">You are on the list</p>
       <h3 className="joined-number">#{state.position}</h3>
-      <img className="joined-card" src={cardSrc} alt={`Wyrmhaven card for @${state.handle}`} width={1200} height={675} />
+      <img className="joined-card" src={cardSrc} alt={`Dragon Island card for @${state.handle}`} width={1200} height={675} />
       <div className="joined-actions">
         <button type="button" className="btn" onClick={() => void download()}>
           Download

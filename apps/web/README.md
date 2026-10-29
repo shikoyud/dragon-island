@@ -1,4 +1,4 @@
-# Wyrmhaven web client
+# Dragon Island web client
 
 Pixel-art Phaser 3 + React client for the game server in `apps/server`. All rules come from `@wyrmhaven/game-core` (odds, battle preview, prices, limits); the client only renders state and sends intents.
 

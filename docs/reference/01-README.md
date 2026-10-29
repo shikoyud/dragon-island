@@ -1,6 +1,6 @@
-# Wyrmhaven project setup
+# Dragon Island project setup
 
-1. Extract `wyrmhaven.zip` into a new, empty folder and open that folder as the project in Claude Code. `CLAUDE.md` at the root loads automatically in every session.
+1. Extract `dragon-island.zip` into a new, empty folder and open that folder as the project in Claude Code. `CLAUDE.md` at the root loads automatically in every session.
 2. **Instructions:** paste the text between the `---` lines of `PROJECT_INSTRUCTIONS.md`.
 3. **Files / Knowledge:** upload the list below. If the project is only the folder opened in Claude Code, you can skip this: the files are already in the folder and `CLAUDE.md` points to them.
 4. **First message:** the text between the `---` lines of `STARTING_PROMPT.md`.

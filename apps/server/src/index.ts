@@ -34,7 +34,7 @@ async function main(): Promise<void> {
   process.on('SIGINT', shutdown)
   process.on('SIGTERM', shutdown)
   await app.listen({ port: config.PORT, host: '0.0.0.0' })
-  app.log.info(`wyrmhaven server on :${config.PORT} (${config.DATABASE_URL ? 'postgres' : `pglite ${config.PGLITE_DIR}`})`)
+  app.log.info(`dragon-island server on :${config.PORT} (${config.DATABASE_URL ? 'postgres' : `pglite ${config.PGLITE_DIR}`})`)
 }
 
 main().catch(err => {

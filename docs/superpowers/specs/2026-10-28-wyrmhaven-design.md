@@ -1,4 +1,4 @@
-# Wyrmhaven — Game Design Spec
+# Dragon Island — Game Design Spec
 
 Status: for review (2026-10-28). Supersedes the earlier MVP draft.
 Research basis: `reports/Dragon breeding genre and RaidLords.md`.

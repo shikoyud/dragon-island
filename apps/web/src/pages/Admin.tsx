@@ -22,7 +22,7 @@ export function Admin({ makeApi = token => createAdminApi(import.meta.env.VITE_A
   if (!token) {
     return (
       <main style={{ padding: 16, maxWidth: 480 }}>
-        <h1 style={{ fontFamily: 'var(--font-display)' }}>Wyrmhaven admin</h1>
+        <h1 style={{ fontFamily: 'var(--font-display)' }}>Dragon Island admin</h1>
         <label>Admin token <input type="password" value={draft} onChange={e => setDraft(e.target.value)} autoComplete="off" /></label>
         <button type="button" className="btn btn--primary" disabled={draft.length < 32} onClick={() => { saveToken(draft); setToken(draft) }}>Unlock</button>
       </main>
@@ -36,7 +36,7 @@ function Console({ api, onLock }: { api: AdminApi; onLock: () => void }) {
   return (
     <main style={{ padding: 16, maxWidth: 720 }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>Wyrmhaven admin</h1>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>Dragon Island admin</h1>
         <button type="button" className="btn" onClick={onLock}>Lock</button>
       </header>
       <div role="tablist" className="toolbar" style={{ margin: '8px 0' }}>
