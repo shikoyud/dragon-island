@@ -16,6 +16,7 @@ concurrency:
 jobs:
   ts:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -29,6 +30,7 @@ jobs:
 
   server-postgres:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16
@@ -57,9 +59,14 @@ jobs:
 
   contracts:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          # Pinned: a new forge can change `fmt` output and turn this job red with no code change.
+          # v1.8.6 is the forge used for the audit self-review (docs/audit/self-review.md).
+          version: v1.8.6
       - name: Install Solidity dependencies
         working-directory: contracts
         run: |
@@ -74,6 +81,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -89,6 +97,7 @@ jobs:
 
   deploy-bundle:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16

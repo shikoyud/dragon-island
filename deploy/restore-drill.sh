@@ -35,7 +35,12 @@ if [[ ! -r "$BACKUP_AGE_IDENTITY" ]]; then
   exit 1
 fi
 
-NEWEST="$(rclone lsf --files-only "$REMOTE/daily/" | grep -E '\.dump\.age$' | sort | tail -n 1 || true)"
+# A failed listing (credentials, network, wrong remote) is reported as such, not as "no dumps found".
+if ! LISTING="$(rclone lsf --files-only "$REMOTE/daily/")"; then
+  log "could not list $REMOTE/daily/ (rclone failed)"
+  exit 1
+fi
+NEWEST="$(printf '%s\n' "$LISTING" | grep -E '\.dump\.age$' | sort | tail -n 1 || true)"
 if [[ -z "$NEWEST" ]]; then
   log "no dumps found under $REMOTE/daily/"
   exit 1

@@ -26,12 +26,25 @@ Ubuntu/Debian: follow https://docs.docker.com/engine/install/ (the apt repositor
 
 ```bash
 docker version && docker compose version     # Compose v2 plugin required
-sudo apt-get install -y age rclone git       # backups; rclone >= 1.59 for the R2 provider
+sudo apt-get install -y age rclone git curl  # backups; rclone >= 1.59 for the R2 provider; curl for checks and the heartbeat
 sudo ufw allow OpenSSH && sudo ufw allow 80,443/tcp && sudo ufw allow 443/udp && sudo ufw enable
 sudo git clone <repo-url> /opt/dragon-island
 ```
 
-Postgres and the server publish no ports, so only Caddy is exposed. Optional hardening: allow 80/443 only from Cloudflare's ranges (https://www.cloudflare.com/ips/).
+Postgres and the server publish no ports, so only Caddy is exposed.
+
+**Origin firewall: required whenever `BLOCKED_COUNTRIES` is set** (recommended always). Once the DNS record is proxied (step 2.4), allow 80/443 only from Cloudflare's ranges, so nobody can reach Caddy without passing through Cloudflare:
+
+```bash
+sudo ufw delete allow 80,443/tcp && sudo ufw delete allow 443/udp
+for r in $(curl -fsS https://www.cloudflare.com/ips-v4) $(curl -fsS https://www.cloudflare.com/ips-v6); do
+  sudo ufw allow proto tcp from "$r" to any port 80,443
+  sudo ufw allow proto udp from "$r" to any port 443
+done
+sudo ufw status numbered
+```
+
+(If your VPS provider has a cloud firewall, the same rules there are equivalent. Cloudflare's **Authenticated Origin Pulls** with Caddy requiring the Cloudflare client certificate is an alternative.) With this in place, flipping the record back to DNS only (step 2.4's renewal fallback) makes the site unreachable until you open 80 again; prefer the Cloudflare DNS challenge for Caddy if that matters.
 
 ## 2. Cloudflare DNS for `play.` (proxied), Caddy gets TLS
 
@@ -40,7 +53,9 @@ Postgres and the server publish no ports, so only Caddy is exposed. Optional har
 3. After step 7 (`docker compose up -d`) Caddy obtains the certificate on its own; check `docker compose logs caddy | grep -i "certificate obtained"` and `curl -sI https://play.<domain>/`.
 4. Then switch the record to **Proxied (orange cloud)**. Caddy renews over HTTP-01 on port 80 through Cloudflare. If a renewal ever fails (Caddy logs `acme` errors), flip the record to DNS only for a few minutes while Caddy retries, or move Caddy to the Cloudflare DNS challenge.
 
-Client IPs: Cloudflare's proxied traffic hits Caddy. The Caddyfile trusts `CF-Connecting-IP` **only** from Cloudflare's published ranges (`trusted_proxies`), then overwrites `X-Forwarded-For` with that single client IP before proxying. The server runs with `TRUST_PROXY=true` and takes that value for rate limits and referral overlap checks. Anyone hitting the origin directly is identified by their socket address, so the header can't be spoofed. Keep the range list in the Caddyfile in sync with https://www.cloudflare.com/ips/. Turning Cloudflare's proxy off breaks nothing.
+Client IPs: Cloudflare's proxied traffic hits Caddy. The Caddyfile trusts `CF-Connecting-IP` **only** from Cloudflare's published ranges (`trusted_proxies`), then overwrites `X-Forwarded-For` with that single client IP before proxying. The server runs with `TRUST_PROXY=true` and takes that value for rate limits and referral overlap checks. Anyone hitting the origin directly is identified by their socket address, so the header can't be spoofed. Keep the range list in the Caddyfile (one `cloudflare_ranges` snippet) in sync with https://www.cloudflare.com/ips/.
+
+Country block: `BLOCKED_COUNTRIES` uses Cloudflare's `CF-IPCountry` header, so it **requires the Cloudflare proxy**. Caddy removes `CF-IPCountry` from any request whose socket peer (`remote_ip`) is not a Cloudflare address, and while the list is set the server refuses sign-in, actions and withdrawals (451) for a request with no country, `XX` (unknown) or `T1` (Tor). So with the block on, turning the proxy off (or a direct-to-origin request) locks every player out of those routes rather than silently disabling the block. Keep the origin firewall from step 1 in place whenever the list is set.
 
 ## 3. Copy `.env.server` (and the other env files, and the web build)
 
@@ -51,7 +66,7 @@ chmod 600 .env .env.server backup.env
 ```
 
 - `.env`: `PLAY_DOMAIN=play.<domain>`, `POSTGRES_PASSWORD=$(openssl rand -hex 32)`.
-- `.env.server`: put the **same** password into `DATABASE_URL`; fresh `SESSION_SECRET` and `ADMIN_TOKEN` (`openssl rand -hex 32` each); `SIWE_DOMAIN=play.<domain>`, `SIWE_URI=https://play.<domain>`; after the testnet contracts are deployed, `VAULT_ADDRESS`, `TOKEN_ADDRESS`, `SIGNER_PRIVATE_KEY`, `OPERATOR_PRIVATE_KEY`, `INDEXER_START_BLOCK` (the vault's deploy block), and your RPC provider URL; `ALERT_WEBHOOK_URL`, `SENTRY_DSN`. Leave `E2E=0`. `BETA_CLOSED=true` takes effect once the closed-beta allowlist ships (Task 5).
+- `.env.server`: put the **same** password into `DATABASE_URL`; fresh `SESSION_SECRET` and `ADMIN_TOKEN` (`openssl rand -hex 32` each); `SIWE_DOMAIN=play.<domain>`, `SIWE_URI=https://play.<domain>`; after the testnet contracts are deployed, `VAULT_ADDRESS`, `TOKEN_ADDRESS`, `SIGNER_PRIVATE_KEY`, `OPERATOR_PRIVATE_KEY`, `INDEXER_START_BLOCK` (the vault's deploy block), and your RPC provider URL; `ALERT_WEBHOOK_URL`, `SENTRY_DSN`. Leave `E2E=0`. `BETA_CLOSED=true` turns on the closed-beta allowlist (manage it in the admin console's Beta tab or `POST /admin/beta/allow`).
 - **`RPC_URL` with an embedded API key** can appear in server logs and Sentry error text (viem includes the URL in request errors). Use a key restricted to this app, and rotate it if logs leak.
 
 **Web build.** `apps/web/dist` is mounted read-only into Caddy, so build it on your workstation and sync it over. `VITE_*` values are compiled into public JavaScript: never put a secret in them.
@@ -77,6 +92,14 @@ docker compose ps                    # postgres: healthy
 ```
 
 ## 5. `docker compose run --rm server pnpm db:migrate`
+
+**Reused or restored database: pre-check first.** Migration 0004 adds a `CHECK (token_wei >= 0)` on `balances`; if any row is negative the migration fails and the server will not start. On any database that is not brand new, this must print `0` before you migrate:
+
+```bash
+docker compose exec postgres psql -U dragon -d dragon -tAc "select count(*) from balances where token_wei < 0"
+```
+
+If it is not 0, list the rows (`select player_id, token_wei from balances where token_wei < 0`) and fix them deliberately (they are a ledger bug to investigate) before going on. On a database where 0004 is already applied the count is always 0.
 
 ```bash
 docker compose run --rm server pnpm db:migrate     # prints "migrations applied"
@@ -127,7 +150,7 @@ Fill `backup.env`. Store an **offline copy of the age identity** (password manag
 - `backup.sh`: `pg_dump -Fc` inside the postgres container, encrypted with `age` to the public key (only ciphertext touches disk), uploaded to `<remote>/daily/`; Sunday runs also copy to `<remote>/weekly/`. Keeps the newest 14 daily and 8 weekly dumps. Uploads nothing unless the whole dump succeeded.
 - `restore-drill.sh`: streams the newest daily dump through `age -d` into a scratch database `restore_drill_<timestamp>`, prints `restore drill OK: <file> -> players = <n>`, then drops the scratch database. Any failure exits non-zero. Set `RESTORE_MIN_PLAYERS` once you have players so an empty restore fails too.
 
-Both use `docker compose exec postgres ...`, so the host needs only Docker, `age` and `rclone`. Run them as root (or a user in the `docker` group that owns the identity file):
+Both use `docker compose exec postgres ...`, so the host needs only Docker, `age` and `rclone` (plus `curl` for the optional heartbeat). `BACKUP_KEEP_DAILY` / `BACKUP_KEEP_WEEKLY` must be whole numbers of at least 1 (the script refuses anything else before dumping), and a failed `rclone` listing exits non-zero instead of skipping retention. Run them as root (or a user in the `docker` group that owns the identity file):
 
 ```cron
 PATH=/usr/local/bin:/usr/bin:/bin
@@ -138,7 +161,7 @@ MAILTO=<your-email>
 
 Run both by hand once before trusting cron. Optional: set `BACKUP_HEARTBEAT_URL` to an UptimeRobot heartbeat monitor so a missed backup alerts you.
 
-**Restoring for real** (data loss, new VPS): stop the server (`docker compose stop server`), recreate the database (`docker compose exec postgres dropdb -U dragon dragon && docker compose exec postgres createdb -U dragon dragon`), stream the chosen dump in with `rclone cat <remote>/daily/<file> | age -d -i <identity> | docker compose exec -T postgres pg_restore -U dragon -d dragon --no-owner --exit-on-error`, **then run step 6 (season backfill)**, then step 7.
+**Restoring for real** (data loss, new VPS): stop the server (`docker compose stop server`), recreate the database (`docker compose exec postgres dropdb -U dragon dragon && docker compose exec postgres createdb -U dragon dragon`), stream the chosen dump in with `rclone cat <remote>/daily/<file> | age -d -i <identity> | docker compose exec -T postgres pg_restore -U dragon -d dragon --no-owner --exit-on-error`, then step 5 (the negative-balance pre-check and `db:migrate`), **then step 6 (season backfill)**, then step 7.
 
 ## 9. UptimeRobot on `https://play.<domain>/api/health`
 

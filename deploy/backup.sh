@@ -33,11 +33,30 @@ COMPOSE=(docker compose -f "$SCRIPT_DIR/docker-compose.yml")
 
 log() { printf '%s backup: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }
 
+# Retention counts must be whole numbers >= 1: 0 or a typo would make prune() delete every dump,
+# including the one this run just uploaded. Checked before anything is dumped.
+for var in KEEP_DAILY KEEP_WEEKLY; do
+  if [[ ! "${!var}" =~ ^[1-9][0-9]*$ ]]; then
+    log "BACKUP_${var} must be a whole number >= 1, got '${!var}'"
+    exit 1
+  fi
+done
+
 # Deletes all but the newest $2 files under remote dir $1 (names sort by their UTC timestamp).
+# A failed listing is an error (non-zero exit, so cron mails it), never "nothing to prune":
+# otherwise retention silently stops and the bucket grows forever.
 prune() {
-  local dir="$1" keep="$2" f
-  local -a files
-  mapfile -t files < <(rclone lsf --files-only "$dir/" | grep -E '\.dump\.age$' | sort -r)
+  local dir="$1" keep="$2" listing f
+  local -a files=()
+  if ! listing="$(rclone lsf --files-only "$dir/")"; then
+    log "ERROR: could not list $dir/ (rclone failed); retention not applied"
+    return 1
+  fi
+  while IFS= read -r f; do
+    [[ "$f" =~ \.dump\.age$ ]] && files+=("$f")
+  done <<< "$listing"
+  (( ${#files[@]} > keep )) || return 0
+  mapfile -t files < <(printf '%s\n' "${files[@]}" | sort -r)
   for f in "${files[@]:keep}"; do
     log "pruning $dir/$f"
     rclone deletefile "$dir/$f"
