@@ -6,7 +6,7 @@ import {
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
 import type { Placing, Target } from './bridge'
-import { anchor, depthOrder, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot } from './layout'
+import { anchor, depthOrder, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, NEST_EGG_SCALE } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
 export interface IslandObject {
@@ -187,7 +187,7 @@ export function buildIslandModel(
     }]
     if (nest.egg) {
       const el = getSpecies(catalog, nest.egg.speciesId).elements[0]!
-      group.push({ id: `egg:${index}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], x: a.x, y: a.y - 10, target: { kind: 'nest', index }, badge: timerLabel(nest.egg.readyAtMs, nowMs) })
+      group.push({ id: `egg:${index}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], x: a.x, y: a.y - 9, scale: NEST_EGG_SCALE, target: { kind: 'nest', index }, badge: timerLabel(nest.egg.readyAtMs, nowMs) })
     }
     add(nest.placement, FOOTPRINT.nest, group)
     markers.nests.push({ index, egg: nest.egg !== null })

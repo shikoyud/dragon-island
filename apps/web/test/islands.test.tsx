@@ -7,8 +7,7 @@ import { createBridge } from '../src/game/bridge'
 import { IslandMapPanel } from '../src/panels/IslandMapPanel'
 import { ObstaclePanel } from '../src/panels/ObstaclePanel'
 import { ExpandSignPanel } from '../src/panels/ExpandSignPanel'
-import { PanelHost } from '../src/panels/PanelHost'
-import { harness } from './harness'
+import { harness, TestHost } from './harness'
 
 const base = newPlayer(0)
 const withRock = (over: Partial<PlayerState> = {}): PlayerState => ({
@@ -112,7 +111,7 @@ describe('PanelHost targets', () => {
   it('opens the obstacle and sign panels from the bridge', async () => {
     const bridge = createBridge()
     const { wrap } = harness(withRock({ level: 2 }))
-    wrap(<PanelHost bridge={bridge} nowMs={0} named={null} onCloseNamed={() => {}} />)
+    wrap(<TestHost bridge={bridge} />)
     bridge.emit({ type: 'select', target: { kind: 'obstacle', id: 'home-s1-rock' } })
     expect(await screen.findByRole('button', { name: /Clear · 250 gold/ })).toBeInTheDocument()
     bridge.emit({ type: 'select', target: { kind: 'expandSign' } })

@@ -66,6 +66,8 @@ export function dragonSpot(a: Pos, slot: number): Pos {
 
 /** Eggs and waiting hatchlings in the hatchery are drawn at this scale so they fit its egg niches. */
 export const HATCHERY_ITEM_SCALE = 0.25
+/** An egg in a nest is drawn at half size so it sits inside the 32x32 nest art. */
+export const NEST_EGG_SCALE = 0.5
 
 /**
  * Bottom-centre of each egg niche on the 64x64 hatchery art, from its anchor, left to right along the front

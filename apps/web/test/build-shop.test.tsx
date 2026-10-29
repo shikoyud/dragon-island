@@ -8,10 +8,9 @@ import { BuildShopPanel } from '../src/panels/BuildShopPanel'
 import { FarmPanel } from '../src/panels/FarmPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
 import { NestsPanel } from '../src/panels/NestsPanel'
-import { PanelHost } from '../src/panels/PanelHost'
 import { UpgradeSection } from '../src/panels/UpgradeSection'
 import { StartPlacingProvider } from '../src/state/startPlacing'
-import { harness } from './harness'
+import { harness, TestHost } from './harness'
 
 const base = newPlayer(0)
 const h1 = { type: 'habitat', id: 'h1' } as const
@@ -182,7 +181,7 @@ describe('PanelHost targets', () => {
     const bridge = createBridge()
     const deco = { id: 'c3', kind: 'flowerPatch' as const, placement: { island: 'home' as const, col: 7, row: 7, facing: 0 as const } }
     const { wrap, action } = harness({ ...base, decorations: [deco] })
-    wrap(<PanelHost bridge={bridge} nowMs={0} named={null} onCloseNamed={() => {}} />)
+    wrap(<TestHost bridge={bridge} />)
     bridge.emit({ type: 'select', target: { kind: 'decoration', id: 'c3' } })
     await userEvent.click(await screen.findByRole('button', { name: /Remove · \+12 gold/ }))
     expect(action).not.toHaveBeenCalled() // first click only asks
@@ -195,14 +194,14 @@ describe('PanelHost targets', () => {
   it('opens the Nests panel for the hatchery building', async () => {
     const bridge = createBridge()
     const { wrap } = harness(base)
-    wrap(<PanelHost bridge={bridge} nowMs={0} named={null} onCloseNamed={() => {}} />)
+    wrap(<TestHost bridge={bridge} />)
     bridge.emit({ type: 'select', target: { kind: 'hatcheryBuilding' } })
     expect(await screen.findByRole('region', { name: /nests/i })).toBeInTheDocument()
   })
 
   it('opens the Build shop as a named panel', () => {
     const { wrap } = harness(base)
-    wrap(<PanelHost bridge={createBridge()} nowMs={0} named="build" onCloseNamed={() => {}} />)
+    wrap(<TestHost bridge={createBridge()} initial={{ kind: 'panel', id: 'build' }} />)
     expect(screen.getByTestId('shop-habitats')).toBeInTheDocument()
   })
 })

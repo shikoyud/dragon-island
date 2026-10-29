@@ -5,6 +5,7 @@ import { textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
 import { badgeY, buildIslandModel, timerLabel } from '../src/game/islandModel'
+import { NEST_EGG_SCALE } from '../src/game/layout'
 
 const C = LAUNCH_CATALOG
 const model = (state: Parameters<typeof buildIslandModel>[0], nowMs = 0) => buildIslandModel(state, FALLBACK_ART, C, nowMs, 'home', null)
@@ -37,6 +38,7 @@ describe('island model', () => {
     expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('20g')
     const withEgg = model({ ...newPlayer(0), nests: [{ ...newPlayer(0).nests[0]!, egg: { speciesId: 'fire', readyAtMs: 15_000 } }] }, 1_000)
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.badge).toBe('14s')
+    expect(withEgg.objects.find(o => o.id === 'egg:0')!.scale).toBe(NEST_EGG_SCALE) // sits inside the 32x32 nest
     expect(withEgg.markers.nests).toEqual([{ index: 0, egg: true }])
     expect(timerLabel(0, 5)).toBe('ready')
     expect(timerLabel(3_600_000 * 4, 0)).toBe('4h')

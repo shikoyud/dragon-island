@@ -382,7 +382,7 @@ export class IslandScene extends Phaser.Scene {
     if (o.flipX) spr.setFlipX(true)
     if (o.tint) spr.setTint(TINT[o.tint])
     if (o.id === 'ghost') {
-      spr.setAlpha(0.6)
+      spr.setAlpha(0.8)
     } else {
       spr.setData('target', o.target)
       // Pixel-perfect hits: a click on the transparent sky above a platform reaches the ground or what is behind it.

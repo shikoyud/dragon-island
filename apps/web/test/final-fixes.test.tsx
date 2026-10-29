@@ -8,11 +8,10 @@ import { buildIslandModel } from '../src/game/islandModel'
 import { DecorationPanel } from '../src/panels/DecorationPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
 import { HoardPanel } from '../src/panels/HoardPanel'
-import { PanelHost } from '../src/panels/PanelHost'
 import { useAutoFinish } from '../src/panels/useAutoFinish'
 import { placingAction } from '../src/state/placing'
 import { StartPlacingProvider } from '../src/state/startPlacing'
-import { harness } from './harness'
+import { harness, TestHost } from './harness'
 
 const base = newPlayer(0)
 const unlocked = ['home', 'dawnspire'] as PlayerState['islands']['unlocked']
@@ -105,7 +104,7 @@ describe('Hoard panel', () => {
     const start = vi.fn()
     const bridge = createBridge()
     const h = harness({ ...base, level: 5, hoardLevel: 1, hoardPlacement: home })
-    h.wrap(<StartPlacingProvider value={start}><PanelHost bridge={bridge} nowMs={0} named={null} onCloseNamed={() => {}} /></StartPlacingProvider>)
+    h.wrap(<StartPlacingProvider value={start}><TestHost bridge={bridge} /></StartPlacingProvider>)
     act(() => bridge.emit({ type: 'select', target: { kind: 'hoard' } }))
     expect(await screen.findByRole('region', { name: 'Hoard' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Move' }))

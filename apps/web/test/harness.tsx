@@ -8,6 +8,9 @@ import type { Api } from '../src/api/client'
 import { sessionStore } from '../src/api/session'
 import { ME_KEY } from '../src/state/me'
 import { ToastProvider } from '../src/ui/Toast'
+import type { Bridge } from '../src/game/bridge'
+import type { DialogKey } from '../src/hud/Hud'
+import { PanelHost, useDialog } from '../src/panels/PanelHost'
 
 /** Renders panels against a fake API whose /me state can be swapped mid-test with `setState`. */
 export function harness(state: PlayerState, nowMs = 0) {
@@ -24,4 +27,10 @@ export function harness(state: PlayerState, nowMs = 0) {
   const wrap = (ui: ReactNode) => render(ui, { wrapper })
   const setState = (s: PlayerState) => act(() => { setMe(s) })
   return { wrap, wrapper, action, nowMs, setState }
+}
+
+/** The App's dialog wiring for panel tests: island clicks on `bridge` open their panel, like the real game. */
+export function TestHost({ bridge, initial = null }: { bridge: Bridge; initial?: DialogKey | null }) {
+  const [dialog, setDialog] = useDialog(bridge, initial)
+  return <PanelHost bridge={bridge} nowMs={0} dialog={dialog} onOpen={setDialog} />
 }

@@ -19,7 +19,7 @@ Follows the base-building fix (09758af: isometric island, pure camera). Owner fe
 ## Tasks
 
 - [x] 1. Art plumbing: manifest keys beyond the typed slots reach the client (`art.extra`), fallbacks for `fx.*`; island ground uses `ground.*` tiles when present; `fx.construction` over constructions, `fx.hatch` once on a hatch.
-- [ ] 2. Pure HUD logic: `attentionItems`, gold pill sell limit, XP fraction (vitest).
-- [ ] 3. HUD components and `Dialog` (Testing Library), App rewritten on them, `Shell` removed.
-- [ ] 4. E2E: helpers and specs on the new HUD; `e2e/hud.spec.ts` full flow at desktop and mobile sizes.
+- [x] 2. Pure HUD logic: `attentionItems`, gold pill sell limit, XP fraction (vitest).
+- [x] 3. HUD components and `Dialog` (Testing Library), App rewritten on them, `Shell` removed.
+- [x] 4. E2E: helpers and specs on the new HUD; `e2e/hud.spec.ts` full flow at desktop and mobile sizes.
 - [ ] 5. Screenshots: docs/art/base-building-home.png, docs/art/hud-desktop.png, docs/art/hud-mobile.png.

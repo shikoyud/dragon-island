@@ -7,6 +7,7 @@ import { sessionStore } from './api/session'
 import { App } from './App'
 import { ME_KEY } from './state/me'
 import './styles/tokens.css'
+import './styles/hud.css'
 
 // Error reporting only when a DSN is configured; without one the SDK is never downloaded.
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN as string | undefined

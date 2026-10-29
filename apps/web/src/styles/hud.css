@@ -1,0 +1,145 @@
+/* Full-screen island with the HUD over it (docs/superpowers/plans/2026-10-29-hud-rework.md). Pixel style: hard
+   1-2 px outlines in --ink, flat fills from tokens.css, drop shadows as solid offsets, no blur. */
+:root { --ink: #141627; --glass: rgba(15, 19, 36, 0.88); --sea: #2a6f97; }
+
+.game-root { position: fixed; inset: 0; overflow: hidden; background: var(--sea); }
+.game-canvas { position: absolute; inset: 0; touch-action: none; }
+.game-canvas canvas { display: block; }
+
+/* The overlay takes no pointer events itself; only its controls do, so the island stays draggable between them. */
+.hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+.hud button, .hud a, .hud-pill, .hud-shortcut, .placement-bar, .hud-xp { pointer-events: auto; }
+.hud-icon { display: block; image-rendering: pixelated; flex: none; }
+.outlined, .hud-round__label, .hud-xp__text { text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink); }
+
+/* ---- top ---- */
+.hud-top {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: 8px;
+  padding: max(8px, env(safe-area-inset-top)) 10px 0;
+}
+.hud-top > .hud-round { justify-self: end; }
+.hud-avatar { display: flex; align-items: center; min-width: 0; }
+.hud-avatar__badge {
+  position: relative; z-index: 1; flex: none; width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center; font: 18px var(--font-display); color: #1b1300;
+  background: var(--accent); border: 3px solid var(--ink); box-shadow: inset 0 0 0 2px #fff3b0, 0 3px 0 var(--ink);
+}
+.hud-xp {
+  position: relative; margin-left: -10px; width: 132px; height: 20px; overflow: hidden;
+  background: var(--bg-panel); border: 2px solid var(--ink); border-left: 0; border-radius: 0 10px 10px 0;
+}
+.hud-xp__fill { position: absolute; inset: 0 auto 0 0; background: var(--el-water); box-shadow: inset 0 -3px 0 #1f4f7a; }
+.hud-xp__text { position: relative; display: block; padding-left: 14px; font: 9px/16px var(--font-display); white-space: nowrap; }
+
+.hud-pills { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.hud-pill {
+  display: flex; align-items: center; gap: 6px; min-height: 34px; padding: 2px 3px 2px 8px; border-radius: 999px;
+  background: var(--glass); border: 2px solid var(--ink); box-shadow: inset 0 0 0 1px var(--border), 0 3px 0 var(--ink);
+}
+.hud-pill__text { display: grid; line-height: 1.1; min-width: 44px; }
+.hud-pill__value { font: 13px var(--font-display); white-space: nowrap; }
+.hud-pill__sub { font-size: 9px; color: var(--text-muted); white-space: nowrap; }
+.hud-pill__plus {
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer; padding: 0;
+  font: 16px/1 var(--font-display); color: #fff; background: var(--ok); border: 2px solid var(--ink); box-shadow: inset 0 -3px 0 #276a2b;
+}
+
+/* ---- round buttons ---- */
+.hud-round {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: none; border: 0; padding: 0; cursor: pointer; color: var(--text); text-decoration: none;
+}
+.hud-round__plate {
+  width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--bg-panel-2); border: 3px solid var(--ink); box-shadow: inset 0 0 0 2px var(--border), inset 0 -5px 0 rgba(0, 0, 0, 0.25), 0 4px 0 var(--ink);
+}
+.hud-round--small .hud-round__plate { width: 44px; height: 44px; }
+.hud-round:active .hud-round__plate { transform: translateY(2px); box-shadow: inset 0 0 0 2px var(--border), 0 2px 0 var(--ink); }
+.hud-round--active .hud-round__plate { background: var(--accent); box-shadow: inset 0 0 0 2px #fff3b0, inset 0 -5px 0 #b89a1a, 0 4px 0 var(--ink); }
+.hud-round:focus-visible .hud-round__plate, .hud-pill__plus:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.hud-round__label { font: 10px var(--font-display); letter-spacing: 0.5px; }
+.hud-round__badge {
+  position: absolute; top: -4px; right: -8px; padding: 1px 4px; border-radius: 999px;
+  font: 9px var(--font-display); background: var(--danger); border: 2px solid var(--ink);
+}
+
+/* ---- side columns ---- */
+.hud-right { position: absolute; right: 10px; top: 78px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.hud-left { position: absolute; left: 10px; top: 78px; width: 230px; }
+.hud-left ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.hud-shortcut {
+  display: flex; align-items: center; gap: 4px; padding: 2px; border-radius: 10px;
+  background: var(--glass); border: 2px solid var(--ink); box-shadow: inset 0 0 0 1px var(--border), 0 3px 0 var(--ink);
+}
+.hud-shortcut--ready { box-shadow: inset 0 0 0 1px var(--accent), 0 3px 0 var(--ink); }
+.hud-shortcut__open {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 3px 4px;
+  background: none; border: 0; color: var(--text); cursor: pointer; font-size: 12px; text-align: left;
+}
+.hud-shortcut__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hud-shortcut__timer { margin-left: auto; display: flex; gap: 2px; align-items: center; font: 10px var(--font-display); color: var(--text-muted); }
+.hud-shortcut__act { padding: 4px 8px; font-size: 10px; border-radius: 8px; }
+
+/* ---- bottom ---- */
+.hud-bottom { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 0 8px max(8px, env(safe-area-inset-bottom)); }
+.hud-bar { display: flex; gap: 12px; justify-content: center; }
+.placement-bar {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 8px 12px; margin-bottom: 4px; border-radius: 12px;
+  background: var(--glass); border: 2px solid var(--ink); box-shadow: inset 0 0 0 1px var(--border), 0 3px 0 var(--ink);
+}
+.placement-bar .btn { min-height: 44px; min-width: 88px; padding: 8px 16px; font-size: 13px; border-radius: 8px; }
+.placement-bar small { width: 100%; text-align: center; color: #ffb4a6; }
+
+/* ---- dialogs ---- */
+.hud-dialog-layer { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.hud-scrim { position: absolute; inset: 0; background: rgba(8, 10, 20, 0.55); }
+.hud-dialog { position: relative; width: min(560px, 100%); max-height: min(82vh, 760px); overflow: auto; overscroll-behavior: contain; }
+.hud-dialog > .panel, .hud-dialog .panel { box-shadow: 0 4px 0 var(--ink); }
+.hud-dialog-layer--dock { pointer-events: none; align-items: flex-end; justify-content: flex-end; }
+.hud-dialog-layer--dock .hud-dialog { pointer-events: auto; width: min(400px, 100%); max-height: 70vh; }
+.panel header .btn--ghost[aria-label="Close"] {
+  width: 34px; height: 34px; padding: 0; border-radius: 50%; font: 18px/1 var(--font-display); color: #fff;
+  background: var(--danger); border: 2px solid var(--ink); box-shadow: inset 0 -3px 0 #8c2f14;
+}
+.hud-tabs { display: flex; gap: 4px; margin-bottom: -2px; }
+.hud-tab { font: 12px var(--font-display); padding: 8px 14px; cursor: pointer; color: var(--text); background: var(--bg-panel); border: 2px solid var(--border); border-bottom: 0; border-radius: 8px 8px 0 0; }
+.hud-tab[aria-selected="true"] { background: var(--accent); color: #1b1300; border-color: #b89a1a; }
+.settings-dialog { display: grid; gap: 8px; }
+.settings-dialog__account { padding: 10px 12px; background: var(--bg-panel); border: 2px solid var(--border); }
+.list-rows { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.row-button { width: 100%; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; padding: 8px 10px; cursor: pointer; text-align: left; color: var(--text); background: var(--bg-panel-2); border: 2px solid var(--border); }
+
+/* ---- signed out ---- */
+.welcome { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; }
+.welcome__card { width: min(420px, 100%); padding: 20px; text-align: center; background: var(--bg-panel); border: 2px solid var(--border); box-shadow: 0 4px 0 var(--ink); }
+.welcome__card h1 { margin-top: 0; }
+.welcome__card .signin { justify-content: center; }
+
+/* ---- narrow screens: bottom sheets, smaller plates, pills on their own row ---- */
+@media (max-width: 699px) {
+  .hud-top { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; padding-left: 8px; padding-right: 8px; }
+  .hud-pills { grid-column: 1 / -1; grid-row: 2; gap: 4px; }
+  .hud-pill { gap: 4px; padding-left: 5px; min-height: 30px; }
+  .hud-pill__value { font-size: 11px; }
+  .hud-pill__text { min-width: 0; }
+  .hud-pill__plus { width: 22px; height: 22px; font-size: 14px; }
+  .hud-xp { width: 104px; }
+  .hud-right { top: 102px; right: 6px; gap: 6px; }
+  /* Shortcuts shrink to icon + timer (the label stays for screen readers) so they cover little of the island. */
+  .hud-left { top: 102px; left: 6px; width: auto; }
+  .hud-shortcut__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .hud-shortcut__open { padding: 4px; }
+  .hud-shortcut__open { font-size: 11px; }
+  .hud-round__plate { width: 48px; height: 48px; }
+  .hud-round--small .hud-round__plate { width: 38px; height: 38px; }
+  .hud-round__label { font-size: 8px; }
+  .hud-bar { gap: 4px; }
+  .hud-dialog-layer { align-items: flex-end; padding: 0; }
+  .hud-dialog { width: 100%; max-height: 78vh; }
+  .hud-dialog-layer--dock .hud-dialog { width: 100%; max-height: 46vh; }
+}
+@media (max-width: 380px) {
+  .hud-round__plate { width: 44px; height: 44px; }
+  .hud-pill .hud-icon { width: 18px; height: 18px; }
+}

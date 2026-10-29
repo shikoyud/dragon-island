@@ -59,9 +59,9 @@ export function clampView(v: View, viewportW: number, viewportH: number, b: Box)
   }
 }
 
-/** Opening zoom: the whole number nearest to fitting the box in the viewport, never below 1. */
+/** Opening zoom: the whole number nearest to fitting the box, leaning up (from 1.4) so small screens show readable buildings; never below 1. */
 export function fitZoom(viewportW: number, viewportH: number, b: Box): number {
-  return Math.max(1, Math.round(Math.min(viewportW / b.w, viewportH / b.h)))
+  return Math.max(1, Math.round(Math.min(viewportW / b.w, viewportH / b.h) + 0.1))
 }
 
 /** A press that ended within 4 px of where it began is a click, not a pan. */

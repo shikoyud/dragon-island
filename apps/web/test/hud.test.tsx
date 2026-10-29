@@ -1,0 +1,116 @@
+import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
+import { screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createBridge } from '../src/game/bridge'
+import { Dialog } from '../src/hud/Dialog'
+import { Hud } from '../src/hud/Hud'
+import { HudArtContext } from '../src/hud/Icon'
+import { harness } from './harness'
+
+const base = (): PlayerState => ({ ...newPlayer(0), gold: 12_345, food: 678, level: 3, xp: 225 })
+
+function renderHud(state: PlayerState, opts: { placing?: boolean } = {}) {
+  const h = harness(state)
+  const onOpen = vi.fn()
+  const bridge = createBridge()
+  const setInsets = vi.spyOn(bridge, 'setInsets')
+  h.wrap(<Hud bridge={bridge} nowMs={10_000} open={null} onOpen={onOpen} placing={opts.placing ?? false} />)
+  return { ...h, onOpen, bridge, setInsets }
+}
+
+afterEach(() => { try { sessionStorage.clear() } catch { /* jsdom */ } })
+
+describe('HUD', () => {
+  it('shows level, XP and the three resource pills, each with a + that opens its shop', async () => {
+    const { onOpen } = renderHud(base())
+    expect(screen.getByLabelText('Level 3')).toHaveTextContent('3')
+    expect(screen.getByRole('progressbar', { name: 'Experience' })).toHaveAttribute('aria-valuenow', '225')
+    const res = screen.getByRole('status', { name: 'Resources' })
+    expect(within(res).getByLabelText('Food')).toHaveTextContent('678')
+    expect(within(res).getByLabelText('Gold')).toHaveTextContent('12,345')
+    expect(within(res).getByLabelText('DRIS')).toHaveTextContent('5')
+    await userEvent.click(screen.getByRole('button', { name: 'Buy food' }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'store' })
+    await userEvent.click(screen.getByRole('button', { name: 'Add DRIS' }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'settings' })
+  })
+
+  it('adds the remaining daily sell limit to the gold pill once the Hoard exists', () => {
+    renderHud(base())
+    expect(screen.queryByText(/today/)).toBeNull()
+  })
+
+  it('shows the sell limit with a Hoard', () => {
+    renderHud({ ...base(), hoardLevel: 1 })
+    expect(screen.getByText(/sell \$[\d.,]+ today/)).toBeInTheDocument()
+  })
+
+  it('has the main menu at the bottom and highlights Build while placing', async () => {
+    const { onOpen } = renderHud(base(), { placing: true })
+    const bar = screen.getByRole('navigation', { name: 'Main menu' })
+    for (const label of ['Dragons', 'Breed', 'Battle', 'Hoard', 'Build', 'Store']) expect(within(bar).getByRole('button', { name: label })).toBeInTheDocument()
+    expect(within(bar).getByRole('button', { name: 'Build' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(bar).getByRole('button', { name: 'Dragons' })).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(within(bar).getByRole('button', { name: 'Battle' }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'battle' })
+  })
+
+  it('has the island menu on the right; Admin only with an operator token in this tab', () => {
+    renderHud(base())
+    const right = screen.getByRole('navigation', { name: 'Island menu' })
+    for (const label of ['Season', 'Ranks', 'Map', 'Referral']) expect(within(right).getByRole('button', { name: label })).toBeInTheDocument()
+    expect(within(right).queryByRole('link', { name: 'Admin' })).toBeNull()
+  })
+
+  it('shows Admin when the operator token is set', () => {
+    sessionStorage.setItem('dris.admin', 'tok')
+    renderHud(base())
+    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '#/admin')
+  })
+
+  it('lists what needs attention, with Finish on a ready build', async () => {
+    const s = { ...base(), constructions: [{ kind: 'build' as const, building: { type: 'farm' as const, index: 1 }, readyAtMs: 5_000 }] }
+    const { action, onOpen } = renderHud(s)
+    const left = screen.getByRole('complementary', { name: 'Needs attention' })
+    expect(within(left).getByText('Building Farm plot 2')).toBeInTheDocument()
+    await userEvent.click(within(left).getByRole('button', { name: 'Finish' }))
+    expect(action).toHaveBeenCalledWith({ type: 'finishConstruction', index: 0 }, expect.any(String))
+    await userEvent.click(within(left).getByRole('button', { name: /Daily quests/ }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'quests' })
+  })
+
+  it('reports the space its top and bottom take to the bridge', () => {
+    const { setInsets } = renderHud(base())
+    expect(setInsets).toHaveBeenCalled()
+  })
+
+  it('uses manifest icons when the art has them', () => {
+    const h = harness(base())
+    h.wrap(
+      <HudArtContext.Provider value={{ 'icon.gold.32': { src: '/art/v9/icon-gold-32.png', w: 32, h: 32, frames: 1, fps: 0 } }}>
+        <Hud bridge={createBridge()} nowMs={0} open={null} onOpen={() => {}} placing={false} />
+      </HudArtContext.Provider>,
+    )
+    const res = screen.getByRole('status', { name: 'Resources' })
+    expect(res.querySelector('img[src="/art/v9/icon-gold-32.png"]')).not.toBeNull()
+    expect(res.querySelector('svg[data-icon="food"]')).not.toBeNull()
+  })
+})
+
+describe('Dialog', () => {
+  it('closes on Escape and on the scrim', async () => {
+    const onClose = vi.fn()
+    harness(base()).wrap(<Dialog label="Store" onClose={onClose}><p>inside</p></Dialog>)
+    expect(screen.getByRole('dialog', { name: 'Store' })).toHaveTextContent('inside')
+    await userEvent.keyboard('{Escape}')
+    await userEvent.click(screen.getByTestId('dialog-scrim'))
+    expect(onClose).toHaveBeenCalledTimes(2)
+  })
+
+  it('a non-modal dialog has no scrim', () => {
+    harness(base()).wrap(<Dialog label="Battle" onClose={() => {}} modal={false}><p>fight</p></Dialog>)
+    expect(screen.queryByTestId('dialog-scrim')).toBeNull()
+    expect(screen.getByRole('dialog', { name: 'Battle' })).toHaveAttribute('aria-modal', 'false')
+  })
+})

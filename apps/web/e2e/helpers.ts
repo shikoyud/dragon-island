@@ -30,14 +30,59 @@ export async function resetPlayer(request: APIRequestContext, extra: Record<stri
   await grant(request, { tokenWei: opts.tokenWei ?? '0', earningUnlocked: opts.earningUnlocked ?? false, state: { ...startingState(), ...extra } })
 }
 
-/** Sign in through the UI with the test wallet (auto-connected). */
-export async function signIn(page: Page) {
+const SESSION_KEY = 'dris.session' // src/api/session.ts
+/** The last session a spec signed in with (workers = 1, so specs run one after another in this process). */
+let lastSession: string | null = null
+
+/**
+ * Sign in with the test wallet (auto-connected). The server allows 20 auth requests per IP a minute (two per
+ * sign-in), so a spec reuses the previous spec's session when the server still accepts it and signs in through
+ * the UI only otherwise (first spec, after a sign-out, or with `fresh` to test the sign-in itself).
+ */
+export async function signIn(page: Page, opts: { fresh?: boolean } = {}) {
+  if (lastSession && !opts.fresh) await page.addInitScript(([k, v]) => { if (!localStorage.getItem(k!)) localStorage.setItem(k!, v!) }, [SESSION_KEY, lastSession])
   await page.goto('/')
-  await page.getByRole('button', { name: /^sign in$/i }).click()
-  await expect(page.getByRole('status', { name: /resources/i })).toBeVisible()
+  const resources = page.getByRole('status', { name: /resources/i })
+  const signInButton = page.getByRole('button', { name: /^sign in$/i })
+  await expect(resources.or(signInButton).first()).toBeVisible({ timeout: 15_000 })
+  if (!(await resources.isVisible())) {
+    await signInButton.click()
+    // Sign-in plus the first /me can take a few seconds while the in-memory server is busy with earlier specs.
+    await expect(resources).toBeVisible({ timeout: 15_000 })
+  }
+  lastSession = await page.evaluate(k => localStorage.getItem(k), SESSION_KEY)
 }
 
-export const openPanel = (page: Page, label: string) => page.getByRole('navigation', { name: /panels/i }).getByRole('button', { name: label }).click()
+/**
+ * Opens a panel through the HUD the way a player would: the main menu at the bottom, the island menu on the right,
+ * Settings for the wallet, Battle's tabs for Campaign and Arena, and a click on the hatchery or a plot for Nests and
+ * Farm. Any dialog already open is closed first (its scrim covers the HUD).
+ */
+export async function openPanel(page: Page, label: string) {
+  if (await page.getByTestId('dialog-scrim').isVisible().catch(() => false)) await page.keyboard.press('Escape')
+  const main = (name: string) => page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).click()
+  const side = (name: string) => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name, exact: true }).click()
+  const select = (target: unknown) => page.evaluate(t => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: t }), target)
+  switch (label) {
+    case 'Campaign':
+    case 'Arena':
+      await main('Battle')
+      return page.getByRole('tab', { name: label }).click()
+    case 'Season':
+    case 'Map':
+    case 'Referral':
+    case 'Ranks':
+      return side(label)
+    case 'Wallet':
+      return page.getByRole('button', { name: 'Settings' }).click()
+    case 'Nests':
+      return select({ kind: 'hatcheryBuilding' })
+    case 'Farm':
+      return select({ kind: 'farm', plot: 0 })
+    default:
+      return main(label)
+  }
+}
 
 export const fireTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'fire', level, habitatId: 'h1' }))
 export const waterTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'water', level, habitatId: 'h2' }))

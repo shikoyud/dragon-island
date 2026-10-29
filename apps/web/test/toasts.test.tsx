@@ -1,6 +1,6 @@
 import { newPlayer } from '@wyrmhaven/game-core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -10,13 +10,7 @@ import { sessionStore } from '../src/api/session'
 import { ME_KEY } from '../src/state/me'
 import { useAction } from '../src/state/actions'
 import { ErrorBoundary } from '../src/ui/ErrorBoundary'
-import { Shell, useLayout } from '../src/Shell'
 import { ToastProvider, useToasts } from '../src/ui/Toast'
-
-function setWidth(px: number) {
-  Object.defineProperty(window, 'innerWidth', { configurable: true, value: px })
-  window.dispatchEvent(new Event('resize'))
-}
 
 function Providers({ children, api }: { children: ReactNode; api?: Partial<Api> }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -24,23 +18,6 @@ function Providers({ children, api }: { children: ReactNode; api?: Partial<Api> 
   sessionStore.set({ token: 't', playerId: 'p1', address: '0xabc' })
   return <QueryClientProvider client={qc}><ApiProvider api={(api ?? {}) as Api}><ToastProvider>{children}</ToastProvider></ApiProvider></QueryClientProvider>
 }
-
-describe('layout', () => {
-  it('uses a bottom sheet below 900px and a sidebar above', () => {
-    setWidth(360)
-    const Probe = () => <div data-testid="layout">{useLayout()}</div>
-    render(<Probe />)
-    expect(screen.getByTestId('layout')).toHaveTextContent('sheet')
-    act(() => setWidth(1280))
-    expect(screen.getByTestId('layout')).toHaveTextContent('sidebar')
-  })
-
-  it('renders the shell with the layout attribute', () => {
-    setWidth(360)
-    render(<Providers><Shell header={<span>hdr</span>} canvas={<div>canvas</div>} side={<div>side</div>} /></Providers>)
-    expect(screen.getByTestId('shell')).toHaveAttribute('data-layout', 'sheet')
-  })
-})
 
 describe('toasts and errors', () => {
   it('shows one toast with the mapped message when an action fails', async () => {

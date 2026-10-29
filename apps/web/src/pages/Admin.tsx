@@ -3,7 +3,7 @@ import { createAdminApi, type AdminApi, type AdminPlayer, type AdminSeasonSummar
 import { ApiError } from '../api/client'
 import { formatWei } from '../ui/Money'
 
-const TOKEN_KEY = 'dris.admin'
+export const TOKEN_KEY = 'dris.admin'
 const JOBS = ['indexer', 'voucherExpiry', 'burnBatch', 'season', 'seasonClose']
 const TABS = ['Player', 'Season', 'Inflows', 'Price', 'Beta', 'Jobs'] as const
 type Tab = (typeof TABS)[number]
