@@ -197,7 +197,7 @@ describe('drawFallback', () => {
   })
 
   it('draws every slot without touching pixels outside the canvas', () => {
-    for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'nest', 'hatchery', 'farmPlot', 'crop', 'hoard', 'icon', 'panel', 'button', 'island', 'nexus', 'decoration', 'obstacle', 'locked', 'sign', 'map'] as const) {
+    for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'nest', 'hatchery', 'farmPlot', 'crop', 'hoard', 'icon', 'panel', 'button', 'island', 'nexus', 'decoration', 'obstacle', 'locked', 'sign', 'map', 'fx'] as const) {
       const g = gridContext(48, 48)
       expect(() => drawFallback(g.ctx, slot, 'water', 48, 48)).not.toThrow()
       expect(g.px.some(p => p !== null)).toBe(true)

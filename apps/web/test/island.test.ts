@@ -167,6 +167,18 @@ describe('island model', () => {
     expect(m.markers.constructions).toBe(1)
   })
 
+  it('draws the construction effect over each building being built or upgraded, right after it', () => {
+    const s = { ...newPlayer(0), constructions: [{ kind: 'upgrade' as const, building: { type: 'farm' as const, index: 0 }, readyAtMs: 90_000 }] }
+    const { objects } = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', null)
+    const ids = objects.map(o => o.id)
+    expect(ids.filter(id => id.startsWith('fx:'))).toEqual(['fx:farm:0'])
+    expect(ids.indexOf('fx:farm:0')).toBe(ids.indexOf('farm:0') + 1)
+    const farm = objects.find(o => o.id === 'farm:0')!
+    expect(objects.find(o => o.id === 'fx:farm:0')).toMatchObject({ key: textureKey('fx.construction'), x: farm.x, target: farm.target })
+    expect(objects.find(o => o.id === 'fx:farm:0')!.y).toBeLessThan(farm.y)
+    expect(buildIslandModel(newPlayer(0), FALLBACK_ART, C, 0, 'home', null).objects.some(o => o.id.startsWith('fx:'))).toBe(false)
+  })
+
   it('draws obstacles with their own keys and badges a clear in progress', () => {
     const obstacles = outerObstacles('isle2')
     const s = {

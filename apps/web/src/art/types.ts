@@ -37,6 +37,12 @@ export interface GameArtSet {
   decoration: Record<DecorationId, Sprite>
   /** Island map icons. */
   map: Record<IslandId, Sprite>
+  /** Effects: a loop over buildings under construction, a one-shot burst where an egg hatches. */
+  fx: { construction: Sprite; hatch: Sprite }
+  /** Isometric ground tiles; null (or empty) until the art exists, and the island scene draws placeholders. */
+  ground: { grass: Sprite[]; fog: Sprite | null; water: Sprite | null; cliffSw: Sprite | null; cliffSe: Sprite | null }
+  /** HUD art present in the manifest (icon.<name>.16/.32, ui.*), by manifest key; absent keys use drawn placeholders. */
+  hud: Record<string, Sprite>
 }
 
 /** Default pixel sizes per slot, used when an asset is missing. */
@@ -59,6 +65,8 @@ export const SLOT_SIZES = {
   locked: { w: 16, h: 16 },
   sign: { w: 32, h: 32 },
   map: { w: 32, h: 32 },
+  fxConstruction: { w: 32, h: 32 },
+  fxHatch: { w: 48, h: 48 },
 } as const
 
 export type SlotName = keyof typeof SLOT_SIZES

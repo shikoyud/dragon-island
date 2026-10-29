@@ -1,6 +1,6 @@
-import { islandSize, LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
+import { FOOTPRINT, islandSize, LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
-import { playOrStill } from '../../art/phaserLoader'
+import { playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet } from '../../art/types'
 import type { Bridge, Target } from '../bridge'
@@ -36,6 +36,9 @@ const points = (pts: Pos[]) => pts.map(p => new Phaser.Math.Vector2(p.x, p.y))
  */
 export class IslandScene extends Phaser.Scene {
   private ground!: Phaser.GameObjects.Graphics
+  private groundTiles!: Phaser.GameObjects.Container
+  private water: Phaser.GameObjects.TileSprite | null = null
+  private hatchView: string | null = null
   private outline!: Phaser.GameObjects.Graphics
   private layer!: Phaser.GameObjects.Container
   private drawn: Phaser.GameObjects.GameObject[] = []
@@ -56,6 +59,7 @@ export class IslandScene extends Phaser.Scene {
 
   create(): void {
     this.ground = this.add.graphics()
+    this.groundTiles = this.add.container(0, 0)
     this.layer = this.add.container(0, 0)
     // Over the sprites: an illegal footprint must show even where it overlaps a building.
     this.outline = this.add.graphics()
@@ -261,16 +265,39 @@ export class IslandScene extends Phaser.Scene {
     for (const obj of this.drawn) obj.destroy()
     this.drawn = []
     const model = buildIslandModel(state, this.art(), this.catalog, this.bridge.nowMs, view, this.bridge.placing)
+    // Fewer eggs in the hatchery on the same island than a moment ago: one hatched (or was sold). Burst once.
+    const hatched = state && view === this.hatchView && model.markers.hatchery.length < this.current.hatchery.length
+    this.hatchView = view
     this.current = model.markers
+    if (hatched && state.hatcheryPlacement.island === view) {
+      const p = state.hatcheryPlacement
+      this.playOnce('fx.hatch', anchor(p.col, p.row, FOOTPRINT.hatchery))
+    }
     this.drawOutline(model.markers.ghost)
     for (const o of model.objects) this.draw(o)
     // Badges go on top of every sprite, so a dragon never hides its habitat's gold.
     for (const o of model.objects) if (o.badge) this.drawBadge(o, o.badge)
   }
 
+  /** Plays a one-shot effect at a world point: its sheet once, or a fade for a still; nothing with reduced motion. */
+  private playOnce(path: 'fx.hatch', at: Pos): void {
+    if (this.bridge.reducedMotion) return
+    const key = textureKey(path)
+    const sprite = this.art().fx.hatch
+    const spr = this.add.sprite(at.x, at.y, key).setOrigin(0.5, 1).setDepth(1)
+    if (sprite.frames > 1 && sprite.fps > 0) {
+      const anim = `${key}:once`
+      if (!this.anims.exists(anim)) this.anims.create({ key: anim, frames: this.anims.generateFrameNumbers(key, { start: 0, end: sprite.frames - 1 }), frameRate: sprite.fps, repeat: 0 })
+      spr.play(anim).once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => spr.destroy())
+    } else {
+      this.tweens.add({ targets: spr, alpha: 0, y: at.y - 8, duration: 700, onComplete: () => spr.destroy() })
+    }
+  }
+
   /**
-   * The landmass: a checker of grass diamonds for unlocked cells, fog diamonds for the locked ring, and a cliff
-   * skirt under the two front edges, over the sea (the canvas background). Redrawn only when the view or home step changes.
+   * The landmass: grass diamonds for unlocked cells, fog for the locked ring and a cliff skirt under the two front
+   * edges, over the sea. Uses the `ground.*` tiles when the manifest has them and drawn diamonds otherwise.
+   * Redrawn only when the view or home step changes.
    */
   private drawGround(): void {
     const { state, view } = this.bridge
@@ -278,26 +305,58 @@ export class IslandScene extends Phaser.Scene {
     if (key === this.groundKey) return
     this.groundKey = key
     const g = this.ground.clear()
+    this.groundTiles.removeAll(true)
+    this.water?.destroy()
+    this.water = null
     if (!state) return
+    const tiles = this.art().ground
+    const tile = (k: string, x: number, y: number) => this.groundTiles.add(this.add.image(x, y, textureKey(k)).setOrigin(0, 0))
     const shown = shownSize(state, view)
+    if (tiles.water) {
+      const b = cameraBounds(state, view)
+      const pad = 2048 // the sea also fills the screen beyond the camera bounds when zoomed out
+      this.water = this.add.tileSprite(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, textureKey('ground.water'), 0).setOrigin(0, 0).setDepth(-1)
+      const w = tiles.water
+      if (w.frames > 1 && w.fps > 0 && !this.bridge.reducedMotion) {
+        let f = 0
+        this.time.addEvent({ delay: 1000 / w.fps, loop: true, callback: () => { if (this.water?.active) this.water.setFrame(f = (f + 1) % w.frames) } })
+      }
+    }
     const left = cellTop(0, shown.h)
     const bottom = cellTop(shown.w, shown.h)
     const right = cellTop(shown.w, 0)
     const down = (p: Pos, d: number): Pos => ({ x: p.x, y: p.y + d })
-    g.fillStyle(GROUND.cliffLeft, 1).fillPoints(points([left, bottom, down(bottom, SKIRT), down(left, SKIRT)]), true)
-    g.fillStyle(GROUND.cliffRight, 1).fillPoints(points([bottom, right, down(right, SKIRT), down(bottom, SKIRT)]), true)
-    g.lineStyle(1, GROUND.strata, 0.6)
-    g.lineBetween(left.x, left.y + SKIRT / 2 + 1, bottom.x, bottom.y + SKIRT / 2 + 1)
-    g.lineBetween(bottom.x, bottom.y + SKIRT / 2 + 1, right.x, right.y + SKIRT / 2 + 1)
-    g.fillStyle(GROUND.lip, 1)
-    g.fillPoints(points([left, bottom, down(bottom, 2), down(left, 2)]), true)
-    g.fillPoints(points([bottom, right, down(right, 2), down(bottom, 2)]), true)
+    if (tiles.cliffSw && tiles.cliffSe) {
+      // One 8 px piece under each edge cell's segment.
+      for (let col = 0; col < shown.w; col++) { const t = cellTop(col, shown.h); tile('ground.cliff.sw', t.x, t.y) }
+      for (let row = 0; row < shown.h; row++) { const t = cellTop(shown.w, row); tile('ground.cliff.se', t.x - 8, t.y) }
+    } else {
+      g.fillStyle(GROUND.cliffLeft, 1).fillPoints(points([left, bottom, down(bottom, SKIRT), down(left, SKIRT)]), true)
+      g.fillStyle(GROUND.cliffRight, 1).fillPoints(points([bottom, right, down(right, SKIRT), down(bottom, SKIRT)]), true)
+      g.lineStyle(1, GROUND.strata, 0.6)
+      g.lineBetween(left.x, left.y + SKIRT / 2 + 1, bottom.x, bottom.y + SKIRT / 2 + 1)
+      g.lineBetween(bottom.x, bottom.y + SKIRT / 2 + 1, right.x, right.y + SKIRT / 2 + 1)
+      g.fillStyle(GROUND.lip, 1)
+      g.fillPoints(points([left, bottom, down(bottom, 2), down(left, 2)]), true)
+      g.fillPoints(points([bottom, right, down(right, 2), down(bottom, 2)]), true)
+    }
+    // A diamond's 16x8 tile has its top-left corner 8 px left of the cell's top vertex.
     const { w, h } = islandSize(state, view)
     for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
-      g.fillStyle(GROUND.grass[(col + row) % 2]!, 1).fillPoints(points(footprintDiamond(col, row, 1)), true)
+      if (tiles.grass.length > 0) {
+        const t = cellTop(col, row)
+        tile(`ground.grass.${(col * 7 + row * 13) % tiles.grass.length}`, t.x - 8, t.y)
+      } else {
+        g.fillStyle(GROUND.grass[(col + row) % 2]!, 1).fillPoints(points(footprintDiamond(col, row, 1)), true)
+      }
     }
-    for (const t of lockedTiles(state, view)) {
-      g.fillStyle(GROUND.fog[(t.col + t.row) % 2]!, 1).fillPoints(points(footprintDiamond(t.col, t.row, 1)), true)
+    for (const c of lockedTiles(state, view)) {
+      if (tiles.fog) {
+        const t = cellTop(c.col, c.row)
+        tile('ground.fog', t.x - 8, t.y)
+      } else {
+        g.fillStyle(GROUND.fog[(c.col + c.row) % 2]!, 1).fillPoints(points(footprintDiamond(c.col, c.row, 1)), true)
+      }
     }
   }
 

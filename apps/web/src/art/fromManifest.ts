@@ -5,6 +5,9 @@ export interface ManifestEntry { file: string; w: number; h: number; frames: num
 /** `public/art/<version>/manifest.json`; keys documented in docs/superpowers/plans/2026-10-28-web-client.md Task 2. */
 export interface Manifest { assets: Record<string, ManifestEntry> }
 
+/** Manifest keys the HUD reads (docs/art/hud-art-list.md). */
+const HUD_KEY = /^(icon\.[a-z]+\.(16|32)|ui\..+)$/
+
 const CROPS: CropId[] = ['sprout', 'bushel', 'harvest', 'bounty']
 
 /** Builds the typed art set; any key the manifest lacks becomes an empty sprite at its slot's default size. */
@@ -14,6 +17,8 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     if (!e) return { src: '', ...(typeof slot === 'string' ? SLOT_SIZES[slot] : slot), frames: 1, fps: 0 }
     return { src: `/art/${version}/${e.file}`, w: e.w, h: e.h, frames: e.frames, fps: e.fps, ...(e.top !== undefined ? { top: e.top } : {}) }
   }
+  /** A sprite only when the manifest has the key. */
+  const present = (key: string): Sprite | null => (manifest.assets[key] ? get(key, 'icon') : null)
   const perElement = (prefix: string, slot: SlotName): Record<Element, Sprite> =>
     Object.fromEntries(ELEMENTS.map(el => [el, get(`${prefix}.${el}`, slot)])) as Record<Element, Sprite>
 
@@ -41,5 +46,11 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     obstacle: Object.fromEntries((Object.keys(OBSTACLES) as ObstacleKind[]).map(k => [k, get(`obstacle.${k}`, footprintPx(OBSTACLES[k].size))])) as Record<ObstacleKind, Sprite>,
     decoration: Object.fromEntries((Object.keys(DECORATIONS) as DecorationId[]).map(d => [d, get(`decoration.${d}`, footprintPx(DECORATIONS[d].size))])) as Record<DecorationId, Sprite>,
     map: Object.fromEntries(ISLAND_ORDER.map(i => [i, get(`map.${i}`, 'map')])) as Record<IslandId, Sprite>,
+    fx: { construction: get('fx.construction', 'fxConstruction'), hatch: get('fx.hatch', 'fxHatch') },
+    ground: {
+      grass: [0, 1, 2].map(i => present(`ground.grass.${i}`)).filter((g): g is Sprite => g !== null),
+      fog: present('ground.fog'), water: present('ground.water'), cliffSw: present('ground.cliff.sw'), cliffSe: present('ground.cliff.se'),
+    },
+    hud: Object.fromEntries(Object.keys(manifest.assets).filter(k => HUD_KEY.test(k)).map(k => [k, get(k, 'icon')])),
   }
 }

@@ -22,7 +22,7 @@ const PANEL_EDGE = '#3b4680'
 export type FallbackSlot =
   | 'egg' | 'hatchling' | 'dragon' | 'habitat' | 'nest' | 'hatchery' | 'farmPlot' | 'crop' | 'hoard'
   | 'icon' | 'panel' | 'button' | 'cursor' | 'island'
-  | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'map'
+  | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'map' | 'fx'
 
 export const fallbackKey = (slot: FallbackSlot, element?: Element): string =>
   element ? `fallback:${slot}:${element}` : `fallback:${slot}`
@@ -170,6 +170,15 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
     case 'map': {
       ellipse(w / 2, h * 0.7, w * 0.42, h * 0.14, '#5e3a1d')
       ellipse(w / 2, h * 0.6, w * 0.4, h * 0.14, p.base)
+      return
+    }
+    case 'fx': {
+      // Dust puffs and a small hammer: reads as work going on, or a burst, until the animated sheets exist.
+      ellipse(w * 0.3, h * 0.78, w * 0.16, h * 0.1, '#d8cbb0')
+      ellipse(w * 0.68, h * 0.8, w * 0.14, h * 0.09, '#c9bb9c')
+      px(w * 0.47, h * 0.25, w * 0.08, h * 0.45, WOOD) // handle
+      px(w * 0.34, h * 0.18, w * 0.34, h * 0.12, STONE) // head
+      px(w * 0.36, h * 0.2, w * 0.3, h * 0.04, p.light)
       return
     }
     case 'island': {

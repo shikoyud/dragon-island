@@ -15,7 +15,7 @@ describe('artEntries', () => {
     expect(keys).toContain(textureKey('island.base'))
     expect(new Set(keys).size).toBe(keys.length)
     // base: 9 eggs + 9 hatchlings + 9 dragons + 9 habitats + 9 icons + ...; plus nexus, 15 decorations, 5 obstacles, 6 map icons, locked + sign; was: 3 buildings + 4 crops + hoard + 9 icons + 3 ui + island
-    expect(rows).toHaveLength(9 * 5 + 3 + 4 + 1 + 3 + 1 + 1 + 15 + 5 + 6 + 2)
+    expect(rows).toHaveLength(9 * 5 + 3 + 4 + 1 + 3 + 1 + 1 + 15 + 5 + 6 + 2 + 2) // + fx.construction, fx.hatch
     expect(rows.find(r => r.key === textureKey('dragon.ice'))!.element).toBe('ice')
     expect(rows.find(r => r.key === textureKey('egg.dark'))!.slot).toBe('egg')
   })
@@ -64,5 +64,47 @@ describe('playOrStill', () => {
     const b = stubSprite(true)
     playOrStill(b.sprite, 'art:egg.fire', 6, 8, false)
     expect(b.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('HUD, ground and fx art keys', () => {
+  const manifest = {
+    assets: {
+      'fx.construction': { file: 'fx-construction.png', w: 32, h: 32, frames: 4, fps: 8 },
+      'ground.grass.0': { file: 'ground-grass-0.png', w: 16, h: 8, frames: 1, fps: 0 },
+      'ground.grass.2': { file: 'ground-grass-2.png', w: 16, h: 8, frames: 1, fps: 0 },
+      'ground.water': { file: 'ground-water.png', w: 32, h: 16, frames: 4, fps: 6 },
+      'icon.gold.32': { file: 'icon-gold-32.png', w: 32, h: 32, frames: 1, fps: 0 },
+      'ui.button.round': { file: 'ui-button-round.png', w: 48, h: 48, frames: 1, fps: 0 },
+    },
+  }
+
+  it('maps fx sheets and falls back to drawn ones at their default sizes', () => {
+    const art = artSetFromManifest('v9', manifest, LAUNCH_CATALOG)
+    expect(art.fx.construction).toMatchObject({ src: '/art/v9/fx-construction.png', frames: 4, fps: 8 })
+    expect(art.fx.hatch).toMatchObject({ src: '', w: 48, h: 48 })
+    const keys = artEntries(art).map(r => r.key)
+    expect(keys).toContain(textureKey('fx.construction'))
+    expect(keys).toContain(textureKey('fx.hatch'))
+    expect(artEntries(FALLBACK_ART).find(r => r.key === textureKey('fx.hatch'))!.slot).toBe('fx')
+  })
+
+  it('keeps only the ground tiles the manifest has, and loads only those', () => {
+    const art = artSetFromManifest('v9', manifest, LAUNCH_CATALOG)
+    expect(art.ground.grass.map(g => g.src)).toEqual(['/art/v9/ground-grass-0.png', '/art/v9/ground-grass-2.png'])
+    expect(art.ground.water).toMatchObject({ frames: 4, fps: 6 })
+    expect(art.ground.fog).toBeNull()
+    const keys = artEntries(art).map(r => r.key)
+    expect(keys).toContain(textureKey('ground.grass.0'))
+    expect(keys).toContain(textureKey('ground.water'))
+    expect(keys).not.toContain(textureKey('ground.fog'))
+    expect(FALLBACK_ART.ground).toEqual({ grass: [], fog: null, water: null, cliffSw: null, cliffSe: null })
+  })
+
+  it('collects present icon.* and ui.* keys for the HUD', () => {
+    const art = artSetFromManifest('v9', manifest, LAUNCH_CATALOG)
+    expect(art.hud['icon.gold.32']).toMatchObject({ src: '/art/v9/icon-gold-32.png', w: 32 })
+    expect(art.hud['ui.button.round']).toMatchObject({ src: '/art/v9/ui-button-round.png' })
+    expect(art.hud['icon.food.32']).toBeUndefined()
   })
 })

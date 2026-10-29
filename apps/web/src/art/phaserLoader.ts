@@ -34,6 +34,12 @@ export function artEntries(art: GameArtSet): Entry[] {
   add('island.locked', art.island.locked, 'locked')
   add('island.sign', art.island.sign, 'sign')
   art.island.layers.forEach((s, i) => add(`island.layer.${i}`, s, 'island', 'water'))
+  add('fx.construction', art.fx.construction, 'fx', 'earth')
+  add('fx.hatch', art.fx.hatch, 'fx', 'light')
+  // Ground tiles load only when they exist: without them the island scene draws its own diamonds.
+  const ground = art.ground
+  ground.grass.forEach((s, i) => add(`ground.grass.${i}`, s, 'island', 'nature'))
+  for (const [k, s] of [['fog', ground.fog], ['water', ground.water], ['cliff.sw', ground.cliffSw], ['cliff.se', ground.cliffSe]] as const) if (s) add(`ground.${k}`, s, 'island', 'earth')
   return rows
 }
 

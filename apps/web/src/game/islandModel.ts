@@ -258,7 +258,15 @@ export function buildIslandModel(
   }
 
   // Stable sort: back to front in isometric depth, ties keep insertion order.
-  for (const g of groups.sort(depthOrder)) objects.push(...g.objects)
+  // A building under construction gets the construction effect on its footprint's centre, drawn just after it.
+  for (const g of groups.sort(depthOrder)) {
+    for (const o of g.objects) {
+      objects.push(o)
+      if (o.tint === 'building') {
+        objects.push({ id: `fx:${o.id}`, key: textureKey('fx.construction'), sprite: art.fx.construction, x: o.x, y: o.y - g.size * 4, target: o.target })
+      }
+    }
+  }
 
   if (placing) {
     const placement: Placement = { island: view, col: placing.col, row: placing.row, facing: placing.facing }

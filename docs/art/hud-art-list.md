@@ -13,9 +13,9 @@ Style: the v1 set's palette and 1 px dark outline, transparent background, origi
 | `ground.grass.0` | 16x8 | 1 | 0 | Grass diamond, base shade; must tile seamlessly with its neighbours on all four edges |
 | `ground.grass.1` | 16x8 | 1 | 0 | Grass diamond variant: a few lighter blades |
 | `ground.grass.2` | 16x8 | 1 | 0 | Grass diamond variant: a tiny flower or pebble |
-| `ground.cliff.sw` | 16x16 | 1 | 0 | Cliff face under one south-west edge cell: a 16 px slanted strip (top edge follows the diamond's lower-left side), grass lip, earth strata |
-| `ground.cliff.se` | 16x16 | 1 | 0 | Same for a south-east edge cell, lit side (lighter earth) |
-| `ground.water` | 32x16 | 4 | 6 | Sea diamond tile around the island, gentle wave shimmer loop; tiles seamlessly |
+| `ground.cliff.sw` | 8x16 | 1 | 0 | Cliff face under one cell of the south-west edge: an 8 px wide strip whose top edge slopes down 4 px left to right (the diamond's lower-left side), grass lip, earth strata; repeats along the edge |
+| `ground.cliff.se` | 8x16 | 1 | 0 | Same under one cell of the south-east edge (top edge slopes up 4 px left to right), lit side, lighter earth |
+| `ground.water` | 32x16 | 4 | 6 | Sea around the island, gentle wave shimmer loop; a rectangle that repeats seamlessly in both directions |
 | `ground.fog` | 16x8 | 1 | 0 | Locked land: soft white-grey cloud diamond that hides the ground; tiles seamlessly |
 | `island.sign` | 32x32 | 1 | 0 | Expansion sign on the next strip (exists in v1; redraw in iso three-quarter view if it looks flat) |
 
