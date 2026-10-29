@@ -29,17 +29,6 @@ describe('collectGold', () => {
   })
 })
 
-describe('upgradeHabitat', () => {
-  it('upgrades for gold until max level', () => {
-    const a = ok(run(s, { type: 'upgradeHabitat', habitatId: 'h1' }, 0))
-    expect([a.gold, a.habitats[0]!.level]).toEqual([0, 2])
-    err(run(a, { type: 'upgradeHabitat', habitatId: 'h1' }, 0), 'INSUFFICIENT_GOLD')
-    const max = { ...s, gold: 1e9, habitats: s.habitats.map(h => ({ ...h, level: 5 })) }
-    err(run(max, { type: 'upgradeHabitat', habitatId: 'h1' }, 0), 'MAX_LEVEL')
-    err(run(s, { type: 'upgradeHabitat', habitatId: 'h9' }, 0), 'NOT_FOUND')
-  })
-})
-
 describe('moveDragon', () => {
   it('requires a matching element', () => {
     err(run(s, { type: 'moveDragon', dragonId: 'd1', habitatId: 'h2' }, 0), 'ELEMENT_MISMATCH')

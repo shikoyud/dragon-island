@@ -16,8 +16,11 @@ export function isValidAction(a: unknown): a is Action {
   const x = a as Record<string, unknown>
   switch (x['type']) {
     case 'collectGold':
-    case 'upgradeHabitat':
       return isId(x['habitatId'])
+    case 'startUpgrade':
+      return isBuildingRef(x['building'])
+    case 'finishConstruction':
+      return isIndex(x['index'])
     case 'placeBuilding':
       return isPlaceable(x['building']) && isPlacement(x['placement'])
     case 'moveBuilding':
@@ -71,6 +74,17 @@ function isPlaceable(v: unknown): boolean {
     case 'nexus':
     case 'farm': return true
     case 'decoration': return typeof b['decoration'] === 'string' && Object.hasOwn(DECORATIONS, b['decoration'])
+    default: return false
+  }
+}
+function isBuildingRef(v: unknown): boolean {
+  if (typeof v !== 'object' || v === null) return false
+  const t = v as Record<string, unknown>
+  switch (t['type']) {
+    case 'habitat': return isId(t['id'])
+    case 'farm':
+    case 'nest': return isIndex(t['index'])
+    case 'hatchery': return true
     default: return false
   }
 }

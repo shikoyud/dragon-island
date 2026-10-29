@@ -64,10 +64,11 @@ describe('sell counter is monotonic across a clock regression', () => {
 describe('habitats collect before anything changes their income', () => {
   const tenMin = 10 * 60_000
 
-  it('upgrade does not retroactively raise the cap', () => {
+  it('finishing an upgrade collects at the old rate first', () => {
     const idle = { ...s, gold: 10_000, dragons: [fire('d1', 'h1', 10), s.dragons[1]!] }
     const now = 1000 * 60_000
-    const up = ok(run(idle, { type: 'upgradeHabitat', habitatId: 'h1' }, now))
+    const started = ok(run(idle, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    const up = ok(run(started, { type: 'finishConstruction', index: 0 }, now))
     expect(up.eligibleGold).toBe(500)
     expect(ok(run(up, { type: 'collectGold', habitatId: 'h1' }, now)).eligibleGold).toBe(500)
   })

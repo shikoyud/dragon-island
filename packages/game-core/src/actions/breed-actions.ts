@@ -1,5 +1,5 @@
 import { rollOffspring } from '../breeding'
-import { hatcherySlots } from '../buildings'
+import { hatcherySlots, nestBreedMs } from '../buildings'
 import { getSpecies } from '../catalog'
 import { isUnderConstruction } from '../construction'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
@@ -22,7 +22,7 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const boost = s.oddsBoosts > 0
   const roll = rollOffspring(pa, pb, { boost, pity: s.pity }, ctx.catalog, ctx.rng)
   const rarity = getSpecies(ctx.catalog, roll.speciesId).rarity
-  const readyAtMs = ctx.nowMs + (s.tutorial.breedDone ? RARITY[rarity].breedMs : TUTORIAL_TIMER_MS)
+  const readyAtMs = ctx.nowMs + (s.tutorial.breedDone ? nestBreedMs(RARITY[rarity].breedMs, s.nests[nest]!.level) : TUTORIAL_TIMER_MS)
   const next = {
     ...s,
     nests: s.nests.map((n, i) => i === nest ? { ...n, egg: { speciesId: roll.speciesId, readyAtMs } } : n),

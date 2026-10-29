@@ -1,7 +1,7 @@
 import { getSpecies, type Catalog } from '../catalog'
 import { foodToNextLevel, MAX_DRAGON_LEVEL } from '../dragon'
 import { isUnderConstruction } from '../construction'
-import { canLiveIn, HABITAT_LEVELS, habitatSlots, residents, storedGold } from '../habitat'
+import { canLiveIn, habitatSlots, residents, storedGold } from '../habitat'
 import { addXp } from '../progression'
 import { RARITY } from '../rarity'
 import type { PlayerState } from '../state'
@@ -29,16 +29,6 @@ export function collectDragonHome(s: PlayerState, dragonId: string, c: Catalog, 
 export const collectGold: Handler<'collectGold'> = (s, a, ctx) => {
   if (!s.habitats.some(h => h.id === a.habitatId)) return failure('NOT_FOUND')
   return success(collectHabitat(s, a.habitatId, ctx.catalog, ctx.nowMs))
-}
-
-export const upgradeHabitat: Handler<'upgradeHabitat'> = (s, a, ctx) => {
-  const h = s.habitats.find(x => x.id === a.habitatId)
-  if (!h) return failure('NOT_FOUND')
-  const cost = HABITAT_LEVELS[h.level - 1]!.upgradeCost
-  if (cost === null) return failure('MAX_LEVEL')
-  const paid = spendGold(collectHabitat(s, h.id, ctx.catalog, ctx.nowMs), cost)
-  if (!paid) return failure('INSUFFICIENT_GOLD')
-  return success({ ...paid, habitats: paid.habitats.map(x => x.id === h.id ? { ...x, level: x.level + 1 } : x) })
 }
 
 export const moveDragon: Handler<'moveDragon'> = (s, a, ctx) => {

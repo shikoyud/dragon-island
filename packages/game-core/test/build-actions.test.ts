@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { applyAction } from '../src/actions/apply'
 import type { Action } from '../src/actions/types'
 import { isValidAction } from '../src/index'
+import { getSpecies } from '../src/catalog'
+import { hatcherySlots, nestBreedMs } from '../src/buildings'
+import { RARITY } from '../src/rarity'
 import { createRng } from '../src/rng'
 import { newPlayer, type PlayerState } from '../src/state'
 import { FIXTURE_CATALOG } from './fixtures'
@@ -105,5 +108,60 @@ describe('Dawnspire-only buildings stay on Dawnspire', () => {
     expect(isValidAction({ type: 'placeBuilding', building: { kind: 'habitat', element: 'plasma' }, placement: P(0, 0) })).toBe(false)
     expect(isValidAction({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...P(0, 0), facing: 4 } })).toBe(false)
     expect(isValidAction({ type: 'moveBuilding', target: { type: 'moon' }, placement: P(0, 0) })).toBe(false)
+  })
+})
+
+describe('startUpgrade / finishConstruction', () => {
+  it('upgrades a habitat on a timer and applies it at finish, collecting first', () => {
+    const t = { ...s, gold: 2_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }
+    const a = ok(run(t, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    expect([a.gold, a.habitats[0]!.level, a.constructions[0]]).toEqual([1_000, 1, { kind: 'upgrade', building: { type: 'habitat', id: 'h1' }, readyAtMs: 600_000 }])
+    err(run(a, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'UNDER_CONSTRUCTION')
+    err(run(a, { type: 'finishConstruction', index: 0 }, 599_999), 'NOT_READY')
+    const b = ok(run(a, { type: 'finishConstruction', index: 0 }, 600_000))
+    expect([b.habitats[0]!.level, b.constructions, b.gold, b.eligibleGold]).toEqual([2, [], 1_020, 20])
+  })
+  it('gates habitat level 3 at player level 5', () => {
+    const l2 = { ...s, gold: 10_000, habitats: s.habitats.map(h => ({ ...h, level: 2 })) }
+    err(run(l2, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'LEVEL_TOO_LOW')
+    expect(ok(run({ ...l2, level: 5 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0)).gold).toBe(5_000)
+  })
+  it('reports NOT_FOUND, MAX_LEVEL, INSUFFICIENT_GOLD and BUILDERS_BUSY in order', () => {
+    err(run(s, { type: 'startUpgrade', building: { type: 'habitat', id: 'h9' } }, 0), 'NOT_FOUND')
+    err(run(s, { type: 'startUpgrade', building: { type: 'nest', index: 3 } }, 0), 'NOT_FOUND')
+    const max = { ...s, gold: 1e9, habitats: s.habitats.map(h => ({ ...h, level: 5 })) }
+    err(run(max, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'MAX_LEVEL')
+    err(run({ ...s, gold: 10 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'INSUFFICIENT_GOLD')
+    const busy = { ...s, gold: 5_000, constructions: [0, 1].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 9 })) }
+    err(run(busy, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'BUILDERS_BUSY')
+  })
+  it('a clock behind readyAtMs is NOT_READY and finishing is idempotent by index', () => {
+    const a = ok(run({ ...s, gold: 2_000 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 50_000))
+    err(run(a, { type: 'finishConstruction', index: 0 }, 10_000), 'NOT_READY')
+    const b = ok(run(a, { type: 'finishConstruction', index: 0 }, 65_000))
+    err(run(b, { type: 'finishConstruction', index: 0 }, 65_000), 'NOT_FOUND')
+  })
+  it('finishing a build only removes the construction', () => {
+    const a = ok(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'earth' }, placement: P(6, 7) }, 0))
+    const b = ok(run(a, { type: 'finishConstruction', index: 0 }, 15_000))
+    expect([b.constructions, b.habitats.length, b.habitats[2]!.level]).toEqual([[], 3, 1])
+  })
+  it('validates the new actions', () => {
+    expect(isValidAction({ type: 'startUpgrade', building: { type: 'hatchery' } })).toBe(true)
+    expect(isValidAction({ type: 'startUpgrade', building: { type: 'hoard' } })).toBe(false)
+    expect(isValidAction({ type: 'finishConstruction', index: 0 })).toBe(true)
+    expect(isValidAction({ type: 'finishConstruction', index: -1 })).toBe(false)
+  })
+  it('farm, nest and hatchery levels change yields, breed time and slots', () => {
+    const t = { ...s, level: 30, gold: 200_000, tutorial: { breedDone: true, hatchDone: true, buildsStarted: 2 } }
+    const f = ok(run(ok(run(t, { type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 0)), { type: 'finishConstruction', index: 0 }, 900_000))
+    const planted = ok(run({ ...f, farms: f.farms.map((p, i) => i === 0 ? { ...p, crop: 'bounty' as const, readyAtMs: 0 } : p) }, { type: 'harvest', plot: 0 }, 900_000))
+    expect(planted.food - f.food).toBe(3_450)
+    const n = ok(run(ok(run(t, { type: 'startUpgrade', building: { type: 'nest', index: 0 } }, 0)), { type: 'finishConstruction', index: 0 }, 7_200_000))
+    const parents = n.dragons.map(d => ({ ...d, level: 4 }))
+    const bred = ok(run({ ...n, dragons: parents }, { type: 'startBreed', parentA: 'd1', parentB: 'd2' }, 7_200_000))
+    expect(bred.nests[0]!.egg!.readyAtMs - 7_200_000).toBe(nestBreedMs(RARITY[getSpecies(FIXTURE_CATALOG, bred.nests[0]!.egg!.speciesId).rarity].breedMs, 2))
+    const h = ok(run(ok(run(t, { type: 'startUpgrade', building: { type: 'hatchery' } }, 0)), { type: 'finishConstruction', index: 0 }, 7_200_000))
+    expect(hatcherySlots(h.hatcheryLevel)).toBe(4)
   })
 })

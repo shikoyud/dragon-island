@@ -17,7 +17,8 @@ export type Action =
   | { type: 'placeBuilding'; building: Placeable; placement: Placement }
   | { type: 'moveBuilding'; target: MovableRef; placement: Placement }
   | { type: 'removeDecoration'; id: string }
-  | { type: 'upgradeHabitat'; habitatId: string }
+  | { type: 'startUpgrade'; building: BuildingRef }
+  | { type: 'finishConstruction'; index: number }
   | { type: 'moveDragon'; dragonId: string; habitatId: string }
   | { type: 'feed'; dragonId: string }
   | { type: 'sellDragon'; dragonId: string }

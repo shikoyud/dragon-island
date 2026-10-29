@@ -1,3 +1,4 @@
+import { farmFood } from '../buildings'
 import { isUnderConstruction } from '../construction'
 import { CROPS } from '../farm'
 import { spendGold } from '../wallet'
@@ -21,5 +22,5 @@ export const harvest: Handler<'harvest'> = (s, a, ctx) => {
   if (plot.crop === null) return failure('PLOT_EMPTY')
   if (ctx.nowMs < plot.readyAtMs) return failure('NOT_READY')
   const farms = s.farms.map((p, i) => i === a.plot ? { ...p, crop: null, readyAtMs: 0 } : p)
-  return success({ ...s, food: s.food + CROPS[plot.crop].food, farms })
+  return success({ ...s, food: s.food + farmFood(CROPS[plot.crop].food, plot.level), farms })
 }
