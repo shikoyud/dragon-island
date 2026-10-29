@@ -28,7 +28,7 @@ export interface ChainClient {
   vaultPaused(): Promise<boolean>
   /** The voucher signer the vault accepts. */
   vaultSigner(): Promise<Address>
-  /** The vault's WYRM balance (ERC-20 balanceOf on the token); needs the token address configured. */
+  /** The vault's DRIS balance (ERC-20 balanceOf on the token); needs the token address configured. */
   vaultTokenBalance(): Promise<bigint>
 }
 

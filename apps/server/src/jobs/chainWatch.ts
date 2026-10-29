@@ -48,7 +48,7 @@ export interface ChainWatchDeps {
 }
 
 const PREFIX = '[Dragon Island chain watch]'
-const fmt = (wei: bigint) => `${formatUnits(wei, 18)} WYRM`
+const fmt = (wei: bigint) => `${formatUnits(wei, 18)} DRIS`
 
 /**
  * One pass over the vault's health rules. Each rule alerts once when its condition becomes true
