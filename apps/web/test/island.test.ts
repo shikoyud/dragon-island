@@ -36,7 +36,7 @@ describe('island model', () => {
     expect(timerLabel(90_000, 0)).toBe('2m')
   })
 
-  it('places a waiting hatchling in the hatchery with a no-room badge and never overlaps dragons', () => {
+  it('places a waiting hatchling in the hatchery, badges the hatchery no room and never overlaps dragons', () => {
     const base = newPlayer(0)
     const waiting: Dragon = { id: 'd9', speciesId: 'fire', level: 1, habitatId: null }
     const three: Dragon[] = ['d3', 'd4', 'd5'].map(id => ({ id, speciesId: 'fire', level: 1, habitatId: 'h1' }))
@@ -50,8 +50,17 @@ describe('island model', () => {
     expect(Math.abs(wait.x - hatch.x)).toBeLessThanOrEqual(32)
     expect(wait.scale).toBe(0.25)
     expect(wait.y).toBeLessThan(hatch.y)
-    expect(wait.badge).toBe('no room')
+    expect(wait.badge).toBeUndefined()
+    expect(hatch.badge).toBe('no room')
     expect(wait.key).toBe(textureKey('hatchling.fire'))
+  })
+
+  it('gives the hatchery one badge with its soonest egg timer instead of one per egg', () => {
+    const s = { ...newPlayer(0), hatcheryLevel: 3, hatchery: [{ speciesId: 'water', readyAtMs: 3_600_000 }, { speciesId: 'fire', readyAtMs: 540_000 }, { speciesId: 'nature', readyAtMs: 1_200_000 }] }
+    const { objects } = model(s, 0)
+    expect(objects.find(o => o.id === 'hatchery')!.badge).toBe('9m')
+    expect(objects.filter(o => o.id.startsWith('hatchery:')).map(o => o.badge)).toEqual([undefined, undefined, undefined])
+    expect(model(newPlayer(0)).objects.find(o => o.id === 'hatchery')!.badge).toBeUndefined()
   })
 
   it('shows the hoard, hatchery eggs and crops with growth', () => {
@@ -64,7 +73,8 @@ describe('island model', () => {
     expect(markers.hoard).toBe(true)
     expect(objects.find(o => o.id === 'hoard')!.badge).toBe('Hoard 2')
     expect(markers.hatchery).toEqual([{ slot: 0 }])
-    expect(objects.find(o => o.id === 'hatchery:0')!.badge).toBe('ready')
+    expect(objects.find(o => o.id === 'hatchery:0')!.badge).toBeUndefined()
+    expect(objects.find(o => o.id === 'hatchery')!.badge).toBe('ready')
     expect(objects.find(o => o.id === 'hatchery:0')!.scale).toBe(0.25) // sits in a niche of the hatchery
     const crop = objects.find(o => o.id === 'crop:0')!
     expect(crop.scale).toBeCloseTo(0.75, 5) // half grown

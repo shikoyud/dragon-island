@@ -194,15 +194,22 @@ export function buildIslandModel(
     let spot = 0
     state.hatchery.forEach((egg, slot) => {
       const el = getSpecies(catalog, egg.speciesId).elements[0]!
-      group.push({ id: `hatchery:${slot}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], ...hatcherySpot(a, spot++), scale: HATCHERY_ITEM_SCALE, target: { kind: 'hatchery', slot }, badge: timerLabel(egg.readyAtMs, nowMs) })
+      group.push({ id: `hatchery:${slot}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], ...hatcherySpot(a, spot++), scale: HATCHERY_ITEM_SCALE, target: { kind: 'hatchery', slot } })
       markers.hatchery.push({ slot })
     })
     for (const d of state.dragons.filter(x => x.habitatId === null)) {
       const el = getSpecies(catalog, d.speciesId).elements[0]!
       const at = hatcherySpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel) - 1))
-      group.push({ id: `dragon:${d.id}`, key: textureKey(`hatchling.${el}`), sprite: art.hatchling[el], ...at, scale: HATCHERY_ITEM_SCALE, target: { kind: 'dragon', id: d.id }, badge: 'no room' })
+      group.push({ id: `dragon:${d.id}`, key: textureKey(`hatchling.${el}`), sprite: art.hatchling[el], ...at, scale: HATCHERY_ITEM_SCALE, target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
       markers.waiting.push({ id: d.id, noRoom: true })
+    }
+    // One badge for the whole hatchery (per-egg badges pile up over its small niches); the panel lists each egg.
+    // A construction timer wins, then waiting hatchlings, then the soonest egg.
+    if (!group[0]!.badge) {
+      const soonest = Math.min(...state.hatchery.map(e => e.readyAtMs))
+      const badge = markers.waiting.length > 0 ? 'no room' : state.hatchery.length > 0 ? timerLabel(soonest, nowMs) : undefined
+      if (badge) group[0]!.badge = badge
     }
     add(a, group)
   }
