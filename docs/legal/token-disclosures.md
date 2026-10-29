@@ -23,9 +23,9 @@ spec still uses the old working name "Wyrmhaven" / $WYRM, which is now Dragon Is
 
 | Fact | Value | Source |
 |---|---|---|
-| Name / symbol | "Dragon Island" / "DRIS" | `DrisToken.sol` L19 |
+| Name / symbol | "Dragon Island" / "DRIS" | `DrisToken.sol` L20 |
 | Standard | ERC-20 with holder burn (`ERC20Burnable`) and EIP-2612 `permit` (OpenZeppelin v5.1.0) | `DrisToken.sol` L4-6, L11 |
-| Total supply | 1,000,000,000 DRIS (18 decimals), minted once in the constructor | `DrisToken.sol` L12, L21-23 |
+| Total supply | 1,000,000,000 DRIS (18 decimals), minted once in the constructor | `DrisToken.sol` L12, L26-28 |
 | Further minting | None: no mint function exists after construction | `DrisToken.sol` (whole file) |
 | Owner / admin | None: the token has no owner and no privileged role | `DrisToken.sol` (whole file) |
 | Upgradeability | Not upgradeable (no proxy) | `DrisToken.sol`, `DrisDeployer.sol` L39 |
@@ -35,9 +35,9 @@ spec still uses the old working name "Wyrmhaven" / $WYRM, which is now Dragon Is
 
 | Share | Amount | Recipient | Source |
 |---|---|---|---|
-| 50% | 500,000,000 DRIS | "launch" address (`LAUNCH_RECIPIENT`), intended to fund a public liquidity pool | `DrisToken.sol` L16, L21 |
-| 40% | 400,000,000 DRIS | `DrisVault` (game reward vault), minted directly to the vault's precomputed address | `DrisToken.sol` L17, L22; `DrisDeployer.sol` L36, L39-41 |
-| 10% | 100,000,000 DRIS | Team `VestingWallet` | `DrisToken.sol` L18, L23 |
+| 50% | 500,000,000 DRIS | "launch" address (`LAUNCH_RECIPIENT`), intended to fund a public liquidity pool | `DrisToken.sol` L16, L26 |
+| 40% | 400,000,000 DRIS | `DrisVault` (game reward vault), minted directly to the vault's precomputed address | `DrisToken.sol` L17, L27; `DrisDeployer.sol` L36, L39-41 |
+| 10% | 100,000,000 DRIS | Team `VestingWallet` | `DrisToken.sol` L18, L28 |
 
 - The launch recipient is a wallet, not a pool: the contracts do not create or fund a liquidity pool. Creating a
   pool (spec §13 names Uniswap v4) is a separate operational step and is **not** covered by these contracts.
@@ -87,8 +87,10 @@ off-chain on the game server; only signed withdrawal totals and burn batches rea
 
 ### No emergency exit for the 400M vault seed
 
-- The vault has **no** rescue, sweep, or owner-withdraw function. Tokens leave the vault only (a) to whoever
-  submits a valid voucher signed by the signer key, through `claim` (`DrisVault.sol` L136-155, payout L153), or
+- The vault has **no** rescue, sweep, or owner-withdraw function. Tokens leave the vault only (a) through `claim`,
+  to the address a valid signer-issued voucher was signed for: the voucher binds the claimant's own address
+  (`msg.sender` is part of the signed data, `DrisVault.sol` L138), so only that address can submit it and receive the
+  payout (`DrisVault.sol` L136-155, payout L153), or
   (b) by burning (L123, L152, L177).
 - **Project keys can still move or destroy vault tokens indirectly** (also recorded in `docs/audit/scope.md`,
   design choice 3, "Owner (Safe) compromise"):
@@ -126,7 +128,7 @@ off-chain on the game server; only signed withdrawal totals and burn batches rea
 | Operator | Game server key | Burn up to the daily limit; set the entry fee; pause. Cannot unpause or move tokens to any address. | `DrisVault.sol` L76-84, L167-179, L190, L224 |
 | Signer | Game server key | Sends no transactions itself. Its signatures authorise withdrawals to the address named in the voucher, which can be any address, within the 2%/day cap. | `DrisVault.sol` L29, L136-155 |
 | Treasury | Planned: the Safe | Receives all entry-fee ETH | `DrisVault.sol` L113, L212-216 |
-| Launch recipient | Project wallet (may be the Safe) | Receives 50% of supply; no contract powers | `DrisToken.sol` L21 |
+| Launch recipient | Project wallet (may be the Safe) | Receives 50% of supply; no contract powers | `DrisToken.sol` L26 |
 | Players | Any address | `enter`, `deposit`, `claim` (own vouchers only) | `DrisVault.sol` L109-155 |
 
 - The Safe's 2-of-3 threshold is an operational setting of the Safe, not something the DRIS contracts enforce;

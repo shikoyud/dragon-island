@@ -137,10 +137,13 @@ Entry fees in ETH go to the project treasury. The team allocation vests to the S
 
 ## 7. Countries to block (feeds `BLOCKED_COUNTRIES`)
 
-**Facts.** Planned, not built yet (Phase 7 plan, Task 8): the server will be able to refuse sign-in, actions and
-withdrawals from a list of ISO country codes, using the country header from the CDN (Cloudflare `CF-IPCountry`),
-with the list empty by default. It will be IP-based and can be bypassed with a VPN; the Terms would also prohibit
-use from blocked countries.
+**Facts.** Built (Phase 7 plan, Task 8), ships off by default: the server can refuse sign-in, actions and
+withdrawals (HTTP 451) from a list of ISO country codes, using the country header from the CDN (Cloudflare
+`CF-IPCountry`); the list is empty by default. While a list is set it fails closed: a request with no country
+header (one that did not come through Cloudflare), Cloudflare's "unknown" code `XX` and its Tor code `T1` are
+refused too. It is IP-based and can be bypassed with a VPN; the Terms also prohibit use from blocked countries.
+Withdrawals are blocked along with sign-in and play, so a player in a country added to the list later cannot
+withdraw their existing balance while the block applies.
 
 - **7.1 (A)** Which countries must be blocked for the testnet beta (likely at least comprehensively sanctioned
   jurisdictions)? `[COUNSEL: list of ISO codes]`
@@ -149,6 +152,11 @@ use from blocked countries.
 - **7.3 (M)** Is IP geo-blocking plus a Terms representation enough, or is more needed (wallet screening,
   declarations at sign-in)?
 - **7.4 (M)** Should blocking apply to the waitlist site as well?
+- **7.5 (A)** Blocking `/withdraw` for a newly blocked country strands the in-game balances (including deposited
+  tokens) of players already there. Must withdrawals stay open for them (with sanctions or wallet screening), or is
+  blocking withdrawals required? If they must stay open, for how long and on what conditions?
+- **7.6 (A)** We refuse Tor (`T1`) and unknown-country (`XX`) requests while a block list is set, since their
+  country cannot be checked. Is that required, acceptable, or should Tor users be allowed?
 
 ## 8. Age gating
 
@@ -192,13 +200,18 @@ deposits, withdrawals, paid boosts).
 
 ## 10. Terms for the beta
 
-**Facts.** The beta runs on testnet with invited players. Planned, not built yet (Phase 7 plan, Task 8): the
-server will be able to require players to accept a Terms version before acting (off by default).
+**Facts.** The beta runs on testnet with invited players. Built (Phase 7 plan, Task 8), ships off by default: the
+server can require players to accept the current Terms version before playing. Acceptance is a click-through: the
+game shows links to the Terms, Privacy Notice and Risk Disclosure and an "Accept" button, which sends the current
+version (`POST /me/terms`); the server stores only that version string against the wallet's account (no timestamp,
+no signature). Changing the version asks everyone again. Sign-in, viewing the account and withdrawals are never
+held back by it.
 
 - **10.1 (A)** Do you agree the beta should require acceptance of Terms (we recommend yes), and is the attached
   `terms-draft.md` a workable base? Which sections should be beta-only?
 - **10.2 (A)** Governing law, venue, dispute resolution (arbitration? class-action waiver?) `[COUNSEL]`.
-- **10.3 (A)** Is click-through acceptance stored by version and wallet address sufficient evidence of assent?
+- **10.3 (A)** Is click-through acceptance stored by version and wallet address sufficient evidence of assent, or
+  do you want an acceptance timestamp, or a wallet-signed acceptance message (both would be code changes)?
 - **10.4 (M)** Consumer-law points: refunds for store purchases paid in tokens, withdrawal rights for digital content
   (EU), unfair-terms rules on our right to change rules, ban and forfeit.
 

@@ -11,8 +11,11 @@ Last updated: `[DATE]` · Version `[VERSION]`
 1.1 These Terms are an agreement between you and `[COMPANY]`, `[ADDRESS]`, `[JURISDICTION]` ("we"), for the
 Dragon Island game, website, waitlist and related services (the "Service").
 
-1.2 You accept these Terms by signing the acceptance message in the game or by using the Service. If you do not
-agree, do not use the Service. The Privacy Notice and the Risk Disclosure are part of these Terms.
+1.2 You accept these Terms by selecting "Accept" on the terms prompt in the game, which records that your wallet
+address accepted this version of the Terms, or by using the Service. When we publish a new version, the game asks
+you to accept it before you can keep playing. `[COUNSEL: whether click-through acceptance is enough or a
+wallet-signed acceptance is wanted; see questions-for-counsel 10.3.]` If you do not agree, do not use the Service.
+The Privacy Notice and the Risk Disclosure are part of these Terms.
 
 ## 2. Who may use the Service
 
