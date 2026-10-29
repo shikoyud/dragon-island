@@ -112,7 +112,7 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       for (const effect of result.effects) {
         if (effect.type === 'charge') {
           if (price === null) throw new AppError(503, 'PRICE_UNAVAILABLE')
-          await charge(tx, playerId, usdToTokenWei(BigInt(effect.microUsd), price), day, `action:${action.type}`)
+          await charge(tx, clock, playerId, usdToTokenWei(BigInt(effect.microUsd), price), day, `spend:${playerId}:${nonce}`)
         } else if (effect.type === 'payout') {
           if (price === null) throw new AppError(503, 'PRICE_UNAVAILABLE')
           await creditEarned(tx, playerId, usdToTokenWei(BigInt(effect.microUsd), price), 'payout')

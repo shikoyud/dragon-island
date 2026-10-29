@@ -4,6 +4,7 @@ import type { Clock } from '../clock'
 import type { Db } from '../db/client'
 import { balances, players, sessions } from '../db/schema'
 import { AppError } from '../plugins/errors'
+import { recordInflow } from './inflows'
 
 /**
  * Spec §16: a banned account forfeits earned balances (and prizes) but may still withdraw its own
@@ -20,6 +21,7 @@ export async function banPlayer(db: Db, clock: Clock, playerId: string, reason: 
         .update(balances)
         .set({ tokenWei: b.tokenWei - forfeit, earnedWei: 0n, updatedAt: new Date(clock()) })
         .where(eq(balances.playerId, playerId))
+      await recordInflow(tx, clock, 'forfeit', forfeit, `ban:${playerId}:${clock()}`)
     }
     await tx.update(players).set({ bannedAt: new Date(clock()), banReason: reason }).where(eq(players.id, playerId))
     await tx.delete(sessions).where(eq(sessions.playerId, playerId))

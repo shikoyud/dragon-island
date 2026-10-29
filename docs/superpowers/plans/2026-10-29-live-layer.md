@@ -113,11 +113,11 @@ it('ranks at most 100 players', () => {
   ```
 - Amounts (spec §13): spend → `wei / 2n` (the burned half is not an inflow), ref `spend:<playerId>:<actionNonce>` (charge gets a `ref` param replacing `_reason`); Deposited → `amount − credited − burned`, ref `<txHash>:<logIndex>`; Claimed → `gross − net − burned`, same ref form; forfeit → the forfeited wei from `banPlayer`, ref `ban:<playerId>:<bannedAtMs>`; buyback → admin-recorded (Task 6).
 
-- [ ] **Step 1: Write failing tests** — `recordInflow` twice with one ref writes one row; `seasonInflows` sums by source; a store purchase through `POST /actions` records `spend` = half the charged wei; an indexed Deposited log (amount 100, credited 98, burned 1) records `depositFee` 1; a Claimed log (gross 100, net 95, burned 2.5 → use 1000/950/25) records `claimFee` 25; `banPlayer` with earned 7 records `forfeit` 7.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/server exec vitest run test/inflows.test.ts` — Expected: FAIL (no module / no table).
-- [ ] **Step 3: Add schema + migration, implement `inflows.ts`, wire `charge`, indexer and `banPlayer`.** Referral deduction comes in Task 4 (spend share then = `wei/2n − referralWei`).
-- [ ] **Step 4: Run the file, then** `pnpm --filter @wyrmhaven/server test` — Expected: all pass.
-- [ ] **Step 5: Commit** `git add apps/server/src/db apps/server/drizzle apps/server/src/services/inflows.ts apps/server/src/services/ledger.ts apps/server/src/services/indexer.ts apps/server/src/services/bans.ts apps/server/test/inflows.test.ts && git commit -m "feat(server): vault inflow ledger"`
+- [x] **Step 1: Write failing tests** — `recordInflow` twice with one ref writes one row; `seasonInflows` sums by source; a store purchase through `POST /actions` records `spend` = half the charged wei; an indexed Deposited log (amount 100, credited 98, burned 1) records `depositFee` 1; a Claimed log (gross 100, net 95, burned 2.5 → use 1000/950/25) records `claimFee` 25; `banPlayer` with earned 7 records `forfeit` 7.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/server exec vitest run test/inflows.test.ts` — Expected: FAIL (no module / no table).
+- [x] **Step 3: Add schema + migration, implement `inflows.ts`, wire `charge`, indexer and `banPlayer`.** Referral deduction comes in Task 4 (spend share then = `wei/2n − referralWei`).
+- [x] **Step 4: Run the file, then** `pnpm --filter @wyrmhaven/server test` — Expected: all pass.
+- [x] **Step 5: Commit** `git add apps/server/src/db apps/server/drizzle apps/server/src/services/inflows.ts apps/server/src/services/ledger.ts apps/server/src/services/indexer.ts apps/server/src/services/bans.ts apps/server/test/inflows.test.ts && git commit -m "feat(server): vault inflow ledger"`
 
 ---
 

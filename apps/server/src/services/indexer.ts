@@ -3,6 +3,7 @@ import type { ChainClient, VaultLog } from '../chain/client'
 import type { Clock } from '../clock'
 import type { Db, Tx } from '../db/client'
 import { chainEvents, indexerState, players, vouchers } from '../db/schema'
+import { recordInflow } from './inflows'
 import { creditDeposit, forceDebit } from './ledger'
 
 const KEY = 'vault'
@@ -76,11 +77,18 @@ async function applyToPlayer(tx: Tx, playerId: string, log: VaultLog, clock: Clo
     case 'Entered':
       await tx.update(players).set({ earningUnlocked: true, updatedAt: new Date(clock()) }).where(eq(players.id, playerId))
       return
-    case 'Deposited':
-      await creditDeposit(tx, playerId, BigInt(log.args['credited'] ?? '0'), log.txHash)
+    case 'Deposited': {
+      const n = (k: string) => BigInt(log.args[k] ?? '0')
+      await creditDeposit(tx, playerId, n('credited'), log.txHash)
+      // Spec §13: 2% fee, 1% burned and 1% kept by the vault = amount − credited − burned.
+      await recordInflow(tx, clock, 'depositFee', n('amount') - n('credited') - n('burned'), `${log.txHash}:${log.logIndex}`)
       return
+    }
     case 'Claimed': {
-      const cumulative = BigInt(log.args['cumulative'] ?? '0')
+      const n = (k: string) => BigInt(log.args[k] ?? '0')
+      // Spec §13: 5% fee, 2.5% burned and 2.5% kept = gross − net − burned.
+      await recordInflow(tx, clock, 'claimFee', n('gross') - n('net') - n('burned'), `${log.txHash}:${log.logIndex}`)
+      const cumulative = n('cumulative')
       const [v] = await tx
         .select()
         .from(vouchers)

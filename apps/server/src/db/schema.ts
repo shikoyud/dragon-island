@@ -26,6 +26,10 @@ export const players = pgTable('players', {
   trophies: integer('trophies').notNull().default(0),
   defenceTeam: jsonb('defence_team'),
   level: integer('level').notNull().default(1),
+  /** Referral (spec §16): who referred this player, and sign-in hashes used to refuse self-referral. */
+  referrerId: uuid('referrer_id'),
+  ipHash: text('ip_hash'),
+  deviceHash: text('device_hash'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 })
@@ -49,8 +53,39 @@ export const seasons = pgTable('seasons', {
   secretHex: text('secret_hex').notNull(),
   commitHash: text('commit_hash').notNull(),
   revealed: boolean('revealed').notNull().default(false),
+  /** Set by the season-close job once prizes are credited and trophies reset. */
+  closedAt: timestamp('closed_at', { withTimezone: true }),
   createdAt: createdAt(),
 }, t => [uniqueIndex('seasons_starts_at_unique').on(t.startsAt)])
+
+/** Spec §12: every token inflow the vault keeps, per season; 30% of the season total is the prize pool. */
+export const vaultInflows = pgTable('vault_inflows', {
+  id: bigserial('id', { mode: 'bigint' }).primaryKey(),
+  seasonId: integer('season_id').notNull().references(() => seasons.id),
+  source: text('source').notNull(), // spend | depositFee | claimFee | buyback | forfeit
+  wei: wei('wei').notNull(),
+  ref: text('ref').notNull(),
+  createdAt: createdAt(),
+}, t => [uniqueIndex('vault_inflows_source_ref').on(t.source, t.ref), index('vault_inflows_season').on(t.seasonId)])
+
+export const seasonPrizes = pgTable('season_prizes', {
+  seasonId: integer('season_id').notNull().references(() => seasons.id),
+  playerId: uuid('player_id').notNull().references(() => players.id),
+  wei: wei('wei').notNull(),
+  tier: integer('tier'),
+  rank: integer('rank'),
+  createdAt: createdAt(),
+}, t => [primaryKey({ columns: [t.seasonId, t.playerId] })])
+
+/** Spec §16: 5% of a referred player's spend, paid to the referrer from the vault's share. */
+export const referralPayouts = pgTable('referral_payouts', {
+  id: bigserial('id', { mode: 'bigint' }).primaryKey(),
+  referrerId: uuid('referrer_id').notNull().references(() => players.id),
+  referredId: uuid('referred_id').notNull().references(() => players.id),
+  wei: wei('wei').notNull(),
+  ref: text('ref').notNull().unique(),
+  createdAt: createdAt(),
+}, t => [index('referral_payouts_referrer').on(t.referrerId)])
 
 export const actionLog = pgTable('action_log', {
   id: bigserial('id', { mode: 'bigint' }).primaryKey(),

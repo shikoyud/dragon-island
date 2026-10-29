@@ -1,8 +1,10 @@
 import type { PlayerState } from '@wyrmhaven/game-core'
 import { eq, sql } from 'drizzle-orm'
+import type { Clock } from '../clock'
 import type { Db, Tx } from '../db/client'
 import { balances, spendBatches } from '../db/schema'
 import { AppError } from '../plugins/errors'
+import { recordInflow } from './inflows'
 import { tokenWeiToUsdCeil, tokenWeiToUsdFloor } from './price'
 
 /**
@@ -29,18 +31,22 @@ export async function getBalance(db: Db | Tx, playerId: string): Promise<Balance
   return b
 }
 
-/** Store spend: debit the player and add to the UTC day's batch (50% of which the burn job burns). */
-export async function charge(tx: Tx, playerId: string, wei: bigint, day: number, _reason: string): Promise<void> {
+/**
+ * Store spend: debit the player, add to the UTC day's batch (50% of which the burn job burns) and
+ * record the vault's half as a season inflow under `ref` (`spend:<playerId>:<nonce>`).
+ */
+export async function charge(tx: Tx, clock: Clock, playerId: string, wei: bigint, day: number, ref: string): Promise<void> {
   const b = await getBalance(tx, playerId)
   if (wei > b.tokenWei) throw new AppError(402, 'INSUFFICIENT_TOKENS')
   await tx
     .update(balances)
-    .set({ tokenWei: b.tokenWei - wei, spentWei: b.spentWei + wei, updatedAt: new Date() })
+    .set({ tokenWei: b.tokenWei - wei, spentWei: b.spentWei + wei, updatedAt: new Date(clock()) })
     .where(eq(balances.playerId, playerId))
   await tx
     .insert(spendBatches)
     .values({ day, spentWei: wei })
     .onConflictDoUpdate({ target: spendBatches.day, set: { spentWei: sql`${spendBatches.spentWei} + ${wei.toString()}::numeric` } })
+  await recordInflow(tx, clock, 'spend', wei / 2n, ref)
 }
 
 /** Gold sell-back payouts and season prizes: forfeitable on ban. */
