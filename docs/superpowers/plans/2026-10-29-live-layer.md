@@ -243,11 +243,11 @@ it('ranks at most 100 players', () => {
 
 **Behaviour:** token entered once (kept in `sessionStorage` `wyrm.admin`, never localStorage); tabs: Player lookup (by id or address → the summary, Ban/Unban with a reason field), Season (summary, `Close now` with a confirm, `Reveal`), Inflows (`Record buyback` form), Price (`Set price` micro-USD per token), Jobs (buttons for each registry name). Every mutation shows the response or the error code.
 
-- [ ] **Step 1: Write failing tests** — no token → form only; player lookup renders balance fields; Ban requires a reason and posts; `Close now` posts after confirm.
-- [ ] **Step 2: Run** — Expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the web suite, typecheck, build** — Expected: pass.
-- [ ] **Step 5: Commit** `git add apps/web/src apps/web/test/admin.test.tsx && git commit -m "feat(web): admin page"`
+- [x] **Step 1: Write failing tests** — no token → form only; player lookup renders balance fields; Ban requires a reason and posts; `Close now` posts after confirm.
+- [x] **Step 2: Run** — Expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the web suite, typecheck, build** — Expected: pass.
+- [x] **Step 5: Commit** `git add apps/web/src apps/web/test/admin.test.tsx && git commit -m "feat(web): admin page"`
 
 ---
 

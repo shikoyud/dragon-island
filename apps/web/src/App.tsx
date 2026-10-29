@@ -6,6 +6,7 @@ import { loadActiveArt, FALLBACK_ART } from './art/slots'
 import type { GameArtSet } from './art/types'
 import { createBridge } from './game/bridge'
 import { GameCanvas } from './game/GameCanvas'
+import { Admin } from './pages/Admin'
 import { Verify } from './pages/Verify'
 import { BattlePanel } from './panels/BattlePanel'
 import { HoardPanel } from './panels/HoardPanel'
@@ -37,6 +38,8 @@ const TOOLBAR: { id: PanelId; label: string }[] = [
 ]
 
 export function App() {
+  // The operator console is the only hash route; everything else is the game.
+  if (typeof location !== 'undefined' && location.hash === '#/admin') return <ErrorBoundary><Admin /></ErrorBoundary>
   return (
     <ErrorBoundary>
       <ToastProvider>
