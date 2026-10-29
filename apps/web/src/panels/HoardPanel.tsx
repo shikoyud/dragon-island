@@ -1,14 +1,20 @@
-import { HOARD, HOARD_MIN_PLAYER_LEVEL, MICRO_USD_PER_GOLD, priceMicroUsd, remainingSellMicroUsd } from '@wyrmhaven/game-core'
+import { FOOTPRINT, HOARD, HOARD_MIN_PLAYER_LEVEL, MICRO_USD_PER_GOLD, priceMicroUsd, remainingSellMicroUsd } from '@wyrmhaven/game-core'
 import { useState } from 'react'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
+import { useStartPlacing } from '../state/startPlacing'
 import { formatGold, formatMicroUsd } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
+import { MoveTurn } from './MoveTurn'
 
-/** Gold sell-back (spec §14): needs the entry fee paid and a Hoard; limit and remaining from game-core. */
+/**
+ * Gold sell-back (spec §14): needs the entry fee paid and a Hoard; limit and remaining from game-core.
+ * The first Hoard is placed on the home island (placement mode); later levels upgrade it in place.
+ */
 export function HoardPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => void }) {
   const me = useMe()
   const { run, pending } = useAction()
+  const startPlacing = useStartPlacing()
   const [input, setInput] = useState('')
   const s = me.data?.state
   if (!me.data || !s) return null
@@ -35,10 +41,16 @@ export function HoardPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
           id="buy-hoard"
           disabled={pending || hoardPrice === null || s.level < HOARD_MIN_PLAYER_LEVEL}
           reason={s.level < HOARD_MIN_PLAYER_LEVEL ? `Needs player level ${HOARD_MIN_PLAYER_LEVEL}` : 'Hoard is at its maximum level'}
-          onClick={() => void run({ type: 'buy', item: { kind: 'hoard' } })}
+          onClick={() => {
+            if (s.hoardLevel === 0) {
+              startPlacing({ kind: 'hoard' }, FOOTPRINT.hoard) // switches the view to home
+              onClose?.()
+            } else void run({ type: 'buy', item: { kind: 'hoard' } })
+          }}
         >
           {s.hoardLevel === 0 ? 'Build Hoard' : 'Upgrade Hoard'}{hoardPrice !== null ? ` · ${formatMicroUsd(hoardPrice)}` : ''}
         </ActionButton>
+        <MoveTurn target={{ type: 'hoard' }} />
       </div>
     </Panel>
   )

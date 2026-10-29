@@ -1,5 +1,5 @@
 import { homeStripObstacles, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
-import { screen, waitFor } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { createBridge } from '../src/game/bridge'
@@ -68,7 +68,7 @@ describe('ObstaclePanel', () => {
     expect(screen.getByText('Not enough gold')).toBeInTheDocument()
   })
 
-  it('shows timer and Skip while clearing and auto-finishes when ready', async () => {
+  it('shows timer and Skip while clearing and a manual Finish when ready', async () => {
     const s = withRock({ constructions: [{ kind: 'clear', obstacleId: 'home-s1-rock', readyAtMs: 300_000 }] })
     const h = harness(s)
     const { rerender } = h.wrap(<ObstaclePanel obstacleId="home-s1-rock" nowMs={0} />)
@@ -76,7 +76,9 @@ describe('ObstaclePanel', () => {
     await userEvent.click(screen.getByRole('button', { name: /Skip/ }))
     expect(h.action).toHaveBeenCalledWith({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, expect.any(String))
     rerender(<ObstaclePanel obstacleId="home-s1-rock" nowMs={300_000} />)
-    await waitFor(() => expect(h.action).toHaveBeenCalledWith({ type: 'finishConstruction', index: 0 }, expect.any(String)))
+    expect(h.action).toHaveBeenCalledTimes(1)
+    await userEvent.click(screen.getByRole('button', { name: 'Finish' }))
+    expect(h.action).toHaveBeenLastCalledWith({ type: 'finishConstruction', index: 0 }, expect.any(String))
   })
 })
 

@@ -1,6 +1,6 @@
 import {
   constructionFor, CROPS, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
-  OBSTACLES, placementError, residents, storedGold,
+  OBSTACLES, placementRuleError, residents, storedGold,
   type BuildingRef, type Catalog, type IslandId, type MovableRef, type Placement, type PlayerState,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
@@ -247,8 +247,7 @@ export function buildIslandModel(
 
   if (placing) {
     const placement: Placement = { island: view, col: placing.col, row: placing.row, facing: placing.facing }
-    const ignore = placing.what.kind === 'move' ? placing.what.target : undefined
-    const legal = placementError(state, placement, placing.size, ignore) === null
+    const legal = placementRuleError(state, placing.what, placement) === null
     objects.push({
       id: 'ghost', ...ghostLook(state, art, placing.what), ...anchor(placing.col, placing.row, placing.size),
       target: { kind: 'cell', col: placing.col, row: placing.row }, tint: legal ? 'ok' : 'bad', ...flip(placing.facing),

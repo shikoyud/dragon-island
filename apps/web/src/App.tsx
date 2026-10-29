@@ -9,6 +9,7 @@ import { placingAction } from './state/placing'
 import { StartPlacingProvider, type StartPlacing } from './state/startPlacing'
 import { usePlacing } from './state/usePlacing'
 import { useAction } from './state/actions'
+import { useAutoFinish } from './panels/useAutoFinish'
 import { PlacementBar } from './panels/PlacementBar'
 import { GameCanvas } from './game/GameCanvas'
 import { Admin } from './pages/Admin'
@@ -68,6 +69,7 @@ function Game() {
   const battle = useBattle()
   const { placing, view, dispatch } = usePlacing(bridge)
   const { run, pending } = useAction()
+  useAutoFinish(nowMs)
 
   useEffect(() => { void loadActiveArt().then(setArt) }, [])
   useEffect(() => {

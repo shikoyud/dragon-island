@@ -1,5 +1,5 @@
 import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
-import { screen, waitFor, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { messageFor } from '../src/api/errors'
@@ -56,11 +56,14 @@ describe('BuildShopPanel', () => {
     expect(onPlace).toHaveBeenLastCalledWith({ kind: 'hoard' }, 4)
   })
 
-  it('offers Dawnspire-only items and the Nexus only on Dawnspire', () => {
+  it('shows Dawnspire-only items and the Nexus greyed off the Dawnspire, enabled on it', () => {
     const rich = { ...base, level: 45, gold: 5_000_000 }
     const r = harness(rich).wrap(<BuildShopPanel onPlace={vi.fn()} view="home" />)
-    expect(screen.queryByRole('button', { name: /Star pool/ })).toBeNull()
-    expect(screen.queryByRole('button', { name: /Nexus/ })).toBeNull()
+    for (const name of [/Star pool/, /Dawn obelisk/, /Dragon colossus/, /Nexus/]) {
+      const b = screen.getByRole('button', { name })
+      expect(b).toBeDisabled()
+      expect(b).toHaveAccessibleDescription('Dawnspire only')
+    }
     r.unmount()
     harness(rich).wrap(<BuildShopPanel onPlace={vi.fn()} view="dawnspire" />)
     expect(screen.getByRole('button', { name: /Star pool/ })).toBeEnabled()
@@ -69,7 +72,7 @@ describe('BuildShopPanel', () => {
 })
 
 describe('UpgradeSection', () => {
-  it('shows the next level, then the timer and skip, then auto-finishes once', async () => {
+  it('shows the next level, then the timer and skip; finishing is left to the app-level finisher', async () => {
     const { wrap, action, setState } = harness({ ...base, gold: 5_000 })
     const r = wrap(<UpgradeSection building={h1} nowMs={0} />)
     expect(screen.getByText('Level 1')).toBeInTheDocument()
@@ -82,10 +85,9 @@ describe('UpgradeSection', () => {
     expect(action).not.toHaveBeenCalled()
 
     r.rerender(<UpgradeSection building={h1} nowMs={600_000} />)
-    await waitFor(() => expect(action).toHaveBeenCalledWith({ type: 'finishConstruction', index: 0 }, expect.any(String)))
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
     r.rerender(<UpgradeSection building={h1} nowMs={601_000} />)
-    r.rerender(<UpgradeSection building={h1} nowMs={602_000} />)
-    expect(action).toHaveBeenCalledTimes(1)
+    expect(action).not.toHaveBeenCalled()
   })
 
   it('starts an upgrade and a construction skip', async () => {
@@ -142,9 +144,9 @@ describe('Finish button and upgrades that keep working', () => {
     const r = wrap(<UpgradeSection building={h1} nowMs={0} />)
     expect(screen.queryByRole('button', { name: 'Finish' })).toBeNull()
     r.rerender(<UpgradeSection building={h1} nowMs={100} />)
-    await waitFor(() => expect(action).toHaveBeenCalledTimes(1)) // the one automatic attempt
+    expect(action).not.toHaveBeenCalled() // panels never send on their own
     await userEvent.click(screen.getByRole('button', { name: 'Finish' }))
-    expect(action).toHaveBeenCalledTimes(2)
+    expect(action).toHaveBeenCalledTimes(1)
     expect(action).toHaveBeenLastCalledWith({ type: 'finishConstruction', index: 0 }, expect.any(String))
   })
 
@@ -183,6 +185,8 @@ describe('PanelHost targets', () => {
     wrap(<PanelHost bridge={bridge} nowMs={0} named={null} onCloseNamed={() => {}} />)
     bridge.emit({ type: 'select', target: { kind: 'decoration', id: 'c3' } })
     await userEvent.click(await screen.findByRole('button', { name: /Remove · \+12 gold/ }))
+    expect(action).not.toHaveBeenCalled() // first click only asks
+    await userEvent.click(screen.getByRole('button', { name: /Confirm remove · \+12 gold/ }))
     expect(action).toHaveBeenCalledWith({ type: 'removeDecoration', id: 'c3' }, expect.any(String))
     expect(screen.getByRole('button', { name: 'Move' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Turn' })).toBeInTheDocument()

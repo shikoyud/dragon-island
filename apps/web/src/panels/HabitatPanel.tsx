@@ -20,7 +20,7 @@ export function HabitatPanel({ habitatId, nowMs, onClose }: { habitatId: string;
   const movable = s.dragons.filter(d => d.habitatId !== h.id && canLiveIn(getSpecies(catalog, d.speciesId), h))
 
   return (
-    <Panel title={`${h.element} habitat ${h.id}`} onClose={onClose}>
+    <Panel title={h.element === 'any' ? 'Nexus habitat' : `${h.element} habitat ${h.id}`} onClose={onClose}>
       <p>{live.length}/{level.slots} dragons · cap {formatGold(level.cap)}</p>
       <p>{formatGold(gold)} gold stored</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

@@ -11,6 +11,7 @@ import { ActionButton, Panel } from '../ui/Panel'
 const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1)
 /** "flowerPatch" -> "Flower patch". */
 const decorationName = (id: DecorationId) => cap(id.replace(/([A-Z])/g, ' $1').toLowerCase())
+const DAWNSPIRE_ONLY = 'Dawnspire only'
 
 /** Gold-and-token shop for everything that goes on the grid (spec section 8). Cards start placement. */
 export function BuildShopPanel({ onPlace, view, onClose }: { onPlace: (what: Placing['what'], size: Footprint) => void; view: IslandId; onClose?: () => void }) {
@@ -54,8 +55,8 @@ function Shop({ s, onPlace, view, onClose }: { s: PlayerState; onPlace: (what: P
           return card(`habitat-${el}`, `${cap(el)} habitat`, `${formatGold(cost)} gold`,
             atLimit ? `Reach level ${nextMultiple} for another habitat` : gold(cost, 1), { kind: 'habitat', element: el }, FOOTPRINT.habitat)
         })}
-        {view === 'dawnspire' && card('nexus', 'Nexus habitat', `${formatGold(NEXUS_COST)} gold`,
-          nexusOwned ? 'You already have the Nexus habitat.' : gold(NEXUS_COST, 1), { kind: 'nexus' }, FOOTPRINT.habitat)}
+        {card('nexus', 'Nexus habitat', `${formatGold(NEXUS_COST)} gold`,
+          view !== 'dawnspire' ? DAWNSPIRE_ONLY : nexusOwned ? 'You already have the Nexus habitat.' : gold(NEXUS_COST, 1), { kind: 'nexus' }, FOOTPRINT.habitat)}
       </>)}
       {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_PLOTS ? 'maximum' : `${formatGold(plotCost(plots))} gold`,
         plots >= MAX_PLOTS ? 'Maximum plots reached' : gold(plotCost(plots), 1), { kind: 'farm' }, FOOTPRINT.farm))}
@@ -65,12 +66,12 @@ function Shop({ s, onPlace, view, onClose }: { s: PlayerState; onPlace: (what: P
         s.level < HOARD_MIN_PLAYER_LEVEL ? `Level ${HOARD_MIN_PLAYER_LEVEL}`
           : s.hoardLevel > 0 ? 'Already built. Upgrade it in the Hoard panel.'
           : view !== 'home' ? 'The Hoard goes on the home island' : undefined, { kind: 'hoard' }, FOOTPRINT.hoard))}
-      {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[])
-        .filter(id => !DECORATIONS[id].island || DECORATIONS[id].island === view)
-        .map(id => {
-          const d = DECORATIONS[id]
-          return card(`deco-${id}`, decorationName(id), `${formatGold(d.cost)} gold`, gold(d.cost, d.minLevel), { kind: 'decoration', decoration: id }, d.size)
-        }))}
+      {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {
+        const d = DECORATIONS[id]
+        // Locked items stay visible, greyed (spec section 8): Dawnspire-only ones say so off the Dawnspire.
+        const reason = d.island && d.island !== view ? DAWNSPIRE_ONLY : gold(d.cost, d.minLevel)
+        return card(`deco-${id}`, decorationName(id), `${formatGold(d.cost)} gold`, reason, { kind: 'decoration', decoration: id }, d.size)
+      }))}
     </Panel>
   )
 }

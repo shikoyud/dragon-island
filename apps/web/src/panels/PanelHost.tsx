@@ -9,6 +9,7 @@ import { DragonPanel } from './DragonPanel'
 import { ExpandSignPanel } from './ExpandSignPanel'
 import { FarmPanel } from './FarmPanel'
 import { HabitatPanel } from './HabitatPanel'
+import { HoardPanel } from './HoardPanel'
 import { IslandMapPanel } from './IslandMapPanel'
 import { NestsPanel } from './NestsPanel'
 import { ObstaclePanel } from './ObstaclePanel'
@@ -42,7 +43,7 @@ export function PanelHost({ bridge, nowMs, named, onCloseNamed }: { bridge: Brid
     case 'farm': return <FarmPanel nowMs={nowMs} onClose={close} />
     case 'obstacle': return <ObstaclePanel obstacleId={target.id} nowMs={nowMs} onClose={close} />
     case 'expandSign': return <ExpandSignPanel onClose={close} />
-    case 'hoard':
+    case 'hoard': return <HoardPanel nowMs={nowMs} onClose={close} />
     case 'empty':
     default:
       return null

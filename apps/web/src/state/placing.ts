@@ -1,4 +1,4 @@
-import { placementError, type Facing, type Footprint, type IslandId, type Placement, type PlayerState } from '@wyrmhaven/game-core'
+import { placementRuleError, type Facing, type Footprint, type IslandId, type Placement, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import type { Placing } from '../game/bridge'
 
@@ -24,11 +24,12 @@ export function placingReducer(p: Placing | null, e: PlacingEvent): Placing | nu
 export function placingAction(s: PlayerState, view: IslandId, p: Placing): ClientAction | null {
   const placement: Placement = { island: view, col: p.col, row: p.row, facing: p.facing }
   const w = p.what
-  if (placementError(s, placement, p.size, w.kind === 'move' ? w.target : undefined) !== null) return null
+  // The same grid and island rules the server runs; level, gold and limits are the handlers' to judge.
+  if (placementRuleError(s, w, placement) !== null) return null
   switch (w.kind) {
     case 'move': return { type: 'moveBuilding', target: w.target, placement }
     case 'nest': return { type: 'buy', item: { kind: 'nest', placement } }
-    case 'hoard': return view === 'home' ? { type: 'buy', item: { kind: 'hoard', placement } } : null
+    case 'hoard': return { type: 'buy', item: { kind: 'hoard', placement } }
     default: return { type: 'placeBuilding', building: w, placement }
   }
 }
