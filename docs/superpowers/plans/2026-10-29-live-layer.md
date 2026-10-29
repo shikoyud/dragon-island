@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Seasons that actually close (prize pool from vault inflows, prizes credited, trophies reset, secret revealed), referrals with anti-abuse, a Telegram notifier, an admin surface, and the web panels that show all of it.
+**Goal:** Seasons that actually close (prize pool from vault inflows, prizes credited, trophies reset, secret revealed), referrals with anti-abuse, an admin surface, and the web panels that show all of it.
 
 **Architecture:** Prize math is pure in `game-core` (bigint wei in, per-player wei out). The server keeps a `vault_inflows` ledger every inflow source writes to, a `season_close` job that is idempotent under an advisory lock, a `referrals` service hooked into `charge`, and a `telegram` service behind a `TelegramClient` seam (fake in tests). The web client gets leaderboard, prizes, referral and Telegram UI in the existing Season panel plus a token-gated `/admin` page.
 
-**Tech Stack:** TypeScript 5.9, Vitest 5, Fastify 5 + Drizzle (PGlite in tests), zod 4, React 19, TanStack Query. No new runtime dependencies (Telegram via `fetch`).
+**Tech Stack:** TypeScript 5.9, Vitest 5, Fastify 5 + Drizzle (PGlite in tests), zod 4, React 19, TanStack Query. No new runtime dependencies.
 
-**Spec:** `docs/superpowers/specs/2026-10-28-wyrmhaven-design.md` §11 (trophy reset), §12, §13 (vault shares), §16, §17, §18 (jobs, Telegram), §21 phase 6. Inherited rulings: memory notes for Phases 2 and 4 (daily quests set, seed labels, PGlite transaction rule).
+**Spec:** `docs/superpowers/specs/2026-10-28-wyrmhaven-design.md` §11 (trophy reset), §12, §13 (vault shares), §16, §17, §18 (jobs), §21 phase 6. Inherited rulings: memory notes for Phases 2 and 4 (daily quests set, seed labels, PGlite transaction rule).
 
 ## Global Constraints
 
@@ -30,7 +30,6 @@
 2. A player banned after earning SP: no prize, and their tier share redistributes to the others → Task 1 test "banned/ineligible players are excluded before tiers are split".
 3. Fewer than 100 ranked players, or nobody reaches a tier: the unspent pot stays in the vault (not redistributed) → Task 1 test "unreached tiers and empty ranks leave wei unspent".
 4. Referral self-dealing: same IP hash or device hash, or referring yourself, or claiming a code after spending → Task 4 tests.
-5. Telegram outage: the notifier must not spam when it recovers or lose track of what was sent → Task 5 test "a failed send is retried next run; a successful one is never repeated".
 
 ---
 
@@ -98,7 +97,7 @@ it('ranks at most 100 players', () => {
 ### Task 2: Vault inflow ledger
 
 **Files:**
-- Modify: `apps/server/src/db/schema.ts` (add `vaultInflows`, `seasons.closedAt`, `seasonPrizes`, `players.referrerId/ipHash/deviceHash`, `referralPayouts`, `telegramLinks`, `telegramNotices`) — one migration for the whole phase: `pnpm --filter @wyrmhaven/server db:generate` → `apps/server/drizzle/0002_live_layer.sql`
+- Modify: `apps/server/src/db/schema.ts` (add `vaultInflows`, `seasons.closedAt`, `seasonPrizes`, `players.referrerId/ipHash/deviceHash`, `referralPayouts`) — one migration for the whole phase: `pnpm --filter @wyrmhaven/server db:generate` → `apps/server/drizzle/0002_live_layer.sql`
 - Create: `apps/server/src/services/inflows.ts`
 - Modify: `apps/server/src/services/ledger.ts` (`charge` records spend share), `apps/server/src/services/indexer.ts` (Deposited/Claimed fee shares), `apps/server/src/services/bans.ts` (forfeit)
 - Test: `apps/server/test/inflows.test.ts`
@@ -188,30 +187,7 @@ it('ranks at most 100 players', () => {
 
 ### Task 5: Telegram notifier
 
-**Files:**
-- Create: `apps/server/src/telegram/client.ts` (`TelegramClient` + `createTelegramClient(token)` over `fetch` + `FakeTelegramClient`), `apps/server/src/services/telegram.ts`, `apps/server/src/routes/telegram.ts`, `apps/server/src/jobs/telegramNotify.ts`
-- Modify: `apps/server/src/config.ts` (`TELEGRAM_BOT_TOKEN?`, `TELEGRAM_WEBHOOK_SECRET?`, `TELEGRAM_BOT_NAME?`), `apps/server/src/app.ts` (deps.telegram, routes and job only when the token is set), `packages/shared/src/api.ts`
-- Test: `apps/server/test/telegram.test.ts`
-
-**Interfaces:**
-- Schema (Task 2 migration): `telegram_links(player_id pk, chat_id text unique, linked_at)`, `telegram_link_codes(code pk, player_id, expires_at)`, `telegram_notices(player_id, kind, ref, sent_at, primary key (player_id, kind, ref))`.
-- Produces:
-  ```ts
-  export interface TelegramClient { sendMessage(chatId: string, text: string): Promise<void> }
-  export async function createLinkCode(db: Db, clock: Clock, playerId: string): Promise<{ code: string; deepLink: string }> // 8 random base32 chars, 10 min TTL, link https://t.me/<TELEGRAM_BOT_NAME>?start=<code>
-  export async function handleUpdate(db: Db, clock: Clock, tg: TelegramClient, update: unknown): Promise<void> // `/start <code>` links; `/stop` unlinks; anything else replies with help
-  /** Due notices: eggs ready (`nest:<index>:<readyAtMs>`), habitat at its gold cap (`habitat:<id>:<lastCollectedMs>`). */
-  export function dueNotices(state: PlayerState, catalog: Catalog, nowMs: number): { kind: 'eggReady' | 'habitatFull'; ref: string; text: string }[]
-  export async function runTelegramNotify(deps: { db: Db; clock: Clock; tg: TelegramClient; catalog: Catalog }): Promise<{ sent: number; failed: number }>
-  ```
-- Notice texts (ours): `Your <species> egg is ready to hatch.` / `Your <element> habitat is full (<cap> gold). Collect it!`. A notice row is inserted only after a successful send; a failed send is logged and retried next run. Job interval 60 s; only players with a link row are scanned.
-- Routes: `POST /telegram/link` (session) → `{ code, deepLink }`; `DELETE /telegram/link`; `GET /telegram/me` → `{ linked: boolean }`; `POST /telegram/webhook` requires header `x-telegram-bot-api-secret-token === TELEGRAM_WEBHOOK_SECRET`, else 401.
-
-- [ ] **Step 1: Write failing tests** — `dueNotices` on a state with one ready egg and one capped habitat returns both with stable refs and nothing when neither is due; webhook with wrong secret → 401; `/start <code>` links the chat and a second `/start` with the same code (expired/used) replies with an error text; `runTelegramNotify` sends once, "a failed send is retried next run; a successful one is never repeated" (fake throws on first call).
-- [ ] **Step 2: Run** — Expected: FAIL.
-- [ ] **Step 3: Implement** client, service, routes, job, config.
-- [ ] **Step 4: Run the file, suite, typecheck** — Expected: pass.
-- [ ] **Step 5: Commit** `git add apps/server/src/telegram apps/server/src/services/telegram.ts apps/server/src/routes/telegram.ts apps/server/src/jobs/telegramNotify.ts apps/server/src/config.ts apps/server/src/app.ts packages/shared/src/api.ts apps/server/test/telegram.test.ts && git commit -m "feat(server): Telegram link and ready-egg / full-habitat notices"`
+**Removed by the user on 2026-10-29 ("ditch the Telegram integration"). No work in this task.**
 
 ---
 
@@ -222,7 +198,7 @@ it('ranks at most 100 players', () => {
 - Test: `apps/server/test/admin-live.test.ts`
 
 **Interfaces (all under `x-admin-token`, compared with `timingSafeEqual`):**
-- `GET /admin/players/:id` → `{ player: { id, address, level, trophies, earningUnlocked, bannedAt, banReason, referrerId }, balance: { tokenWei, depositedWei, withdrawnWei, spentWei, earnedWei } as BigStrings, sp: { total, today }, telegramLinked }`
+- `GET /admin/players/:id` → `{ player: { id, address, level, trophies, earningUnlocked, bannedAt, banReason, referrerId }, balance: { tokenWei, depositedWei, withdrawnWei, spentWei, earnedWei } as BigStrings, sp: { total, today } }`
 - `GET /admin/players?address=0x…` → same shape, 404 if unknown.
 - `GET /admin/season/:id/summary` → `{ season: SeasonInfo, closedAt, inflows: bySource + totalWei, poolWei, standingsCount, prizesPaidWei }`
 - `POST /admin/inflow { source: 'buyback', wei: BigString, ref }` → records via `recordInflow` (409 on a duplicate ref).
@@ -238,24 +214,23 @@ it('ranks at most 100 players', () => {
 
 ---
 
-### Task 7: Web — season leaderboard, prizes, referral, Telegram
+### Task 7: Web — season leaderboard, prizes, referral
 
 **Files:**
-- Modify: `apps/web/src/api/client.ts` (`leaderboard(id)`, `prizeMe(id)`, `referralMe()`, `claimReferral(code)`, `telegramLink()`, `telegramUnlink()`, `telegramMe()`, send `x-device-id`), `apps/web/src/api/errors.ts` (copy for the new codes), `apps/web/src/panels/SeasonPanel.tsx`
-- Create: `apps/web/src/api/device.ts` (`deviceId()` → localStorage `wyrm.device`), `apps/web/src/panels/ReferralPanel.tsx`, `apps/web/src/panels/TelegramPanel.tsx`
-- Modify: `apps/web/src/panels/PanelHost.tsx`, `apps/web/src/App.tsx` (toolbar entries `Referral`, `Alerts`)
+- Modify: `apps/web/src/api/client.ts` (`leaderboard(id)`, `prizeMe(id)`, `referralMe()`, `claimReferral(code)`, send `x-device-id`), `apps/web/src/api/errors.ts` (copy for the new codes), `apps/web/src/panels/SeasonPanel.tsx`
+- Create: `apps/web/src/api/device.ts` (`deviceId()` → localStorage `wyrm.device`), `apps/web/src/panels/ReferralPanel.tsx`
+- Modify: `apps/web/src/panels/PanelHost.tsx`, `apps/web/src/App.tsx` (toolbar entry `Referral`)
 - Test: `apps/web/test/live.test.tsx`
 
 **Behaviour:**
 - Season panel: prize pool so far (`Tokens`), top 10 with the caller's row highlighted and `Your rank: #n` (or `Unranked`), "Last season: you won X WYRM" when `prizeMe(previous id)` is non-null; previous id = `season.id − 1` when > 0.
 - Referral panel: your code with a copy button, `n referred · earned X WYRM`, and an input + `Claim code` button that is disabled once `referrer === true`; errors shown through the toast copy map (`REFERRAL_SELF: "You can't refer yourself"`, `REFERRAL_ALREADY_SET`, `REFERRAL_AFTER_SPEND: "Referral codes must be entered before your first purchase"`, `REFERRAL_SAME_DEVICE: "That code can't be used from this device or network"`).
-- Alerts panel: when unlinked, `Link Telegram` opens `deepLink` in a new tab and polls `telegramMe` every 3 s for 2 minutes; when linked, `Unlink`. Hidden entirely when the server returns 404 for `/telegram/me` (bot not configured).
 
-- [ ] **Step 1: Write failing tests** — leaderboard renders rank rows and the caller's rank; referral code shown and claim posts the code; claim error maps to the copy; Telegram panel shows Link/Unlink by `linked`; `x-device-id` header is on every request and stable across `createApi` calls.
+- [ ] **Step 1: Write failing tests** — leaderboard renders rank rows and the caller's rank; referral code shown and claim posts the code; claim error maps to the copy; `x-device-id` header is on every request and stable across `createApi` calls.
 - [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/web exec vitest run test/live.test.tsx` — Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run the web suite, typecheck, `pnpm --filter @wyrmhaven/web build`** — Expected: pass.
-- [ ] **Step 5: Commit** `git add apps/web/src apps/web/test/live.test.tsx && git commit -m "feat(web): leaderboard, prizes, referral and Telegram panels"`
+- [ ] **Step 5: Commit** `git add apps/web/src apps/web/test/live.test.tsx && git commit -m "feat(web): leaderboard, prizes, referral panel"`
 
 ---
 
@@ -281,10 +256,10 @@ it('ranks at most 100 players', () => {
 **Files:**
 - Modify: `apps/server/src/routes/e2e.ts` (`POST /e2e/clock { nowMs }` to move the server clock in E2E mode; `POST /e2e/inflow`), `apps/server/src/index.ts` (mutable clock in E2E), `apps/web/e2e/helpers.ts`
 - Create: `apps/web/e2e/season.spec.ts`
-- Modify: `apps/web/README.md`, `apps/server/README.md` (Telegram setup: BotFather token, `setWebhook` with the secret, env names), `docs/superpowers/reports/` entry comes from the executor's final report.
+- Modify: `apps/web/README.md`, `apps/server/README.md` (admin routes, inflow bookkeeping), `docs/superpowers/reports/` entry comes from the executor's final report.
 
 - [ ] **Step 1: Write the failing e2e** — grant SP via `/e2e/grant` (extend with `sp`), record an inflow, advance the clock 15 days, run `seasonClose` via `/admin/jobs/seasonClose/run`, reload: Season panel shows "Last season: you won … WYRM" and the leaderboard shows season 2.
 - [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/web test:e2e` — Expected: the new spec fails.
 - [ ] **Step 3: Implement** the e2e routes and helpers; write the docs.
 - [ ] **Step 4: Run e2e twice, `pnpm -r test`, `pnpm -r typecheck`** — Expected: all green.
-- [ ] **Step 5: Commit** `git add apps/server/src/routes/e2e.ts apps/server/src/index.ts apps/web/e2e apps/web/README.md apps/server/README.md && git commit -m "test(e2e): season close flow; docs for Telegram and admin"`
+- [ ] **Step 5: Commit** `git add apps/server/src/routes/e2e.ts apps/server/src/index.ts apps/web/e2e apps/web/README.md apps/server/README.md && git commit -m "test(e2e): season close flow; docs for admin and inflows"`
