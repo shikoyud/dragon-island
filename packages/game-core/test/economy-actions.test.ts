@@ -109,6 +109,18 @@ describe('placed store items and construction skips', () => {
     expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 100_000 }])
     expect([ok(r).habitats[0]!.level, ok(r).constructions]).toEqual([2, []])
   })
+  it('a construction skip with a bad index is NOT_FOUND and charges nothing', () => {
+    const a = ok(run({ ...s, gold: 2_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    for (const index of [1, 99]) err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index } }, 0), 'NOT_FOUND')
+    for (const index of [-1, 0.5]) err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index } }, 0), 'INVALID_ACTION')
+    err(run(s, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 0), 'NOT_FOUND')
+  })
+  it('a construction skip on a ready construction is NOTHING_TO_SKIP', () => {
+    const a = ok(run({ ...s, gold: 2_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    const readyAt = a.constructions[0]!.readyAtMs
+    err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, readyAt), 'NOTHING_TO_SKIP')
+    err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, readyAt + 1), 'NOTHING_TO_SKIP')
+  })
   it('a construction skip frees a builder', () => {
     const t = { ...s, gold: 50_000, level: 10, tutorial: { ...s.tutorial, buildsStarted: 2 } }
     const two = ok(run(ok(run(t, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0)), { type: 'startUpgrade', building: { type: 'habitat', id: 'h2' } }, 0))

@@ -5,11 +5,12 @@ import { isUnfinished } from '../construction'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
 import { addXp } from '../progression'
 import { RARITY } from '../rarity'
+import { TUTORIAL_TIMER_MS } from '../time'
 import { collectHabitat } from './island-actions'
 import { failure, success, type Handler } from './types'
 
 export const BREED_MIN_LEVEL = 4
-export const TUTORIAL_TIMER_MS = 15_000
+export { TUTORIAL_TIMER_MS }
 
 export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const pa = s.dragons.find(d => d.id === a.parentA)

@@ -4,7 +4,8 @@ import { FARM_PLOT_BUILD_MS, NEXUS_BUILD_MS, NEXUS_COST, isUnderConstruction, ne
 import { DECORATIONS, decorationRefund } from '../decorations'
 import { MAX_PLOTS, plotCost } from '../farm'
 import { habitatBuildCost, maxHabitats } from '../habitat'
-import { FOOTPRINT, outerIslandsUnlocked, placementError, type Footprint, type OccupantRef } from '../island'
+import { outerIslandsUnlocked } from '../island'
+import { placementRuleError } from '../placement-rules'
 import type { PlayerState } from '../state'
 import { earnGold, spendGold } from '../wallet'
 import { clearReward } from '../obstacles'
@@ -14,18 +15,10 @@ import { failure, success, type Handler } from './types'
 
 export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
   const b = a.building
-  const size: Footprint = b.kind === 'decoration' ? DECORATIONS[b.decoration].size : b.kind === 'farm' ? FOOTPRINT.farm : FOOTPRINT.habitat
-  const bad = placementError(s, a.placement, size)
+  const bad = placementRuleError(s, b, a.placement)
   if (bad) return failure(bad)
-  if (b.kind === 'decoration') {
-    const d = DECORATIONS[b.decoration]
-    if (s.level < d.minLevel) return failure('LEVEL_TOO_LOW')
-    if (d.island && a.placement.island !== d.island) return failure('WRONG_ISLAND')
-  }
-  if (b.kind === 'nexus') {
-    if (a.placement.island !== 'dawnspire') return failure('WRONG_ISLAND')
-    if (s.habitats.some(h => h.element === 'any')) return failure('NEXUS_EXISTS')
-  }
+  if (b.kind === 'decoration' && s.level < DECORATIONS[b.decoration].minLevel) return failure('LEVEL_TOO_LOW')
+  if (b.kind === 'nexus' && s.habitats.some(h => h.element === 'any')) return failure('NEXUS_EXISTS')
   const habitatsOwned = s.habitats.filter(h => h.element !== 'any').length
   if (b.kind === 'habitat' && habitatsOwned >= maxHabitats(s.level, outerIslandsUnlocked(s))) return failure('HABITAT_LIMIT')
   if (b.kind === 'farm' && s.farms.length >= MAX_PLOTS) return failure('MAX_PLOTS')
@@ -59,32 +52,9 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
   return success({ ...started, habitats: [...started.habitats, habitat], nextId: s.nextId + 1 })
 }
 
-function footprintOf(s: PlayerState, t: OccupantRef): Footprint | null {
-  switch (t.type) {
-    case 'habitat': return s.habitats.some(h => h.id === t.id) ? FOOTPRINT.habitat : null
-    case 'farm': return s.farms[t.index] ? FOOTPRINT.farm : null
-    case 'nest': return s.nests[t.index] ? FOOTPRINT.nest : null
-    case 'hatchery': return FOOTPRINT.hatchery
-    case 'hoard': return s.hoardLevel > 0 && s.hoardPlacement ? FOOTPRINT.hoard : null
-    case 'decoration': {
-      const d = s.decorations.find(x => x.id === t.id)
-      return d ? DECORATIONS[d.kind].size : null
-    }
-    default: return null
-  }
-}
-
 export const moveBuilding: Handler<'moveBuilding'> = (s, a) => {
   const t = a.target
-  const size = footprintOf(s, t)
-  if (size === null) return failure('NOT_FOUND')
-  if ((t.type === 'hatchery' || t.type === 'hoard') && a.placement.island !== 'home') return failure('WRONG_ISLAND')
-  if (t.type === 'habitat' && s.habitats.find(h => h.id === t.id)!.element === 'any' && a.placement.island !== 'dawnspire') return failure('WRONG_ISLAND')
-  if (t.type === 'decoration') {
-    const only = DECORATIONS[s.decorations.find(x => x.id === t.id)!.kind].island
-    if (only && a.placement.island !== only) return failure('WRONG_ISLAND')
-  }
-  const bad = placementError(s, a.placement, size, t)
+  const bad = placementRuleError(s, { kind: 'move', target: t }, a.placement)
   if (bad) return failure(bad)
   const p = a.placement
   switch (t.type) {

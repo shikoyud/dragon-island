@@ -1,4 +1,4 @@
-import { TUTORIAL_TIMER_MS } from './actions/breed-actions'
+import { TUTORIAL_TIMER_MS } from './time'
 import type { BuildingRef, Construction, PlayerState } from './state'
 
 type NewConstruction = Construction extends infer C ? (C extends unknown ? Omit<C, 'readyAtMs'> : never) : never

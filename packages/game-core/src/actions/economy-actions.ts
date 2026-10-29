@@ -3,7 +3,7 @@ import { MAX_DRAGON_LEVEL } from '../dragon'
 import { HOARD, HOARD_MIN_PLAYER_LEVEL, MICRO_USD_PER_GOLD, remainingSellMicroUsd, sellCounterAt } from '../sell'
 import type { PlayerState } from '../state'
 import { FOOD_PACK, MAX_NESTS, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
-import { FOOTPRINT, placementError } from '../island'
+import { placementRuleError } from '../placement-rules'
 import { completeConstruction } from './build-actions'
 import { collectDragonHome } from './island-actions'
 import { failure, success, type ActionError, type Handler } from './types'
@@ -41,7 +41,7 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
     }
     case 'nest':
       if (s.nests.length >= MAX_NESTS) return 'MAX_NESTS'
-      return placementError(s, item.placement, FOOTPRINT.nest)
+      return placementRuleError(s, { kind: 'nest' }, item.placement)
     case 'levelUp': {
       const d = s.dragons.find(x => x.id === item.dragonId)
       if (!d) return 'NOT_FOUND'
@@ -52,7 +52,7 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
       if (s.level < HOARD_MIN_PLAYER_LEVEL) return 'LEVEL_TOO_LOW'
       if (s.hoardLevel > 0) return null
       if (!item.placement) return 'INVALID_ACTION'
-      return placementError(s, item.placement, FOOTPRINT.hoard) ?? (item.placement.island === 'home' ? null : 'WRONG_ISLAND')
+      return placementRuleError(s, { kind: 'hoard' }, item.placement)
     case 'foodPack':
     case 'oddsBoost':
       return null
