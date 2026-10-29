@@ -6,7 +6,7 @@ import {
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
 import type { Placing, Target } from './bridge'
-import { anchor, dragonSpot, hatcherySpot, type Pos } from './layout'
+import { anchor, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, type Pos } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
 export interface IslandObject {
@@ -194,13 +194,13 @@ export function buildIslandModel(
     let spot = 0
     state.hatchery.forEach((egg, slot) => {
       const el = getSpecies(catalog, egg.speciesId).elements[0]!
-      group.push({ id: `hatchery:${slot}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], ...hatcherySpot(a, spot++), target: { kind: 'hatchery', slot }, badge: timerLabel(egg.readyAtMs, nowMs) })
+      group.push({ id: `hatchery:${slot}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], ...hatcherySpot(a, spot++), scale: HATCHERY_ITEM_SCALE, target: { kind: 'hatchery', slot }, badge: timerLabel(egg.readyAtMs, nowMs) })
       markers.hatchery.push({ slot })
     })
     for (const d of state.dragons.filter(x => x.habitatId === null)) {
       const el = getSpecies(catalog, d.speciesId).elements[0]!
       const at = hatcherySpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel) - 1))
-      group.push({ id: `dragon:${d.id}`, key: textureKey(`hatchling.${el}`), sprite: art.hatchling[el], ...at, target: { kind: 'dragon', id: d.id }, badge: 'no room' })
+      group.push({ id: `dragon:${d.id}`, key: textureKey(`hatchling.${el}`), sprite: art.hatchling[el], ...at, scale: HATCHERY_ITEM_SCALE, target: { kind: 'dragon', id: d.id }, badge: 'no room' })
       markers.dragons.push(d.id)
       markers.waiting.push({ id: d.id, noRoom: true })
     }

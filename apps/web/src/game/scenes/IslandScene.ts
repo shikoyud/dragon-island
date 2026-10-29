@@ -160,7 +160,8 @@ export class IslandScene extends Phaser.Scene {
   }
 
   private drawBadge(o: IslandObject, badge: string): void {
-    const t = this.add.text(o.x, o.y - o.sprite.h - 2, badge, TEXT_STYLE).setOrigin(0.5, 1)
+    // Above the sprite as drawn, so scaled sprites (hatchery eggs, small crops) keep their badge close.
+    const t = this.add.text(o.x, o.y - Math.round(o.sprite.h * (o.scale ?? 1)) - 2, badge, TEXT_STYLE).setOrigin(0.5, 1)
     this.layer.add(t)
     this.drawn.push(t)
   }

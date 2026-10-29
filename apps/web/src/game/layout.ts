@@ -22,9 +22,21 @@ export function dragonSpot(a: Pos, slot: number): Pos {
   return { x: a.x - 30 + col * 20 + row * 10, y: a.y - 36 + row * 12 }
 }
 
-/** Egg and hatchling spots on the top face of the 4x4 hatchery: rows of four. */
+/** Eggs and waiting hatchlings in the hatchery are drawn at this scale so they fit its egg niches. */
+export const HATCHERY_ITEM_SCALE = 0.25
+
+/**
+ * Bottom-centre of each egg niche on the 64x64 hatchery art, from its anchor, left to right along the front
+ * arc. The art has four niches; the fifth slot (level 3) stands on the stone just right of them.
+ */
+const HATCHERY_NICHES: readonly Pos[] = [
+  { x: -15, y: -24 }, { x: -10, y: -20 }, { x: -4, y: -19 }, { x: 3, y: -19 }, { x: 10, y: -20 },
+]
+
+/** Egg and hatchling spot for a hatchery slot; slots past the last niche share it. */
 export function hatcherySpot(a: Pos, slot: number): Pos {
-  return { x: a.x - 24 + (slot % 4) * 16, y: a.y - 32 + Math.floor(slot / 4) * 12 }
+  const n = HATCHERY_NICHES[Math.min(slot, HATCHERY_NICHES.length - 1)]!
+  return { x: a.x + n.x, y: a.y + n.y }
 }
 
 /** The grid cell under a world position (floor division, so negatives fall outside the island). */

@@ -48,6 +48,7 @@ describe('island model', () => {
     const wait = dragons.find(o => o.id === 'dragon:d9')!
     const hatch = objects.find(o => o.id === 'hatchery')!
     expect(Math.abs(wait.x - hatch.x)).toBeLessThanOrEqual(32)
+    expect(wait.scale).toBe(0.25)
     expect(wait.y).toBeLessThan(hatch.y)
     expect(wait.badge).toBe('no room')
     expect(wait.key).toBe(textureKey('hatchling.fire'))
@@ -64,6 +65,7 @@ describe('island model', () => {
     expect(objects.find(o => o.id === 'hoard')!.badge).toBe('Hoard 2')
     expect(markers.hatchery).toEqual([{ slot: 0 }])
     expect(objects.find(o => o.id === 'hatchery:0')!.badge).toBe('ready')
+    expect(objects.find(o => o.id === 'hatchery:0')!.scale).toBe(0.25) // sits in a niche of the hatchery
     const crop = objects.find(o => o.id === 'crop:0')!
     expect(crop.scale).toBeCloseTo(0.75, 5) // half grown
     expect(crop.badge).toBe('30s')

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { anchor, BASE, CELL, dragonSpot, integerZoom, pointerToCell, worldSize } from '../src/game/layout'
+import { anchor, BASE, CELL, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, integerZoom, pointerToCell, worldSize } from '../src/game/layout'
 
 describe('layout', () => {
   it('has the 480x270 base and 16 px cells', () => {
@@ -15,6 +15,25 @@ describe('layout', () => {
     expect(new Set(spots.map(p => `${p.x},${p.y}`)).size).toBe(7)
     for (const p of spots) expect(p.x >= 0 && p.x <= 80 && p.y <= 80).toBe(true)
     for (const p of spots) expect(Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true)
+  })
+
+  it('puts hatchery eggs in the niches along the front of the 64x64 hatchery', () => {
+    const a = anchor(0, 8, 4)
+    const spots = [0, 1, 2, 3, 4].map(i => hatcherySpot(a, i))
+    expect(new Set(spots.map(p => `${p.x},${p.y}`)).size).toBe(5)
+    for (const p of spots) {
+      expect(Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true)
+      // Inside the sprite (bottom-centre anchored, 64x64), with the scaled egg's width and height inside too.
+      expect(p.x - 16 * HATCHERY_ITEM_SCALE).toBeGreaterThanOrEqual(a.x - 32)
+      expect(p.x + 16 * HATCHERY_ITEM_SCALE).toBeLessThanOrEqual(a.x + 32)
+      expect(p.y - 32 * HATCHERY_ITEM_SCALE).toBeGreaterThanOrEqual(a.y - 64)
+      // Niche band: sprite rows 38 to 46, below the dome and above the base's front edge.
+      expect(p.y).toBeGreaterThanOrEqual(a.y - 26)
+      expect(p.y).toBeLessThanOrEqual(a.y - 18)
+    }
+    // Left to right along the niche arc.
+    for (let i = 1; i < 5; i++) expect(spots[i]!.x).toBeGreaterThan(spots[i - 1]!.x)
+    expect(HATCHERY_ITEM_SCALE).toBe(0.25)
   })
 
   it('floors pointer positions to cells, including negatives', () => {
