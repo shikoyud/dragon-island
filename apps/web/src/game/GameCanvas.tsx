@@ -35,5 +35,5 @@ export function GameCanvas({ bridge, art }: { bridge: Bridge; art: GameArtSet })
     bridge.setState(me.data?.state ?? null)
   }, [bridge, me.data?.state])
 
-  return <div ref={host} className="game-canvas" aria-hidden="true" style={{ width: '100%', height: '100%' }} />
+  return <div ref={host} className="game-canvas" aria-hidden="true" />
 }

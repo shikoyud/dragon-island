@@ -34,6 +34,7 @@ export type GameEvent =
   | { type: 'cell'; col: number; row: number }
   | { type: 'view'; view: IslandId }
   | { type: 'placing'; placing: Placing | null }
+  | { type: 'insets' }
   | { type: 'ready' }
 
 type Handler<T extends GameEvent['type']> = (e: Extract<GameEvent, { type: T }>) => void
@@ -53,6 +54,12 @@ export function createBridge() {
     selected: { kind: 'empty' } as Target,
     view: 'home' as IslandId,
     placing: null as Placing | null,
+    /** Screen pixels the HUD covers at the top and bottom; the island camera frames the island between them. */
+    insets: { top: 0, bottom: 0 },
+    /** Set by the island scene: the canvas position of a cell's centre. Playwright clicks cells through it. */
+    cellToScreen: null as ((col: number, row: number) => { x: number; y: number }) | null,
+    /** Set by the island scene: the cell at the centre of what the player is looking at (new buildings open near it). */
+    focusCell: null as (() => { col: number; row: number }) | null,
     on<T extends GameEvent['type']>(type: T, h: Handler<T>): () => void {
       const set = handlers.get(type) ?? new Set()
       handlers.set(type, set)
@@ -80,6 +87,10 @@ export function createBridge() {
     setPlacing(placing: Placing | null): void {
       bridge.placing = placing
       bridge.emit({ type: 'placing', placing })
+    },
+    setInsets(insets: { top: number; bottom: number }): void {
+      bridge.insets = insets
+      bridge.emit({ type: 'insets' })
     },
     setBattle(preview: BattlePreview | null): void {
       bridge.battle = preview

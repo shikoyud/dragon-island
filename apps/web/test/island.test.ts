@@ -88,13 +88,14 @@ describe('island model', () => {
     expect(crop.badge).toBe('30s')
   })
 
-  it('draws objects ordered by anchor y, a habitat before its own dragons', () => {
+  it('draws back to front by col + row + size (isometric depth), a habitat before its own dragons', () => {
     const ids = model(newPlayer(0)).objects.map(o => o.id)
     const at = (id: string) => ids.indexOf(id)
     expect(at('habitat:h1')).toBeLessThan(at('dragon:d1'))
     expect(at('habitat:h2')).toBeLessThan(at('dragon:d2'))
     expect(at('farm:0')).toBeLessThan(at('farm:1'))
     expect(at('hatchery')).toBeGreaterThan(at('habitat:h1'))
+    expect(at('habitat:h2')).toBeLessThan(at('farm:0')) // (5,0)x5 sums to 10, (10,0)x2 to 12
   })
 
   it('picks the growth-stage frame when the crop sprite is a stage sheet', () => {
@@ -133,7 +134,7 @@ describe('island model', () => {
   it('draws the home view from placements, with a sign and no other islands', () => {
     const s = { ...newPlayer(0), islands: { homeStep: 0, unlocked: ['home', 'isle2'] as ('home' | 'isle2')[], obstacles: outerObstacles('isle2') } }
     const home = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', null)
-    expect(home.objects.find(o => o.id === 'habitat:h2')).toMatchObject({ x: 120, y: 80, key: textureKey('habitat.water') })
+    expect(home.objects.find(o => o.id === 'habitat:h2')).toMatchObject({ x: 40, y: 60, key: textureKey('habitat.water') }) // bottom vertex of its 5x5 diamond
     expect(home.markers.obstacles).toEqual([])
     expect(home.markers.sign).toEqual({ cost: 1_000, minLevel: 2 })
     const isle = buildIslandModel(s, FALLBACK_ART, C, 0, 'isle2', null)
@@ -145,18 +146,18 @@ describe('island model', () => {
   it('shows a ghost with legality and flips mirrored facings', () => {
     const s = newPlayer(0)
     const bad = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 2, col: 0, row: 0, facing: 0 })
-    expect(bad.markers.ghost).toEqual({ legal: false })
+    expect(bad.markers.ghost).toEqual({ legal: false, col: 0, row: 0, size: 2 })
     const good = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 2, col: 6, row: 8, facing: 1 })
     expect(good.objects.find(o => o.id === 'ghost')).toMatchObject({ tint: 'ok', flipX: true })
-    expect(good.markers.ghost).toEqual({ legal: true })
+    expect(good.markers.ghost).toEqual({ legal: true, col: 6, row: 8, size: 2 })
     expect(good.objects.at(-1)!.id).toBe('ghost')
   })
 
   it('ignores the mover itself when previewing a move', () => {
     const s = newPlayer(0)
     const p = { what: { kind: 'move' as const, target: { type: 'habitat' as const, id: 'h1' } }, size: 5 as const, col: 0, row: 1, facing: 0 as const }
-    expect(buildIslandModel(s, FALLBACK_ART, C, 0, 'home', p).markers.ghost).toEqual({ legal: true })
-    expect(buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { ...p, col: 4, row: 0 }).markers.ghost).toEqual({ legal: false })
+    expect(buildIslandModel(s, FALLBACK_ART, C, 0, 'home', p).markers.ghost).toMatchObject({ legal: true })
+    expect(buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { ...p, col: 4, row: 0 }).markers.ghost).toMatchObject({ legal: false })
   })
 
   it('badges constructions with their timer', () => {

@@ -6,7 +6,7 @@ import {
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
 import type { Placing, Target } from './bridge'
-import { anchor, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, type Pos } from './layout'
+import { anchor, depthOrder, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
 export interface IslandObject {
@@ -38,7 +38,8 @@ export interface IslandMarkers {
   decorations: string[]
   /** Constructions running anywhere (the builder count). */
   constructions: number
-  ghost: { legal: boolean } | null
+  /** The placement ghost's footprint, drawn as a diamond outline tinted by legality. */
+  ghost: { legal: boolean; col: number; row: number; size: number } | null
   sign: { cost: number; minLevel: number } | null
 }
 
@@ -127,8 +128,8 @@ export function buildIslandModel(
   if (!state) return { objects, markers }
   markers.constructions = state.constructions.length
 
-  const groups: { y: number; objects: IslandObject[] }[] = []
-  const add = (a: Pos, group: IslandObject[]) => groups.push({ y: a.y, objects: group })
+  const groups: { col: number; row: number; size: number; objects: IslandObject[] }[] = []
+  const add = (p: { col: number; row: number }, size: number, group: IslandObject[]) => groups.push({ col: p.col, row: p.row, size, objects: group })
   /** Common look of a building: mirror by facing, plus the construction tint and timer badge. */
   const look = (ref: BuildingRef, placement: Placement): Partial<IslandObject> => {
     const c = constructionFor(state, ref)
@@ -140,7 +141,7 @@ export function buildIslandModel(
     const size = OBSTACLES[o.kind].size
     const a = anchor(o.col, o.row, size)
     const c = state.constructions.find(x => x.kind === 'clear' && x.obstacleId === o.id)
-    add(a, [{
+    add(o, size, [{
       id: `obstacle:${o.id}`, key: textureKey(`obstacle.${o.kind}`),
       sprite: art.obstacle[o.kind],
       ...a, target: { kind: 'obstacle', id: o.id },
@@ -152,7 +153,7 @@ export function buildIslandModel(
   for (const d of state.decorations) {
     if (d.placement.island !== view) continue
     const a = anchor(d.placement.col, d.placement.row, DECORATIONS[d.kind].size)
-    add(a, [{ id: `decoration:${d.id}`, ...decorationLook(art, d.kind), ...a, target: { kind: 'decoration', id: d.id }, ...flip(d.placement.facing) }])
+    add(d.placement, DECORATIONS[d.kind].size, [{ id: `decoration:${d.id}`, ...decorationLook(art, d.kind), ...a, target: { kind: 'decoration', id: d.id }, ...flip(d.placement.facing) }])
     markers.decorations.push(d.id)
   }
 
@@ -172,7 +173,9 @@ export function buildIslandModel(
       group.push({ id: `dragon:${d.id}`, key: dragonKey(d.speciesId, art), sprite: art.dragon[d.speciesId] ?? art.dragon['fire']!, ...dragonSpot(a, slot), target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
     })
-    add(a, group)
+    // Residents back to front on the platform, after the platform itself.
+    group.splice(1, group.length - 1, ...group.slice(1).sort((p, q) => p.y - q.y))
+    add(h.placement, FOOTPRINT.habitat, group)
   }
 
   state.nests.forEach((nest, index) => {
@@ -186,7 +189,7 @@ export function buildIslandModel(
       const el = getSpecies(catalog, nest.egg.speciesId).elements[0]!
       group.push({ id: `egg:${index}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], x: a.x, y: a.y - 10, target: { kind: 'nest', index }, badge: timerLabel(nest.egg.readyAtMs, nowMs) })
     }
-    add(a, group)
+    add(nest.placement, FOOTPRINT.nest, group)
     markers.nests.push({ index, egg: nest.egg !== null })
   })
 
@@ -216,7 +219,7 @@ export function buildIslandModel(
       const badge = markers.waiting.length > 0 ? 'no room' : state.hatchery.length > 0 ? timerLabel(soonest, nowMs) : undefined
       if (badge) group[0]!.badge = badge
     }
-    add(a, group)
+    add(state.hatcheryPlacement, FOOTPRINT.hatchery, group)
   }
 
   state.farms.forEach((plot, i) => {
@@ -236,13 +239,13 @@ export function buildIslandModel(
         : { scale: 0.5 + 0.5 * fraction }
       group.push({ id: `crop:${i}`, key: textureKey(`crop.${plot.crop}`), sprite, x: a.x, y: a.y - 10, target: { kind: 'farm', plot: i }, badge: timerLabel(plot.readyAtMs, nowMs), ...growth })
     }
-    add(a, group)
+    add(plot.placement, FOOTPRINT.farm, group)
     markers.farms.push({ plot: i, crop: plot.crop })
   })
 
   if (state.hoardLevel > 0 && state.hoardPlacement && state.hoardPlacement.island === view) {
     const a = anchor(state.hoardPlacement.col, state.hoardPlacement.row, FOOTPRINT.hoard)
-    add(a, [{ id: 'hoard', key: textureKey('building.hoard'), sprite: art.building.hoard, ...a, target: { kind: 'hoard' }, badge: `Hoard ${state.hoardLevel}`, ...flip(state.hoardPlacement.facing) }])
+    add(state.hoardPlacement, FOOTPRINT.hoard, [{ id: 'hoard', key: textureKey('building.hoard'), sprite: art.building.hoard, ...a, target: { kind: 'hoard' }, badge: `Hoard ${state.hoardLevel}`, ...flip(state.hoardPlacement.facing) }])
     markers.hoard = true
   }
 
@@ -250,12 +253,12 @@ export function buildIslandModel(
     const next = HOME_EXPANSION[state.islands.homeStep]!
     const { col, row } = signCell(state.islands.homeStep)
     const a = anchor(col, row, 2)
-    add(a, [{ id: 'sign', key: textureKey('island.sign'), sprite: art.island.sign, ...a, target: { kind: 'expandSign' } }])
+    add({ col, row }, 2, [{ id: 'sign', key: textureKey('island.sign'), sprite: art.island.sign, ...a, target: { kind: 'expandSign' } }])
     markers.sign = { cost: next.cost, minLevel: next.minLevel }
   }
 
-  // Stable sort: back to front, ties keep insertion order.
-  for (const g of groups.sort((p, q) => p.y - q.y)) objects.push(...g.objects)
+  // Stable sort: back to front in isometric depth, ties keep insertion order.
+  for (const g of groups.sort(depthOrder)) objects.push(...g.objects)
 
   if (placing) {
     const placement: Placement = { island: view, col: placing.col, row: placing.row, facing: placing.facing }
@@ -264,7 +267,7 @@ export function buildIslandModel(
       id: 'ghost', ...ghostLook(state, art, placing.what), ...anchor(placing.col, placing.row, placing.size),
       target: { kind: 'cell', col: placing.col, row: placing.row }, tint: legal ? 'ok' : 'bad', ...flip(placing.facing),
     })
-    markers.ghost = { legal }
+    markers.ghost = { legal, col: placing.col, row: placing.row, size: placing.size }
   }
   return { objects, markers }
 }

@@ -5,7 +5,7 @@ import { useSession } from './api/session'
 import { loadActiveArt, FALLBACK_ART } from './art/slots'
 import type { GameArtSet } from './art/types'
 import { createBridge } from './game/bridge'
-import { placingAction } from './state/placing'
+import { nearestLegalCell, placingAction } from './state/placing'
 import { StartPlacingProvider, type StartPlacing } from './state/startPlacing'
 import { usePlacing } from './state/usePlacing'
 import { useAction } from './state/actions'
@@ -111,8 +111,12 @@ function Game() {
   const startPlacing: StartPlacing = (what, size, from) => {
     // Show the island the thing belongs on: a move stays where it is, the Hoard is home-only, the Nexus Dawnspire-only.
     const island = from?.island ?? (what.kind === 'hoard' ? 'home' : what.kind === 'nexus' ? 'dawnspire' : view)
+    // A new building opens on the free spot nearest the middle of the screen (the island's middle after a switch).
+    const focus = island === view ? bridge.focusCell?.() : null
+    const mid = focus ? { col: focus.col - Math.floor((size - 1) / 2), row: focus.row - Math.floor((size - 1) / 2) } : { col: 4, row: 4 }
+    const cell = from ? undefined : nearestLegalCell(me.data!.state, what, island, mid) ?? undefined
     if (island !== view) bridge.setView(island)
-    dispatch({ type: 'start', what, size, island, from })
+    dispatch({ type: 'start', what, size, island, from, cell })
   }
   const side = (
     <StartPlacingProvider value={startPlacing}>

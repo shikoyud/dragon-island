@@ -1,25 +1,67 @@
-/** Grid layout of an island. Cells are 16 px; every position is a whole pixel. */
-export const BASE = { w: 480, h: 270 } as const
-/** Edge of one grid cell in world pixels. */
-export const CELL = 16
+/**
+ * Isometric (2:1) projection of an island's logical grid. game-core keeps square cells and footprints; only the
+ * picture is angled. Each cell is a 16x8 diamond whose top vertex for (col, row) sits at
+ * ((col - row) * 8, (col + row) * 4) in world pixels, so the island's top corner is the world origin.
+ */
+export const ISO = { w: 16, h: 8 } as const
+const HW = ISO.w / 2
+const HH = ISO.h / 2
+
+/** The fixed stage the battle scene draws on; it is zoomed by whole numbers to fit the viewport. */
+export const BATTLE = { w: 480, h: 270 } as const
 
 export interface Pos { x: number; y: number }
+export interface Box { x: number; y: number; w: number; h: number }
 
-/** World size in pixels of a grid of `w` x `h` cells. */
-export function worldSize(w: number, h: number): { w: number; h: number } {
-  return { w: w * CELL, h: h * CELL }
+/** Top vertex of cell (col, row). */
+export function cellTop(col: number, row: number): Pos {
+  return { x: (col - row) * HW, y: (col + row) * HH }
 }
 
-/** Bottom-centre of a `size` x `size` building whose top-left cell is (col, row). */
+/** Centre of cell (col, row). */
+export function cellCentre(col: number, row: number): Pos {
+  const t = cellTop(col, row)
+  return { x: t.x, y: t.y + HH }
+}
+
+/** Top, right, bottom and left vertices of the size x size diamond whose top cell is (col, row). */
+export function footprintDiamond(col: number, row: number, size: number): [Pos, Pos, Pos, Pos] {
+  return [cellTop(col, row), cellTop(col + size, row), cellTop(col + size, row + size), cellTop(col, row + size)]
+}
+
+/** Bottom vertex of a size x size footprint: where a building's sprite stands (bottom-centre origin). */
 export function anchor(col: number, row: number, size: number): Pos {
-  return { x: col * CELL + size * (CELL / 2), y: (row + size) * CELL }
+  return cellTop(col + size, row + size)
 }
 
-/** Dragon spots on a platform: a 4+3 arrangement standing on the top face of a 5x5 habitat. */
+/** The cell under a world position: the exact inverse of `cellTop`, floored (outside cells go negative or past the edge). */
+export function pointerToCell(worldX: number, worldY: number): { col: number; row: number } {
+  const u = worldX / HW
+  const v = worldY / HH
+  return { col: Math.floor((v + u) / 2), row: Math.floor((v - u) / 2) }
+}
+
+/** Bounding box of a w x h island's top surface. */
+export function islandBox(w: number, h: number): Box {
+  return { x: -h * HW, y: 0, w: (w + h) * HW, h: (w + h) * HH }
+}
+
+/** Back-to-front order of footprints: by col + row + size, then col. */
+export function depthOrder(p: { col: number; row: number; size: number }, q: { col: number; row: number; size: number }): number {
+  return p.col + p.row + p.size - (q.col + q.row + q.size) || p.col - q.col
+}
+
+/**
+ * Dragon spots on a 5x5 habitat's top face (its diamond centre is 34 px above the anchor on the 80x64 art):
+ * the first dragon stands in the middle, the rest around it. Callers draw residents back to front by y.
+ */
+const DRAGON_SPOTS: readonly Pos[] = [
+  { x: 0, y: -28 }, { x: -16, y: -34 }, { x: 16, y: -34 }, { x: 0, y: -40 }, { x: -8, y: -24 }, { x: 8, y: -44 }, { x: -24, y: -38 },
+]
+
 export function dragonSpot(a: Pos, slot: number): Pos {
-  const row = slot < 4 ? 0 : 1
-  const col = slot < 4 ? slot : slot - 4
-  return { x: a.x - 30 + col * 20 + row * 10, y: a.y - 36 + row * 12 }
+  const s = DRAGON_SPOTS[Math.min(slot, DRAGON_SPOTS.length - 1)]!
+  return { x: a.x + s.x, y: a.y + s.y }
 }
 
 /** Eggs and waiting hatchlings in the hatchery are drawn at this scale so they fit its egg niches. */
@@ -39,12 +81,7 @@ export function hatcherySpot(a: Pos, slot: number): Pos {
   return { x: a.x + n.x, y: a.y + n.y }
 }
 
-/** The grid cell under a world position (floor division, so negatives fall outside the island). */
-export function pointerToCell(worldX: number, worldY: number): { col: number; row: number } {
-  return { col: Math.floor(worldX / CELL), row: Math.floor(worldY / CELL) }
-}
-
-/** Largest whole-number zoom that fits the viewport; never below 1. */
+/** Largest whole-number zoom that fits the battle stage in the viewport; never below 1. */
 export function integerZoom(viewportW: number, viewportH: number): number {
-  return Math.max(1, Math.floor(Math.min(viewportW / BASE.w, viewportH / BASE.h)))
+  return Math.max(1, Math.floor(Math.min(viewportW / BATTLE.w, viewportH / BATTLE.h)))
 }

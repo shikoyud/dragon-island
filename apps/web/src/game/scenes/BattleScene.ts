@@ -3,6 +3,7 @@ import Phaser from 'phaser'
 import { FALLBACK_ART } from '../../art/slots'
 import type { Bridge } from '../bridge'
 import { dragonKey } from '../islandModel'
+import { BATTLE, integerZoom } from '../layout'
 
 const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = { fontFamily: 'Silkscreen, monospace', fontSize: '8px', color: '#f2f1ea' }
 const ATTACK_X = [96, 128, 160]
@@ -22,7 +23,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.add.rectangle(0, 0, 480, 270, 0x0f1324).setOrigin(0, 0)
+    this.add.rectangle(0, 0, BATTLE.w, BATTLE.h, 0x0f1324).setOrigin(0, 0)
+    // The canvas fills the screen: show the fixed stage at the largest whole-number zoom, centred.
+    const fit = () => {
+      if (!this.alive()) return
+      this.cameras.main.setZoom(integerZoom(this.scale.width, this.scale.height)).centerOn(BATTLE.w / 2, BATTLE.h / 2)
+    }
+    fit()
+    this.scale.on(Phaser.Scale.Events.RESIZE, fit)
+    this.events.once(Phaser.Scenes.Events.DESTROY, () => this.scale.off(Phaser.Scale.Events.RESIZE, fit))
     const off = this.bridge.on('battle', e => {
       if (!this.alive()) return
       if (!e.preview && this.scene.isActive()) this.scene.switch('island')
