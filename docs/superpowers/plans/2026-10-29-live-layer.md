@@ -4,7 +4,7 @@
 
 **Goal:** Seasons that actually close (prize pool from vault inflows, prizes credited, trophies reset, secret revealed), referrals with anti-abuse, an admin surface, and the web panels that show all of it.
 
-**Architecture:** Prize math is pure in `game-core` (bigint wei in, per-player wei out). The server keeps a `vault_inflows` ledger every inflow source writes to, a `season_close` job that is idempotent under an advisory lock, a `referrals` service hooked into `charge`, and a `telegram` service behind a `TelegramClient` seam (fake in tests). The web client gets leaderboard, prizes, referral and Telegram UI in the existing Season panel plus a token-gated `/admin` page.
+**Architecture:** Prize math is pure in `game-core` (bigint wei in, per-player wei out). The server keeps a `vault_inflows` ledger every inflow source writes to, a `season_close` job that is idempotent under an advisory lock and a `referrals` service hooked into `charge`. The web client gets leaderboard, prizes and referral UI in the existing Season panel plus a token-gated `/admin` page.
 
 **Tech Stack:** TypeScript 5.9, Vitest 5, Fastify 5 + Drizzle (PGlite in tests), zod 4, React 19, TanStack Query. No new runtime dependencies.
 
@@ -52,7 +52,7 @@
   ```
 - Ranking: sort by `sp` desc, then `playerId` asc (deterministic); players with `sp === 0` are not ranked and never win. Tier share per player = floor(tierPot / count); remainder unspent. Placement: weight 101 − rank for ranks 1..min(100, n); award = floor(placementPot × weight / sumWeights).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('splits the threshold pot by highest tier reached and the placement pot by 101 − rank', () => {
@@ -87,10 +87,10 @@ it('ranks at most 100 players', () => {
 ```
 (The "banned/ineligible excluded" case is the caller's job: the server passes only eligible standings — Task 3 tests it.)
 
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core exec vitest run test/prizes.test.ts` — Expected: FAIL, module not found.
-- [ ] **Step 3: Implement `prizes.ts`** per the Interfaces block; export from `index.ts`.
-- [ ] **Step 4: Run the test file, then** `pnpm --filter @wyrmhaven/game-core test` — Expected: all pass (173 + 4).
-- [ ] **Step 5: Commit** `git add packages/game-core/src/prizes.ts packages/game-core/src/index.ts packages/game-core/test/prizes.test.ts && git commit -m "feat(game-core): season prize math"`
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core exec vitest run test/prizes.test.ts` — Expected: FAIL, module not found.
+- [x] **Step 3: Implement `prizes.ts`** per the Interfaces block; export from `index.ts`.
+- [x] **Step 4: Run the test file, then** `pnpm --filter @wyrmhaven/game-core test` — Expected: all pass (173 + 4).
+- [x] **Step 5: Commit** `git add packages/game-core/src/prizes.ts packages/game-core/src/index.ts packages/game-core/test/prizes.test.ts && git commit -m "feat(game-core): season prize math"`
 
 ---
 
