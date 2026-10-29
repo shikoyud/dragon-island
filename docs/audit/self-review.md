@@ -10,7 +10,7 @@ All run in WSL from `contracts/` after
 
 | Tool | Version | Command | Result |
 |---|---|---|---|
-| forge | 1.8.6 (`6bad0a6`), solc 0.8.24 | `forge build`, `forge test -vv` | 8 suites, **48 passed**, 0 failed, 0 skipped |
+| forge | 1.8.6 (`6bad0a6`), solc 0.8.24 | `forge build`, `forge test -vv` | 8 suites, **48 passed**, 0 failed, 0 skipped (52 test functions: forge counts the 5 invariants as one grouped test, all 5 PASS) |
 | forge fmt | 1.8.6 | `forge fmt --check` | **fails** on `src/DrisToken.sol` L19 (see O-1) |
 | slither | 0.11.6 | `slither . --filter-paths "lib\|test"` and again with `--foundry-compile-all` (includes `script/`) | 102 detectors, 13 results, identical in both runs (none in `script/`) |
 | aderyn | 0.1.9 (crates.io; old, current releases have more detectors) | `aderyn . -x lib/,test/ -o <scratch>/report.md` | 63 detectors, 1 High + 9 Low issue types (32 instances). It printed the full report, then panicked on an unrelated version-string parse; the report is complete. aderyn always excludes `script/`, so the script was covered by slither and forge lint only. |
@@ -66,7 +66,7 @@ CI contracts job) but does not change behaviour.
 | # | Detector | Location | Severity | Verdict | Reason |
 |---|---|---|---|---|---|
 | A-H1 | Contract locks Ether without a withdraw function | `DrisVault` (L20; payable `enter` L109) | High | false positive | `enter` forwards the entire `msg.value` to the treasury in the same call (L113) or reverts. The vault has no `receive`/`fallback`, so ordinary transfers revert. Covered by `test_EnterExactFee` and `test_EnterForwardsExcess` (vault balance 0) and `test_RevertTreasuryRejectsEth`. Only forced ETH (`selfdestruct` beneficiary) could arrive and stay; that is a gift with no effect on accounting. |
-| A-L1 | Centralization risk for trusted owners (7) | `DrisVault` L20, L196, L200, L206, L212, L218, L228 | Low | accepted | By design: owner is a 2-of-3 Safe. Owner powers cannot move tokens (no rescue/withdraw; see scope.md design choice 1). Worst cases: a bad signer/operator, a high burn limit, or a pause; bounds in scope.md design choice 3. `renounceOwnership` is disabled on purpose (L196). |
+| A-L1 | Centralization risk for trusted owners (7) | `DrisVault` L20, L196, L200, L206, L212, L218, L228 | Low | accepted | By design: owner is a 2-of-3 Safe. No function lets the owner transfer vault tokens directly (no rescue/withdraw; see scope.md design choice 1). A compromised Safe could still reach them indirectly: `setSigner` (L206) to its own key and drain up to 2% per UTC day via vouchers, or `setOperator` (L200) + `setBurnDailyLimit(max)` (L218) and burn the whole seed. Mitigation is the 2-of-3 threshold plus event monitoring; no timelock. Details in scope.md design choice 3, "Owner (Safe) compromise". `renounceOwnership` is disabled on purpose (L196). |
 | A-L2 | Wide pragma `^0.8.24` (3) | `DrisDeployer` L2, `DrisToken` L2, `DrisVault` L2 | Low | accepted | `foundry.toml` pins `solc = "0.8.24"`; the audited and deployed bytecode comes from that compiler. Pinning the pragma too would be cosmetic. |
 | A-L3 | `public` function not used internally | `DrisVault.renounceOwnership`, L196 | Low | false positive | It overrides OZ `Ownable.renounceOwnership`, which is `public`; an override cannot narrow visibility to `external`. |
 | A-L4 | Repeated literals (3) | `DrisToken` L21-23 (`* 50 / 100`, `40`, `10`) | Low | accepted | Constructor-only split, documented in NatSpec; `test_SupplyAndSplit` checks it sums to `TOTAL_SUPPLY`. |
