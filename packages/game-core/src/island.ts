@@ -1,4 +1,5 @@
-import type { BuildingRef, IslandId, ObstacleKind, Placement, PlayerState } from './state'
+import type { BuildingRef, IslandId, Placement, PlayerState } from './state'
+import { OBSTACLES } from './obstacles'
 
 export const CELL_PX = 16
 export const ISLAND_ORDER: readonly IslandId[] = ['home', 'isle2', 'isle3', 'isle4', 'isle5', 'dawnspire']
@@ -36,8 +37,6 @@ export const FOOTPRINT = { habitat: 5, hatchery: 4, hoard: 4, farm: 2, nest: 2 }
 export type OccupantRef = BuildingRef | { type: 'hoard' } | { type: 'decoration'; id: string } | { type: 'obstacle'; id: string }
 export interface Occupant { ref: OccupantRef; col: number; row: number; size: Footprint }
 
-// Until the obstacle table lands (Task 3) sizes are inline.
-const OBSTACLE_SIZE: Record<ObstacleKind, Footprint> = { bush: 1, rock: 1, tree: 2, boulder: 2, ruin: 3 }
 
 export function occupants(s: PlayerState, island: IslandId): Occupant[] {
   const out: Occupant[] = []
@@ -49,7 +48,7 @@ export function occupants(s: PlayerState, island: IslandId): Occupant[] {
   if (s.hoardLevel > 0 && s.hoardPlacement && s.hoardPlacement.island === island) add({ type: 'hoard' }, s.hoardPlacement, FOOTPRINT.hoard)
   // Decorations are size 1 until Task 4 provides DECORATIONS[kind].size.
   for (const d of s.decorations) if (d.placement.island === island) add({ type: 'decoration', id: d.id }, d.placement, 1)
-  for (const o of s.islands.obstacles) if (o.island === island) add({ type: 'obstacle', id: o.id }, o, OBSTACLE_SIZE[o.kind])
+  for (const o of s.islands.obstacles) if (o.island === island) add({ type: 'obstacle', id: o.id }, o, OBSTACLES[o.kind].size)
   return out
 }
 
