@@ -4,16 +4,16 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {VestingWallet} from "@openzeppelin/contracts/finance/VestingWallet.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {WyrmToken} from "../src/WyrmToken.sol";
+import {DrisToken} from "../src/DrisToken.sol";
 
-contract WyrmTokenTest is Test {
+contract DrisTokenTest is Test {
     address internal launch = makeAddr("launch");
     address internal vault = makeAddr("vault");
     address internal team = makeAddr("team");
-    WyrmToken internal token;
+    DrisToken internal token;
 
     function setUp() public {
-        token = new WyrmToken(launch, vault, team);
+        token = new DrisToken(launch, vault, team);
     }
 
     function test_SupplyAndSplit() public view {
@@ -26,12 +26,12 @@ contract WyrmTokenTest is Test {
     }
 
     function test_RevertZeroAddress() public {
-        vm.expectRevert(WyrmToken.ZeroAddress.selector);
-        new WyrmToken(address(0), vault, team);
-        vm.expectRevert(WyrmToken.ZeroAddress.selector);
-        new WyrmToken(launch, address(0), team);
-        vm.expectRevert(WyrmToken.ZeroAddress.selector);
-        new WyrmToken(launch, vault, address(0));
+        vm.expectRevert(DrisToken.ZeroAddress.selector);
+        new DrisToken(address(0), vault, team);
+        vm.expectRevert(DrisToken.ZeroAddress.selector);
+        new DrisToken(launch, address(0), team);
+        vm.expectRevert(DrisToken.ZeroAddress.selector);
+        new DrisToken(launch, vault, address(0));
     }
 
     function test_BurnReducesSupply() public {
@@ -71,7 +71,7 @@ contract WyrmTokenTest is Test {
     function test_TeamVestingLinear() public {
         address beneficiary = makeAddr("teamSafe");
         VestingWallet vesting = new VestingWallet(beneficiary, uint64(block.timestamp), 365 days);
-        WyrmToken vested = new WyrmToken(launch, vault, address(vesting));
+        DrisToken vested = new DrisToken(launch, vault, address(vesting));
         assertEq(vested.balanceOf(address(vesting)), 100_000_000e18);
 
         vm.warp(block.timestamp + 365 days / 2);

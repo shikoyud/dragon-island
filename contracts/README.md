@@ -2,9 +2,9 @@
 
 Foundry project for the two on-chain pieces of Dragon Island (spec §13):
 
-- **`WyrmToken`**: ERC-20, fixed supply 1,000,000,000 WYRM, no owner, no mint, not upgradeable. Burnable by holders, EIP-2612 permit. Minted once: 50% launch, 40% vault seed, 10% team (`VestingWallet`, 12 months linear).
-- **`WyrmDeployer`**: single-use contract whose constructor deploys the vesting wallet, token and vault in one transaction, so the 40% vault seed can never be minted to an address that fails to deploy.
-- **`WyrmVault`**: one-time ETH entry fee (forwarded to the treasury), token deposits (2% fee: 1% burned, 1% kept), EIP-712 cumulative withdrawal claims (5% fee: 2.5% burned, 2.5% kept) under a 2%-of-balance daily payout cap, operator burn with a daily limit, pause, two-step Safe ownership.
+- **`DrisToken`**: ERC-20, fixed supply 1,000,000,000 DRIS, no owner, no mint, not upgradeable. Burnable by holders, EIP-2612 permit. Minted once: 50% launch, 40% vault seed, 10% team (`VestingWallet`, 12 months linear).
+- **`DrisDeployer`**: single-use contract whose constructor deploys the vesting wallet, token and vault in one transaction, so the 40% vault seed can never be minted to an address that fails to deploy.
+- **`DrisVault`**: one-time ETH entry fee (forwarded to the treasury), token deposits (2% fee: 1% burned, 1% kept), EIP-712 cumulative withdrawal claims (5% fee: 2.5% burned, 2.5% kept) under a 2%-of-balance daily payout cap, operator burn with a daily limit, pause, two-step Safe ownership.
 
 Everything else in the game (balances, spend, prizes, randomness) is off-chain on the server; only signed cumulative totals and burn batches reach the chain.
 
@@ -65,6 +65,6 @@ The script reverts on any chain other than 46630 unless `ALLOW_CHAIN_ID` is set.
 - **Time**: `block.timestamp` only (`block.number` is approximate on Arbitrum Orbit); day keys are 1-based so day 0 never collides with the zero sentinel.
 - **Treasury**: a treasury that rejects ETH makes `enter` revert rather than strand ETH in the vault.
 - **Ownership**: `renounceOwnership` is disabled; an ownerless vault could never be unpaused or have a leaked signer rotated.
-- **Deployment**: atomic via `WyrmDeployer`; a partial deploy cannot strand the vault seed, and nonce drift between simulation and broadcast cannot change the vault address.
+- **Deployment**: atomic via `DrisDeployer`; a partial deploy cannot strand the vault seed, and nonce drift between simulation and broadcast cannot change the vault address.
 - **Daily caps**: lowering `burnDailyLimit` below the day's burned total simply blocks further burns that day (no arithmetic panic). The payout cap is first come, first served across players; the server's per-player sizing (above) keeps one claim from using the whole day.
 - **Signer-key compromise** drains at most 2% of the vault per UTC day until the operator pauses or the Safe rotates the signer; monitoring on `Claimed` volume is part of the server plan.

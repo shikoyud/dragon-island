@@ -7,9 +7,9 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {WyrmToken} from "./WyrmToken.sol";
+import {DrisToken} from "./DrisToken.sol";
 
-/// @title WyrmVault
+/// @title DrisVault
 /// @notice The only money contract of the game (spec §13): one-time ETH entry fee, token deposits with a
 ///         2% fee (1% burned, 1% kept), EIP-712 cumulative withdrawal claims with a 5% fee (2.5% burned,
 ///         2.5% kept) under a 2%-of-balance daily payout cap, and an operator burn with a daily limit.
@@ -17,8 +17,8 @@ import {WyrmToken} from "./WyrmToken.sol";
 /// @dev Roles: owner = 2-of-3 Safe (rotates keys, unpauses, sets limits); operator = server key (burns
 ///      within the daily limit, sets the ETH entry fee, may pause); signer = voucher key (never holds funds).
 ///      Time uses block.timestamp only: block.number is unreliable on Arbitrum Orbit chains.
-contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
-    using SafeERC20 for WyrmToken;
+contract DrisVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
+    using SafeERC20 for DrisToken;
 
     uint256 public constant BPS = 10_000;
     uint256 public constant DEPOSIT_FEE_BPS = 200;
@@ -28,7 +28,7 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     uint256 public constant PAYOUT_CAP_BPS = 200;
     bytes32 public constant CLAIM_TYPEHASH = keccak256("Claim(address player,uint256 cumulative,uint256 deadline)");
 
-    WyrmToken public immutable token;
+    DrisToken public immutable token;
     address payable public treasury;
     address public operator;
     address public signer;
@@ -84,13 +84,13 @@ contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     }
 
     constructor(
-        WyrmToken token_,
+        DrisToken token_,
         address owner_,
         address payable treasury_,
         address operator_,
         address signer_,
         uint256 entryFeeWei_
-    ) Ownable(owner_) EIP712("WyrmVault", "1") {
+    ) Ownable(owner_) EIP712("DrisVault", "1") {
         if (
             address(token_) == address(0) || treasury_ == address(0) || operator_ == address(0) || signer_ == address(0)
         ) {

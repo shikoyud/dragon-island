@@ -3,10 +3,10 @@ pragma solidity ^0.8.24;
 
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {WyrmVault} from "../src/WyrmVault.sol";
+import {DrisVault} from "../src/DrisVault.sol";
 import {VaultFixture} from "./helpers/VaultFixture.sol";
 
-contract WyrmVaultDepositTest is VaultFixture {
+contract DrisVaultDepositTest is VaultFixture {
     event Deposited(address indexed player, uint256 amount, uint256 credited, uint256 burned);
 
     function _approve(address who, uint256 amount) internal {
@@ -40,7 +40,7 @@ contract WyrmVaultDepositTest is VaultFixture {
     }
 
     function test_RevertZeroAmount() public {
-        vm.expectRevert(WyrmVault.ZeroAmount.selector);
+        vm.expectRevert(DrisVault.ZeroAmount.selector);
         vm.prank(alice);
         vault.deposit(0);
     }

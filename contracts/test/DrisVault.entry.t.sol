@@ -2,10 +2,10 @@
 pragma solidity ^0.8.24;
 
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {WyrmVault} from "../src/WyrmVault.sol";
+import {DrisVault} from "../src/DrisVault.sol";
 import {RejectingTreasury, VaultFixture} from "./helpers/VaultFixture.sol";
 
-contract WyrmVaultEntryTest is VaultFixture {
+contract DrisVaultEntryTest is VaultFixture {
     event Entered(address indexed player, uint256 paidWei);
 
     function test_EnterExactFee() public {
@@ -26,7 +26,7 @@ contract WyrmVaultEntryTest is VaultFixture {
     }
 
     function test_RevertInsufficientFee() public {
-        vm.expectRevert(abi.encodeWithSelector(WyrmVault.InsufficientEntryFee.selector, ENTRY_FEE - 1, ENTRY_FEE));
+        vm.expectRevert(abi.encodeWithSelector(DrisVault.InsufficientEntryFee.selector, ENTRY_FEE - 1, ENTRY_FEE));
         vm.prank(alice);
         vault.enter{value: ENTRY_FEE - 1}();
         assertFalse(vault.entered(alice));
@@ -35,7 +35,7 @@ contract WyrmVaultEntryTest is VaultFixture {
     function test_RevertAlreadyEntered() public {
         vm.startPrank(alice);
         vault.enter{value: ENTRY_FEE}();
-        vm.expectRevert(WyrmVault.AlreadyEntered.selector);
+        vm.expectRevert(DrisVault.AlreadyEntered.selector);
         vault.enter{value: ENTRY_FEE}();
         vm.stopPrank();
     }
@@ -52,7 +52,7 @@ contract WyrmVaultEntryTest is VaultFixture {
         RejectingTreasury bad = new RejectingTreasury();
         vm.prank(owner);
         vault.setTreasury(payable(address(bad)));
-        vm.expectRevert(WyrmVault.TreasuryTransferFailed.selector);
+        vm.expectRevert(DrisVault.TreasuryTransferFailed.selector);
         vm.prank(alice);
         vault.enter{value: ENTRY_FEE}();
     }
@@ -64,17 +64,17 @@ contract WyrmVaultEntryTest is VaultFixture {
         vm.prank(owner);
         vault.setEntryFee(2 ether);
         assertEq(vault.entryFeeWei(), 2 ether);
-        vm.expectRevert(WyrmVault.NotOperator.selector);
+        vm.expectRevert(DrisVault.NotOperator.selector);
         vm.prank(alice);
         vault.setEntryFee(3 ether);
     }
 
     function test_ConstructorRejectsZeroAddresses() public {
-        vm.expectRevert(WyrmVault.ZeroAddress.selector);
-        new WyrmVault(token, owner, payable(address(0)), operator, signer, ENTRY_FEE);
-        vm.expectRevert(WyrmVault.ZeroAddress.selector);
-        new WyrmVault(token, owner, treasury, address(0), signer, ENTRY_FEE);
-        vm.expectRevert(WyrmVault.ZeroAddress.selector);
-        new WyrmVault(token, owner, treasury, operator, address(0), ENTRY_FEE);
+        vm.expectRevert(DrisVault.ZeroAddress.selector);
+        new DrisVault(token, owner, payable(address(0)), operator, signer, ENTRY_FEE);
+        vm.expectRevert(DrisVault.ZeroAddress.selector);
+        new DrisVault(token, owner, treasury, address(0), signer, ENTRY_FEE);
+        vm.expectRevert(DrisVault.ZeroAddress.selector);
+        new DrisVault(token, owner, treasury, operator, address(0), ENTRY_FEE);
     }
 }

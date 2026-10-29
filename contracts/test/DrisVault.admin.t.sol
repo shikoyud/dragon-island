@@ -3,10 +3,10 @@ pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {WyrmVault} from "../src/WyrmVault.sol";
+import {DrisVault} from "../src/DrisVault.sol";
 import {VaultFixture} from "./helpers/VaultFixture.sol";
 
-contract WyrmVaultAdminTest is VaultFixture {
+contract DrisVaultAdminTest is VaultFixture {
     event OperatorBurn(uint256 amount, uint256 burnedToday);
 
     function _unauthorized(address who) internal pure returns (bytes memory) {
@@ -27,7 +27,7 @@ contract WyrmVaultAdminTest is VaultFixture {
     function test_BurnOverLimitRevertsAndResetsNextDay() public {
         vm.startPrank(operator);
         vault.burn(BURN_LIMIT);
-        vm.expectRevert(abi.encodeWithSelector(WyrmVault.BurnLimitExceeded.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(DrisVault.BurnLimitExceeded.selector, 0));
         vault.burn(1);
         vm.warp(block.timestamp + 1 days);
         vault.burn(1);
@@ -38,19 +38,19 @@ contract WyrmVaultAdminTest is VaultFixture {
     function test_BurnPartialOverLimitReverts() public {
         vm.startPrank(operator);
         vault.burn(BURN_LIMIT - 10e18);
-        vm.expectRevert(abi.encodeWithSelector(WyrmVault.BurnLimitExceeded.selector, 10e18));
+        vm.expectRevert(abi.encodeWithSelector(DrisVault.BurnLimitExceeded.selector, 10e18));
         vault.burn(20e18);
         vm.stopPrank();
     }
 
     function test_BurnOnlyOperator() public {
-        vm.expectRevert(WyrmVault.NotOperator.selector);
+        vm.expectRevert(DrisVault.NotOperator.selector);
         vm.prank(alice);
         vault.burn(1);
-        vm.expectRevert(WyrmVault.NotOperator.selector);
+        vm.expectRevert(DrisVault.NotOperator.selector);
         vm.prank(owner);
         vault.burn(1);
-        vm.expectRevert(WyrmVault.ZeroAmount.selector);
+        vm.expectRevert(DrisVault.ZeroAmount.selector);
         vm.prank(operator);
         vault.burn(0);
     }
@@ -59,7 +59,7 @@ contract WyrmVaultAdminTest is VaultFixture {
         address fresh = makeAddr("freshOperator");
         vm.prank(owner);
         vault.setOperator(fresh);
-        vm.expectRevert(WyrmVault.NotOperator.selector);
+        vm.expectRevert(DrisVault.NotOperator.selector);
         vm.prank(operator);
         vault.burn(1);
         vm.prank(fresh);
@@ -94,11 +94,11 @@ contract WyrmVaultAdminTest is VaultFixture {
         vm.stopPrank();
 
         vm.startPrank(owner);
-        vm.expectRevert(WyrmVault.ZeroAddress.selector);
+        vm.expectRevert(DrisVault.ZeroAddress.selector);
         vault.setSigner(address(0));
-        vm.expectRevert(WyrmVault.ZeroAddress.selector);
+        vm.expectRevert(DrisVault.ZeroAddress.selector);
         vault.setOperator(address(0));
-        vm.expectRevert(WyrmVault.ZeroAddress.selector);
+        vm.expectRevert(DrisVault.ZeroAddress.selector);
         vault.setTreasury(payable(address(0)));
         vault.setBurnDailyLimit(5);
         assertEq(vault.burnDailyLimit(), 5);
@@ -126,7 +126,7 @@ contract WyrmVaultAdminTest is VaultFixture {
         vm.expectRevert(_unauthorized(alice));
         vm.prank(alice);
         vault.unpause();
-        vm.expectRevert(WyrmVault.NotOperator.selector);
+        vm.expectRevert(DrisVault.NotOperator.selector);
         vm.prank(alice);
         vault.pause();
     }

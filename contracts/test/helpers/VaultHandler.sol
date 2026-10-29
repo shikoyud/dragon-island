@@ -2,14 +2,14 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {WyrmToken} from "../../src/WyrmToken.sol";
-import {WyrmVault} from "../../src/WyrmVault.sol";
+import {DrisToken} from "../../src/DrisToken.sol";
+import {DrisVault} from "../../src/DrisVault.sol";
 
 /// @dev Invariant handler: actors deposit and claim, the operator burns, time moves forward.
 ///      Ghost variables mirror what the contracts should have done.
 contract VaultHandler is Test {
-    WyrmToken public token;
-    WyrmVault public vault;
+    DrisToken public token;
+    DrisVault public vault;
     address public operator;
     uint256 internal signerPk;
 
@@ -18,7 +18,7 @@ contract VaultHandler is Test {
     uint256 public ghostBurned;
     uint256 public ghostDeposited;
 
-    constructor(WyrmToken token_, WyrmVault vault_, address operator_, uint256 signerPk_, address[] memory actors_) {
+    constructor(DrisToken token_, DrisVault vault_, address operator_, uint256 signerPk_, address[] memory actors_) {
         token = token_;
         vault = vault_;
         operator = operator_;

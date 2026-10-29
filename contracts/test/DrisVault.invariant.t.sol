@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {VaultFixture} from "./helpers/VaultFixture.sol";
 import {VaultHandler} from "./helpers/VaultHandler.sol";
 
-contract WyrmVaultInvariantTest is VaultFixture {
+contract DrisVaultInvariantTest is VaultFixture {
     VaultHandler internal handler;
     address[] internal actors;
 

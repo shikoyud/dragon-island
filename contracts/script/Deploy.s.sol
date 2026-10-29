@@ -3,11 +3,11 @@ pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {VestingWallet} from "@openzeppelin/contracts/finance/VestingWallet.sol";
-import {WyrmDeployer} from "../src/WyrmDeployer.sol";
-import {WyrmToken} from "../src/WyrmToken.sol";
-import {WyrmVault} from "../src/WyrmVault.sol";
+import {DrisDeployer} from "../src/DrisDeployer.sol";
+import {DrisToken} from "../src/DrisToken.sol";
+import {DrisVault} from "../src/DrisVault.sol";
 
-/// @notice Deploys the whole system in one transaction via WyrmDeployer and hands the vault to the Safe.
+/// @notice Deploys the whole system in one transaction via DrisDeployer and hands the vault to the Safe.
 /// @dev Testnet only by default: reverts unless `block.chainid == ALLOW_CHAIN_ID` (default 46630).
 ///      After this runs, the Safe must call `vault.acceptOwnership()`.
 ///
@@ -18,7 +18,7 @@ contract Deploy is Script {
 
     error WrongChain(uint256 chainId);
 
-    function run() external returns (WyrmToken token, WyrmVault vault, VestingWallet vesting) {
+    function run() external returns (DrisToken token, DrisVault vault, VestingWallet vesting) {
         uint256 allowed = vm.envOr("ALLOW_CHAIN_ID", TESTNET_CHAIN_ID);
         if (block.chainid != allowed) revert WrongChain(block.chainid);
 
@@ -31,8 +31,8 @@ contract Deploy is Script {
         uint256 burnDailyLimit = vm.envUint("BURN_DAILY_LIMIT");
 
         vm.startBroadcast();
-        WyrmDeployer deployer =
-            new WyrmDeployer(ownerSafe, treasury, operator, signer, launch, entryFeeWei, burnDailyLimit);
+        DrisDeployer deployer =
+            new DrisDeployer(ownerSafe, treasury, operator, signer, launch, entryFeeWei, burnDailyLimit);
         vm.stopBroadcast();
 
         token = deployer.token();
@@ -40,9 +40,9 @@ contract Deploy is Script {
         vesting = deployer.vesting();
 
         console.log("chain id        ", block.chainid);
-        console.log("WyrmDeployer    ", address(deployer));
-        console.log("WyrmToken       ", address(token));
-        console.log("WyrmVault       ", address(vault));
+        console.log("DrisDeployer    ", address(deployer));
+        console.log("DrisToken       ", address(token));
+        console.log("DrisVault       ", address(vault));
         console.log("Team vesting    ", address(vesting));
         console.log("Pending owner   ", ownerSafe);
         console.log("Next step: the Safe calls vault.acceptOwnership()");

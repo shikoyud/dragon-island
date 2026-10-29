@@ -49,7 +49,7 @@ describe('POST /withdraw', () => {
     expect(v.cumulativeWei).toBe((8n * E18).toString())
     expect(v.deadlineMs).toBe(1_000 + VOUCHER_TTL_MS)
     const signer = await recoverTypedDataAddress({
-      domain: { name: 'WyrmVault', version: '1', chainId: 46630, verifyingContract: TEST_VAULT },
+      domain: { name: 'DrisVault', version: '1', chainId: 46630, verifyingContract: TEST_VAULT },
       types: CLAIM_TYPES,
       primaryType: 'Claim',
       message: { player: alice.address, cumulative: 8n * E18, deadline: BigInt(Math.floor(v.deadlineMs / 1000)) },

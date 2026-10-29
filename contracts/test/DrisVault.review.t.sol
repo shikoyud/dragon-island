@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {WyrmVault} from "../src/WyrmVault.sol";
+import {DrisVault} from "../src/DrisVault.sol";
 import {VaultFixture} from "./helpers/VaultFixture.sol";
 
 /// @dev Findings from the Phase 3 review, pinned as tests.
-contract WyrmVaultReviewTest is VaultFixture {
+contract DrisVaultReviewTest is VaultFixture {
     event PayoutDayStarted(uint256 indexed day, uint256 cap);
 
     function test_RenounceOwnershipIsDisabled() public {
         vm.prank(owner);
-        vm.expectRevert(WyrmVault.RenounceDisabled.selector);
+        vm.expectRevert(DrisVault.RenounceDisabled.selector);
         vault.renounceOwnership();
         assertEq(vault.owner(), owner);
     }
@@ -21,7 +21,7 @@ contract WyrmVaultReviewTest is VaultFixture {
         vm.prank(owner);
         vault.setBurnDailyLimit(500_000e18);
         assertEq(vault.remainingBurnToday(), 0);
-        vm.expectRevert(abi.encodeWithSelector(WyrmVault.BurnLimitExceeded.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(DrisVault.BurnLimitExceeded.selector, 0));
         vm.prank(operator);
         vault.burn(1);
         vm.warp(block.timestamp + 1 days);
@@ -31,7 +31,7 @@ contract WyrmVaultReviewTest is VaultFixture {
     function test_MalformedSignaturesAreInvalidSignature() public {
         uint256 deadline = block.timestamp + 1 hours;
         bytes memory tooShort = hex"deadbeef";
-        vm.expectRevert(WyrmVault.InvalidSignature.selector);
+        vm.expectRevert(DrisVault.InvalidSignature.selector);
         vm.prank(alice);
         vault.claim(1e18, deadline, tooShort);
 
@@ -41,7 +41,7 @@ contract WyrmVaultReviewTest is VaultFixture {
         bytes32 highS =
             bytes32(uint256(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141) - uint256(s));
         bytes memory malleable = abi.encodePacked(r, highS, v == 27 ? uint8(28) : uint8(27));
-        vm.expectRevert(WyrmVault.InvalidSignature.selector);
+        vm.expectRevert(DrisVault.InvalidSignature.selector);
         vm.prank(alice);
         vault.claim(1e18, deadline, malleable);
     }

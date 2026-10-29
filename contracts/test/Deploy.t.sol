@@ -4,9 +4,9 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {VestingWallet} from "@openzeppelin/contracts/finance/VestingWallet.sol";
 import {Deploy} from "../script/Deploy.s.sol";
-import {WyrmDeployer} from "../src/WyrmDeployer.sol";
-import {WyrmToken} from "../src/WyrmToken.sol";
-import {WyrmVault} from "../src/WyrmVault.sol";
+import {DrisDeployer} from "../src/DrisDeployer.sol";
+import {DrisToken} from "../src/DrisToken.sol";
+import {DrisVault} from "../src/DrisVault.sol";
 
 /// @dev One sequential test: `vm.setEnv` is process-global, so parallel tests would race on ALLOW_CHAIN_ID.
 contract DeployTest is Test {
@@ -31,7 +31,7 @@ contract DeployTest is Test {
         // 1. Testnet deployment: one atomic transaction wires everything and hands the vault to the Safe.
         vm.setEnv("ALLOW_CHAIN_ID", "46630");
         vm.chainId(46630);
-        (WyrmToken token, WyrmVault vault, VestingWallet vesting) = new Deploy().run();
+        (DrisToken token, DrisVault vault, VestingWallet vesting) = new Deploy().run();
 
         assertEq(token.balanceOf(address(vault)), 400_000_000e18);
         assertEq(token.balanceOf(address(vesting)), 100_000_000e18);
@@ -60,18 +60,18 @@ contract DeployTest is Test {
         // 3. An explicit override allows a local anvil dry run.
         vm.setEnv("ALLOW_CHAIN_ID", "31337");
         vm.chainId(31337);
-        (WyrmToken local,,) = new Deploy().run();
+        (DrisToken local,,) = new Deploy().run();
         assertEq(local.totalSupply(), 1_000_000_000e18);
     }
 
     function test_DeployerRequiresASafeContract() public {
         address eoa = makeAddr("eoaSafe");
-        vm.expectRevert(abi.encodeWithSelector(WyrmDeployer.SafeMustBeContract.selector, eoa));
-        new WyrmDeployer(eoa, payable(treasury), operator, signer, launch, 0.0005 ether, 1e24);
+        vm.expectRevert(abi.encodeWithSelector(DrisDeployer.SafeMustBeContract.selector, eoa));
+        new DrisDeployer(eoa, payable(treasury), operator, signer, launch, 0.0005 ether, 1e24);
     }
 
     function test_DeployerIsAtomicAndOwnsNothingAfter() public {
-        WyrmDeployer d = new WyrmDeployer(ownerSafe, payable(treasury), operator, signer, launch, 0.0005 ether, 1e24);
+        DrisDeployer d = new DrisDeployer(ownerSafe, payable(treasury), operator, signer, launch, 0.0005 ether, 1e24);
         assertEq(d.token().balanceOf(address(d.vault())), 400_000_000e18);
         assertEq(d.vault().owner(), address(d));
         assertEq(d.vault().pendingOwner(), ownerSafe);

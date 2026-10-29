@@ -2,8 +2,8 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {WyrmToken} from "../../src/WyrmToken.sol";
-import {WyrmVault} from "../../src/WyrmVault.sol";
+import {DrisToken} from "../../src/DrisToken.sol";
+import {DrisVault} from "../../src/DrisVault.sol";
 
 /// @dev Deploys the token with the (precomputed) vault as the 40% recipient, plus the roles tests need.
 abstract contract VaultFixture is Test {
@@ -20,13 +20,13 @@ abstract contract VaultFixture is Test {
     address internal alice = makeAddr("alice");
     address internal bob = makeAddr("bob");
 
-    WyrmToken internal token;
-    WyrmVault internal vault;
+    DrisToken internal token;
+    DrisVault internal vault;
 
     function setUp() public virtual {
         address predictedVault = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 1);
-        token = new WyrmToken(launch, predictedVault, team);
-        vault = new WyrmVault(token, owner, treasury, operator, signer, ENTRY_FEE);
+        token = new DrisToken(launch, predictedVault, team);
+        vault = new DrisVault(token, owner, treasury, operator, signer, ENTRY_FEE);
         assertEq(address(vault), predictedVault, "fixture: vault address prediction");
         vm.prank(owner);
         vault.setBurnDailyLimit(BURN_LIMIT);
@@ -47,7 +47,7 @@ abstract contract VaultFixture is Test {
         return signFor(pk, vault, player, cumulative, deadline);
     }
 
-    function signFor(uint256 pk, WyrmVault target, address player, uint256 cumulative, uint256 deadline)
+    function signFor(uint256 pk, DrisVault target, address player, uint256 cumulative, uint256 deadline)
         internal
         view
         returns (bytes memory)
@@ -58,7 +58,7 @@ abstract contract VaultFixture is Test {
         return abi.encodePacked(r, s, v);
     }
 
-    function _domainSeparator(WyrmVault target) internal view returns (bytes32) {
+    function _domainSeparator(DrisVault target) internal view returns (bytes32) {
         (, string memory name, string memory version, uint256 chainId, address verifying,,) = target.eip712Domain();
         return keccak256(
             abi.encode(

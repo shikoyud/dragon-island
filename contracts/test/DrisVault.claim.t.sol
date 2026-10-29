@@ -3,10 +3,10 @@ pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {WyrmVault} from "../src/WyrmVault.sol";
+import {DrisVault} from "../src/DrisVault.sol";
 import {VaultFixture} from "./helpers/VaultFixture.sol";
 
-contract WyrmVaultClaimTest is VaultFixture {
+contract DrisVaultClaimTest is VaultFixture {
     event Claimed(address indexed player, uint256 cumulative, uint256 gross, uint256 net, uint256 burned);
 
     uint256 internal constant SEED = 400_000_000e18;
@@ -39,11 +39,11 @@ contract WyrmVaultClaimTest is VaultFixture {
     function test_CumulativeOnlyPaysTheDelta() public {
         _claim(alice, 1_000e18);
         bytes memory same = sign(SIGNER_PK, alice, 1_000e18, deadline);
-        vm.expectRevert(WyrmVault.NothingToClaim.selector);
+        vm.expectRevert(DrisVault.NothingToClaim.selector);
         vm.prank(alice);
         vault.claim(1_000e18, deadline, same);
         bytes memory lower = sign(SIGNER_PK, alice, 999e18, deadline);
-        vm.expectRevert(WyrmVault.NothingToClaim.selector);
+        vm.expectRevert(DrisVault.NothingToClaim.selector);
         vm.prank(alice);
         vault.claim(999e18, deadline, lower);
         _claim(alice, 1_500e18);
@@ -53,17 +53,17 @@ contract WyrmVaultClaimTest is VaultFixture {
 
     function test_RevertBadSignatures() public {
         bytes memory wrongKey = sign(0xBEEF, alice, 1_000e18, deadline);
-        vm.expectRevert(WyrmVault.InvalidSignature.selector);
+        vm.expectRevert(DrisVault.InvalidSignature.selector);
         vm.prank(alice);
         vault.claim(1_000e18, deadline, wrongKey);
 
         bytes memory forAlice = sign(SIGNER_PK, alice, 1_000e18, deadline);
-        vm.expectRevert(WyrmVault.InvalidSignature.selector);
+        vm.expectRevert(DrisVault.InvalidSignature.selector);
         vm.prank(bob);
         vault.claim(1_000e18, deadline, forAlice);
 
         bytes memory tampered = sign(SIGNER_PK, alice, 1_000e18, deadline);
-        vm.expectRevert(WyrmVault.InvalidSignature.selector);
+        vm.expectRevert(DrisVault.InvalidSignature.selector);
         vm.prank(alice);
         vault.claim(2_000e18, deadline, tampered);
     }
@@ -71,20 +71,20 @@ contract WyrmVaultClaimTest is VaultFixture {
     function test_RevertExpired() public {
         uint256 past = block.timestamp - 1;
         bytes memory sig = sign(SIGNER_PK, alice, 1_000e18, past);
-        vm.expectRevert(WyrmVault.VoucherExpired.selector);
+        vm.expectRevert(DrisVault.VoucherExpired.selector);
         vm.prank(alice);
         vault.claim(1_000e18, past, sig);
     }
 
     function test_VoucherBoundToVaultAndChain() public {
-        WyrmVault other = new WyrmVault(token, owner, treasury, operator, signer, ENTRY_FEE);
+        DrisVault other = new DrisVault(token, owner, treasury, operator, signer, ENTRY_FEE);
         bytes memory sig = sign(SIGNER_PK, alice, 1_000e18, deadline);
-        vm.expectRevert(WyrmVault.InvalidSignature.selector);
+        vm.expectRevert(DrisVault.InvalidSignature.selector);
         vm.prank(alice);
         other.claim(1_000e18, deadline, sig);
 
         vm.chainId(1);
-        vm.expectRevert(WyrmVault.InvalidSignature.selector);
+        vm.expectRevert(DrisVault.InvalidSignature.selector);
         vm.prank(alice);
         vault.claim(1_000e18, deadline, sig);
     }
@@ -96,7 +96,7 @@ contract WyrmVaultClaimTest is VaultFixture {
         assertEq(vault.remainingPayoutToday(), 0);
 
         bytes memory sig = sign(SIGNER_PK, bob, 1, deadline);
-        vm.expectRevert(abi.encodeWithSelector(WyrmVault.DailyCapExceeded.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(DrisVault.DailyCapExceeded.selector, 0));
         vm.prank(bob);
         vault.claim(1, deadline, sig);
         assertEq(vault.claimed(bob), 0);
@@ -117,7 +117,7 @@ contract WyrmVaultClaimTest is VaultFixture {
         uint256 cap = SEED * 200 / 10_000;
         _claim(alice, cap - 10e18);
         bytes memory sig = sign(SIGNER_PK, bob, 20e18, deadline);
-        vm.expectRevert(abi.encodeWithSelector(WyrmVault.DailyCapExceeded.selector, 10e18));
+        vm.expectRevert(abi.encodeWithSelector(DrisVault.DailyCapExceeded.selector, 10e18));
         vm.prank(bob);
         vault.claim(20e18, deadline, sig);
     }
@@ -140,7 +140,7 @@ contract WyrmVaultClaimTest is VaultFixture {
         vm.prank(owner);
         vault.setSigner(newSigner);
         bytes memory oldSig = sign(SIGNER_PK, alice, 1_000e18, deadline);
-        vm.expectRevert(WyrmVault.InvalidSignature.selector);
+        vm.expectRevert(DrisVault.InvalidSignature.selector);
         vm.prank(alice);
         vault.claim(1_000e18, deadline, oldSig);
 

@@ -121,7 +121,7 @@ export async function requestWithdrawal(deps: WithdrawDeps, playerId: string, gr
     const deadline = BigInt(Math.floor(deadlineMs / 1000))
 
     const signature = await signer.signTypedData({
-      domain: { name: 'WyrmVault', version: '1', chainId, verifyingContract: vault },
+      domain: { name: 'DrisVault', version: '1', chainId, verifyingContract: vault },
       types: CLAIM_TYPES,
       primaryType: 'Claim',
       message: { player: address, cumulative, deadline },
