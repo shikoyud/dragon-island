@@ -15,7 +15,7 @@ export function ElementsStrip() {
       <ul className="elements">
         {ELEMENTS.map((e) => (
           <li key={e} className={`element el-accent-${e}`}>
-            <Sprite sprite={ACTIVE_ART.elementIcon[e]} element={e} scale={2} />
+            <Sprite sprite={ACTIVE_ART.elementIcon[e]} element={e} scale={1} />
             <span className="element-name">{e}</span>
           </li>
         ))}

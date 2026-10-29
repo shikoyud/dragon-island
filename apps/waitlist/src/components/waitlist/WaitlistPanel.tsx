@@ -50,7 +50,7 @@ function Identity({ state, onSignOut }: { state: EntrantState; onSignOut(): void
       {state.avatarUrl ? (
         <img className="identity-avatar" src={state.avatarUrl} alt="" width={40} height={40} />
       ) : (
-        <Sprite sprite={ACTIVE_ART.hatchling[state.element]} element={state.element} scale={2} />
+        <Sprite sprite={ACTIVE_ART.hatchling[state.element]} element={state.element} scale={1} />
       )}
       <span className="identity-text">
         <span className="identity-handle">@{state.handle}</span>

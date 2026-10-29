@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 import { render, cleanup } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { artSetFromManifest, type Manifest } from '../src/art/fromManifest'
@@ -40,9 +42,31 @@ describe('artSetFromManifest', () => {
     expect(art.hero.layers.map((l) => l.src)).toEqual(['/art/v1/a.png', '/art/v1/b.png'])
   })
 
-  it('ACTIVE_ART is the empty v0 set', () => {
-    expect(ACTIVE_ART.version).toBe('v0')
-    expect(ACTIVE_ART.egg.fire.src).toBe('')
+  it('ACTIVE_ART is the PixelLab v1 set', () => {
+    expect(ACTIVE_ART.version).toBe('v1')
+    expect(ACTIVE_ART.egg.fire.src).toBe('/art/v1/egg-fire.png')
+  })
+})
+
+describe('art v1 manifest', () => {
+  const dir = path.join(__dirname, '..', 'public', 'art', 'v1')
+  const v1 = JSON.parse(readFileSync(path.join(dir, 'manifest.json'), 'utf8')) as Manifest
+
+  it('has every per-element key plus the hero and UI keys', () => {
+    const keys = ['hero.base', 'hero.layer.0', 'ui.panel', 'ui.button']
+    for (const e of ELEMENTS) keys.push(`egg.${e}`, `hatchling.${e}`, `icon.${e}`)
+    for (const k of keys) expect(v1.assets[k], k).toBeDefined()
+  })
+
+  it('points every entry at a PNG on disk whose size matches w × frames by h', () => {
+    for (const [key, a] of Object.entries(v1.assets)) {
+      const file = path.join(dir, a.file)
+      expect(existsSync(file), key).toBe(true)
+      const png = readFileSync(file)
+      expect(png.readUInt32BE(16), `${key} width`).toBe(a.w * a.frames)
+      expect(png.readUInt32BE(20), `${key} height`).toBe(a.h)
+      expect(Number.isInteger(a.frames) && a.frames >= 1, key).toBe(true)
+    }
   })
 })
 

@@ -1,0 +1,221 @@
+{
+  "assets": {
+    "egg.dark": {
+      "file": "egg-dark.png",
+      "w": 32,
+      "h": 32,
+      "frames": 6,
+      "fps": 8
+    },
+    "egg.earth": {
+      "file": "egg-earth.png",
+      "w": 32,
+      "h": 32,
+      "frames": 6,
+      "fps": 8
+    },
+    "egg.electric": {
+      "file": "egg-electric.png",
+      "w": 32,
+      "h": 32,
+      "frames": 6,
+      "fps": 8
+    },
+    "egg.fire": {
+      "file": "egg-fire.png",
+      "w": 32,
+      "h": 32,
+      "frames": 6,
+      "fps": 8
+    },
+    "egg.ice": {
+      "file": "egg-ice.png",
+      "w": 32,
+      "h": 32,
+      "frames": 6,
+      "fps": 8
+    },
+    "egg.light": {
+      "file": "egg-light.png",
+      "w": 32,
+      "h": 32,
+      "frames": 6,
+      "fps": 8
+    },
+    "egg.metal": {
+      "file": "egg-metal.png",
+      "w": 32,
+      "h": 32,
+      "frames": 6,
+      "fps": 8
+    },
+    "egg.nature": {
+      "file": "egg-nature.png",
+      "w": 32,
+      "h": 32,
+      "frames": 6,
+      "fps": 8
+    },
+    "egg.water": {
+      "file": "egg-water.png",
+      "w": 32,
+      "h": 32,
+      "frames": 6,
+      "fps": 8
+    },
+    "hatchling.dark": {
+      "file": "hatchling-dark.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "hatchling.earth": {
+      "file": "hatchling-earth.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "hatchling.electric": {
+      "file": "hatchling-electric.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "hatchling.fire": {
+      "file": "hatchling-fire.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "hatchling.ice": {
+      "file": "hatchling-ice.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "hatchling.light": {
+      "file": "hatchling-light.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "hatchling.metal": {
+      "file": "hatchling-metal.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "hatchling.nature": {
+      "file": "hatchling-nature.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "hatchling.water": {
+      "file": "hatchling-water.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "hero.base": {
+      "file": "hero.png",
+      "w": 256,
+      "h": 180,
+      "frames": 1,
+      "fps": 0
+    },
+    "hero.layer.0": {
+      "file": "hero-layer-0.png",
+      "w": 256,
+      "h": 180,
+      "frames": 6,
+      "fps": 8
+    },
+    "icon.dark": {
+      "file": "icon-dark.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0
+    },
+    "icon.earth": {
+      "file": "icon-earth.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0
+    },
+    "icon.electric": {
+      "file": "icon-electric.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0
+    },
+    "icon.fire": {
+      "file": "icon-fire.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0
+    },
+    "icon.ice": {
+      "file": "icon-ice.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0
+    },
+    "icon.light": {
+      "file": "icon-light.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0
+    },
+    "icon.metal": {
+      "file": "icon-metal.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0
+    },
+    "icon.nature": {
+      "file": "icon-nature.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0
+    },
+    "icon.water": {
+      "file": "icon-water.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0
+    },
+    "ui.button": {
+      "file": "ui-button.png",
+      "w": 24,
+      "h": 16,
+      "frames": 1,
+      "fps": 0
+    },
+    "ui.panel": {
+      "file": "ui-panel.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0
+    }
+  }
+}

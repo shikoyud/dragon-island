@@ -51,12 +51,7 @@ export function Hero() {
         <ul className="hatchlings" aria-label="The nine element hatchlings">
           {ELEMENTS.map((e, i) => (
             <li key={e} className="hatch" style={{ animationDelay: `${(i % 3) * 0.25}s` }}>
-              <span className="hatch-sm">
-                <Sprite sprite={ACTIVE_ART.hatchling[e]} element={e} scale={2} />
-              </span>
-              <span className="hatch-lg">
-                <Sprite sprite={ACTIVE_ART.hatchling[e]} element={e} scale={3} />
-              </span>
+              <Sprite sprite={ACTIVE_ART.hatchling[e]} element={e} scale={1} />
             </li>
           ))}
         </ul>

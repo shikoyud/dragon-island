@@ -42,7 +42,7 @@ export function Pillars() {
           <li key={p.title}>
             <Panel className={`pillar el-accent-${p.element}`}>
               <span className="pillar-icon">
-                <Sprite sprite={p.sprite} element={p.element} scale={3} />
+                <Sprite sprite={p.sprite} element={p.element} scale={2} />
               </span>
               <h3 className="pillar-title">{p.title}</h3>
               <p className="pillar-text">{p.text}</p>

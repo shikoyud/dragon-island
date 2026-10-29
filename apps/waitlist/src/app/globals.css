@@ -441,10 +441,6 @@ h3 {
   animation: wh-bob 1.2s steps(2) infinite;
 }
 
-.hatch-lg {
-  display: none;
-}
-
 @media (min-width: 960px) {
   .hero {
     grid-template-columns: 1.1fr 1fr;
@@ -465,12 +461,6 @@ h3 {
     grid-template-columns: repeat(9, 48px);
     gap: 4px;
     padding: 14px 12px;
-  }
-  .hatch-sm {
-    display: none;
-  }
-  .hatch-lg {
-    display: block;
   }
 }
 
