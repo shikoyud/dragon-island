@@ -14,8 +14,8 @@ describe('artEntries', () => {
     expect(keys).toContain(textureKey('crop.bounty'))
     expect(keys).toContain(textureKey('island.base'))
     expect(new Set(keys).size).toBe(keys.length)
-    // 9 eggs + 9 hatchlings + 9 dragons + 9 habitats + 3 buildings + 4 crops + hoard + 9 icons + 3 ui + island
-    expect(rows).toHaveLength(9 * 5 + 3 + 4 + 1 + 3 + 1)
+    // base: 9 eggs + 9 hatchlings + 9 dragons + 9 habitats + 9 icons + ...; plus nexus, 15 decorations, 5 obstacles, 6 map icons, locked + sign; was: 3 buildings + 4 crops + hoard + 9 icons + 3 ui + island
+    expect(rows).toHaveLength(9 * 5 + 3 + 4 + 1 + 3 + 1 + 1 + 15 + 5 + 6 + 2)
     expect(rows.find(r => r.key === textureKey('dragon.ice'))!.element).toBe('ice')
     expect(rows.find(r => r.key === textureKey('egg.dark'))!.slot).toBe('egg')
   })

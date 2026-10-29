@@ -4,7 +4,7 @@ import {
   type BuildingRef, type Catalog, type IslandId, type MovableRef, type Placement, type PlayerState,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
-import { OPTIONAL_SLOT_SIZES, type GameArtSet, type Sprite } from '../art/types'
+import type { GameArtSet, Sprite } from '../art/types'
 import type { Placing, Target } from './bridge'
 import { anchor, dragonSpot, hatcherySpot, type Pos } from './layout'
 
@@ -61,15 +61,14 @@ export function dragonKey(speciesId: string, art: GameArtSet): string {
   return art.dragon[speciesId] ? textureKey(`dragon.${speciesId}`) : textureKey('dragon.fire')
 }
 
-const blank = (size: { w: number; h: number }): Sprite => ({ src: '', ...size, frames: 1, fps: 0 })
 const flip = (facing: number): { flipX?: true } => (facing === 1 || facing === 3 ? { flipX: true } : {})
 
 type DecorationKind = keyof typeof DECORATIONS
 const decorationLook = (art: GameArtSet, kind: DecorationKind) => ({
   key: textureKey(`decoration.${kind}`),
-  sprite: art.decoration?.[kind] ?? blank(OPTIONAL_SLOT_SIZES.footprint[DECORATIONS[kind].size]),
+  sprite: art.decoration[kind],
 })
-const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), sprite: art.nexus ?? blank(OPTIONAL_SLOT_SIZES.nexus) })
+const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), sprite: art.building.nexus })
 
 /** Sprite and texture key of a thing that can be placed, for the ghost. */
 function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): { key: string; sprite: Sprite } {
@@ -138,7 +137,7 @@ export function buildIslandModel(
     const c = state.constructions.find(x => x.kind === 'clear' && x.obstacleId === o.id)
     add(a, [{
       id: `obstacle:${o.id}`, key: textureKey(`obstacle.${o.kind}`),
-      sprite: art.obstacle?.[o.kind] ?? blank(OPTIONAL_SLOT_SIZES.footprint[size]),
+      sprite: art.obstacle[o.kind],
       ...a, target: { kind: 'obstacle', id: o.id },
       ...(c ? { tint: 'building' as const, badge: timerLabel(c.readyAtMs, nowMs) } : {}),
     }])
@@ -239,7 +238,7 @@ export function buildIslandModel(
     const next = HOME_EXPANSION[state.islands.homeStep]!
     const { col, row } = signCell(state.islands.homeStep)
     const a = anchor(col, row, 2)
-    add(a, [{ id: 'sign', key: textureKey('ui.sign'), sprite: art.sign ?? blank(OPTIONAL_SLOT_SIZES.sign), ...a, target: { kind: 'expandSign' } }])
+    add(a, [{ id: 'sign', key: textureKey('island.sign'), sprite: art.island.sign, ...a, target: { kind: 'expandSign' } }])
     markers.sign = { cost: next.cost, minLevel: next.minLevel }
   }
 

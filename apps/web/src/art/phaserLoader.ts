@@ -1,4 +1,4 @@
-import type { Element } from '@wyrmhaven/game-core'
+import { DECORATIONS, OBSTACLES, type Element } from '@wyrmhaven/game-core'
 import type Phaser from 'phaser'
 import { drawFallback, fallbackKey, type FallbackSlot } from './fallback'
 import type { GameArtSet, Sprite } from './types'
@@ -22,11 +22,17 @@ export function artEntries(art: GameArtSet): Entry[] {
   add('building.farmPlot', art.building.farmPlot, 'farmPlot')
   for (const [c, s] of Object.entries(art.building.cropStage)) add(`crop.${c}`, s, 'crop', 'nature')
   add('building.hoard', art.building.hoard, 'hoard')
+  add('building.nexus', art.building.nexus, 'nexus')
+  for (const [d, s] of Object.entries(art.decoration)) add(`decoration.${d}`, s, 'decoration', DECORATIONS[d as keyof typeof DECORATIONS].island ? 'light' : 'nature')
+  for (const [k, s] of Object.entries(art.obstacle)) add(`obstacle.${k}`, s, 'obstacle', OBSTACLES[k as keyof typeof OBSTACLES].size > 1 ? 'earth' : 'nature')
+  for (const [i, s] of Object.entries(art.map)) add(`map.${i}`, s, 'map', 'water')
   for (const [el, s] of Object.entries(art.elementIcon) as [Element, Sprite][]) add(`icon.${el}`, s, 'icon', el)
   add('ui.panel', art.ui.panel, 'panel')
   add('ui.button', art.ui.button, 'button')
   add('ui.cursor', art.ui.cursor, 'cursor')
   add('island.base', art.island.base, 'island', 'water')
+  add('island.locked', art.island.locked, 'locked')
+  add('island.sign', art.island.sign, 'sign')
   art.island.layers.forEach((s, i) => add(`island.layer.${i}`, s, 'island', 'water'))
   return rows
 }

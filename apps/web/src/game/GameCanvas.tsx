@@ -20,6 +20,8 @@ export function GameCanvas({ bridge, art }: { bridge: Bridge; art: GameArtSet })
     const onMq = (e: MediaQueryListEvent) => bridge.setReducedMotion(e.matches)
     mq?.addEventListener?.('change', onMq)
     game.current = createGame(host.current, bridge)
+    // Playwright drives the canvas through the bridge (the scene emits the same events on a click); test wallet builds only.
+    if (import.meta.env.VITE_TEST_WALLET === '1') (window as unknown as { __bridge?: Bridge }).__bridge = bridge
     const tick = setInterval(() => bridge.setClock(Date.now()), 1000)
     return () => {
       clearInterval(tick)

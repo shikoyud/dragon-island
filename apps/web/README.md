@@ -39,7 +39,11 @@ The Season panel shows the leaderboard (top 10, your rank), the prize pool so fa
 
 ## Art slots
 
-Art is chosen only through `src/art/slots.ts`. `public/art/<version>/manifest.json` lists sprite sheets as `{ "egg.fire": { file, w, h, frames, fps }, ... }` with keys `egg.<element>`, `hatchling.<element>`, `dragon.<speciesId>`, `habitat.<element>`, `building.nest|hatchery|farmPlot|hoard`, `crop.<cropId>`, `icon.<element>`, `ui.panel|button|cursor`, `island.base`, `island.layer.<n>`. Missing keys get a deterministic pixel fallback, so the game runs with no assets. To ship PixelLab art: add `public/art/v1/`, write its manifest, set `ART_VERSION` in `slots.ts`, record prompts in `art/prompts.md` (our own designs only).
+Art is chosen only through `src/art/slots.ts`. `public/art/<version>/manifest.json` lists sprite sheets as `{ "egg.fire": { file, w, h, frames, fps }, ... }` with keys `egg.<element>`, `hatchling.<element>`, `dragon.<speciesId>`, `habitat.<element>`, `building.nest|hatchery|farmPlot|hoard|nexus`, `decoration.<id>`, `obstacle.<kind>`, `map.<islandId>`, `island.locked|sign`, `crop.<cropId>`, `icon.<element>`, `ui.panel|button|cursor`, `island.base`, `island.layer.<n>`. Missing keys get a deterministic pixel fallback, so the game runs with no assets. To ship PixelLab art: add `public/art/v1/`, write its manifest, set `ART_VERSION` in `slots.ts`, record prompts in `art/prompts.md` (our own designs only).
+
+Base-building slots fall back to coloured boxes sized by footprint (16 px per cell; habitat and Nexus 80x64). The full generation list is `docs/art/base-building-art-list.md`. Facings 0/2 draw the sprite, 1/3 mirror it.
+
+Known gaps in the base-building client: no PixelLab art for the new slots yet (boxes only); `island.locked` and `map.<island>` are loaded but not drawn yet (locked land is a flat fill, the map panel is a text list); the v1 habitat sheets are 96x64, wider than the 80 px footprint, until they are re-cut; the e2e drives the canvas through `window.__bridge` (test wallet only) rather than pixel clicks; construction badges are canvas-only and not asserted in e2e.
 
 Rendering rules: Phaser `pixelArt` + `roundPixels`, whole-pixel positions, integer zoom only, CSS `image-rendering: pixelated`, `prefers-reduced-motion` shows frame 0.
 

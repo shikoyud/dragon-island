@@ -22,6 +22,7 @@ const PANEL_EDGE = '#3b4680'
 export type FallbackSlot =
   | 'egg' | 'hatchling' | 'dragon' | 'habitat' | 'nest' | 'hatchery' | 'farmPlot' | 'crop' | 'hoard'
   | 'icon' | 'panel' | 'button' | 'cursor' | 'island'
+  | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'map'
 
 export const fallbackKey = (slot: FallbackSlot, element?: Element): string =>
   element ? `fallback:${slot}:${element}` : `fallback:${slot}`
@@ -129,6 +130,46 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
     case 'cursor': {
       px(0, 0, w, 1, '#ffffff'); px(0, 0, 1, h, '#ffffff')
       px(0, h - 1, w, 1, '#ffffff'); px(w - 1, 0, 1, h, '#ffffff')
+      return
+    }
+    case 'nexus': {
+      // Same platform as a habitat, banded in every element colour.
+      ellipse(w / 2, h * 0.7, w * 0.46, h * 0.22, STONE)
+      px(w * 0.1, h * 0.7, w * 0.8, h * 0.12, SOIL)
+      const bands = Object.values(FALLBACK_PALETTE)
+      bands.forEach((b, i) => px(w * 0.08 + (i * w * 0.84) / bands.length, h * 0.46, (w * 0.84) / bands.length + 1, h * 0.08, b.base))
+      return
+    }
+    case 'decoration': {
+      // A box the size of its footprint, tinted by the element argument (nature = ordinary, light = Dawnspire).
+      px(0, 0, w, h, OUTLINE)
+      px(1, 1, w - 2, h - 2, p.base)
+      px(1, 1, w - 2, 2, p.light)
+      px(1, h - 3, w - 2, 2, p.dark)
+      return
+    }
+    case 'obstacle': {
+      px(0, 0, w, h, OUTLINE)
+      px(1, 1, w - 2, h - 2, p.dark)
+      px(2, 2, w - 4, Math.max(1, Math.floor(h / 3)), p.base)
+      return
+    }
+    case 'locked': {
+      px(0, 0, w, h, '#0b0f1c')
+      px(w * 0.35, h * 0.45, w * 0.3, h * 0.3, PANEL_EDGE) // padlock body
+      px(w * 0.42, h * 0.25, w * 0.16, h * 0.2, PANEL_EDGE) // shackle
+      return
+    }
+    case 'sign': {
+      px(w * 0.45, h * 0.5, w * 0.1, h * 0.5, WOOD) // post
+      px(w * 0.1, h * 0.1, w * 0.8, h * 0.45, OUTLINE)
+      px(w * 0.14, h * 0.16, w * 0.72, h * 0.33, WOOD)
+      px(w * 0.25, h * 0.3, w * 0.5, h * 0.05, p.light)
+      return
+    }
+    case 'map': {
+      ellipse(w / 2, h * 0.7, w * 0.42, h * 0.14, '#5e3a1d')
+      ellipse(w / 2, h * 0.6, w * 0.4, h * 0.14, p.base)
       return
     }
     case 'island': {

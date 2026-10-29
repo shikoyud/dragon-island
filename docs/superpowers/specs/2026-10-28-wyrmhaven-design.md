@@ -94,6 +94,7 @@ The UI shows the exact odds of every pairing, including boosts and pity.
   - Max habitats = 2 + floor(playerLevel / 5).
   - Income: whole minutes since `lastCollectedAt` (never negative), × sum of resident gold/min, capped. Collect sets `lastCollectedAt = max(lastCollectedAt, now)`.
 - **Farms:** 2 plots at start; plot n+1 costs 500 × 2^(n−2) gold, max 6 plots.
+- **Placement, construction and expansion:** buildings sit on a grid, take build and upgrade timers, and the home island grows; see `docs/superpowers/specs/2026-10-29-base-building-design.md` (it supersedes the fixed layout here).
 
 | Crop | Grow time | Cost (gold) | Food |
 |---|---|---|---|

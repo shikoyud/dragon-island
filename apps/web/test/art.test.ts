@@ -1,10 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { ELEMENTS, LAUNCH_CATALOG } from '@wyrmhaven/game-core'
+import { DECORATIONS, ELEMENTS, ISLAND_ORDER, LAUNCH_CATALOG, OBSTACLES, type DecorationId, type ObstacleKind } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { drawFallback, fallbackKey, FALLBACK_PALETTE } from '../src/art/fallback'
 import { artSetFromManifest, type Manifest } from '../src/art/fromManifest'
 import { ART_VERSION } from '../src/art/slots'
+import { artEntries } from '../src/art/phaserLoader'
 import { SLOT_SIZES } from '../src/art/types'
 
 const manifest: Manifest = {
@@ -77,6 +78,46 @@ describe('artSetFromManifest', () => {
     expect(art.island.layers).toEqual([])
   })
 
+  it('maps the base-building keys from a manifest', () => {
+    const e = (file: string, w: number, h: number) => ({ file, w, h, frames: 1, fps: 0 })
+    const a = artSetFromManifest('v2', { assets: {
+      'building.nexus': e('nexus.png', 80, 64), 'decoration.moonwell': e('moonwell.png', 48, 48), 'obstacle.ruin': e('ruin.png', 48, 48),
+      'island.locked': e('locked.png', 16, 16), 'island.sign': e('sign.png', 32, 32), 'map.dawnspire': e('map-dawn.png', 32, 32),
+    } }, LAUNCH_CATALOG)
+    expect(a.building.nexus.src).toBe('/art/v2/nexus.png')
+    expect(a.decoration.moonwell.src).toBe('/art/v2/moonwell.png')
+    expect(a.obstacle.ruin.src).toBe('/art/v2/ruin.png')
+    expect(a.island.locked.src).toBe('/art/v2/locked.png')
+    expect(a.island.sign.src).toBe('/art/v2/sign.png')
+    expect(a.map.dawnspire.src).toBe('/art/v2/map-dawn.png')
+  })
+
+  it('falls back to footprint-sized blank sprites for every base-building slot', () => {
+    const blank = (w: number, h: number) => ({ src: '', w, h, frames: 1, fps: 0 })
+    expect(SLOT_SIZES.habitat).toEqual({ w: 80, h: 64 })
+    expect(art.building.nexus).toEqual(blank(80, 64))
+    for (const id of Object.keys(DECORATIONS) as DecorationId[]) {
+      const n = DECORATIONS[id].size * 16
+      expect(art.decoration[id], id).toEqual(blank(n, n))
+    }
+    for (const k of Object.keys(OBSTACLES) as ObstacleKind[]) {
+      const n = OBSTACLES[k].size * 16
+      expect(art.obstacle[k], k).toEqual(blank(n, n))
+    }
+    expect(art.island.locked).toEqual(blank(16, 16))
+    expect(art.island.sign).toEqual(blank(32, 32))
+    expect(Object.keys(art.map)).toEqual([...ISLAND_ORDER])
+    for (const id of ISLAND_ORDER) expect(art.map[id]).toEqual(blank(32, 32))
+  })
+
+  it('registers every base-building key with the Phaser loader', () => {
+    const keys = artEntries(art).map(r => r.key)
+    for (const k of ['building.nexus', 'island.locked', 'island.sign', ...Object.keys(DECORATIONS).map(d => `decoration.${d}`),
+      ...Object.keys(OBSTACLES).map(o => `obstacle.${o}`), ...ISLAND_ORDER.map(i => `map.${i}`)]) {
+      expect(keys, k).toContain(`art:${k}`)
+    }
+  })
+
   it('has one dragon slot per catalog species', () => {
     expect(Object.keys(art.dragon).sort()).toEqual([...LAUNCH_CATALOG.species.keys()].sort())
     for (const e of ELEMENTS) expect(art.elementIcon[e]).toMatchObject({ w: 16, h: 16 })
@@ -122,7 +163,7 @@ describe('drawFallback', () => {
   })
 
   it('draws every slot without touching pixels outside the canvas', () => {
-    for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'nest', 'hatchery', 'farmPlot', 'crop', 'hoard', 'icon', 'panel', 'button', 'island'] as const) {
+    for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'nest', 'hatchery', 'farmPlot', 'crop', 'hoard', 'icon', 'panel', 'button', 'island', 'nexus', 'decoration', 'obstacle', 'locked', 'sign', 'map'] as const) {
       const g = gridContext(48, 48)
       expect(() => drawFallback(g.ctx, slot, 'water', 48, 48)).not.toThrow()
       expect(g.px.some(p => p !== null)).toBe(true)

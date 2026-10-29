@@ -1,4 +1,5 @@
 import { expect, type APIRequestContext, type Page } from '@playwright/test'
+import { newPlayer } from '@wyrmhaven/game-core'
 
 export const SERVER = 'http://localhost:3000'
 /** Anvil dev account 0 (the VITE_TEST_WALLET adapter signs with its key). */
@@ -19,25 +20,9 @@ export async function setServerClock(request: APIRequestContext, offsetMs: numbe
   expect(r.ok(), await r.text()).toBe(true)
 }
 
-/** The spec §9 starting state (mirrors game-core's newPlayer) so every spec starts from the same place. */
+/** The starting state exactly as the server creates it (game-core's newPlayer), so every spec starts from the same place. */
 export function startingState(nowMs = Date.now()): Record<string, unknown> {
-  const day = Math.floor(nowMs / 86_400_000)
-  return {
-    gold: 1000, eligibleGold: 0, food: 100, xp: 0, level: 1,
-    dragons: [
-      { id: 'd1', speciesId: 'fire', level: 1, habitatId: 'h1' },
-      { id: 'd2', speciesId: 'water', level: 1, habitatId: 'h2' },
-    ],
-    habitats: [
-      { id: 'h1', element: 'fire', level: 1, lastCollectedMs: nowMs },
-      { id: 'h2', element: 'water', level: 1, lastCollectedMs: nowMs },
-    ],
-    nests: [null], hatchery: [], farms: [{ crop: null, readyAtMs: 0 }, { crop: null, readyAtMs: 0 }],
-    pity: {}, oddsBoosts: 0, hoardLevel: 0, earningUnlocked: false,
-    sell: { day, soldTodayMicroUsd: 0 }, ledger: { depositedMicroUsd: 0, withdrawnMicroUsd: 0, soldMicroUsd: 0 },
-    tutorial: { breedDone: false, hatchDone: false }, nextId: 3,
-    defenceTeam: null, trophies: 0, pvp: { day, count: 0 }, pve: { cleared: 0, replays: { day, count: 0 } },
-  }
+  return newPlayer(nowMs) as unknown as Record<string, unknown>
 }
 
 /** Resets the shared e2e player to the starting state plus `extra`, with no tokens and earning locked. */
