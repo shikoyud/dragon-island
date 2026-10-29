@@ -87,3 +87,23 @@ describe('isValidAction placements', () => {
     expect(isValidAction({ type: 'moveBuilding', target: { type: 'hatchery' }, placement: P(0, 0) })).toBe(true)
   })
 })
+
+describe('Dawnspire-only buildings stay on Dawnspire', () => {
+  const dp = { island: 'dawnspire' as const, col: 0, row: 0, facing: 0 as const }
+  const base = { ...s, islands: { ...s.islands, unlocked: ['home', 'dawnspire'] as PlayerState['islands']['unlocked'] } }
+  it('rejects moving the Nexus off Dawnspire', () => {
+    const nexus = { id: 'h3', element: 'any' as const, level: 5, lastCollectedMs: 0, placement: dp }
+    const st = { ...base, habitats: [...base.habitats, nexus] }
+    err(run(st, { type: 'moveBuilding', target: { type: 'habitat', id: 'h3' }, placement: P(6, 7) }, 0), 'WRONG_ISLAND')
+    expect(ok(run(st, { type: 'moveBuilding', target: { type: 'habitat', id: 'h3' }, placement: { ...dp, col: 8 } }, 0)).habitats[2]!.placement.col).toBe(8)
+  })
+  it('rejects moving a Dawnspire decoration home', () => {
+    const st = { ...base, decorations: [{ id: 'c3', kind: 'starPool' as const, placement: dp }] }
+    err(run(st, { type: 'moveBuilding', target: { type: 'decoration', id: 'c3' }, placement: P(6, 7) }, 0), 'WRONG_ISLAND')
+  })
+  it('rejects malformed place/move payloads', () => {
+    expect(isValidAction({ type: 'placeBuilding', building: { kind: 'habitat', element: 'plasma' }, placement: P(0, 0) })).toBe(false)
+    expect(isValidAction({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...P(0, 0), facing: 4 } })).toBe(false)
+    expect(isValidAction({ type: 'moveBuilding', target: { type: 'moon' }, placement: P(0, 0) })).toBe(false)
+  })
+})

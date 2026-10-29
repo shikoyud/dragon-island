@@ -87,7 +87,7 @@ function isMovable(v: unknown): boolean {
     default: return false
   }
 }
-const isTeam =(v: unknown): boolean => Array.isArray(v) && v.length === 3 && v.every(isId)
+const isTeam = (v: unknown): boolean => Array.isArray(v) && v.length === 3 && v.every(isId)
 const MAX_MOVES = MAX_ROUNDS * TEAM_SIZE
 const isLevel = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= MAX_DRAGON_LEVEL
 const isMoves = (v: unknown): boolean => Array.isArray(v) && v.length <= MAX_MOVES && v.every(m =>

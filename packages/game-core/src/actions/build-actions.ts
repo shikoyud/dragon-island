@@ -74,6 +74,11 @@ export const moveBuilding: Handler<'moveBuilding'> = (s, a) => {
   const size = footprintOf(s, t)
   if (size === null) return failure('NOT_FOUND')
   if ((t.type === 'hatchery' || t.type === 'hoard') && a.placement.island !== 'home') return failure('WRONG_ISLAND')
+  if (t.type === 'habitat' && s.habitats.find(h => h.id === t.id)!.element === 'any' && a.placement.island !== 'dawnspire') return failure('WRONG_ISLAND')
+  if (t.type === 'decoration') {
+    const only = DECORATIONS[s.decorations.find(x => x.id === t.id)!.kind].island
+    if (only && a.placement.island !== only) return failure('WRONG_ISLAND')
+  }
   const bad = placementError(s, a.placement, size, t)
   if (bad) return failure(bad)
   const p = a.placement
