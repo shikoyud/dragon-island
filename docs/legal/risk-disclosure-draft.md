@@ -52,8 +52,10 @@ this before you deposit, spend or withdraw tokens. If you do not understand thes
 
 - Smart contracts can contain bugs. `[An independent audit has not yet been completed / was completed by ...]`
   An exploit could lose vault funds.
-- The vault has no emergency withdrawal: if the game shuts down, neither we nor anyone else can take tokens out of
-  the vault; they leave only through player withdrawals and scheduled burns while the game runs.
+- The vault has no emergency withdrawal function. Tokens leave it only through signed withdrawal vouchers or
+  burns, and both are controlled by keys we hold. A compromised or misused project key could pay out up to 2% of
+  the vault per day to any address, or burn vault tokens; our main safeguard is a multi-signature wallet for the
+  owner role. If the game shuts down, there is no promise of a final payout.
 - Your in-game balance is a record on our server, not tokens in your wallet, until you withdraw. Server outages,
   bugs or attacks can delay or prevent withdrawals. A withdrawal voucher expires after one hour if unused.
 - Blockchain transactions are irreversible. Sending tokens to the wrong address, or to a fake copy of the DRIS token

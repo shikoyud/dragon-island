@@ -28,7 +28,7 @@ spec still uses the old working name "Wyrmhaven" / $WYRM, which is now Dragon Is
 | Total supply | 1,000,000,000 DRIS (18 decimals), minted once in the constructor | `DrisToken.sol` L12, L21-23 |
 | Further minting | None: no mint function exists after construction | `DrisToken.sol` (whole file) |
 | Owner / admin | None: the token has no owner and no privileged role | `DrisToken.sol` (whole file) |
-| Upgradeability | Not upgradeable (no proxy) | `DrisToken.sol`, `DrisDeployer.sol` L64 |
+| Upgradeability | Not upgradeable (no proxy) | `DrisToken.sol`, `DrisDeployer.sol` L39 |
 | Supply can only fall | Any holder may burn its own tokens; the vault burns fees and spend batches | `DrisToken.sol` L10; `DrisVault.sol` L123, L152, L177 |
 
 ### Initial allocation (minted once at deploy)
@@ -36,7 +36,7 @@ spec still uses the old working name "Wyrmhaven" / $WYRM, which is now Dragon Is
 | Share | Amount | Recipient | Source |
 |---|---|---|---|
 | 50% | 500,000,000 DRIS | "launch" address (`LAUNCH_RECIPIENT`), intended to fund a public liquidity pool | `DrisToken.sol` L16, L21 |
-| 40% | 400,000,000 DRIS | `DrisVault` (game reward vault), minted directly to the vault's precomputed address | `DrisToken.sol` L17, L22; `DrisDeployer.sol` L61, L64-66 |
+| 40% | 400,000,000 DRIS | `DrisVault` (game reward vault), minted directly to the vault's precomputed address | `DrisToken.sol` L17, L22; `DrisDeployer.sol` L36, L39-41 |
 | 10% | 100,000,000 DRIS | Team `VestingWallet` | `DrisToken.sol` L18, L23 |
 
 - The launch recipient is a wallet, not a pool: the contracts do not create or fund a liquidity pool. Creating a
@@ -45,10 +45,10 @@ spec still uses the old working name "Wyrmhaven" / $WYRM, which is now Dragon Is
 ### Team allocation and vesting
 
 - 100,000,000 DRIS go to an OpenZeppelin `VestingWallet` created in the same transaction
-  (`DrisDeployer.sol` L63).
-- Beneficiary: the project's owner Safe (`ownerSafe`), not an individual (`DrisDeployer.sol` L63).
+  (`DrisDeployer.sol` L38).
+- Beneficiary: the project's owner Safe (`ownerSafe`), not an individual (`DrisDeployer.sol` L38).
 - Schedule: linear release over **365 days** starting at the deployment block's timestamp, **no cliff**
-  (`DrisDeployer.sol` L40, L63). After 365 days the full 100,000,000 DRIS are releasable.
+  (`DrisDeployer.sol` L15, L38). After 365 days the full 100,000,000 DRIS are releasable.
 - `[COUNSEL: whether the beneficiary Safe distributes to individuals, and whether that must be disclosed.]`
 
 ## 3. Vault: `DrisVault`
@@ -63,7 +63,7 @@ off-chain on the game server; only signed withdrawal totals and burn batches rea
 |---|---|---|---|---|
 | Deposit (`deposit`) | 2% | 1% | 1% | `DrisVault.sol` L24-25, L118-125 |
 | Withdrawal (`claim`) | 5% | 2.5% | 2.5% | `DrisVault.sol` L26-27, L129-155 |
-| Rounding | Floor division; amounts too small to bear a fee pay none; dust stays in the vault | | | `DrisVault.sol` L254-263 |
+| Rounding | Burned and kept shares are each rounded down; the depositor's credit or claimant's payout takes the remainder, so rounding dust goes to the player; amounts too small to bear a fee pay none | | | `DrisVault.sol` L254-263 |
 
 ### One-time entry fee
 
@@ -87,10 +87,24 @@ off-chain on the game server; only signed withdrawal totals and burn batches rea
 
 ### No emergency exit for the 400M vault seed
 
-- The vault has **no** rescue, sweep, or owner-withdraw function. Tokens leave the vault only (a) to a player
-  through `claim` with a valid server-signed voucher (`DrisVault.sol` L153), or (b) by burning (L123, L152, L177).
-- Not even the owner Safe can move vault tokens to itself or anyone else. If the game shuts down, tokens in the
-  vault stay there unless claimed by players with valid vouchers. `[COUNSEL: disclosure wording for wind-down.]`
+- The vault has **no** rescue, sweep, or owner-withdraw function. Tokens leave the vault only (a) to whoever
+  submits a valid voucher signed by the signer key, through `claim` (`DrisVault.sol` L136-155, payout L153), or
+  (b) by burning (L123, L152, L177).
+- **Project keys can still move or destroy vault tokens indirectly** (also recorded in `docs/audit/scope.md`,
+  design choice 3, "Owner (Safe) compromise"):
+  - The signer is a project-held server key. It can sign a voucher for any address, including one the project
+    controls; the contract checks only the signature, the cumulative total and the deadline (L136-143). Such
+    payouts are bounded only by the 2%-of-balance per UTC day cap (L145-147).
+  - The owner Safe can `setSigner` to a key it controls (L206-210) and do the same.
+  - The owner Safe can `setOperator` to a key it controls (L200-204) and `setBurnDailyLimit` to any value
+    (L218-221), then `burn` up to the whole vault balance (L167-179).
+  - The owner Safe can redirect entry-fee ETH with `setTreasury` (L212-216).
+- Mitigations are operational, not contractual: the owner is a Safe (planned 2-of-3 signers, so one leaked signer
+  key is not enough), the server keys are separate and rotatable, there is **no timelock**, and every key and limit
+  change emits an event (`OperatorSet`, `SignerSet`, `TreasurySet`, `BurnDailyLimitSet`, L58-61) that anyone can
+  monitor.
+- If the game shuts down, tokens in the vault stay there unless paid out through vouchers or burned.
+  `[COUNSEL: disclosure wording for project key powers and wind-down.]`
 
 ### Operator burn
 
@@ -108,17 +122,17 @@ off-chain on the game server; only signed withdrawal totals and burn batches rea
 
 | Role | Held by | Powers | Source |
 |---|---|---|---|
-| Owner | A Safe multisig (planned: 2-of-3 signers; signer identities are held by project personnel, `[COUNSEL: whether to disclose signer identities or affiliations]`) | Rotate operator, signer, treasury; set burn limit and entry fee; pause and unpause; two-step ownership transfer. Cannot renounce ownership. Cannot take vault tokens. | `DrisVault.sol` L190-230, L196-198 |
+| Owner | A Safe multisig (planned: 2-of-3 signers; signer identities are held by project personnel, `[COUNSEL: whether to disclose signer identities or affiliations]`) | Rotate operator, signer, treasury; set burn limit and entry fee; pause and unpause; two-step ownership transfer. Cannot renounce ownership. No direct withdraw function, but can reach vault tokens indirectly by rotating the signer (payouts up to 2%/day) or the operator and burn limit (burns); see §3. | `DrisVault.sol` L190-230, L196-198 |
 | Operator | Game server key | Burn up to the daily limit; set the entry fee; pause. Cannot unpause or move tokens to any address. | `DrisVault.sol` L76-84, L167-179, L190, L224 |
-| Signer | Game server key | No on-chain powers. Its signatures authorise withdrawals to the signed player only. | `DrisVault.sol` L29, L136-155 |
+| Signer | Game server key | Sends no transactions itself. Its signatures authorise withdrawals to the address named in the voucher, which can be any address, within the 2%/day cap. | `DrisVault.sol` L29, L136-155 |
 | Treasury | Planned: the Safe | Receives all entry-fee ETH | `DrisVault.sol` L113, L212-216 |
 | Launch recipient | Project wallet (may be the Safe) | Receives 50% of supply; no contract powers | `DrisToken.sol` L21 |
 | Players | Any address | `enter`, `deposit`, `claim` (own vouchers only) | `DrisVault.sol` L109-155 |
 
 - The Safe's 2-of-3 threshold is an operational setting of the Safe, not something the DRIS contracts enforce;
-  `DrisDeployer.sol` L58 only checks that the owner is a contract.
+  `DrisDeployer.sol` L33 only checks that the owner is a contract.
 - The deployer contract hands vault ownership to the Safe in two steps; the Safe must accept
-  (`DrisDeployer.sol` L69; `contracts/README.md` post-deploy checklist).
+  (`DrisDeployer.sol` L44, `Ownable2Step`; `contracts/README.md` post-deploy checklist).
 
 ## 5. What the contracts do not do
 

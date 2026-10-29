@@ -83,8 +83,9 @@ planned 2-of-3 signers). The waitlist and game would be operated from `[JURISDIC
 - **3.2 (M)** Loot-box rules (e.g. Belgium, Netherlands, and odds-disclosure rules elsewhere): does breeding with a
   paid boost count as a paid random item? Is our odds display sufficient where disclosure is required?
 - **3.3 (M)** Do the season prizes (§12; pool funded by player spend, distributed by SP thresholds and top-100
-  placement) count as a lottery, prize competition or skill contest? Does the free-to-play path (no purchase needed
-  to earn SP, but the $1 entry fee is needed to unlock prizes) change that?
+  placement) count as a lottery, prize competition or skill contest? Note there is **no free path** to SP or
+  prizes: only players who paid the one-time entry fee earn SP (spec §12 "earning unlocked only";
+  `apps/server/src/services/sp.ts` L75), so every prize entrant has paid (see 3.4).
 - **3.4 (M)** Is the one-time ~US$1 entry fee (paid in ETH, unlocks sell-back, SP and prizes; §13) a "consideration"
   that turns prize features into gambling or a lottery?
 - **3.5 (A)** For the testnet beta, where nothing has value, can boosts and prizes run as-is?
@@ -136,9 +137,10 @@ Entry fees in ETH go to the project treasury. The team allocation vests to the S
 
 ## 7. Countries to block (feeds `BLOCKED_COUNTRIES`)
 
-**Facts.** The server can refuse sign-in, actions and withdrawals from a list of ISO country codes, using the
-country header from the CDN (Cloudflare `CF-IPCountry`); the list is empty by default (Phase 7 plan, Task 8). It is
-IP-based and can be bypassed with a VPN; the Terms would also prohibit use from blocked countries.
+**Facts.** Planned, not built yet (Phase 7 plan, Task 8): the server will be able to refuse sign-in, actions and
+withdrawals from a list of ISO country codes, using the country header from the CDN (Cloudflare `CF-IPCountry`),
+with the list empty by default. It will be IP-based and can be bypassed with a VPN; the Terms would also prohibit
+use from blocked countries.
 
 - **7.1 (A)** Which countries must be blocked for the testnet beta (likely at least comprehensively sanctioned
   jurisdictions)? `[COUNSEL: list of ISO codes]`
@@ -190,8 +192,8 @@ deposits, withdrawals, paid boosts).
 
 ## 10. Terms for the beta
 
-**Facts.** The beta runs on testnet with invited players. The server can require players to accept a Terms version
-before acting (Phase 7 plan, Task 8; off by default).
+**Facts.** The beta runs on testnet with invited players. Planned, not built yet (Phase 7 plan, Task 8): the
+server will be able to require players to accept a Terms version before acting (off by default).
 
 - **10.1 (A)** Do you agree the beta should require acceptance of Terms (we recommend yes), and is the attached
   `terms-draft.md` a workable base? Which sections should be beta-only?
@@ -232,12 +234,18 @@ with player id and action number; the secret is revealed at season end so player
 ## 14. Custody, keys and the Safe
 
 **Facts (`token-disclosures.md` §3-4).** The owner Safe (2-of-3 planned) can rotate server keys, pause/unpause, set
-the entry fee and burn limit, but cannot take tokens from the vault. The vault has no emergency exit: if the game
-ends, vault tokens stay there unless claimed with valid vouchers. Server hot keys sign vouchers and burn spend
-batches.
+the entry fee and burn limit. The vault has no direct owner-withdraw function, but project keys can reach vault
+tokens indirectly: the signer (a project server key) can sign vouchers for any address, including one the project
+controls, bounded only by the 2%-of-balance per UTC day cap; the Safe can install its own signer and do the same;
+and the Safe can install its own operator, raise the burn limit and burn the whole vault. Mitigations: a 2-of-3
+Safe, separate rotatable server keys, and public events on every change; there is no timelock. If the game ends,
+vault tokens stay there unless paid out through vouchers or burned. Server hot keys also burn spend batches, and
+the off-chain ledger records players' in-game balances.
 
-- **14.1 (M)** Does control of pause, voucher signing and the off-chain ledger make the operator a custodian of
-  player funds? What disclosures and safeguards are expected?
+- **14.1 (M)** Given that the project holds the off-chain ledger, can pause the vault, and through its keys can
+  direct vault payouts (up to 2%/day) to any address or burn vault tokens, is the operator a custodian of player
+  funds or of the vault seed? What disclosures and safeguards (timelock, independent signer, published monitoring)
+  are expected?
 - **14.2 (M)** What must we disclose and do on wind-down (game closes, vault still holds tokens, players hold
   in-game balances)?
 - **14.3 (M)** Signer arrangements: should signer identities, jurisdictions or an independent signer be disclosed?

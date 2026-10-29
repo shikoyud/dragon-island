@@ -122,8 +122,9 @@ enforceable and fair; sanctions exceptions.]`
 11.1 We may change, suspend or discontinue the Service or any feature. `[COUNSEL: notice; what happens to in-game
 balances on shutdown, e.g. a withdrawal window.]`
 
-11.2 The vault contract has no emergency withdrawal. Tokens left in it after the Service ends cannot be recovered by
-us.
+11.2 The vault contract has no emergency withdrawal function. After the Service ends, tokens left in it can only
+leave through signed withdrawal vouchers or burns, which our keys control (see the Token Disclosures).
+`[COUNSEL: wind-down commitments.]`
 
 ## 12. Intellectual property
 
