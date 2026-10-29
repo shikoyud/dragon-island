@@ -1,7 +1,7 @@
 # Dragon Island contracts: static-analysis self-review
 
-Date 2026-10-29. Code at `3f97d3d` (last change to `contracts/src` / `contracts/script`), branch HEAD `51e2dac`.
-Scope and roles: [`scope.md`](scope.md). No contract code was changed for this review.
+Date 2026-10-29. Code at `dd8b7bb` (last change to `contracts/src` / `contracts/script`; the tools below ran at `3f97d3d`, and `dd8b7bb` only re-wrapped `DrisToken.sol` whitespace). The branch HEAD is recorded when the audit tag is created.
+Scope and roles: [`scope.md`](scope.md). The only contract change since the review is the O-1 formatting fix (`dd8b7bb`).
 
 ## Tools and commands
 
@@ -11,7 +11,7 @@ All run in WSL from `contracts/` after
 | Tool | Version | Command | Result |
 |---|---|---|---|
 | forge | 1.8.6 (`6bad0a6`), solc 0.8.24 | `forge build`, `forge test -vv` | 8 suites, **48 passed**, 0 failed, 0 skipped (52 test functions: forge counts the 5 invariants as one grouped test, all 5 PASS) |
-| forge fmt | 1.8.6 | `forge fmt --check` | **fails** on `src/DrisToken.sol` L19 (see O-1) |
+| forge fmt | 1.8.6 | `forge fmt --check` | **passes** since `dd8b7bb` (failed at `3f97d3d` on `src/DrisToken.sol`; see O-1) |
 | slither | 0.11.6 | `slither . --filter-paths "lib\|test"` and again with `--foundry-compile-all` (includes `script/`) | 102 detectors, 13 results, identical in both runs (none in `script/`) |
 | aderyn | 0.1.9 (crates.io; old, current releases have more detectors) | `aderyn . -x lib/,test/ -o <scratch>/report.md` | 63 detectors, 1 High + 9 Low issue types (32 instances). It printed the full report, then panicked on an unrelated version-string parse; the report is complete. aderyn always excludes `script/`, so the script was covered by slither and forge lint only. |
 | forge lint | 1.8.6 (bundled) | `forge lint src script` | 15 warnings, mostly duplicates of slither/aderyn (supplementary pass) |
@@ -26,22 +26,24 @@ Verdicts: **fixed** (changed in code), **false positive** (the detector's premis
 
 | Verdict | slither | aderyn | forge lint | manual | Total |
 |---|---:|---:|---:|---:|---:|
-| fixed | 0 | 0 | 0 | 0 | 0 |
+| fixed | 0 | 0 | 0 | 1 | 1 |
 | false positive | 3 | 4 | 8 | 0 | 15 |
-| accepted | 10 | 6 | 7 | 3 | 26 |
-| open — needs fix task | 0 | 0 | 0 | 1 | 1 |
+| accepted | 10 | 6 | 7 | 4 | 27 |
+| open — needs fix task | 0 | 0 | 0 | 0 | 0 |
 
-(Counted per row below: 13 slither results, 10 aderyn issue types (32 instances), 15 forge lint warnings and 4 manual
-notes, 42 rows in all. Many forge lint rows duplicate slither or aderyn rows and carry the same verdict.)
+(Counted per row below: 13 slither results, 10 aderyn issue types (32 instances), 15 forge lint warnings and 5 manual
+notes, 43 rows in all. Many forge lint rows duplicate slither or aderyn rows and carry the same verdict.)
 
-No tool finding is a vulnerability. The one open item is a formatting failure that breaks `forge fmt --check` (and the
-CI contracts job) but does not change behaviour.
+No tool finding is a vulnerability. No item is open: the formatting failure (O-1) is fixed in `dd8b7bb`, and the
+`_split` NatSpec inaccuracy (M-5) is a comment-only note left for the auditor.
 
 ## Open items
 
+None. Kept for the record:
+
 | ID | Source | Location | Severity | Description |
 |---|---|---|---|---|
-| O-1 | `forge fmt --check` | `src/DrisToken.sol` L19-20 | Low (tooling / CI) | The constructor line is 124 chars, over `line_length = 120`, since the rename to "Dragon Island" (`3f97d3d`). `forge fmt --check` exits 1, so the CI `contracts` job's "Format check" step fails before tests run. Fix: run `forge fmt` (it only re-wraps the constructor header and the `ZeroAddress` check into a block), then `forge test`. Whitespace-only, but it changes a source file, so land it before the `contracts-audit-v1` tag. |
+| O-1 | `forge fmt --check` | `src/DrisToken.sol` L19-20 at `3f97d3d` (now L19-25) | Low (tooling / CI) | **Fixed in `dd8b7bb`** (whitespace only; `forge fmt --check` passes and `forge test` is 48/48 after it). The constructor line is 124 chars, over `line_length = 120`, since the rename to "Dragon Island" (`3f97d3d`). `forge fmt --check` exits 1, so the CI `contracts` job's "Format check" step fails before tests run. Fix: run `forge fmt` (it only re-wraps the constructor header and the `ZeroAddress` check into a block), then `forge test`. Whitespace-only, but it changes a source file, so land it before the `contracts-audit-v1` tag. |
 
 ## slither 0.11.6 (13 results)
 
@@ -69,7 +71,7 @@ CI contracts job) but does not change behaviour.
 | A-L1 | Centralization risk for trusted owners (7) | `DrisVault` L20, L196, L200, L206, L212, L218, L228 | Low | accepted | By design: owner is a 2-of-3 Safe. No function lets the owner transfer vault tokens directly (no rescue/withdraw; see scope.md design choice 1). A compromised Safe could still reach them indirectly: `setSigner` (L206) to its own key and drain up to 2% per UTC day via vouchers, or `setOperator` (L200) + `setBurnDailyLimit(max)` (L218) and burn the whole seed. Mitigation is the 2-of-3 threshold plus event monitoring; no timelock. Details in scope.md design choice 3, "Owner (Safe) compromise". `renounceOwnership` is disabled on purpose (L196). |
 | A-L2 | Wide pragma `^0.8.24` (3) | `DrisDeployer` L2, `DrisToken` L2, `DrisVault` L2 | Low | accepted | `foundry.toml` pins `solc = "0.8.24"`; the audited and deployed bytecode comes from that compiler. Pinning the pragma too would be cosmetic. |
 | A-L3 | `public` function not used internally | `DrisVault.renounceOwnership`, L196 | Low | false positive | It overrides OZ `Ownable.renounceOwnership`, which is `public`; an override cannot narrow visibility to `external`. |
-| A-L4 | Repeated literals (3) | `DrisToken` L21-23 (`* 50 / 100`, `40`, `10`) | Low | accepted | Constructor-only split, documented in NatSpec; `test_SupplyAndSplit` checks it sums to `TOTAL_SUPPLY`. |
+| A-L4 | Repeated literals (3) | `DrisToken` L26-28 (`* 50 / 100`, `40`, `10`) | Low | accepted | Constructor-only split, documented in NatSpec; `test_SupplyAndSplit` checks it sums to `TOTAL_SUPPLY`. |
 | A-L5 | Event missing `indexed` fields (10) | `DrisVault` L52-61 | Low | accepted | Player events already index `player`; the rest are admin/daily events with one or two fields. Gas/indexing style, no security effect. |
 | A-L6 | `nonReentrant` not first modifier (2) | `deposit` L119, `claim` L136 | Low | false positive | The modifier before it is `whenNotPaused`, which reads one storage slot and makes no external call, so there is nothing to re-enter. |
 | A-L7 | PUSH0 not supported by all chains (3) | pragmas L2 | Low | accepted | `evm_version = "cancun"` is pinned on purpose. Robinhood Chain is an Arbitrum Orbit chain; ArbOS 20+ supports Shanghai/Cancun opcodes. The anvil and testnet dry runs in the deploy plan confirm it on 46630 before any value is at stake. |
@@ -102,10 +104,11 @@ Read with the tools' output, not found by them.
 
 | # | Topic | Location | Verdict | Notes |
 |---|---|---|---|---|
-| M-1 | `forge fmt --check` fails | `DrisToken.sol` L19 | open — needs fix task | See O-1. |
+| M-1 | `forge fmt --check` fails | `DrisToken.sol` L19 at `3f97d3d` | fixed | Fixed in `dd8b7bb` (whitespace only; forge test 48/48 after). See O-1. |
 | M-2 | Operator can set any entry fee | `setEntryFee`, L190-193 | accepted | A compromised operator can set the fee to 0 (free entry, which only unlocks off-chain earning) or to a prohibitive value (blocks new entries). No funds at risk; the Safe can reset it and rotate the operator. Listed under compromise bounds in scope.md. |
 | M-3 | Vault ownerless-in-practice until `acceptOwnership` | `DrisDeployer` L44, README post-deploy step | accepted | Between deploy and the Safe's `acceptOwnership()`, `owner()` is `DrisDeployer`, which has no functions: no unpause or key rotation is possible, though the operator can still pause. The README checklist keeps server keys offline until acceptance. |
 | M-4 | Invariant handler does not call `enter`, `pause` or admin setters | `test/helpers/VaultHandler.sol` | accepted | `invariant_NoEthStranded` is therefore trivially true in the fuzz run; ETH forwarding is covered by unit tests instead. Worth extending the handler with `enter` and `pause/unpause` in a later test task; no contract change needed. |
+| M-5 | `_split` NatSpec says rounding dust "stays in the vault" | `DrisVault.sol` L254 (`_split`, L255-263) | accepted (comment only) | Inaccurate comment: `net = amount - burned - kept` takes the rounding remainder, so in `claim` (L151-153) the dust goes to the claimant with `net`; in `deposit` (L122) `net` is the off-chain credit and the tokens stay in the vault, so there it does stay. Behaviour is correct and tested (`testFuzz_ClaimSplitConserves`, `testFuzz_DepositConserves`). Comment-only fix; not changed before the audit tag, decide with the auditor. |
 
 Also checked and found correct: EIP-712 domain (`"DrisVault"`, `"1"`) binds chain id and vault address and
 `msg.sender` is in the signed struct (L138); the cumulative model pays each total at most once (L141-149); state is

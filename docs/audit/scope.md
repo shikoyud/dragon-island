@@ -8,11 +8,11 @@ roles, deploy steps and security notes: [`contracts/README.md`](../../contracts/
 
 | What | Hash |
 |---|---|
-| Last commit touching `contracts/src` or `contracts/script` | `3f97d3d543eae539a260eead1f63a479d4409488` (refactor: rename Wyrm contracts to Dris) |
-| Branch `phase7-launch` HEAD when this scope was written | `51e2dac6d7f39737f7d46cafde7bc8f9b6a53f33` |
+| Last commit touching `contracts/src` or `contracts/script` | `dd8b7bba584fa5d905f7b79bd6aa13037191da79` (style(contracts): forge fmt DrisToken after rename; whitespace only) |
+| Branch `phase7-launch` HEAD | recorded when the audit tag is created (the branch is rebased and merged to `main` first, so a branch SHA written here would go stale) |
 
 The audit tag `contracts-audit-v1` is not set yet; it is created once an auditor is picked, and only audit fixes may
-change the contracts after it. One open formatting fix (see self-review, item O-1) should land before the tag.
+change the contracts after it. The formatting fix from the self-review (O-1) landed in `dd8b7bb`; `forge fmt --check` passes.
 
 ## Build
 
@@ -27,15 +27,15 @@ change the contracts after it. One open formatting fix (see self-review, item O-
 ## Files in scope
 
 nSLOC counts non-blank lines that are not `//`, `/*` or `*` comment lines. The counts match aderyn 0.1.9's nSLOC
-figures for the three `src/` files.
+figures for the three `src/` files (re-run at `dd8b7bb`: 19 / 190 / 33).
 
 | File | Lines | nSLOC | Purpose |
 |---|---:|---:|---|
-| `contracts/src/DrisToken.sol` | 25 | 14 | ERC-20 + Burnable + Permit, fixed 1,000,000,000 supply minted once 50/40/10, no owner |
+| `contracts/src/DrisToken.sol` | 30 | 19 | ERC-20 + Burnable + Permit, fixed 1,000,000,000 supply minted once 50/40/10, no owner |
 | `contracts/src/DrisVault.sol` | 264 | 190 | Entry fee, deposits, EIP-712 cumulative claims, payout cap, operator burn, pause, admin |
 | `contracts/src/DrisDeployer.sol` | 51 | 33 | Single-use atomic deployer: VestingWallet, token, vault; starts vault ownership transfer to the Safe |
 | `contracts/script/Deploy.s.sol` | 50 | 35 | Foundry script: chain-id guard (46630 by default), reads env, deploys `DrisDeployer` |
-| **Total** | **390** | **272** | |
+| **Total** | **395** | **277** | |
 
 Inherited, unmodified OpenZeppelin v5.1.0 code (`ERC20`, `ERC20Burnable`, `ERC20Permit`, `Ownable2Step`, `Pausable`,
 `ReentrancyGuard`, `EIP712`, `ECDSA`, `SafeERC20`, `VestingWallet`) is in scope only as far as how it is used.
@@ -56,7 +56,7 @@ Inherited, unmodified OpenZeppelin v5.1.0 code (`ERC20`, `ERC20Burnable`, `ERC20
 | `signer` | server voucher key | none on-chain; its EIP-712 `Claim(player, cumulative, deadline)` signatures authorise `claim` | `DrisVault.sol` L34 (storage), L29 (`CLAIM_TYPEHASH`), L136-155 |
 | `treasury` | Safe (payable address) | receives all ETH sent to `enter()` | `DrisVault.sol` L109-116, L212-216 |
 | player | any address | `enter`, `deposit`, `claim` (own voucher only: `msg.sender` is in the signed struct) | `DrisVault.sol` L109-155 |
-| `launch` (`LAUNCH_RECIPIENT`) | launch wallet | receives 50% of supply at construction; no contract powers | `DrisToken.sol` L19-21 |
+| `launch` (`LAUNCH_RECIPIENT`) | launch wallet | receives 50% of supply at construction; no contract powers | `DrisToken.sol` L19-28 (mint to `launch` at L26) |
 | team `VestingWallet` | beneficiary = owner Safe | 10% of supply, linear over 365 days from deploy time, no cliff | `DrisDeployer.sol` L15, L38-39 |
 | `DrisDeployer` | the deploy transaction | initial vault owner; calls `setBurnDailyLimit` and starts the two-step transfer to the Safe (`transferOwnership(ownerSafe)` only sets `pendingOwner`) in its constructor, and remains `owner()` (with no callable functions) until the Safe calls `acceptOwnership()` | `DrisDeployer.sol` L24-45 |
 | token holders | anyone | `burn`/`burnFrom` own tokens, `permit` | OZ `ERC20Burnable`, `ERC20Permit` |
@@ -94,7 +94,7 @@ Safe-must-be-contract check, and that no operator call moves tokens to the opera
    token outflows are `claim` paying the voucher holder (`DrisVault.sol` L153, `safeTransfer(msg.sender, net)`) and
    burns (L123 deposit fee, L152 claim fee, L177 operator burn). No function lets the Safe transfer vault tokens
    directly (it can still reach them indirectly through key rotation; see "Owner (Safe) compromise" under 3). The 40%
-   seed is minted straight to the vault's precomputed address (`DrisDeployer.sol` L36-41, `DrisToken.sol` L22). Fee
+   seed is minted straight to the vault's precomputed address (`DrisDeployer.sol` L36-41, `DrisToken.sol` L27). Fee
    "kept" shares stay in the vault and only ever leave through claims or operator burns (L177).
 2. **2%/day payout cap.** `PAYOUT_CAP_BPS = 200` (L28). At the first claim of each UTC day `_rollDay` snapshots
    `dayCap = balance * 2%` (L235-243) and emits `PayoutDayStarted`; `claim` reverts in full with
