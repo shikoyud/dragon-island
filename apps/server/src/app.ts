@@ -13,6 +13,7 @@ import { registerErrorHandler } from './plugins/errors'
 import { requireSession } from './plugins/session'
 import { runBurnBatch } from './jobs/burnBatch'
 import { expireVouchers } from './jobs/voucherExpiry'
+import { closeSeasons } from './jobs/seasonClose'
 import { actionRoutes } from './routes/actions'
 import { adminRoutes, type JobRegistry } from './routes/admin'
 import { e2eRoutes } from './routes/e2e'
@@ -83,6 +84,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     voucherExpiry: () => expireVouchers({ db, clock, chain }),
     burnBatch: () => runBurnBatch({ db, chain, clock }),
     season: () => ensureCurrentSeason(db, clock),
+    seasonClose: () => closeSeasons({ db, clock }),
   }
   app.decorate('jobs', jobs)
   adminRoutes(app, deps, jobs)

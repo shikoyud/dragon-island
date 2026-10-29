@@ -38,6 +38,19 @@ export interface ActionResponse {
 
 export interface SpResponse { seasonId: number; total: number; today: number; cap: number }
 
+export interface LeaderboardRow { rank: number; playerId: string; address: `0x${string}`; sp: number }
+export interface LeaderboardResponse {
+  seasonId: number
+  /** 30% of the season's vault inflows so far (final once `closed`). */
+  poolWei: BigString
+  closed: boolean
+  top: LeaderboardRow[]
+  /** Present when the request carried a session. `prizeWei` is set once the season has closed. */
+  me?: { rank: number | null; sp: number; prizeWei: BigString | null }
+}
+export interface PrizeInfo { wei: BigString; tier: number | null; rank: number | null }
+export interface PrizeResponse { prize: PrizeInfo | null }
+
 export interface Offer { offerId: string; opponent: OpponentSnapshot; seedHex: `0x${string}` }
 export interface OffersResponse { offers: Offer[] }
 

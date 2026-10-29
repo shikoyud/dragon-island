@@ -10,6 +10,7 @@ export const DEFAULT_INTERVALS_MS = {
   voucherExpiry: 60_000,
   burnBatch: 10 * 60_000,
   season: 60_000,
+  seasonClose: 60_000,
 } as const
 
 export function startScheduler(opts: SchedulerOptions): { stop: () => Promise<void> } {

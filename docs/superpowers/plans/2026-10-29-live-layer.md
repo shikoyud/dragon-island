@@ -141,16 +141,16 @@ it('ranks at most 100 players', () => {
 - Close steps (one `db.transaction`): lock; `seasons.closedAt IS NULL AND endsAt <= now` → for each: `pool = prizePoolWei(totalWei)`; `awards = computePrizes(pool, standings(tx, id))`; `creditEarned(tx, playerId, wei, 'prize:<seasonId>')` per award; insert `season_prizes(season_id, player_id, wei, tier, rank)`; `players.trophies = seasonResetTrophies(trophies)` and the same inside `state.trophies` (jsonb `jsonb_set`); set `revealed = true`, `closedAt = now`.
 - Routes (no auth): `GET /season/:id/leaderboard` → `{ seasonId, poolWei: BigString, closed: boolean, top: { rank, playerId, address, sp }[] (≤100), me?: { rank, sp, prizeWei? } }` (`me` when a session header is present); `GET /season/:id/prizes/me` → `{ wei: BigString, tier, rank } | null` (session required). Add `LeaderboardResponse`, `PrizeResponse` to shared.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
   - `closeSeasons` on an ended season with inflows 1,000e18 and three eligible players credits `earnedWei` per `computePrizes(300e18, …)`, writes `season_prizes`, reveals the secret, halves trophies above 1,000 on both columns, and returns `[id]`.
   - "closing twice credits nothing the second time": second call returns `[]`, balances unchanged.
   - "banned and locked players are excluded": a banned player with 2,500 SP gets no row; an earning-locked player's SP is ignored.
   - A running season is not closed.
   - `GET /season/:id/leaderboard` orders by sp desc then playerId, hides banned players, returns `me.rank` for the caller.
-- [ ] **Step 2: Run both files** — Expected: FAIL.
-- [ ] **Step 3: Implement** `standings.ts`, `seasonClose.ts`, routes, shared types; register the job.
-- [ ] **Step 4: Run the files, then the server suite and** `pnpm -r typecheck` — Expected: pass.
-- [ ] **Step 5: Commit** `git add apps/server/src/jobs/seasonClose.ts apps/server/src/jobs/scheduler.ts apps/server/src/services/standings.ts apps/server/src/routes/season.ts apps/server/src/app.ts packages/shared/src/api.ts apps/server/test/seasonClose.test.ts apps/server/test/standings.test.ts && git commit -m "feat(server): season close with prizes, trophy reset and leaderboard"`
+- [x] **Step 2: Run both files** — Expected: FAIL.
+- [x] **Step 3: Implement** `standings.ts`, `seasonClose.ts`, routes, shared types; register the job.
+- [x] **Step 4: Run the files, then the server suite and** `pnpm -r typecheck` — Expected: pass.
+- [x] **Step 5: Commit** `git add apps/server/src/jobs/seasonClose.ts apps/server/src/jobs/scheduler.ts apps/server/src/services/standings.ts apps/server/src/routes/season.ts apps/server/src/app.ts packages/shared/src/api.ts apps/server/test/seasonClose.test.ts apps/server/test/standings.test.ts && git commit -m "feat(server): season close with prizes, trophy reset and leaderboard"`
 
 ---
 
