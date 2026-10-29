@@ -10,17 +10,6 @@ const s = newPlayer(0)
 const rng = createRng(1)
 const run = (st: PlayerState, a: Action, t: number) => applyAction(st, a, t, rng, FIXTURE_CATALOG)
 
-describe('buyFarmPlot', () => {
-  it('buys plots up to the max', () => {
-    const a = ok(run(s, { type: 'buyFarmPlot' }, 0))
-    expect([a.gold, a.farms.length]).toEqual([500, 3])
-    expect(a.farms[2]).toEqual({ crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 0, row: 0, facing: 0 } })
-    const six = { ...s, gold: 1e9, farms: Array.from({ length: 6 }, () => s.farms[0]!) }
-    err(run(six, { type: 'buyFarmPlot' }, 0), 'MAX_PLOTS')
-    err(run({ ...s, gold: 499 }, { type: 'buyFarmPlot' }, 0), 'INSUFFICIENT_GOLD')
-  })
-})
-
 describe('plant and harvest', () => {
   it('grows a crop into food', () => {
     const a = ok(run(s, { type: 'plant', plot: 0, crop: 'sprout' }, 0))

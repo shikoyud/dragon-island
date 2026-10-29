@@ -1,17 +1,12 @@
-import { CROPS, MAX_PLOTS, plotCost } from '../farm'
+import { isUnderConstruction } from '../construction'
+import { CROPS } from '../farm'
 import { spendGold } from '../wallet'
 import { failure, success, type Handler } from './types'
-
-export const buyFarmPlot: Handler<'buyFarmPlot'> = s => {
-  if (s.farms.length >= MAX_PLOTS) return failure('MAX_PLOTS')
-  const paid = spendGold(s, plotCost(s.farms.length))
-  if (!paid) return failure('INSUFFICIENT_GOLD')
-  return success({ ...paid, farms: [...paid.farms, { crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 0, row: 0, facing: 0 } }] })
-}
 
 export const plant: Handler<'plant'> = (s, a, ctx) => {
   const plot = s.farms[a.plot]
   if (!plot) return failure('NOT_FOUND')
+  if (isUnderConstruction(s, { type: 'farm', index: a.plot })) return failure('UNDER_CONSTRUCTION')
   if (plot.crop !== null) return failure('PLOT_BUSY')
   const crop = CROPS[a.crop]
   const paid = spendGold(s, crop.cost)

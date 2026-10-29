@@ -1,7 +1,9 @@
 import { MAX_ROUNDS, TEAM_SIZE } from '../battle/sim'
 import { MAX_DRAGON_LEVEL } from '../dragon'
+import { DECORATIONS } from '../decorations'
 import { ELEMENTS } from '../elements'
 import { CROPS } from '../farm'
+import { ISLAND_ORDER } from '../island'
 import type { Action } from './types'
 
 /**
@@ -16,15 +18,17 @@ export function isValidAction(a: unknown): a is Action {
     case 'collectGold':
     case 'upgradeHabitat':
       return isId(x['habitatId'])
-    case 'buildHabitat':
-      return (ELEMENTS as readonly unknown[]).includes(x['element'])
+    case 'placeBuilding':
+      return isPlaceable(x['building']) && isPlacement(x['placement'])
+    case 'moveBuilding':
+      return isMovable(x['target']) && isPlacement(x['placement'])
+    case 'removeDecoration':
+      return isId(x['id'])
     case 'moveDragon':
       return isId(x['dragonId']) && isId(x['habitatId'])
     case 'feed':
     case 'sellDragon':
       return isId(x['dragonId'])
-    case 'buyFarmPlot':
-      return true
     case 'plant':
       return isIndex(x['plot']) && typeof x['crop'] === 'string' && Object.hasOwn(CROPS, x['crop'])
     case 'harvest':
@@ -52,7 +56,38 @@ export function isValidAction(a: unknown): a is Action {
 
 const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0
 const isIndex = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0
-const isTeam = (v: unknown): boolean => Array.isArray(v) && v.length === 3 && v.every(isId)
+const isCoord = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 0 && (v as number) < 64
+function isPlacement(v: unknown): boolean {
+  if (typeof v !== 'object' || v === null) return false
+  const p = v as Record<string, unknown>
+  return (ISLAND_ORDER as readonly unknown[]).includes(p['island']) && isCoord(p['col']) && isCoord(p['row'])
+    && (p['facing'] === 0 || p['facing'] === 1 || p['facing'] === 2 || p['facing'] === 3)
+}
+function isPlaceable(v: unknown): boolean {
+  if (typeof v !== 'object' || v === null) return false
+  const b = v as Record<string, unknown>
+  switch (b['kind']) {
+    case 'habitat': return (ELEMENTS as readonly unknown[]).includes(b['element'])
+    case 'nexus':
+    case 'farm': return true
+    case 'decoration': return typeof b['decoration'] === 'string' && Object.hasOwn(DECORATIONS, b['decoration'])
+    default: return false
+  }
+}
+function isMovable(v: unknown): boolean {
+  if (typeof v !== 'object' || v === null) return false
+  const t = v as Record<string, unknown>
+  switch (t['type']) {
+    case 'habitat':
+    case 'decoration': return isId(t['id'])
+    case 'farm':
+    case 'nest': return isIndex(t['index'])
+    case 'hatchery':
+    case 'hoard': return true
+    default: return false
+  }
+}
+const isTeam =(v: unknown): boolean => Array.isArray(v) && v.length === 3 && v.every(isId)
 const MAX_MOVES = MAX_ROUNDS * TEAM_SIZE
 const isLevel = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= MAX_DRAGON_LEVEL
 const isMoves = (v: unknown): boolean => Array.isArray(v) && v.length <= MAX_MOVES && v.every(m =>

@@ -29,23 +29,6 @@ describe('collectGold', () => {
   })
 })
 
-describe('buildHabitat', () => {
-  it('respects the habitat limit', () => {
-    err(run(s, { type: 'buildHabitat', element: 'earth' }, 0), 'HABITAT_LIMIT')
-  })
-
-  it('builds with the next id', () => {
-    const a = ok(run({ ...s, level: 5 }, { type: 'buildHabitat', element: 'earth' }, 7_000))
-    expect(a.gold).toBe(500)
-    expect(a.habitats[2]).toEqual({ id: 'h3', element: 'earth', level: 1, lastCollectedMs: 7_000, placement: { island: 'home', col: 0, row: 0, facing: 0 } })
-    expect(a.nextId).toBe(4)
-  })
-
-  it('needs gold', () => {
-    err(run({ ...s, level: 5, gold: 499 }, { type: 'buildHabitat', element: 'earth' }, 0), 'INSUFFICIENT_GOLD')
-  })
-})
-
 describe('upgradeHabitat', () => {
   it('upgrades for gold until max level', () => {
     const a = ok(run(s, { type: 'upgradeHabitat', habitatId: 'h1' }, 0))

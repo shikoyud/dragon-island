@@ -1,6 +1,7 @@
 import { rollOffspring } from '../breeding'
 import { hatcherySlots } from '../buildings'
 import { getSpecies } from '../catalog'
+import { isUnderConstruction } from '../construction'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
 import { addXp } from '../progression'
 import { RARITY } from '../rarity'
@@ -58,7 +59,7 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
   if (!egg) return failure('NOT_FOUND')
   if (ctx.nowMs < egg.readyAtMs) return failure('NOT_READY')
   const species = getSpecies(ctx.catalog, egg.speciesId)
-  const home = s.habitats.find(h => canLiveIn(species, h) && residents(s, h.id).length < habitatSlots(h))
+  const home = s.habitats.find(h => canLiveIn(species, h) && !isUnderConstruction(s, { type: 'habitat', id: h.id }) && residents(s, h.id).length < habitatSlots(h))
   const dragon = { id: `d${s.nextId}`, speciesId: egg.speciesId, level: 1, habitatId: home ? home.id : null }
   const collected = home ? collectHabitat(s, home.id, ctx.catalog, ctx.nowMs) : s
   const next = {

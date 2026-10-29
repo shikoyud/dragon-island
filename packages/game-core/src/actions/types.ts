@@ -3,19 +3,24 @@ import type { Catalog } from '../catalog'
 import type { Element } from '../elements'
 import type { OpponentSnapshot } from '../matchmaking'
 import type { Rng } from '../rng'
-import type { CropId, PlayerState } from '../state'
+import type { BuildingRef, CropId, DecorationId, Placement, PlayerState } from '../state'
 import type { StoreItem } from '../store'
 
 export type TeamIds = [string, string, string]
 
+export type Placeable =
+  | { kind: 'habitat'; element: Element } | { kind: 'nexus' } | { kind: 'farm' } | { kind: 'decoration'; decoration: DecorationId }
+export type MovableRef = BuildingRef | { type: 'hoard' } | { type: 'decoration'; id: string }
+
 export type Action =
   | { type: 'collectGold'; habitatId: string }
-  | { type: 'buildHabitat'; element: Element }
+  | { type: 'placeBuilding'; building: Placeable; placement: Placement }
+  | { type: 'moveBuilding'; target: MovableRef; placement: Placement }
+  | { type: 'removeDecoration'; id: string }
   | { type: 'upgradeHabitat'; habitatId: string }
   | { type: 'moveDragon'; dragonId: string; habitatId: string }
   | { type: 'feed'; dragonId: string }
   | { type: 'sellDragon'; dragonId: string }
-  | { type: 'buyFarmPlot' }
   | { type: 'plant'; plot: number; crop: CropId }
   | { type: 'harvest'; plot: number }
   | { type: 'startBreed'; parentA: string; parentB: string }
@@ -37,6 +42,8 @@ export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'I
   | 'NO_HABITAT_SLOT' | 'HABITAT_LIMIT' | 'ELEMENT_MISMATCH' | 'MAX_PLOTS' | 'PLOT_BUSY' | 'PLOT_EMPTY'
   | 'MAX_NESTS' | 'LAST_DRAGONS' | 'EARNING_LOCKED' | 'NO_HOARD' | 'SELL_LIMIT_REACHED' | 'NOTHING_TO_SKIP'
   | 'INVALID_TEAM' | 'NO_DEFENCE_TEAM' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'
+  | 'OUT_OF_BOUNDS' | 'OVERLAP' | 'BUILDERS_BUSY' | 'ISLAND_LOCKED' | 'MAX_ISLAND' | 'WRONG_ISLAND' | 'UNDER_CONSTRUCTION'
+  | 'NO_LEGENDARY' | 'NEXUS_EXISTS' | 'MAX_EXPANSION'
 
 /** Side effects the server settles after persisting the new state. */
 export type Effect =

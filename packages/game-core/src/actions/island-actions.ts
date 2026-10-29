@@ -1,7 +1,7 @@
 import { getSpecies, type Catalog } from '../catalog'
 import { foodToNextLevel, MAX_DRAGON_LEVEL } from '../dragon'
-import { canLiveIn, HABITAT_LEVELS, habitatBuildCost, habitatSlots, maxHabitats, residents, storedGold } from '../habitat'
-import { outerIslandsUnlocked } from '../island'
+import { isUnderConstruction } from '../construction'
+import { canLiveIn, HABITAT_LEVELS, habitatSlots, residents, storedGold } from '../habitat'
 import { addXp } from '../progression'
 import { RARITY } from '../rarity'
 import type { PlayerState } from '../state'
@@ -31,14 +31,6 @@ export const collectGold: Handler<'collectGold'> = (s, a, ctx) => {
   return success(collectHabitat(s, a.habitatId, ctx.catalog, ctx.nowMs))
 }
 
-export const buildHabitat: Handler<'buildHabitat'> = (s, a, ctx) => {
-  if (s.habitats.filter(h => h.element !== 'any').length >= maxHabitats(s.level, outerIslandsUnlocked(s))) return failure('HABITAT_LIMIT')
-  const paid = spendGold(s, habitatBuildCost(s, a.element))
-  if (!paid) return failure('INSUFFICIENT_GOLD')
-  const habitat = { id: `h${s.nextId}`, element: a.element, level: 1, lastCollectedMs: ctx.nowMs, placement: { island: 'home' as const, col: 0, row: 0, facing: 0 as const } }
-  return success({ ...paid, habitats: [...paid.habitats, habitat], nextId: s.nextId + 1 })
-}
-
 export const upgradeHabitat: Handler<'upgradeHabitat'> = (s, a, ctx) => {
   const h = s.habitats.find(x => x.id === a.habitatId)
   if (!h) return failure('NOT_FOUND')
@@ -54,6 +46,7 @@ export const moveDragon: Handler<'moveDragon'> = (s, a, ctx) => {
   const target = s.habitats.find(x => x.id === a.habitatId)
   if (!d || !target) return failure('NOT_FOUND')
   if (d.habitatId === target.id) return success(s)
+  if (isUnderConstruction(s, { type: 'habitat', id: target.id })) return failure('UNDER_CONSTRUCTION')
   if (!canLiveIn(getSpecies(ctx.catalog, d.speciesId), target)) return failure('ELEMENT_MISMATCH')
   if (residents(s, target.id).length >= habitatSlots(target)) return failure('NO_HABITAT_SLOT')
   const collected = collectHabitat(collectDragonHome(s, d.id, ctx.catalog, ctx.nowMs), target.id, ctx.catalog, ctx.nowMs)

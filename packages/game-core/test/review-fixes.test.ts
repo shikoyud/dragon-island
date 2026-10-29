@@ -36,7 +36,7 @@ describe('malformed actions are rejected, never applied', () => {
     err(raw(s, { type: 'buy', item: { kind: 'x' } }), 'INVALID_ACTION')
     err(raw(s, { type: 'buy', item: { kind: 'skip', target: 'bank', index: 0 } }), 'INVALID_ACTION')
     err(raw(s, { type: 'buy', item: { kind: 'levelUp', dragonId: 7 } }), 'INVALID_ACTION')
-    err(raw({ ...s, level: 5 }, { type: 'buildHabitat', element: 'plasma' }), 'INVALID_ACTION')
+    err(raw({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'plasma' }, placement: { island: 'home', col: 6, row: 7, facing: 0 } }), 'INVALID_ACTION')
     err(raw(s, { type: 'feed', dragonId: 1 }), 'INVALID_ACTION')
     err(raw(rich, { type: 'sellGold', gold: '100' }), 'INVALID_ACTION')
   })
