@@ -1,5 +1,5 @@
 import { privateKeyToAccount } from 'viem/accounts'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FakeChainClient } from '../src/chain/fake'
 import { mutableClock } from '../src/clock'
 import { loadConfig } from '../src/config'
@@ -114,6 +114,23 @@ describe('chainWatch', () => {
     expect(await run()).toEqual([])
   })
 
+  it('does not alert when blocks arrive after a quiet chain (lag timer restarts while nothing is pending)', async () => {
+    chain.head = 100n
+    await db.insert(indexerState).values({ key: 'vault', lastBlock: 99n })
+    await run()
+    clock.advance(30 * MIN)
+    expect(await run()).toEqual([])
+    // New blocks land; the first watch run comes before the indexer has caught up.
+    chain.head = 102n
+    clock.advance(15_000)
+    expect(await run()).toEqual([])
+    // A real stall from here still alerts after 10 minutes.
+    clock.advance(11 * MIN)
+    const out = await run()
+    expect(out).toHaveLength(1)
+    expect(out[0]).toMatch(/indexer/i)
+  })
+
   it('does not repeat an alert while the condition holds', async () => {
     chain.isPaused = true
     expect(await run()).toHaveLength(1)
@@ -145,6 +162,22 @@ describe('sendAlert', () => {
     expect(calls[0]!.url).toBe('https://discord.example/hook')
     expect(calls[0]!.init.method).toBe('POST')
     expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ content: 'hello' })
+  })
+
+  it('gives up on a hung webhook after 10 seconds', async () => {
+    let signal: AbortSignal | undefined
+    const fetchFn = (async (_url: string, init: RequestInit) => {
+      signal = init.signal ?? undefined
+      return new Response(null, { status: 204 })
+    }) as unknown as typeof fetch
+    const timeout = vi.spyOn(AbortSignal, 'timeout')
+    try {
+      await sendAlert({ ALERT_WEBHOOK_URL: 'https://discord.example/hook' }, fetchFn, 'hello')
+      expect(timeout).toHaveBeenCalledWith(10_000)
+      expect(signal).toBe(timeout.mock.results[0]!.value)
+    } finally {
+      timeout.mockRestore()
+    }
   })
 
   it('does nothing without a webhook URL', async () => {

@@ -16,6 +16,8 @@ export async function sendAlert(
       headers: { 'content-type': 'application/json' },
       // Discord rejects content over 2000 characters.
       body: JSON.stringify({ content: text.slice(0, 2000) }),
+      // A hung webhook must not hold chainWatch (or shutdown) for undici's 300 s default.
+      signal: AbortSignal.timeout(10_000),
     })
     if (!res.ok) console.error(`alert webhook returned HTTP ${res.status}`)
   } catch (err) {

@@ -27,11 +27,11 @@ describe('country block list', () => {
   it('blocked country gets 451 on sign-in and actions', async () => {
     t = await testApp({ config: config({ TRUST_PROXY: 'true', BLOCKED_COUNTRIES: 'KP,IR' }) }, 1_700_000_000_000)
     // Signed in from an allowed country first, then seen from a blocked one.
-    const { token } = await t!.login(alice)
+    const { token } = await t!.login(alice, { headers: from('US') })
     const nonce = await t!.app.inject({ method: 'GET', url: '/auth/nonce', headers: from('kp') })
     expect(nonce.statusCode).toBe(451)
     expect(nonce.json()).toEqual({ error: 'REGION_BLOCKED' })
-    const n = (await t!.app.inject({ method: 'GET', url: '/auth/nonce' })).json<{ nonce: string }>().nonce
+    const n = (await t!.app.inject({ method: 'GET', url: '/auth/nonce', headers: from('US') })).json<{ nonce: string }>().nonce
     const payload = await signSiwe(alice, n, { issuedAt: new Date(t!.clock()) })
     expect((await t!.app.inject({ method: 'POST', url: '/auth/verify', payload, headers: from('IR') })).statusCode).toBe(451)
     const action = await t!.app.inject({ method: 'POST', url: '/actions', headers: { ...bearer(token), ...from('KP') }, payload: { action: { type: 'buyFarmPlot' }, idempotencyKey: 'k1' } })
@@ -46,6 +46,28 @@ describe('country block list', () => {
     // Not on the list, and routes outside the brief's list, are untouched.
     expect((await t!.app.inject({ method: 'GET', url: '/withdraw/pending', headers: { ...bearer(token), ...from('US') } })).statusCode).toBe(200)
     expect((await t!.app.inject({ method: 'GET', url: '/me', headers: { ...bearer(token), ...from('KP') } })).statusCode).toBe(200)
+  })
+
+  it('fails closed while the list is set: missing header, XX (unknown) and T1 (Tor) get 451', async () => {
+    t = await testApp({ config: config({ TRUST_PROXY: 'true', BLOCKED_COUNTRIES: 'KP' }) }, 1_700_000_000_000)
+    // A request that reached the origin without Cloudflare (no CF-IPCountry) cannot be placed, so it is refused.
+    const missing = await t!.app.inject({ method: 'GET', url: '/auth/nonce' })
+    expect(missing.statusCode).toBe(451)
+    expect(missing.json()).toEqual({ error: 'REGION_BLOCKED' })
+    expect((await t!.app.inject({ method: 'GET', url: '/auth/nonce', headers: from('') })).statusCode).toBe(451)
+    expect((await t!.app.inject({ method: 'GET', url: '/auth/nonce', headers: from('XX') })).statusCode).toBe(451)
+    expect((await t!.app.inject({ method: 'GET', url: '/auth/nonce', headers: from('t1') })).statusCode).toBe(451)
+    const { token } = await t!.login(alice, { headers: from('US') })
+    expect((await t!.app.inject({ method: 'POST', url: '/actions', headers: bearer(token), payload: {} })).statusCode).toBe(451)
+    // Unblocked paths stay open without the header.
+    expect((await t!.app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200)
+    expect((await t!.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })).statusCode).toBe(200)
+  })
+
+  it('without a list, a missing header blocks nobody', async () => {
+    t = await testApp({ config: config({ TRUST_PROXY: 'true' }) }, 1_700_000_000_000)
+    expect((await t!.app.inject({ method: 'GET', url: '/auth/nonce' })).statusCode).toBe(200)
+    expect((await t!.app.inject({ method: 'GET', url: '/auth/nonce', headers: from('XX') })).statusCode).toBe(200)
   })
 
   it('header ignored when TRUST_PROXY is off', async () => {

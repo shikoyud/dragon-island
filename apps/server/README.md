@@ -39,11 +39,11 @@ A code is the first 8 hex characters of a player id. `POST /referral/claim` is r
 
 Seasons close `CLOSE_GRACE_MS` (5 minutes) after `endsAt`, so an action that started in the old season and commits after the boundary still counts for prizes.
 
-Errors are `{ error: CODE }`: 400 `INVALID_ACTION`, 401 `UNAUTHORIZED`, 402 `INSUFFICIENT_TOKENS`, 403 `BANNED`/`FORBIDDEN`/`BETA_CLOSED`, 409 `OFFER_NOT_FOUND`/`OFFER_EXPIRED`/`VOUCHER_PENDING`/`SEASON_ACTIVE`, 422 game-core codes (including the base-building ones `OUT_OF_BOUNDS`, `OVERLAP`, `BUILDERS_BUSY`, `ISLAND_LOCKED`, `MAX_ISLAND`, `WRONG_ISLAND`, `UNDER_CONSTRUCTION`, `NO_LEGENDARY`, `NEXUS_EXISTS`, `MAX_EXPANSION`) and `WITHDRAW_LIMIT`, 428 `TERMS_REQUIRED`, 429 `RATE_LIMITED`, 451 `REGION_BLOCKED`, 503 `PRICE_UNAVAILABLE`/`WITHDRAWALS_DISABLED`.
+Errors are `{ error: CODE }`: 400 `INVALID_ACTION`, 401 `UNAUTHORIZED`, 402 `INSUFFICIENT_TOKENS`, 403 `BANNED`/`FORBIDDEN`/`BETA_CLOSED`, 409 `OFFER_NOT_FOUND`/`OFFER_EXPIRED`/`VOUCHER_PENDING`/`DUPLICATE_REF`, and from `POST /admin/season/:id/close` `ALREADY_CLOSED`/`SEASON_ACTIVE`/`SEASON_GRACE` (ended less than 5 minutes ago; the close job takes it)/`SEASON_BUSY` (another close holds the lock; retry), 422 game-core codes (including the base-building ones `OUT_OF_BOUNDS`, `OVERLAP`, `BUILDERS_BUSY`, `ISLAND_LOCKED`, `MAX_ISLAND`, `WRONG_ISLAND`, `UNDER_CONSTRUCTION`, `NO_LEGENDARY`, `NEXUS_EXISTS`, `MAX_EXPANSION`) and `WITHDRAW_LIMIT`, 428 `TERMS_REQUIRED`, 429 `RATE_LIMITED`, 451 `REGION_BLOCKED`, 503 `PRICE_UNAVAILABLE`/`WITHDRAWALS_DISABLED`.
 
 ### Country block list and terms (both off by default)
 
-`BLOCKED_COUNTRIES` (comma list of ISO alpha-2 codes) refuses `/auth/*`, `/actions` and `/withdraw`, `/withdraw/*` with 451 `REGION_BLOCKED`, using Cloudflare's `CF-IPCountry`; it is ignored unless `TRUST_PROXY=true`. `/health`, `/admin/*`, `/me` and everything else are never blocked. With `TERMS_VERSION` set, `POST /actions` and `GET /pvp/offers` answer 428 `TERMS_REQUIRED` until the player's accepted version equals it (bumping the version asks everyone again). Sign-in, `/me` and withdrawals are never terms-gated.
+`BLOCKED_COUNTRIES` (comma list of ISO alpha-2 codes) refuses `/auth/*`, `/actions` and `/withdraw`, `/withdraw/*` with 451 `REGION_BLOCKED`, using Cloudflare's `CF-IPCountry`; it is ignored unless `TRUST_PROXY=true`. While the list is set it fails closed: a missing header (the request did not come through Cloudflare; Caddy strips the header from non-Cloudflare peers), `XX` (unknown) or `T1` (Tor) is refused too. `/health`, `/admin/*`, `/me` and everything else are never blocked. With `TERMS_VERSION` set, `POST /actions` and `GET /pvp/offers` answer 428 `TERMS_REQUIRED` (a banned player gets 403 `BANNED` first on PvP) until the player's accepted version equals it (bumping the version asks everyone again). Sign-in, `/me` and withdrawals are never terms-gated.
 
 ## How an action runs
 
@@ -55,7 +55,7 @@ Errors are `{ error: CODE }`: 400 `INVALID_ACTION`, 401 `UNAUTHORIZED`, 402 `INS
 - `voucherExpiry` (60 s): for vouchers unclaimed 10 minutes past their deadline, asks the chain whether the player's cumulative total already covers them (late claim → mark claimed) and refunds the rest, once.
 - `burnBatch` (10 min): burns 50% of past days' spend through the operator key, within the vault's daily burn limit. Each burn is recorded as a pending attempt before it is sent and booked only on a successful receipt; a Postgres advisory lock keeps the scheduler and `POST /admin/jobs/burnBatch/run` from overlapping.
 - `season` (60 s): rolls the 14-day season and creates the next commit hash.
-- `seasonClose` (60 s): for each ended, unclosed season (advisory lock): computes prizes from the inflow ledger and the eligible standings (earning unlocked, not banned), credits them, resets trophies above 1,000 to 1,000 + half the excess, reveals the secret and stamps `closed_at`. Also runnable through `POST /admin/season/:id/close`.
+- `seasonClose` (60 s): for each ended, unclosed season (advisory lock): computes prizes from the inflow ledger and the eligible standings (earning unlocked, not banned), credits them, resets trophies above 1,000 to 1,000 + half the excess, reveals the secret and stamps `closed_at`. Also runnable through `POST /admin/season/:id/close`, which answers 409 `ALREADY_CLOSED`, `SEASON_ACTIVE`, `SEASON_GRACE` or `SEASON_BUSY` (see the error list).
 
 ## Provably fair (spec §17)
 

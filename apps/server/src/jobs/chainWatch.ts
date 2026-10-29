@@ -27,7 +27,7 @@ export interface ChainWatchState {
   /** One sample per run, pruned to the last 24 h. */
   balanceSamples: { atMs: number; balance: bigint }[]
   balanceDropped: boolean
-  /** Last indexer_state.last_block seen and the clock time it last changed. */
+  /** Last indexer_state.last_block seen, and the clock time it last changed or last had nothing pending. */
   indexer?: { lastBlock: bigint; advancedAtMs: number }
   indexerLagging: boolean
 }
@@ -121,6 +121,9 @@ export async function chainWatch(deps: ChainWatchDeps): Promise<string[]> {
     if (!state.indexer || state.indexer.lastBlock !== lastBlock) state.indexer = { lastBlock, advancedAtMs: now }
     // Only blocks the indexer is allowed to process (past the confirmation depth) count as lag.
     const pending = head - BigInt(config.CONFIRMATIONS) > lastBlock
+    // Nothing to index means the indexer is not behind: restart the stall timer, so the first run after
+    // a quiet chain (no blocks for over 10 min) does not alert before the indexer has had a chance to run.
+    if (!pending) state.indexer.advancedAtMs = now
     const lagging = pending && now - state.indexer.advancedAtMs > INDEXER_STALL_MS
     const was = state.indexerLagging
     state.indexerLagging = lagging

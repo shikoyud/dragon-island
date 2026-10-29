@@ -22,12 +22,9 @@ async function main(): Promise<void> {
   }
   // E2E specs move the clock through POST /e2e/clock; production time is never adjustable.
   const clock = e2e ? offsetClock() : systemClock
-  const app = await buildApp({ db, clock, config, logger: !e2e, ...(e2e ? { chain, price: new FixedPriceSource(50_000n) } : {}) })
-  if (sentry) {
-    app.addHook('onError', async (_req, _reply, err) => {
-      if ((err.statusCode ?? 500) >= 500) sentry.captureException(err)
-    })
-  }
+  // Sentry sees only what the error handler answers with 500, never 4xx client errors.
+  const onInternalError = sentry ? (err: unknown) => { sentry.captureException(err) } : undefined
+  const app = await buildApp({ db, clock, config, logger: !e2e, onInternalError, ...(e2e ? { chain, price: new FixedPriceSource(50_000n) } : {}) })
   // chainWatch is only in app.jobs when VAULT_ADDRESS is set; the scheduler skips absent jobs.
   const scheduler = startScheduler({
     jobs: app.jobs,

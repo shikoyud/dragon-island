@@ -85,6 +85,17 @@ describe('terms acceptance', () => {
     expect((await accept(token, '')).statusCode).toBe(400)
   })
 
+  it('a banned player is told BANNED on PvP, not asked to accept terms', async () => {
+    t = await testApp({ config: config('2026-10') }, 1_700_000_000_000)
+    const { playerId } = await t.login(alice)
+    const ban = await t.app.inject({ method: 'POST', url: '/admin/ban', headers: { 'x-admin-token': TEST_ADMIN_TOKEN }, payload: { playerId, reason: 'bots' } })
+    expect(ban.statusCode).toBe(200)
+    const { token } = await t.login(alice)
+    const res = await t.app.inject({ method: 'GET', url: '/pvp/offers', headers: bearer(token) })
+    expect(res.statusCode).toBe(403)
+    expect(res.json()).toEqual({ error: 'BANNED' })
+  })
+
   it('withdrawals, /me and sign-in are never terms-gated', async () => {
     t = await testApp({ config: config('2026-10') }, 1_700_000_000_000)
     const { token } = await t.login(alice)

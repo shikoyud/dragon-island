@@ -8,7 +8,8 @@ import { createOffers } from '../services/battles'
 
 export function pvpRoutes(app: FastifyInstance, deps: AppDeps): void {
   const { db, clock, config } = deps
-  app.get('/pvp/offers', { preHandler: [requireSession(db, clock), requireTerms(config), requireActive] }, async req => {
+  // Ban check before terms, so a banned player is told BANNED rather than asked to accept terms.
+  app.get('/pvp/offers', { preHandler: [requireSession(db, clock), requireActive, requireTerms(config)] }, async req => {
     await rateLimit(db, `player:${req.player!.id}`, PLAYER_LIMIT.limit, PLAYER_LIMIT.windowMs, clock)
     return { offers: await createOffers({ db, clock, catalog: deps.catalog! }, req.player!) }
   })

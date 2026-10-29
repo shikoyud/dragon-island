@@ -53,6 +53,8 @@ export interface AppDeps {
   chain?: ChainClient
   /** Fastify logger option; production passes true, tests leave it off. */
   logger?: boolean
+  /** Called only for errors answered with 500 (production passes Sentry's captureException). */
+  onInternalError?: (err: unknown) => void
 }
 
 declare module 'fastify' {
@@ -74,7 +76,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const withdrawDeps: WithdrawDeps | null = config.SIGNER_PRIVATE_KEY && config.VAULT_ADDRESS
     ? { db, clock, chain: deps.chain, signer: privateKeyToAccount(config.SIGNER_PRIVATE_KEY as Hex), vault: config.VAULT_ADDRESS as Address, chainId: config.CHAIN_ID }
     : null
-  registerErrorHandler(app)
+  registerErrorHandler(app, deps.onInternalError)
   registerGeoBlock(app, config)
 
   const actionDeps: ActionDeps = {
