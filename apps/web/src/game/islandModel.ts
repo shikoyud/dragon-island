@@ -109,7 +109,7 @@ export function buildIslandModel(state: PlayerState | null, art: GameArtSet, cat
       const sprite = art.building.cropStage[plot.crop]
       // A stage sheet shows growth by frame; a single still (or fallback) grows by scale.
       const growth = sprite.frames > 1
-        ? { frame: Math.min(sprite.frames - 1, Math.floor(fraction * sprite.frames)) }
+        ? { frame: fraction >= 1 ? sprite.frames - 1 : Math.floor(fraction * (sprite.frames - 1)) }
         : { scale: 0.5 + 0.5 * fraction }
       objects.push({ id: `crop:${i}`, key: textureKey(`crop.${plot.crop}`), sprite, x: p.x, y: p.y - 10, target: { kind: 'farm', plot: i }, badge: timerLabel(plot.readyAtMs, nowMs), ...growth })
     }

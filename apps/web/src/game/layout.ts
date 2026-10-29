@@ -11,8 +11,9 @@ const HABITAT_ORDER: readonly (readonly [number, number])[] = [
 /** Habitat platforms (96×64 tiles, bottom-centre origin): a 4×3 grid across the island body (up to 12). */
 export function habitatSlots(index: number, _count: number): Pos {
   const [col, row] = HABITAT_ORDER[index % HABITAT_ORDER.length]!
-  // Rows overlap by 12 px so a front tile hides the back tile's wall; drawn back to front.
-  return { x: 96 + col * 96, y: 100 + row * 52 }
+  // Back-row dragon heads clear the farm strip (y 36); rows overlap by 22 px so a front tile hides
+  // the back tile's wall (the island model draws back to front); the front row clears the nests.
+  return { x: 96 + col * 96, y: 120 + row * 42 }
 }
 
 /** Dragon spots on a platform: a 4+3 arrangement standing on the tile's top face. */

@@ -62,6 +62,8 @@ export class IslandScene extends Phaser.Scene {
     const model = buildIslandModel(this.bridge.state, this.art(), this.catalog, this.bridge.nowMs)
     this.current = model.markers
     for (const o of model.objects) this.draw(o)
+    // Badges go on top of every sprite, so a dragon never hides its habitat's gold.
+    for (const o of model.objects) if (o.badge) this.drawBadge(o, o.badge)
   }
 
   markers(): IslandMarkers {
@@ -79,10 +81,11 @@ export class IslandScene extends Phaser.Scene {
     spr.on('pointerout', () => this.bridge.emit({ type: 'hover', target: null }))
     this.layer.add(spr)
     this.drawn.push(spr)
-    if (o.badge) {
-      const t = this.add.text(o.x, o.y - o.sprite.h - 2, o.badge, TEXT_STYLE).setOrigin(0.5, 1)
-      this.layer.add(t)
-      this.drawn.push(t)
-    }
+  }
+
+  private drawBadge(o: IslandObject, badge: string): void {
+    const t = this.add.text(o.x, o.y - o.sprite.h - 2, badge, TEXT_STYLE).setOrigin(0.5, 1)
+    this.layer.add(t)
+    this.drawn.push(t)
   }
 }

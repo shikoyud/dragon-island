@@ -95,8 +95,9 @@ describe('island model', () => {
     const grow = CROPS.sprout.growMs
     expect(crop(grow, 0)).toMatchObject({ frame: 0 })
     expect(crop(grow, 0).scale).toBeUndefined()
-    expect(crop(grow, grow / 2)).toMatchObject({ frame: 2 })
-    expect(crop(grow, grow - 1)).toMatchObject({ frame: 3 })
+    expect(crop(grow, grow / 2)).toMatchObject({ frame: 1 })
+    expect(crop(grow, grow - 1)).toMatchObject({ frame: 2 }) // not ripe-looking until it is ready
+    expect(crop(grow, grow)).toMatchObject({ frame: 3 })
     expect(crop(grow, grow * 2)).toMatchObject({ frame: 3 })
   })
 

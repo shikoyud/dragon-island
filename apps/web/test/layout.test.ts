@@ -42,6 +42,15 @@ describe('layout', () => {
     }
   })
 
+  it('keeps back-row dragons and the habitat badge below the farm strip', () => {
+    const farmBottom = farmPos(0).y
+    for (let i = 0; i < 12; i++) {
+      const p = habitatSlots(i, 12)
+      expect(p.y - 64 - 2 - 8, `badge of habitat ${i}`).toBeGreaterThanOrEqual(farmBottom) // badge text is ~8 px tall
+      for (let s = 0; s < 7; s++) expect(dragonSlots(i, s, 7, 12).y - 48, `dragon ${s} on habitat ${i}`).toBeGreaterThanOrEqual(farmBottom)
+    }
+  })
+
   it('stands dragons on the tile face, not its front wall', () => {
     for (let s = 0; s < 7; s++) {
       const p = dragonSlots(0, s, 7, 12)
