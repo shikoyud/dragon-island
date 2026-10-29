@@ -22,4 +22,4 @@ Follows the base-building fix (09758af: isometric island, pure camera). Owner fe
 - [x] 2. Pure HUD logic: `attentionItems`, gold pill sell limit, XP fraction (vitest).
 - [x] 3. HUD components and `Dialog` (Testing Library), App rewritten on them, `Shell` removed.
 - [x] 4. E2E: helpers and specs on the new HUD; `e2e/hud.spec.ts` full flow at desktop and mobile sizes.
-- [ ] 5. Screenshots: docs/art/base-building-home.png, docs/art/hud-desktop.png, docs/art/hud-mobile.png.
+- [x] 5. Screenshots: docs/art/base-building-home.png, docs/art/hud-desktop.png, docs/art/hud-mobile.png.

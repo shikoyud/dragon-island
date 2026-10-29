@@ -23,6 +23,8 @@ const EMPTY: IslandMarkers = {
   habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [], hoard: false,
   obstacles: [], decorations: [], constructions: 0, ghost: null, sign: null,
 }
+/** On-screen height of badge text in CSS pixels (the font is 8 px in world space). */
+const BADGE_PX = 14
 /** Pinch distance ratio that counts as one zoom step. */
 const PINCH_STEP = 1.25
 
@@ -42,6 +44,7 @@ export class IslandScene extends Phaser.Scene {
   private outline!: Phaser.GameObjects.Graphics
   private layer!: Phaser.GameObjects.Container
   private drawn: Phaser.GameObjects.GameObject[] = []
+  private badges: Phaser.GameObjects.Text[] = []
   private current: IslandMarkers = EMPTY
   private catalog: Catalog = LAUNCH_CATALOG
   private down: { x: number; y: number } | null = null
@@ -139,6 +142,8 @@ export class IslandScene extends Phaser.Scene {
     const cam = this.cameras.main
     cam.setZoom(this.view.zoom)
     cam.centerOn(this.view.cx, this.view.cy)
+    const scale = this.badgeScale()
+    for (const t of this.badges) if (t.active) t.setScale(scale)
   }
 
   /** Frames the island when the view, its shown size or the screen changes; otherwise only re-clamps. */
@@ -264,6 +269,7 @@ export class IslandScene extends Phaser.Scene {
     this.frame()
     for (const obj of this.drawn) obj.destroy()
     this.drawn = []
+    this.badges = []
     const model = buildIslandModel(state, this.art(), this.catalog, this.bridge.nowMs, view, this.bridge.placing)
     // Fewer eggs in the hatchery on the same island than a moment ago: one hatched (or was sold). Burst once.
     const hatched = state && view === this.hatchView && model.markers.hatchery.length < this.current.hatchery.length
@@ -396,9 +402,15 @@ export class IslandScene extends Phaser.Scene {
     this.drawn.push(spr)
   }
 
+  /** Badges keep one on-screen size (BADGE_PX tall) at every zoom instead of growing with the art. */
+  private badgeScale(): number {
+    return BADGE_PX / 8 / (this.view?.zoom ?? 1)
+  }
+
   private drawBadge(o: IslandObject, badge: string): void {
-    const t = this.add.text(o.x, badgeY(o), badge, TEXT_STYLE).setOrigin(0.5, 1).setResolution(4)
+    const t = this.add.text(o.x, badgeY(o), badge, TEXT_STYLE).setOrigin(0.5, 1).setResolution(4).setScale(this.badgeScale())
     this.layer.add(t)
     this.drawn.push(t)
+    this.badges.push(t)
   }
 }

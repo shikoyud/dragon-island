@@ -66,11 +66,14 @@ describe('island camera logic', () => {
     const box = { x: -120, y: 0, w: 240, h: 140 }
     expect(fitZoom(1280, 720, box)).toBe(5) // 720/140 = 5.1
     expect(fitZoom(390, 844, box)).toBe(2) // 1.6 rounds up: a little of the edge is cropped
-    expect(fitZoom(390, 844, { x: 0, y: 0, w: 300, h: 160 })).toBe(1) // 1.3
+    expect(fitZoom(844, 390, { x: 0, y: 0, w: 160, h: 300 })).toBe(1) // landscape 1.3 rounds down
     expect(fitZoom(390, 844, { x: 0, y: 0, w: 400, h: 160 })).toBe(1)
     // A phone showing the starting home island (14x14 shown) opens at 2: buildings readable, edges a drag away.
     expect(fitZoom(390, 680, { x: 0, y: 0, w: 272, h: 172 })).toBe(2)
     expect(fitZoom(1280, 550, { x: 0, y: 0, w: 272, h: 172 })).toBe(3)
+    // Portrait screens are width-limited with height to spare: round up (an expanded home, 16x16 shown, opens at 2).
+    expect(fitZoom(390, 680, { x: 0, y: 0, w: 304, h: 188 })).toBe(2)
+    expect(fitZoom(390, 680, { x: 0, y: 0, w: 420, h: 230 })).toBe(1)
   })
 
   it('a press that moved 4 px or less is a click', () => {
