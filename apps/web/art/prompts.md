@@ -52,12 +52,12 @@ The first seven runs are the whole 40-generation trial. Everything below marked 
 | `egg.<element>` | `egg-<element>.png` | 32×32 | 6 | 8 | `dragon egg, <egg line>`; code: rows sheared about the bottom edge, top row offset 0, 2, 2, 0, −2, −2 px |
 | `hatchling.<element>` | `hatchling-<element>.png` | 32×32 | 4 | 4 | `baby dragon hatchling sitting, <hatchling line>`; code: upper 45% moved down 0, 0, 1, 1 px (breathing) |
 | `dragon.<species>` | `dragon-<species>.png` | 48×48 | 4 | 4 | species line above; same breathing code |
-| `habitat.<element>` | `habitat-<element>.png` | 80×64 | 1 | 0 | "flat square ground tile seen from above at a three-quarter angle, open flat top of <surface>, thin <rim> rim, short earth side, nothing standing on it, simple, chunky pixel art, 1px dark outline, limited palette, warm daylight". Surfaces / rims: fire black volcanic rock with glowing orange lava cracks / dark stone; water clear blue pond water with two lily pads / grey stone; earth packed brown clay earth in low terraces with small boulders / sandstone; nature lush green grass with tiny ferns and flowers / mossy stone with vines; electric dark slate with copper coils and glowing yellow sparks / copper; ice white snow and pale blue frosted stone with small icicles on the rim / pale ice; metal riveted steel plates with a small glowing forge vent grate / iron; dark purple-black shadow stone with glowing violet runes / dark purple stone; light polished white marble with a gold sunburst inlay / gold trim. |
-| `building.nexus` | `nexus.png` | 80×64 | 1 | 0 | same template: pale grey flagstone with a glowing rainbow prism crystal in the centre, nine small stone pillars each topped with a different coloured gem |
+| `habitat.<element>` | `habitat-<element>.png` | 80×64 | 1 | 0 | "flat square ground tile seen from above at a three-quarter angle, open flat top of <surface>, thin <rim> rim, short earth side, nothing standing on it, simple, chunky pixel art, 1px dark outline, limited palette, warm daylight". Surfaces / rims: fire black volcanic rock with glowing orange lava cracks / dark stone; water clear blue pond water with two lily pads / grey stone; earth packed brown clay earth in low terraces with small boulders / sandstone; nature lush green grass with tiny ferns and flowers / mossy stone with vines; electric dark slate with copper coils and glowing yellow sparks / copper; ice (seed 23) pale blue frosted stone slabs dusted with white snow and a few small ice crystals / pale ice; metal riveted steel plates with a small glowing forge vent grate / iron; dark purple-black shadow stone with glowing violet runes / dark purple stone; light polished white marble with a gold sunburst inlay / gold trim. |
+| `building.nexus` | `nexus.png` | 80×64 | 1 | 0 | seed 22, template opening "flat square ground tile seen from the front at a three-quarter angle with its edges running horizontal" (matches the habitats' angle): pale grey flagstone with a glowing rainbow prism crystal in the centre, nine small stone pillars each topped with a different coloured gem |
 | `building.nest` | `nest.png` | 32×32 | 1 | 0 | dragon nest of woven twigs and straw, bowl shaped, empty |
-| `building.hatchery` | `hatchery.png` | 48×48 | 1 | 0 | wooden hatchery hut with straw roof, round door and a warm lantern |
-| `building.farmPlot` | `farm-plot.png` | 32×24 | 1 | 0 | small tilled farm plot of dark soil with wooden edge, empty (cropped from 32×32) |
-| `building.hoard` | `hoard.png` | 48×48 | 1 | 0 | dragon treasure hoard: big pile of gold coins with gems and a small chest |
+| `building.hatchery` | `hatchery.png` | 64×64 | 1 | 0 | `create_image_pixen` seed 21: small stone hatchery hall with a round domed roof and four warm-lit arched egg niches along its front, standing on a flat square stone base with a short earth side, seen from above at a three-quarter angle, simple, chunky pixel art, 1px dark outline, limited palette, warm daylight |
+| `building.farmPlot` | `farm-plot.png` | 32×32 | 1 | 0 | `create_image_pixen` seed 21: flat square farm plot seen from above at a three-quarter angle, tilled dark soil bed in rows with a low wooden plank border and a small wooden stake marker in one corner, short earth side, nothing growing, (style line) |
+| `building.hoard` | `hoard.png` | 64×64 | 1 | 0 | `create_image_pixen` seed 21: dragon treasure hoard: a heap of gold coins and colourful gems spilling from an open iron-banded wooden chest, on a flat square stone base with a short earth side, seen from above at a three-quarter angle, (style line) |
 | `crop.sprout` | `crop-sprout.png` | 16×16 | 4 stages | 0 | tiny green seed sprout in soil / small green seedling with two leaves / leafy green herb plant / bushy green herb with white flowers |
 | `crop.bushel` | `crop-bushel.png` | 16×16 | 4 stages | 0 | tiny wheat sprout in soil / short green wheat stalks / tall green wheat with heads forming / ripe golden wheat bushel |
 | `crop.harvest` | `crop-harvest.png` | 16×16 | 4 stages | 0 | tiny vine sprout in soil / small curling pumpkin vine / pumpkin vine with a small green pumpkin / ripe orange pumpkin |
@@ -85,7 +85,7 @@ Cleanup (code, `process.cjs` in the art session): alpha forced to 0 or 255, stra
 | `decoration.emberLantern` | 16×16 | 16 px #14 | standing iron lantern on a post, warm ember light |
 | `obstacle.bush` | 16×16 | 16 px #17 | round tangled thorny shrub with small thorns |
 | `obstacle.rock` | 16×16 | 16 px #20 | rounded grey rock with a flat yellow-green lichen patch |
-| `island.locked` | 16×16 | 16 px #27 | dim night grass tile with faint padlock, full square tile |
+| `island.locked` | 16×16 | tileset | the all-lower base tile of `create_topdown_tileset` (standard, 16 px): lower "dark blue-grey night fog drifting over dim ground, soft low mist", upper "green grass meadow"; tiles seamlessly, no padlock |
 | `decoration.driftwoodBench` | 32×32 | 32 px #1 | pale driftwood bench on two stumps |
 | `decoration.hayCart` | 32×32 | 32 px #5 | small hay cart with two wooden wheels full of straw |
 | `decoration.shellFountain` | 32×32 | 32 px #9 | stone fountain with a big spiral shell pouring water into a basin |
@@ -108,4 +108,14 @@ Cleanup (code, `process.cjs` in the art session): alpha forced to 0 or 255, stra
 | `decoration.dragonColossus` | 48×48 | 48 px #13 | huge mossy stone dragon statue coiled on a plinth, wings half spread |
 | `obstacle.ruin` | 48×48 | 48 px #15 | ancient broken stone columns and wall rubble with green vines |
 
-Not regenerated: `building.hatchery` and `building.hoard` stay 48×48 (the art list sizes them 64×64), `building.farmPlot` stays 32×24, `building.nest` 32×32.
+### Fix round (same day)
+
+| Run | Tool | Cost | Used for |
+| --- | --- | --- | --- |
+| Buildings | `create_image_pixen` 64×64 hatchery and hoard, 32×32 farm plot, seeds 21 and 22 | 6 | seed 21 of each (seed 22 hatchery was a boxy temple; seed 22 hoard was a heavier chest with less spill) |
+| Ice habitat | `create_image_pixen` 80×64, seeds 21 and 23 | 2 | seed 23 (70×49, same angle and depth as the others) |
+| Nexus | `create_image_pixen` 80×64, seeds 22 and 23 | 2 | seed 22 |
+| Locked land | `create_image_pixen` 16×16 and 32×32 "seamless fog" | 2 | discarded: framed, not tileable |
+| Locked land | `create_topdown_tileset` standard 16 px | 1 | its all-fog base tile |
+
+`building.nest` keeps its 32×32 batch sprite. Hatchery eggs and waiting hatchlings still use the old `hatcherySpot` offsets, so they sit over the dome.
