@@ -5,7 +5,7 @@ Design source of truth: `docs/superpowers/specs/2026-10-28-wyrmhaven-design.md`.
 Research: `reports/Dragon breeding genre and RaidLords.md`. Background: `docs/reference/`.
 
 ## Hard rules
-- Original IP: generic element names are fine; never copy dragon names, art, text, charts or numbers from other games.
+- Original IP: generic element names are fine; never copy dragon names, art, text or audio from other games.
 - `packages/game-core` is pure and deterministic: no I/O, no `Date.now()`, no `Math.random()`. Time (`nowMs`) and `Rng` are parameters.
 - Gold, food, token and USD amounts are integers (USD in micro-dollars). No floats in currency math.
 - Server is authoritative. Client sends intents (and battle move lists); server runs game-core and persists.
