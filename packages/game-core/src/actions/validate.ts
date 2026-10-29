@@ -19,6 +19,11 @@ export function isValidAction(a: unknown): a is Action {
       return isId(x['habitatId'])
     case 'startUpgrade':
       return isBuildingRef(x['building'])
+    case 'expandIsland':
+    case 'unlockIsland':
+      return true
+    case 'clearObstacle':
+      return isId(x['obstacleId'])
     case 'finishConstruction':
       return isIndex(x['index'])
     case 'placeBuilding':

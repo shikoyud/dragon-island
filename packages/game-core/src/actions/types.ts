@@ -19,6 +19,9 @@ export type Action =
   | { type: 'removeDecoration'; id: string }
   | { type: 'startUpgrade'; building: BuildingRef }
   | { type: 'finishConstruction'; index: number }
+  | { type: 'expandIsland' }
+  | { type: 'unlockIsland' }
+  | { type: 'clearObstacle'; obstacleId: string }
   | { type: 'moveDragon'; dragonId: string; habitatId: string }
   | { type: 'feed'; dragonId: string }
   | { type: 'sellDragon'; dragonId: string }

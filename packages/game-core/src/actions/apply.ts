@@ -7,6 +7,7 @@ import { collectEgg, hatch, startBreed } from './breed-actions'
 import { buy, sellGold } from './economy-actions'
 import { harvest, plant } from './farm-actions'
 import { finishConstruction, moveBuilding, placeBuilding, removeDecoration, startUpgrade } from './build-actions'
+import { clearObstacle, expandIsland, unlockIsland } from './island-unlock-actions'
 import { collectGold, feed, moveDragon, sellDragon } from './island-actions'
 import { failure, type Action, type ActionCtx, type ActionResult } from './types'
 import { isValidAction } from './validate'
@@ -24,6 +25,9 @@ export function applyAction(
     case 'removeDecoration': return removeDecoration(s, a, ctx)
     case 'startUpgrade': return startUpgrade(s, a, ctx)
     case 'finishConstruction': return finishConstruction(s, a, ctx)
+    case 'expandIsland': return expandIsland(s, a, ctx)
+    case 'unlockIsland': return unlockIsland(s, a, ctx)
+    case 'clearObstacle': return clearObstacle(s, a, ctx)
     case 'moveDragon': return moveDragon(s, a, ctx)
     case 'feed': return feed(s, a, ctx)
     case 'sellDragon': return sellDragon(s, a, ctx)

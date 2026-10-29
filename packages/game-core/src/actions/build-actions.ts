@@ -7,6 +7,8 @@ import { habitatBuildCost, maxHabitats } from '../habitat'
 import { FOOTPRINT, outerIslandsUnlocked, placementError, type Footprint, type OccupantRef } from '../island'
 import type { PlayerState } from '../state'
 import { earnGold, spendGold } from '../wallet'
+import { clearReward } from '../obstacles'
+import { addXp } from '../progression'
 import { collectHabitat } from './island-actions'
 import { failure, success, type Handler } from './types'
 
@@ -125,8 +127,11 @@ export function completeConstruction(s: PlayerState, index: number, c: Catalog, 
   const rest = { ...s, constructions: s.constructions.filter((_, i) => i !== index) }
   if (con.kind === 'build') return rest
   if (con.kind === 'clear') {
-    // Task 7 adds the obstacle payout (addXp + food); until then the obstacle is just removed.
-    return { ...rest, islands: { ...rest.islands, obstacles: rest.islands.obstacles.filter(o => o.id !== con.obstacleId) } }
+    const o = rest.islands.obstacles.find(x => x.id === con.obstacleId)
+    const cleared = { ...rest, islands: { ...rest.islands, obstacles: rest.islands.obstacles.filter(x => x.id !== con.obstacleId) } }
+    if (!o) return cleared
+    const reward = clearReward(o)
+    return addXp({ ...cleared, food: cleared.food + reward.food }, reward.xp)
   }
   const ref = con.building
   switch (ref.type) {
