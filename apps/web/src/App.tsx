@@ -5,6 +5,10 @@ import { useSession } from './api/session'
 import { loadActiveArt, FALLBACK_ART } from './art/slots'
 import type { GameArtSet } from './art/types'
 import { createBridge } from './game/bridge'
+import { placingAction } from './state/placing'
+import { usePlacing } from './state/usePlacing'
+import { useAction } from './state/actions'
+import { PlacementBar } from './panels/PlacementBar'
 import { GameCanvas } from './game/GameCanvas'
 import { Admin } from './pages/Admin'
 import { Verify } from './pages/Verify'
@@ -59,6 +63,8 @@ function Game() {
   const [named, setNamed] = useState<PanelId | null>(null)
   const [verifySeason, setVerifySeason] = useState<number | null>(null)
   const battle = useBattle()
+  const { placing, view, dispatch } = usePlacing(bridge)
+  const { run, pending } = useAction()
 
   useEffect(() => { void loadActiveArt().then(setArt) }, [])
   useEffect(() => {
@@ -91,8 +97,16 @@ function Game() {
       </div>
     )
   }
+  const ghostAction = placing ? placingAction(me.data.state, view, placing) : null
+  const confirmPlacing = () => {
+    if (!ghostAction) return
+    void run(ghostAction).then(res => { if (res) dispatch({ type: 'cancel' }) })
+  }
   const side = (
     <>
+      {placing && (
+        <PlacementBar legal={ghostAction !== null} pending={pending} onTurn={() => dispatch({ type: 'turn' })} onConfirm={confirmPlacing} onCancel={() => dispatch({ type: 'cancel' })} />
+      )}
       <nav aria-label="Panels" className="toolbar">
         {TOOLBAR.map(t => (
           <button key={t.id} type="button" className={`btn ${named === t.id ? 'btn--primary' : ''}`} aria-pressed={named === t.id} onClick={() => setNamed(named === t.id ? null : t.id)}>

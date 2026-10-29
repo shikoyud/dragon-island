@@ -34,4 +34,22 @@ describe('bridge', () => {
     bridge.emit({ type: 'select', target: { kind: 'empty' } })
     expect(bridge.selected).toEqual({ kind: 'empty' })
   })
+
+  it('stores the view and placing ghost and emits cell, view and placing events', () => {
+    const bridge = createBridge()
+    const seen: unknown[] = []
+    bridge.on('view', e => seen.push(e))
+    bridge.on('placing', e => seen.push(e))
+    bridge.on('cell', e => seen.push(e))
+    bridge.setView('isle2')
+    const p = { what: { kind: 'farm' as const }, size: 2 as const, col: 1, row: 2, facing: 0 as const }
+    bridge.setPlacing(p)
+    bridge.emit({ type: 'cell', col: 3, row: 4 })
+    bridge.setPlacing(null)
+    expect(bridge.view).toBe('isle2')
+    expect(bridge.placing).toBeNull()
+    expect(seen).toEqual([
+      { type: 'view', view: 'isle2' }, { type: 'placing', placing: p }, { type: 'cell', col: 3, row: 4 }, { type: 'placing', placing: null },
+    ])
+  })
 })
