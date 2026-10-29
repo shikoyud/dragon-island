@@ -1,6 +1,7 @@
 import { getSpecies, type Catalog } from '../catalog'
 import { foodToNextLevel, MAX_DRAGON_LEVEL } from '../dragon'
 import { canLiveIn, HABITAT_LEVELS, habitatBuildCost, habitatSlots, maxHabitats, residents, storedGold } from '../habitat'
+import { outerIslandsUnlocked } from '../island'
 import { addXp } from '../progression'
 import { RARITY } from '../rarity'
 import type { PlayerState } from '../state'
@@ -31,7 +32,7 @@ export const collectGold: Handler<'collectGold'> = (s, a, ctx) => {
 }
 
 export const buildHabitat: Handler<'buildHabitat'> = (s, a, ctx) => {
-  if (s.habitats.length >= maxHabitats(s.level)) return failure('HABITAT_LIMIT')
+  if (s.habitats.filter(h => h.element !== 'any').length >= maxHabitats(s.level, outerIslandsUnlocked(s))) return failure('HABITAT_LIMIT')
   const paid = spendGold(s, habitatBuildCost(s, a.element))
   if (!paid) return failure('INSUFFICIENT_GOLD')
   const habitat = { id: `h${s.nextId}`, element: a.element, level: 1, lastCollectedMs: ctx.nowMs, placement: { island: 'home' as const, col: 0, row: 0, facing: 0 as const } }

@@ -58,6 +58,7 @@ export interface PlayerState {
   pve: { cleared: number; replays: DayCounter }
 }
 
+/** @deprecated Use hatcherySlots(s.hatcheryLevel); kept only until the web client migrates (Task 12). */
 export const HATCHERY_SLOTS = 3
 
 const home = (col: number, row: number): Placement => ({ island: 'home', col, row, facing: 0 })

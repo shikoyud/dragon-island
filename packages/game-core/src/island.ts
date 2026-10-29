@@ -1,4 +1,5 @@
 import type { BuildingRef, IslandId, Placement, PlayerState } from './state'
+import { DECORATIONS } from './decorations'
 import { OBSTACLES } from './obstacles'
 
 export const CELL_PX = 16
@@ -46,8 +47,7 @@ export function occupants(s: PlayerState, island: IslandId): Occupant[] {
   s.nests.forEach((n, index) => { if (n.placement.island === island) add({ type: 'nest', index }, n.placement, FOOTPRINT.nest) })
   if (s.hatcheryPlacement.island === island) add({ type: 'hatchery' }, s.hatcheryPlacement, FOOTPRINT.hatchery)
   if (s.hoardLevel > 0 && s.hoardPlacement && s.hoardPlacement.island === island) add({ type: 'hoard' }, s.hoardPlacement, FOOTPRINT.hoard)
-  // Decorations are size 1 until Task 4 provides DECORATIONS[kind].size.
-  for (const d of s.decorations) if (d.placement.island === island) add({ type: 'decoration', id: d.id }, d.placement, 1)
+  for (const d of s.decorations) if (d.placement.island === island) add({ type: 'decoration', id: d.id }, d.placement, DECORATIONS[d.kind].size)
   for (const o of s.islands.obstacles) if (o.island === island) add({ type: 'obstacle', id: o.id }, o, OBSTACLES[o.kind].size)
   return out
 }

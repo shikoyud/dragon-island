@@ -32,7 +32,7 @@ describe('habitat rules', () => {
   })
 
   it('limits habitats by player level', () => {
-    expect([1, 4, 5, 50].map(maxHabitats)).toEqual([2, 2, 3, 12])
+    expect([1, 4, 5, 50].map(l => maxHabitats(l, 0))).toEqual([2, 2, 3, 12])
   })
 
   it('has the level table', () => {

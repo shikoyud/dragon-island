@@ -1,9 +1,9 @@
 import { rollOffspring } from '../breeding'
+import { hatcherySlots } from '../buildings'
 import { getSpecies } from '../catalog'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
 import { addXp } from '../progression'
 import { RARITY } from '../rarity'
-import { HATCHERY_SLOTS } from '../state'
 import { collectHabitat } from './island-actions'
 import { failure, success, type Handler } from './types'
 
@@ -42,7 +42,7 @@ export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
   const egg = s.nests[a.nest]!.egg
   if (!egg) return failure('NEST_EMPTY')
   if (ctx.nowMs < egg.readyAtMs) return failure('NOT_READY')
-  if (hatcheryUsed(s) >= HATCHERY_SLOTS) return failure('HATCHERY_FULL')
+  if (hatcheryUsed(s) >= hatcherySlots(s.hatcheryLevel)) return failure('HATCHERY_FULL')
   const rarity = getSpecies(ctx.catalog, egg.speciesId).rarity
   const readyAtMs = ctx.nowMs + (s.tutorial.hatchDone ? RARITY[rarity].hatchMs : TUTORIAL_TIMER_MS)
   return success({

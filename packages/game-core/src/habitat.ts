@@ -37,6 +37,7 @@ export function habitatBuildCost(s: PlayerState, e: Element): number {
   return 500 * 2 ** s.habitats.filter(h => h.element === e).length
 }
 
-export function maxHabitats(playerLevel: number): number {
-  return 2 + Math.floor(playerLevel / 5)
+/** Excludes the Nexus; each unlocked outer island adds 3. */
+export function maxHabitats(playerLevel: number, outerIslands: number): number {
+  return 2 + Math.floor(playerLevel / 5) + 3 * outerIslands
 }

@@ -13,6 +13,9 @@ export * from './habitat'
 export * from './farm'
 export * from './island'
 export * from './obstacles'
+export * from './construction'
+export * from './buildings'
+export * from './decorations'
 export * from './data/island-layouts'
 export {
   dailySellLimitMicroUsd, HOARD, HOARD_MIN_PLAYER_LEVEL, MICRO_USD_PER_GOLD, remainingSellMicroUsd, sellCounterAt,
