@@ -15,6 +15,12 @@ const withRock = (over: Partial<PlayerState> = {}): PlayerState => ({
 })
 
 describe('IslandMapPanel', () => {
+  it('lays the island list over the sea-chart backdrop when the art has one', () => {
+    const art = artSetFromManifest('v1', { assets: { 'map.backdrop': { file: 'map-backdrop.png', w: 320, h: 180, frames: 1, fps: 0 } } }, LAUNCH_CATALOG)
+    harness(base).wrap(<IslandMapPanel view="home" onView={() => {}} art={art} />)
+    expect(screen.getByTestId('map-chart')).toHaveStyle({ backgroundImage: 'url("/art/v1/map-backdrop.png")' })
+  })
+
   it('unlocks the next island in order and switches view', async () => {
     const onView = vi.fn()
     const s = { ...base, level: 12, gold: 40_000 }

@@ -46,11 +46,13 @@ export function zoomAt(v: View, viewportW: number, viewportH: number, sx: number
 }
 
 function clampAxis(c: number, visible: number, start: number, size: number): number {
-  if (visible >= size) return start + size / 2
-  return Math.min(start + size - visible / 2, Math.max(start + visible / 2, c))
+  // Larger than the screen: the view stays inside the bounds. Smaller: the bounds stay inside the view (free to drag).
+  const lo = visible >= size ? start + size - visible / 2 : start + visible / 2
+  const hi = visible >= size ? start + visible / 2 : start + size - visible / 2
+  return Math.min(hi, Math.max(lo, c))
 }
 
-/** Keeps the view inside the bounds; an island smaller than the screen is centred on that axis. */
+/** Keeps the view inside the bounds, or, on an axis where the island is smaller than the screen, the island whole on screen. */
 export function clampView(v: View, viewportW: number, viewportH: number, b: Box): View {
   return {
     cx: clampAxis(v.cx, viewportW / v.zoom, b.x, b.w),

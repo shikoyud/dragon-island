@@ -22,8 +22,10 @@ export function IslandMapPanel({ view, onView, onClose, art }: { view: IslandId;
   if (!s) return null
   const unlocked = new Set(s.islands.unlocked)
   const nextId = ISLAND_ORDER.find(id => !unlocked.has(id))
+  const backdrop = art?.hud['map.backdrop']?.src
   return (
     <Panel title="Islands" onClose={onClose}>
+      <div className="map-chart" data-testid="map-chart" style={backdrop ? { backgroundImage: `url("${backdrop}")` } : undefined}>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
         {ISLAND_ORDER.map(id => {
           if (unlocked.has(id)) {
@@ -53,6 +55,7 @@ export function IslandMapPanel({ view, onView, onClose, art }: { view: IslandId;
           )
         })}
       </ul>
+      </div>
     </Panel>
   )
 }

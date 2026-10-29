@@ -53,9 +53,11 @@ describe('island camera logic', () => {
     expect(after.y).toBeCloseTo(before.y)
   })
 
-  it('centres the island when it is smaller than the screen and clamps the edges when larger', () => {
+  it('lets an island smaller than the screen move but stay whole on screen, and clamps the edges when larger', () => {
     const box = { x: -100, y: 0, w: 200, h: 120 }
-    expect(clampView({ cx: 500, cy: -400, zoom: 1 }, vp.w, vp.h, box)).toEqual({ cx: 0, cy: 60, zoom: 1 })
+    // At zoom 1 the screen shows 1280x720: the centre may go from x -540 to 540 and y -240 to 360.
+    expect(clampView({ cx: 500, cy: -400, zoom: 1 }, vp.w, vp.h, box)).toEqual({ cx: 500, cy: -240, zoom: 1 })
+    expect(clampView({ cx: 0, cy: 60, zoom: 1 }, vp.w, vp.h, box)).toEqual({ cx: 0, cy: 60, zoom: 1 })
     // At zoom 8 the screen shows 160x90 world pixels: the centre may go from x -20 to 20 and y 45 to 75.
     expect(clampView({ cx: 500, cy: -400, zoom: 8 }, vp.w, vp.h, box)).toEqual({ cx: 20, cy: 45, zoom: 8 })
   })
