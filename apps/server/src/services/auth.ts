@@ -1,5 +1,5 @@
 import { newPlayer } from '@wyrmhaven/game-core'
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { and, eq, gt } from 'drizzle-orm'
 import { getAddress, isAddressEqual, recoverMessageAddress, type Address } from 'viem'
 import { generateSiweNonce, parseSiweMessage, validateSiweMessage } from 'viem/siwe'
@@ -19,8 +19,13 @@ export async function issueNonce(db: Db, clock: Clock): Promise<string> {
 }
 
 /** Verifies a SIWE message for this app's domain/uri/chain, consumes its nonce, and opens a session. */
+/** Spec §16 anti-abuse: where a sign-in came from, hashed with the session secret (never stored raw). */
+export interface SignInOrigin { ipHash: string | null; deviceHash: string | null }
+export const originHash = (secret: string, value: string | undefined | null): string | null =>
+  value ? createHash('sha256').update(`${secret}\u0000${value}`).digest('hex') : null
+
 export async function verifyAndLogin(
-  db: Db, clock: Clock, config: Config, message: string, signature: `0x${string}`,
+  db: Db, clock: Clock, config: Config, message: string, signature: `0x${string}`, origin: SignInOrigin = { ipHash: null, deviceHash: null },
 ): Promise<{ token: string; playerId: string; address: Address }> {
   const parsed = parseSiweMessage(message)
   const now = new Date(clock())
@@ -43,8 +48,12 @@ export async function verifyAndLogin(
   const address = parsed.address.toLowerCase() as Address
   const playerId = await db.transaction(async tx => {
     const [existing] = await tx.select({ id: players.id }).from(players).where(eq(players.address, address))
-    if (existing) return existing.id
-    const [created] = await tx.insert(players).values({ address, state: newPlayer(clock()) }).returning({ id: players.id })
+    if (existing) {
+      // The latest sign-in origin is what referral checks compare against.
+      await tx.update(players).set({ ipHash: origin.ipHash, deviceHash: origin.deviceHash, updatedAt: new Date(clock()) }).where(eq(players.id, existing.id))
+      return existing.id
+    }
+    const [created] = await tx.insert(players).values({ address, state: newPlayer(clock()), ipHash: origin.ipHash, deviceHash: origin.deviceHash }).returning({ id: players.id })
     await tx.insert(balances).values({ playerId: created!.id })
     // Deposits or entries made before this wallet ever signed in.
     await applyPendingEvents(tx, created!.id, address, clock)

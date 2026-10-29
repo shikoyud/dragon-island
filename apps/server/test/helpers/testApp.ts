@@ -17,7 +17,7 @@ export interface TestApp {
   clock: ReturnType<typeof mutableClock>
   deps: AppDeps
   /** Full SIWE login; returns the bearer token and player id. */
-  login(account: PrivateKeyAccount): Promise<{ token: string; playerId: string }>
+  login(account: PrivateKeyAccount, opts?: { ip?: string; deviceId?: string }): Promise<{ token: string; playerId: string }>
   close(): Promise<void>
 }
 
@@ -33,11 +33,12 @@ export async function testApp(overrides: Partial<AppDeps> = {}, startMs = 0): Pr
   await app.ready()
   return {
     app, db, clock, deps,
-    async login(account) {
+    async login(account, opts = {}) {
       const n = await app.inject({ method: 'GET', url: '/auth/nonce' })
       const { nonce } = n.json<{ nonce: string }>()
       const { message, signature } = await signSiwe(account, nonce, { issuedAt: new Date(clock()) })
-      const v = await app.inject({ method: 'POST', url: '/auth/verify', payload: { message, signature } })
+      const headers = opts.deviceId ? { 'x-device-id': opts.deviceId } : {}
+      const v = await app.inject({ method: 'POST', url: '/auth/verify', payload: { message, signature }, headers, remoteAddress: opts.ip })
       if (v.statusCode !== 200) throw new Error(`login failed: ${v.body}`)
       return v.json<{ token: string; playerId: string }>()
     },

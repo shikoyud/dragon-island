@@ -19,6 +19,7 @@ import { adminRoutes, type JobRegistry } from './routes/admin'
 import { e2eRoutes } from './routes/e2e'
 import { authRoutes } from './routes/auth'
 import { pvpRoutes } from './routes/pvp'
+import { referralRoutes } from './routes/referral'
 import { withdrawRoutes } from './routes/withdraw'
 import type { WithdrawDeps } from './services/withdraw'
 import { requireActive } from './services/bans'
@@ -77,6 +78,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   spRoutes(app, deps)
   pvpRoutes(app, deps)
   withdrawRoutes(app, deps, withdrawDeps)
+  referralRoutes(app, deps)
 
   const chain = deps.chain
   const jobs: JobRegistry = {

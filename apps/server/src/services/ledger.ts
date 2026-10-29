@@ -6,6 +6,7 @@ import { balances, spendBatches } from '../db/schema'
 import { AppError } from '../plugins/errors'
 import { recordInflow } from './inflows'
 import { tokenWeiToUsdCeil, tokenWeiToUsdFloor } from './price'
+import { payReferral } from './referrals'
 
 /**
  * §14 ledger (deposits/withdrawals in micro-USD) derived from the token ledger at today's price, so the
@@ -46,7 +47,9 @@ export async function charge(tx: Tx, clock: Clock, playerId: string, wei: bigint
     .insert(spendBatches)
     .values({ day, spentWei: wei })
     .onConflictDoUpdate({ target: spendBatches.day, set: { spentWei: sql`${spendBatches.spentWei} + ${wei.toString()}::numeric` } })
-  await recordInflow(tx, clock, 'spend', wei / 2n, ref)
+  // Spec §16: the referrer's 5% comes out of the vault's half.
+  const referral = await payReferral(tx, clock, playerId, wei, ref)
+  await recordInflow(tx, clock, 'spend', wei / 2n - referral, ref)
 }
 
 /** Gold sell-back payouts and season prizes: forfeitable on ban. */

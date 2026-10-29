@@ -177,11 +177,11 @@ it('ranks at most 100 players', () => {
 - Routes (session + active): `GET /referral/me` → `{ code, referredCount, earnedWei: BigString, referrer: boolean }`; `POST /referral/claim { code }` → `{ ok: true }`. Shared: `ReferralMeResponse`, `ReferralClaimRequest`.
 - `charge` ordering: `paid = payReferral(...)`; `recordInflow('spend', wei/2n − paid, ref)`.
 
-- [ ] **Step 1: Write failing tests** — claim then spend 1,000 wei credits 50 to the referrer's `earnedWei` and records inflow `spend` 450; self-claim 409; second claim 409; claim after a spend 409; same `x-device-id` at both sign-ins → 403; same IP → 403 (use `inject` with `remoteAddress`); unknown code 404; `GET /referral/me` returns the code and counts.
-- [ ] **Step 2: Run** — Expected: FAIL.
-- [ ] **Step 3: Implement** service, routes, auth hashes, `charge` hook, shared types.
-- [ ] **Step 4: Run the file, the server suite, typecheck** — Expected: pass.
-- [ ] **Step 5: Commit** `git add apps/server/src/services/referrals.ts apps/server/src/routes/referral.ts apps/server/src/services/auth.ts apps/server/src/services/ledger.ts apps/server/src/app.ts packages/shared/src/api.ts apps/server/test/referrals.test.ts && git commit -m "feat(server): referrals with device and IP checks"`
+- [x] **Step 1: Write failing tests** — claim then spend 1,000 wei credits 50 to the referrer's `earnedWei` and records inflow `spend` 450; self-claim 409; second claim 409; claim after a spend 409; same `x-device-id` at both sign-ins → 403; same IP → 403 (use `inject` with `remoteAddress`); unknown code 404; `GET /referral/me` returns the code and counts.
+- [x] **Step 2: Run** — Expected: FAIL.
+- [x] **Step 3: Implement** service, routes, auth hashes, `charge` hook, shared types.
+- [x] **Step 4: Run the file, the server suite, typecheck** — Expected: pass.
+- [x] **Step 5: Commit** `git add apps/server/src/services/referrals.ts apps/server/src/routes/referral.ts apps/server/src/services/auth.ts apps/server/src/services/ledger.ts apps/server/src/app.ts packages/shared/src/api.ts apps/server/test/referrals.test.ts && git commit -m "feat(server): referrals with device and IP checks"`
 
 ---
 

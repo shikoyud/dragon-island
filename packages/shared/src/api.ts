@@ -48,6 +48,9 @@ export interface LeaderboardResponse {
   /** Present when the request carried a session. `prizeWei` is set once the season has closed. */
   me?: { rank: number | null; sp: number; prizeWei: BigString | null }
 }
+export interface ReferralMeResponse { code: string; referredCount: number; earnedWei: BigString; referrer: boolean }
+export interface ReferralClaimRequest { code: string }
+
 export interface PrizeInfo { wei: BigString; tier: number | null; rank: number | null }
 export interface PrizeResponse { prize: PrizeInfo | null }
 
