@@ -22,7 +22,7 @@ describe('newPlayer', () => {
     })
   })
 
-  it('starts on a 12×12 home island with the fixed layout', () => {
+  it('starts on a 12x12 home island with the fixed layout', () => {
     const s = newPlayer(0)
     expect(s.habitats.map(h => h.placement)).toEqual([
       { island: 'home', col: 0, row: 0, facing: 0 }, { island: 'home', col: 5, row: 0, facing: 0 }])

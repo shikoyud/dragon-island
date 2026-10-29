@@ -11,6 +11,7 @@ export * from './wallet'
 export * from './progression'
 export * from './habitat'
 export * from './farm'
+export * from './island'
 export {
   dailySellLimitMicroUsd, HOARD, HOARD_MIN_PLAYER_LEVEL, MICRO_USD_PER_GOLD, remainingSellMicroUsd, sellCounterAt,
 } from './sell'
