@@ -208,7 +208,7 @@ Must run in a session where the `pixellab` MCP tools are loaded (the server is c
 - [x] **Step 4:** `pnpm --filter @wyrmhaven/web test` → PASS
 - [x] **Step 5:** Commit `feat(web): PixelLab art v1`
 
-> Done 2026-10-29. Layout changed for the real sprite sizes: habitats fill a 4×3 grid of 96×64 tiles from the meadow centre outward, are drawn back row first, and dragons stand on the tile face. Crop sheets are growth stages chosen by frame. The PixelLab trial (40 generations) covered every slot; idle animations, the water layer, three habitat recolours (metal, dark, light) and the UI frames were made in code from the PixelLab images. Alignment was checked with an offline composite of the layout; the battle scene was not viewed in a running client. See `apps/web/art/prompts.md`.
+> Done 2026-10-29. Layout changed for the real sprite sizes: habitats fill a 4×3 grid of 96×64 tiles from the meadow centre outward, are drawn back row first, and dragons stand on the tile face. Crop sheets are growth stages chosen by frame. The PixelLab trial (40 generations) covered every slot; idle animations, the water layer and the UI frames were made in code (the metal, dark and light habitats started as recolours and were regenerated with PixelLab on a paid plan) from the PixelLab images. Alignment was checked with an offline composite of the layout; the battle scene was not viewed in a running client. See `apps/web/art/prompts.md`.
 
 ### Task 9: Shell, responsiveness, error states, README
 

@@ -35,10 +35,11 @@ Egg and hatchling lines: see the waitlist prompts file.
 | 16 px batch | `create_1_direction_object`, size 16, 54 item descriptions | 10 | crop stages, 16 px icons, cursor |
 | Island | `create_image_pixen` 480×272, seed 11 | 1 | `island.base` |
 | Habitats | `create_image_pixen` 96×64, seed 21, transparent | 7 | fire, water, earth, nature, electric, ice (plus one discarded fire take) |
+| Habitats (paid plan) | `create_image_pixen` 96×64, seed 21, transparent | 3 | metal, dark, light (replaced the trial-era recolours) |
 | Habitat test | `create_image_pixflux` img2img from the water tile | 1 | discarded (kept the water colours) |
 | Waitlist hero | `create_image_pixen` 320×180, seed 7 | 1 | waitlist `hero.base` |
 
-That is the whole 40-generation trial. Everything below marked "code" was made locally from these PixelLab images.
+The first seven runs are the whole 40-generation trial. Everything below marked "code" was made locally from these PixelLab images.
 
 ## Assets
 
@@ -47,7 +48,7 @@ That is the whole 40-generation trial. Everything below marked "code" was made l
 | `egg.<element>` | `egg-<element>.png` | 32×32 | 6 | 8 | `dragon egg, <egg line>`; code: rows sheared about the bottom edge, top row offset 0, 2, 2, 0, −2, −2 px |
 | `hatchling.<element>` | `hatchling-<element>.png` | 32×32 | 4 | 4 | `baby dragon hatchling sitting, <hatchling line>`; code: upper 45% moved down 0, 0, 1, 1 px (breathing) |
 | `dragon.<species>` | `dragon-<species>.png` | 48×48 | 4 | 4 | species line above; same breathing code |
-| `habitat.<element>` | `habitat-<element>.png` | 96×64 | 1 | 0 | "flat oval ground tile seen from above at a three-quarter angle, open flat top of <surface>, thin <rim> rim, short earth side, nothing standing on it, simple, …". Surfaces: fire black volcanic rock with glowing orange lava cracks; water clear blue pond with two lily pads; earth packed brown earth with small boulders; nature lush grass with tiny ferns and flowers; electric dark slate with glowing yellow crystal shards; ice white snow with pale blue ice crystals. Code: metal and dark are hue/saturation recolours of the electric tile, light is a warm recolour of the ice tile. |
+| `habitat.<element>` | `habitat-<element>.png` | 96×64 | 1 | 0 | "flat oval ground tile seen from above at a three-quarter angle, open flat top of <surface>, thin <rim> rim, short earth side, nothing standing on it, simple, …". Surfaces: fire black volcanic rock with glowing orange lava cracks; water clear blue pond with two lily pads; earth packed brown earth with small boulders; nature lush grass with tiny ferns and flowers; electric dark slate with glowing yellow crystal shards; ice white snow with pale blue ice crystals; metal riveted steel plates with brass gears; dark purple shadow stone with glowing violet crystals; light polished white marble with glowing golden orbs and gold trim. |
 | `building.nest` | `nest.png` | 32×32 | 1 | 0 | dragon nest of woven twigs and straw, bowl shaped, empty |
 | `building.hatchery` | `hatchery.png` | 48×48 | 1 | 0 | wooden hatchery hut with straw roof, round door and a warm lantern |
 | `building.farmPlot` | `farm-plot.png` | 32×24 | 1 | 0 | small tilled farm plot of dark soil with wooden edge, empty (cropped from 32×32) |
