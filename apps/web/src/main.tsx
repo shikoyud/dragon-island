@@ -5,6 +5,7 @@ import { ApiProvider } from './api/ApiProvider'
 import { createApi } from './api/client'
 import { sessionStore } from './api/session'
 import { App } from './App'
+import { ME_KEY } from './state/me'
 import './styles/tokens.css'
 
 // Error reporting only when a DSN is configured; without one the SDK is never downloaded.
@@ -22,6 +23,8 @@ const api = createApi({
     sessionStore.clear()
     queryClient.clear() // nothing cached belongs to the next sign-in
   },
+  // The terms changed mid-session: /me carries termsRequired, which shows the prompt.
+  onTermsRequired: () => { void queryClient.invalidateQueries({ queryKey: ME_KEY }) },
 })
 
 /** Playwright runs with a deterministic in-page wallet; everything else uses Reown AppKit + wagmi. */

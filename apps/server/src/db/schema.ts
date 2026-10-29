@@ -30,6 +30,8 @@ export const players = pgTable('players', {
   referrerId: uuid('referrer_id'),
   ipHash: text('ip_hash'),
   deviceHash: text('device_hash'),
+  /** Last terms version the player accepted (config TERMS_VERSION); null = never. */
+  termsVersion: text('terms_version'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 })

@@ -61,11 +61,12 @@ chmod 600 .env .env.server backup.env
 VITE_CHAIN_ID=46630 VITE_RPC_URL=https://rpc.testnet.chain.robinhood.com \
 VITE_VAULT_ADDRESS=0x... VITE_TOKEN_ADDRESS=0x... \
 VITE_REOWN_PROJECT_ID=... VITE_SENTRY_DSN=... \
+VITE_TERMS_URL=https://... VITE_PRIVACY_URL=https://... VITE_RISK_URL=https://... \
 pnpm --filter @wyrmhaven/web build
 rsync -a --delete apps/web/dist/ <user>@<vps>:/opt/dragon-island/apps/web/dist/
 ```
 
-Leave `VITE_API_URL` unset (it defaults to `/api`). Re-sync whenever the web changes; Caddy serves the new files immediately (no restart).
+Leave `VITE_API_URL` unset (it defaults to `/api`). `VITE_TERMS_URL`, `VITE_PRIVACY_URL` and `VITE_RISK_URL` are the links on the in-game terms prompt (shown when the server's `TERMS_VERSION` is set); an unset one is hidden. Re-sync whenever the web changes; Caddy serves the new files immediately (no restart).
 
 ## 4. `docker compose up -d postgres`
 

@@ -2,15 +2,18 @@ import { LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
 import { eq, sql } from 'drizzle-orm'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { getAddress, type Address, type Hex } from 'viem'
+import { z } from 'zod'
 import { privateKeyToAccount } from 'viem/accounts'
 import { createViemChainClient, type ChainClient } from './chain/client'
 import { FakeChainClient } from './chain/fake'
 import type { Clock } from './clock'
 import type { Config } from './config'
 import type { Db } from './db/client'
-import { balances } from './db/schema'
-import { registerErrorHandler } from './plugins/errors'
+import { balances, players } from './db/schema'
+import { AppError, registerErrorHandler } from './plugins/errors'
+import { registerGeoBlock } from './plugins/geo'
 import { requireSession } from './plugins/session'
+import { termsRequired } from './plugins/terms'
 import { runBurnBatch } from './jobs/burnBatch'
 import { createChainWatch } from './jobs/chainWatch'
 import { expireVouchers } from './jobs/voucherExpiry'
@@ -36,6 +39,8 @@ import { peekOfferOpponent, resolveOffer, settleDefence } from './services/battl
 import { ManualPriceSource, type PriceSource } from './services/price'
 import { getSeasonInfo } from './services/season'
 import { spForAction, spRoutes } from './services/sp'
+
+const termsBody = z.object({ version: z.string().max(64) })
 
 /** Everything the server needs, injected so tests can swap the clock, chain and price. */
 export interface AppDeps {
@@ -70,6 +75,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     ? { db, clock, chain: deps.chain, signer: privateKeyToAccount(config.SIGNER_PRIVATE_KEY as Hex), vault: config.VAULT_ADDRESS as Address, chainId: config.CHAIN_ID }
     : null
   registerErrorHandler(app)
+  registerGeoBlock(app, config)
 
   const actionDeps: ActionDeps = {
     db, clock, catalog: deps.catalog, price: deps.price,
@@ -131,7 +137,16 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
       earningUnlocked: p.earningUnlocked,
       banned: p.bannedAt !== null,
       season: await getSeasonInfo(db, clock),
+      termsRequired: termsRequired(config, p),
     }
+  })
+
+  // Accepts exactly the current terms version; a stale client gets 400 and should reload /me.
+  app.post('/me/terms', { preHandler: requireSession(db, clock) }, async req => {
+    const { version } = termsBody.parse(req.body)
+    if (config.TERMS_VERSION === '' || version !== config.TERMS_VERSION) throw new AppError(400, 'TERMS_VERSION_MISMATCH')
+    await db.update(players).set({ termsVersion: version, updatedAt: new Date(clock()) }).where(eq(players.id, req.player!.id))
+    return { ok: true }
   })
 
   return app

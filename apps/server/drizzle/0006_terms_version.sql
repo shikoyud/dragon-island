@@ -1,0 +1,1 @@
+ALTER TABLE "players" ADD COLUMN "terms_version" text;

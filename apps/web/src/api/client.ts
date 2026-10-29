@@ -16,6 +16,8 @@ export interface ApiOptions {
   getToken: () => string | null
   /** Called once per burst of 401s; the caller clears the session and shows sign-in. */
   onUnauthorized: () => void
+  /** Called on a 428 TERMS_REQUIRED reply; the caller refreshes /me so the terms prompt shows. */
+  onTermsRequired?: () => void
   fetchImpl?: typeof fetch
 }
 
@@ -48,6 +50,7 @@ export function createApi(opts: ApiOptions) {
           queueMicrotask(() => { unauthorizedPending = false })
         }
       }
+      if (res.status === 428 && code === 'TERMS_REQUIRED') opts.onTermsRequired?.()
       throw new ApiError(res.status, code)
     }
     return json as T
@@ -61,6 +64,7 @@ export function createApi(opts: ApiOptions) {
       const m = await call<MeResponse>('GET', '/me')
       return { ...m, balanceWei: BigInt(m.balanceWei) }
     },
+    acceptTerms: (version: string) => call<{ ok: true }>('POST', '/me/terms', { version }),
     action: (action: ClientAction, idempotencyKey: string) =>
       call<ActionResponse>('POST', '/actions', { action, idempotencyKey } satisfies ActionRequest),
     sp: () => call<SpResponse>('GET', '/sp'),

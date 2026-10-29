@@ -5,7 +5,7 @@ import { AUTH_LIMIT, rateLimit } from '../plugins/rateLimit'
 import { requireSession } from '../plugins/session'
 import { issueNonce, logout, originHash, verifyAndLogin } from '../services/auth'
 
-const verifyBody = z.object({ message: z.string().min(1), signature: z.string().regex(/^0x[0-9a-fA-F]+$/) })
+const verifyBody = z.object({ message: z.string().min(1), signature: z.string().regex(/^0x[0-9a-fA-F]+$/), termsVersion: z.string().max(64).optional() })
 
 export function authRoutes(app: FastifyInstance, deps: AppDeps): void {
   const { db, clock, config } = deps
@@ -21,7 +21,7 @@ export function authRoutes(app: FastifyInstance, deps: AppDeps): void {
     const body = verifyBody.parse(req.body)
     const device = req.headers['x-device-id']
     const origin = { ipHash: originHash(config.SESSION_SECRET, req.ip), deviceHash: originHash(config.SESSION_SECRET, typeof device === 'string' ? device.slice(0, 128) : null) }
-    return verifyAndLogin(db, clock, config, body.message, body.signature as `0x${string}`, origin)
+    return verifyAndLogin(db, clock, config, body.message, body.signature as `0x${string}`, origin, body.termsVersion)
   })
 
   app.post('/auth/logout', { preHandler: requireSession(db, clock) }, async (req, reply) => {

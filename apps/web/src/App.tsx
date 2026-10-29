@@ -26,6 +26,7 @@ import { WalletPanel } from './panels/WalletPanel'
 import { useBattle } from './state/battle'
 import { useMe } from './state/me'
 import { ErrorBoundary } from './ui/ErrorBoundary'
+import { TermsPrompt } from './ui/TermsPrompt'
 import { ToastProvider, useToasts } from './ui/Toast'
 import { SignIn } from './wallet/SignIn'
 import { Shell } from './Shell'
@@ -115,6 +116,7 @@ function Game() {
   }
   const side = (
     <StartPlacingProvider value={startPlacing}>
+      {me.data.termsRequired && <TermsPrompt version={me.data.termsRequired} />}
       {placing && (
         <PlacementBar legal={ghostAction !== null} pending={pending} onTurn={() => dispatch({ type: 'turn' })} onConfirm={confirmPlacing} onCancel={() => dispatch({ type: 'cancel' })} />
       )}

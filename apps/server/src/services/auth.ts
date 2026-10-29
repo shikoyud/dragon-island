@@ -26,6 +26,7 @@ export const originHash = (secret: string, value: string | undefined | null): st
 
 export async function verifyAndLogin(
   db: Db, clock: Clock, config: Config, message: string, signature: `0x${string}`, origin: SignInOrigin = { ipHash: null, deviceHash: null },
+  termsVersion?: string,
 ): Promise<{ token: string; playerId: string; address: Address }> {
   const parsed = parseSiweMessage(message)
   const now = new Date(clock())
@@ -51,14 +52,16 @@ export async function verifyAndLogin(
     const [listed] = await db.select({ a: betaAllowlist.address }).from(betaAllowlist).where(eq(betaAllowlist.address, address))
     if (!listed) throw new AppError(403, 'BETA_CLOSED')
   }
+  // Terms accepted on the sign-in screen count only when they are the current version; anything else is ignored.
+  const terms = config.TERMS_VERSION !== '' && termsVersion === config.TERMS_VERSION ? { termsVersion } : {}
   const playerId = await db.transaction(async tx => {
     const [existing] = await tx.select({ id: players.id }).from(players).where(eq(players.address, address))
     let id: string
     if (existing) {
       id = existing.id
-      await tx.update(players).set({ ipHash: origin.ipHash, deviceHash: origin.deviceHash, updatedAt: new Date(clock()) }).where(eq(players.id, id))
+      await tx.update(players).set({ ipHash: origin.ipHash, deviceHash: origin.deviceHash, ...terms, updatedAt: new Date(clock()) }).where(eq(players.id, id))
     } else {
-      const [created] = await tx.insert(players).values({ address, state: newPlayer(clock()), ipHash: origin.ipHash, deviceHash: origin.deviceHash }).returning({ id: players.id })
+      const [created] = await tx.insert(players).values({ address, state: newPlayer(clock()), ipHash: origin.ipHash, deviceHash: origin.deviceHash, ...terms }).returning({ id: players.id })
       id = created!.id
       await tx.insert(balances).values({ playerId: id })
       // Deposits or entries made before this wallet ever signed in.

@@ -17,7 +17,8 @@ Without `DATABASE_URL` the server runs on a file-backed PGlite (Postgres in WASM
 |---|---|---|
 | `GET /health` | – | liveness |
 | `GET /auth/nonce`, `POST /auth/verify`, `POST /auth/logout` | – / bearer | SIWE sign-in (chain 46630), opaque bearer sessions |
-| `GET /me` | bearer | player state, token balance, season info |
+| `GET /me` | bearer | player state, token balance, season info, `termsRequired` (version to accept, or null) |
+| `POST /me/terms { version }` | bearer | accept the current `TERMS_VERSION` (400 `TERMS_VERSION_MISMATCH` otherwise); `POST /auth/verify` also takes an optional `termsVersion` |
 | `POST /actions` `{ action, idempotencyKey }` | bearer | runs one game-core action under the player row lock |
 | `GET /sp` | bearer | season points: total, today, cap |
 | `GET /pvp/offers` | bearer | three opponents (players with a defence team, bots to fill) with revealed battle seeds; a new call retires the previous unused set |
@@ -38,7 +39,11 @@ A code is the first 8 hex characters of a player id. `POST /referral/claim` is r
 
 Seasons close `CLOSE_GRACE_MS` (5 minutes) after `endsAt`, so an action that started in the old season and commits after the boundary still counts for prizes.
 
-Errors are `{ error: CODE }`: 400 `INVALID_ACTION`, 401 `UNAUTHORIZED`, 402 `INSUFFICIENT_TOKENS`, 403 `BANNED`/`FORBIDDEN`, 409 `OFFER_NOT_FOUND`/`OFFER_EXPIRED`/`VOUCHER_PENDING`/`SEASON_ACTIVE`, 422 game-core codes (including the base-building ones `OUT_OF_BOUNDS`, `OVERLAP`, `BUILDERS_BUSY`, `ISLAND_LOCKED`, `MAX_ISLAND`, `WRONG_ISLAND`, `UNDER_CONSTRUCTION`, `NO_LEGENDARY`, `NEXUS_EXISTS`, `MAX_EXPANSION`) and `WITHDRAW_LIMIT`, 429 `RATE_LIMITED`, 503 `PRICE_UNAVAILABLE`/`WITHDRAWALS_DISABLED`.
+Errors are `{ error: CODE }`: 400 `INVALID_ACTION`, 401 `UNAUTHORIZED`, 402 `INSUFFICIENT_TOKENS`, 403 `BANNED`/`FORBIDDEN`/`BETA_CLOSED`, 409 `OFFER_NOT_FOUND`/`OFFER_EXPIRED`/`VOUCHER_PENDING`/`SEASON_ACTIVE`, 422 game-core codes (including the base-building ones `OUT_OF_BOUNDS`, `OVERLAP`, `BUILDERS_BUSY`, `ISLAND_LOCKED`, `MAX_ISLAND`, `WRONG_ISLAND`, `UNDER_CONSTRUCTION`, `NO_LEGENDARY`, `NEXUS_EXISTS`, `MAX_EXPANSION`) and `WITHDRAW_LIMIT`, 428 `TERMS_REQUIRED`, 429 `RATE_LIMITED`, 451 `REGION_BLOCKED`, 503 `PRICE_UNAVAILABLE`/`WITHDRAWALS_DISABLED`.
+
+### Country block list and terms (both off by default)
+
+`BLOCKED_COUNTRIES` (comma list of ISO alpha-2 codes) refuses `/auth/*`, `/actions` and `/withdraw`, `/withdraw/*` with 451 `REGION_BLOCKED`, using Cloudflare's `CF-IPCountry`; it is ignored unless `TRUST_PROXY=true`. `/health`, `/admin/*`, `/me` and everything else are never blocked. With `TERMS_VERSION` set, `POST /actions` and `GET /pvp/offers` answer 428 `TERMS_REQUIRED` until the player's accepted version equals it (bumping the version asks everyone again). Sign-in, `/me` and withdrawals are never terms-gated.
 
 ## How an action runs
 

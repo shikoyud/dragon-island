@@ -26,6 +26,8 @@ export interface MeResponse {
   earningUnlocked: boolean
   banned: boolean
   season: SeasonInfo
+  /** Terms version the player must accept before playing (POST /me/terms); null when nothing is due. */
+  termsRequired: string | null
 }
 
 export interface ActionRequest { action: ClientAction; idempotencyKey: string }

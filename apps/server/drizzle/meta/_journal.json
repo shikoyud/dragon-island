@@ -43,6 +43,13 @@
       "when": 1793281775057,
       "tag": "0005_beta_allowlist",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793282547832,
+      "tag": "0006_terms_version",
+      "breakpoints": true
     }
   ]
 }

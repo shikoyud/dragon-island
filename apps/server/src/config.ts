@@ -29,6 +29,15 @@ const schema = z.object({
   BETA_CLOSED: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
   /** Behind a reverse proxy, take the client IP from X-Forwarded-For (rate limits, referral checks). */
   TRUST_PROXY: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
+  /**
+   * Comma list of ISO 3166-1 alpha-2 codes refused on /auth/*, /actions and /withdraw* (451). Read from
+   * Cloudflare's CF-IPCountry, so it only applies with TRUST_PROXY=true. Empty (default) = off.
+   */
+  BLOCKED_COUNTRIES: z.string().default('')
+    .transform(s => s.split(',').map(c => c.trim().toUpperCase()).filter(c => c !== ''))
+    .pipe(z.array(z.string().regex(/^[A-Z]{2}$/, 'two-letter ISO country code'))),
+  /** Terms the player must accept before playing (e.g. `2026-11`). Empty (default) = not required. */
+  TERMS_VERSION: z.string().trim().max(64).default(''),
   /** 1 = Playwright mode: in-memory PGlite, fake chain, fixed price, POST /e2e/grant. Never in production. */
   E2E: z.enum(['0', '1']).default('0'),
   CATALOG: z.enum(['launch']).default('launch'),
