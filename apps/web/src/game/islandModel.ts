@@ -56,6 +56,11 @@ export function timerLabel(readyAtMs: number, nowMs: number): string {
   return `${Math.ceil(s / 3600)}h`
 }
 
+/** World y of a badge's bottom edge: 2 px above the sprite's visible top (canvas top when unknown), scaled. */
+export function badgeY(o: Pick<IslandObject, 'y' | 'sprite' | 'scale'>): number {
+  return o.y - Math.round((o.sprite.h - (o.sprite.top ?? 0)) * (o.scale ?? 1)) - 2
+}
+
 /** Dragon sheet for a species, falling back to the fire dragon until hybrids have art. */
 export function dragonKey(speciesId: string, art: GameArtSet): string {
   return art.dragon[speciesId] ? textureKey(`dragon.${speciesId}`) : textureKey('dragon.fire')

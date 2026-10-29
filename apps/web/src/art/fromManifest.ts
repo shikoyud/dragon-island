@@ -1,7 +1,7 @@
 import { DECORATIONS, ELEMENTS, ISLAND_ORDER, OBSTACLES, type Catalog, type CropId, type DecorationId, type Element, type IslandId, type ObstacleKind } from '@wyrmhaven/game-core'
 import { footprintPx, SLOT_SIZES, type GameArtSet, type SlotName, type Sprite } from './types'
 
-export interface ManifestEntry { file: string; w: number; h: number; frames: number; fps: number }
+export interface ManifestEntry { file: string; w: number; h: number; frames: number; fps: number; /** Transparent top rows. */ top?: number }
 /** `public/art/<version>/manifest.json`; keys documented in docs/superpowers/plans/2026-10-28-web-client.md Task 2. */
 export interface Manifest { assets: Record<string, ManifestEntry> }
 
@@ -12,7 +12,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
   const get = (key: string, slot: SlotName | { w: number; h: number }): Sprite => {
     const e = manifest.assets[key]
     if (!e) return { src: '', ...(typeof slot === 'string' ? SLOT_SIZES[slot] : slot), frames: 1, fps: 0 }
-    return { src: `/art/${version}/${e.file}`, w: e.w, h: e.h, frames: e.frames, fps: e.fps }
+    return { src: `/art/${version}/${e.file}`, w: e.w, h: e.h, frames: e.frames, fps: e.fps, ...(e.top !== undefined ? { top: e.top } : {}) }
   }
   const perElement = (prefix: string, slot: SlotName): Record<Element, Sprite> =>
     Object.fromEntries(ELEMENTS.map(el => [el, get(`${prefix}.${el}`, slot)])) as Record<Element, Sprite>

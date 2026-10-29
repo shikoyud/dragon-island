@@ -5,7 +5,7 @@ import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet } from '../../art/types'
 import type { Bridge, Target } from '../bridge'
 import { cameraBounds, groundCell, isClick, lockedTiles, stepZoom, zoomRange } from '../camera'
-import { buildIslandModel, type IslandMarkers, type IslandObject } from '../islandModel'
+import { badgeY, buildIslandModel, type IslandMarkers, type IslandObject } from '../islandModel'
 import { CELL } from '../layout'
 
 const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = { fontFamily: 'Silkscreen, monospace', fontSize: '8px', color: '#f2f1ea' }
@@ -160,8 +160,7 @@ export class IslandScene extends Phaser.Scene {
   }
 
   private drawBadge(o: IslandObject, badge: string): void {
-    // Above the sprite as drawn, so scaled sprites (hatchery eggs, small crops) keep their badge close.
-    const t = this.add.text(o.x, o.y - Math.round(o.sprite.h * (o.scale ?? 1)) - 2, badge, TEXT_STYLE).setOrigin(0.5, 1)
+    const t = this.add.text(o.x, badgeY(o), badge, TEXT_STYLE).setOrigin(0.5, 1)
     this.layer.add(t)
     this.drawn.push(t)
   }

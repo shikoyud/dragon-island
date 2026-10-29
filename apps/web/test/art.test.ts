@@ -69,6 +69,16 @@ describe('art v1 manifest', () => {
     }
   })
 
+  it('records the transparent top rows of each sprite so badges can sit on the art', () => {
+    for (const [key, a] of Object.entries(v1.assets)) {
+      expect(a.top, key).toBeDefined()
+      expect(a.top!, key).toBeGreaterThanOrEqual(0)
+      expect(a.top!, key).toBeLessThan(a.h)
+    }
+    expect(v1.assets['building.hatchery']!.top).toBe(17)
+    expect(v1.assets['island.locked']!.top).toBe(0)
+  })
+
   it('uses the same egg and hatchling pixels as the waitlist site', () => {
     const wl = path.join(__dirname, '..', '..', 'waitlist', 'public', 'art', 'v1')
     for (const e of ELEMENTS) {
@@ -81,6 +91,12 @@ describe('art v1 manifest', () => {
 
 describe('artSetFromManifest', () => {
   const art = artSetFromManifest('v1', manifest, LAUNCH_CATALOG)
+
+  it('carries a manifest top inset onto the sprite only when present', () => {
+    const a = artSetFromManifest('v1', { assets: { 'building.hatchery': { file: 'hatchery.png', w: 64, h: 64, frames: 1, fps: 0, top: 17 } } }, LAUNCH_CATALOG)
+    expect(a.building.hatchery.top).toBe(17)
+    expect(a.building.hoard.top).toBeUndefined()
+  })
 
   it('maps present keys to versioned urls with frame data', () => {
     expect(art.version).toBe('v1')

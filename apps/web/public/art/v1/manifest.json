@@ -5,609 +5,696 @@
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 10
     },
     "building.hatchery": {
       "file": "hatchery.png",
       "w": 64,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 17
     },
     "building.hoard": {
       "file": "hoard.png",
       "w": 64,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "building.nest": {
       "file": "nest.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 5
     },
     "building.nexus": {
       "file": "nexus.png",
       "w": 80,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 10
     },
     "crop.bounty": {
       "file": "crop-bounty.png",
       "w": 16,
       "h": 16,
       "frames": 4,
-      "fps": 0
+      "fps": 0,
+      "top": 1
     },
     "crop.bushel": {
       "file": "crop-bushel.png",
       "w": 16,
       "h": 16,
       "frames": 4,
-      "fps": 0
+      "fps": 0,
+      "top": 1
     },
     "crop.harvest": {
       "file": "crop-harvest.png",
       "w": 16,
       "h": 16,
       "frames": 4,
-      "fps": 0
+      "fps": 0,
+      "top": 1
     },
     "crop.sprout": {
       "file": "crop-sprout.png",
       "w": 16,
       "h": 16,
       "frames": 4,
-      "fps": 0
+      "fps": 0,
+      "top": 1
     },
     "decoration.boneArch": {
       "file": "decoration-boneArch.png",
       "w": 48,
       "h": 48,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 5
     },
     "decoration.crystalCluster": {
       "file": "decoration-crystalCluster.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "decoration.dawnObelisk": {
       "file": "decoration-dawnObelisk.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "decoration.dragonColossus": {
       "file": "decoration-dragonColossus.png",
       "w": 48,
       "h": 48,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 3
     },
     "decoration.driftwoodBench": {
       "file": "decoration-driftwoodBench.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 4
     },
     "decoration.eggTotem": {
       "file": "decoration-eggTotem.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "decoration.emberLantern": {
       "file": "decoration-emberLantern.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 1
     },
     "decoration.flowerPatch": {
       "file": "decoration-flowerPatch.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 5
     },
     "decoration.hayCart": {
       "file": "decoration-hayCart.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 9
     },
     "decoration.moonwell": {
       "file": "decoration-moonwell.png",
       "w": 48,
       "h": 48,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 15
     },
     "decoration.picketFence": {
       "file": "decoration-picketFence.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "decoration.shellFountain": {
       "file": "decoration-shellFountain.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "decoration.skyShrine": {
       "file": "decoration-skyShrine.png",
       "w": 48,
       "h": 48,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 3
     },
     "decoration.starPool": {
       "file": "decoration-starPool.png",
       "w": 48,
       "h": 48,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 15
     },
     "decoration.stonePath": {
       "file": "decoration-stonePath.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 3
     },
     "dragon.dark": {
       "file": "dragon-dark.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 5
     },
     "dragon.earth": {
       "file": "dragon-earth.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 7
     },
     "dragon.electric": {
       "file": "dragon-electric.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 4
     },
     "dragon.fire": {
       "file": "dragon-fire.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 3
     },
     "dragon.ice": {
       "file": "dragon-ice.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 5
     },
     "dragon.light": {
       "file": "dragon-light.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 2
     },
     "dragon.metal": {
       "file": "dragon-metal.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 5
     },
     "dragon.nature": {
       "file": "dragon-nature.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 4
     },
     "dragon.water": {
       "file": "dragon-water.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 4
     },
     "egg.dark": {
       "file": "egg-dark.png",
       "w": 32,
       "h": 32,
       "frames": 6,
-      "fps": 8
+      "fps": 8,
+      "top": 1
     },
     "egg.earth": {
       "file": "egg-earth.png",
       "w": 32,
       "h": 32,
       "frames": 6,
-      "fps": 8
+      "fps": 8,
+      "top": 1
     },
     "egg.electric": {
       "file": "egg-electric.png",
       "w": 32,
       "h": 32,
       "frames": 6,
-      "fps": 8
+      "fps": 8,
+      "top": 1
     },
     "egg.fire": {
       "file": "egg-fire.png",
       "w": 32,
       "h": 32,
       "frames": 6,
-      "fps": 8
+      "fps": 8,
+      "top": 1
     },
     "egg.ice": {
       "file": "egg-ice.png",
       "w": 32,
       "h": 32,
       "frames": 6,
-      "fps": 8
+      "fps": 8,
+      "top": 1
     },
     "egg.light": {
       "file": "egg-light.png",
       "w": 32,
       "h": 32,
       "frames": 6,
-      "fps": 8
+      "fps": 8,
+      "top": 1
     },
     "egg.metal": {
       "file": "egg-metal.png",
       "w": 32,
       "h": 32,
       "frames": 6,
-      "fps": 8
+      "fps": 8,
+      "top": 1
     },
     "egg.nature": {
       "file": "egg-nature.png",
       "w": 32,
       "h": 32,
       "frames": 6,
-      "fps": 8
+      "fps": 8,
+      "top": 1
     },
     "egg.water": {
       "file": "egg-water.png",
       "w": 32,
       "h": 32,
       "frames": 6,
-      "fps": 8
+      "fps": 8,
+      "top": 1
     },
     "habitat.dark": {
       "file": "habitat-dark.png",
       "w": 80,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 8
     },
     "habitat.earth": {
       "file": "habitat-earth.png",
       "w": 80,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 10
     },
     "habitat.electric": {
       "file": "habitat-electric.png",
       "w": 80,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 13
     },
     "habitat.fire": {
       "file": "habitat-fire.png",
       "w": 80,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 10
     },
     "habitat.ice": {
       "file": "habitat-ice.png",
       "w": 80,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 15
     },
     "habitat.light": {
       "file": "habitat-light.png",
       "w": 80,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 11
     },
     "habitat.metal": {
       "file": "habitat-metal.png",
       "w": 80,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 11
     },
     "habitat.nature": {
       "file": "habitat-nature.png",
       "w": 80,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 10
     },
     "habitat.water": {
       "file": "habitat-water.png",
       "w": 80,
       "h": 64,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 10
     },
     "hatchling.dark": {
       "file": "hatchling-dark.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 0
     },
     "hatchling.earth": {
       "file": "hatchling-earth.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 1
     },
     "hatchling.electric": {
       "file": "hatchling-electric.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 1
     },
     "hatchling.fire": {
       "file": "hatchling-fire.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 2
     },
     "hatchling.ice": {
       "file": "hatchling-ice.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 2
     },
     "hatchling.light": {
       "file": "hatchling-light.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 0
     },
     "hatchling.metal": {
       "file": "hatchling-metal.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 2
     },
     "hatchling.nature": {
       "file": "hatchling-nature.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 2
     },
     "hatchling.water": {
       "file": "hatchling-water.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4
+      "fps": 4,
+      "top": 1
     },
     "icon.dark": {
       "file": "icon-dark.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 1
     },
     "icon.earth": {
       "file": "icon-earth.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "icon.electric": {
       "file": "icon-electric.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 1
     },
     "icon.fire": {
       "file": "icon-fire.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 1
     },
     "icon.ice": {
       "file": "icon-ice.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 1
     },
     "icon.light": {
       "file": "icon-light.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 1
     },
     "icon.metal": {
       "file": "icon-metal.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 1
     },
     "icon.nature": {
       "file": "icon-nature.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "icon.water": {
       "file": "icon-water.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "island.base": {
       "file": "island.png",
       "w": 480,
       "h": 270,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 0
     },
     "island.layer.0": {
       "file": "island-layer-0.png",
       "w": 480,
       "h": 270,
       "frames": 6,
-      "fps": 4
+      "fps": 4,
+      "top": 8
     },
     "island.locked": {
       "file": "island-locked.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 0
     },
     "island.sign": {
       "file": "island-sign.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 4
     },
     "map.dawnspire": {
       "file": "map-dawnspire.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "map.home": {
       "file": "map-home.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 6
     },
     "map.isle2": {
       "file": "map-isle2.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 4
     },
     "map.isle3": {
       "file": "map-isle3.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 3
     },
     "map.isle4": {
       "file": "map-isle4.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 3
     },
     "map.isle5": {
       "file": "map-isle5.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "obstacle.boulder": {
       "file": "obstacle-boulder.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 4
     },
     "obstacle.bush": {
       "file": "obstacle-bush.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "obstacle.rock": {
       "file": "obstacle-rock.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 5
     },
     "obstacle.ruin": {
       "file": "obstacle-ruin.png",
       "w": 48,
       "h": 48,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 4
     },
     "obstacle.tree": {
       "file": "obstacle-tree.png",
       "w": 32,
       "h": 32,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "ui.button": {
       "file": "ui-button.png",
       "w": 24,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 0
     },
     "ui.cursor": {
       "file": "ui-cursor.png",
       "w": 16,
       "h": 16,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 2
     },
     "ui.panel": {
       "file": "ui-panel.png",
       "w": 24,
       "h": 24,
       "frames": 1,
-      "fps": 0
+      "fps": 0,
+      "top": 0
     }
   }
 }

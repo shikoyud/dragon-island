@@ -4,12 +4,19 @@ import { artSetFromManifest } from '../src/art/fromManifest'
 import { textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
-import { buildIslandModel, timerLabel } from '../src/game/islandModel'
+import { badgeY, buildIslandModel, timerLabel } from '../src/game/islandModel'
 
 const C = LAUNCH_CATALOG
 const model = (state: Parameters<typeof buildIslandModel>[0], nowMs = 0) => buildIslandModel(state, FALLBACK_ART, C, nowMs, 'home', null)
 
 describe('island model', () => {
+  it('puts a badge 2 px above the top of the visible art, scaled', () => {
+    const sprite = { src: 'x', w: 64, h: 64, frames: 1, fps: 0 }
+    expect(badgeY({ y: 100, sprite: { ...sprite, top: 17 } })).toBe(51)
+    expect(badgeY({ y: 100, sprite })).toBe(34)
+    expect(badgeY({ y: 100, sprite: { ...sprite, w: 32, h: 32, top: 1 }, scale: 0.25 })).toBe(90)
+  })
+
   it('describes the starting island', () => {
     const { markers, objects } = model(newPlayer(0))
     expect(markers.habitats).toEqual(['h1', 'h2'])

@@ -8,6 +8,8 @@ export interface Sprite {
   h: number
   frames: number
   fps: number
+  /** Fully transparent rows above the art (smallest over all frames); badges sit just above them. */
+  top?: number
 }
 
 export interface GameArtSet {
