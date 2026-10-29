@@ -6,8 +6,22 @@ export type CropId = 'sprout' | 'bushel' | 'harvest' | 'bounty'
 export interface Egg { speciesId: string; readyAtMs: number }
 /** `habitatId: null` = hatched and waiting in the hatchery. */
 export interface Dragon { id: string; speciesId: string; level: number; habitatId: string | null }
-export interface Habitat { id: string; element: Element; level: number; lastCollectedMs: number }
-export interface FarmPlot { crop: CropId | null; readyAtMs: number }
+
+export type IslandId = 'home' | 'isle2' | 'isle3' | 'isle4' | 'isle5' | 'dawnspire'
+export type Facing = 0 | 1 | 2 | 3
+export interface Placement { island: IslandId; col: number; row: number; facing: Facing }
+export type HabitatElement = Element | 'any' // 'any' = the Nexus habitat
+export interface Habitat { id: string; element: HabitatElement; level: number; lastCollectedMs: number; placement: Placement }
+export interface Nest { egg: Egg | null; level: number; placement: Placement }
+export interface FarmPlot { crop: CropId | null; readyAtMs: number; level: number; placement: Placement }
+export type DecorationId = 'stonePath' | 'picketFence' | 'flowerPatch' | 'emberLantern' | 'driftwoodBench' | 'hayCart' | 'shellFountain' | 'crystalCluster' | 'eggTotem' | 'moonwell' | 'boneArch' | 'skyShrine' | 'dawnObelisk' | 'starPool' | 'dragonColossus'
+export interface Decoration { id: string; kind: DecorationId; placement: Placement }
+export type ObstacleKind = 'bush' | 'rock' | 'tree' | 'boulder' | 'ruin'
+export interface Obstacle { id: string; kind: ObstacleKind; island: IslandId; col: number; row: number }
+export type BuildingRef = { type: 'habitat'; id: string } | { type: 'farm'; index: number } | { type: 'nest'; index: number } | { type: 'hatchery' }
+export type Construction =
+  | { kind: 'build' | 'upgrade'; building: BuildingRef; readyAtMs: number }
+  | { kind: 'clear'; obstacleId: string; readyAtMs: number }
 
 export interface PlayerState {
   gold: number
@@ -18,8 +32,14 @@ export interface PlayerState {
   level: number
   dragons: Dragon[]
   habitats: Habitat[]
-  nests: (Egg | null)[]
+  nests: Nest[]
   hatchery: Egg[]
+  hatcheryLevel: number
+  hatcheryPlacement: Placement
+  hoardPlacement: Placement | null
+  decorations: Decoration[]
+  islands: { homeStep: number; unlocked: IslandId[]; obstacles: Obstacle[] }
+  constructions: Construction[]
   farms: FarmPlot[]
   /** Consecutive common results per element pair key. */
   pity: Record<string, number>
@@ -28,7 +48,7 @@ export interface PlayerState {
   earningUnlocked: boolean
   sell: { day: number; soldTodayMicroUsd: number }
   ledger: { depositedMicroUsd: number; withdrawnMicroUsd: number; soldMicroUsd: number }
-  tutorial: { breedDone: boolean; hatchDone: boolean }
+  tutorial: { breedDone: boolean; hatchDone: boolean; buildsStarted: number }
   nextId: number
   /** Saved 3-dragon team other players attack; cleared if a member is sold. */
   defenceTeam: [string, string, string] | null
@@ -40,6 +60,8 @@ export interface PlayerState {
 
 export const HATCHERY_SLOTS = 3
 
+const home = (col: number, row: number): Placement => ({ island: 'home', col, row, facing: 0 })
+
 export function newPlayer(nowMs: number): PlayerState {
   return {
     gold: 1000, eligibleGold: 0, food: 100, xp: 0, level: 1,
@@ -48,16 +70,25 @@ export function newPlayer(nowMs: number): PlayerState {
       { id: 'd2', speciesId: 'water', level: 1, habitatId: 'h2' },
     ],
     habitats: [
-      { id: 'h1', element: 'fire', level: 1, lastCollectedMs: nowMs },
-      { id: 'h2', element: 'water', level: 1, lastCollectedMs: nowMs },
+      { id: 'h1', element: 'fire', level: 1, lastCollectedMs: nowMs, placement: home(0, 0) },
+      { id: 'h2', element: 'water', level: 1, lastCollectedMs: nowMs, placement: home(5, 0) },
     ],
-    nests: [null],
+    nests: [{ egg: null, level: 1, placement: home(4, 8) }],
     hatchery: [],
-    farms: [{ crop: null, readyAtMs: 0 }, { crop: null, readyAtMs: 0 }],
+    hatcheryLevel: 1,
+    hatcheryPlacement: home(0, 8),
+    hoardPlacement: null,
+    decorations: [],
+    islands: { homeStep: 0, unlocked: ['home'], obstacles: [] },
+    constructions: [],
+    farms: [
+      { crop: null, readyAtMs: 0, level: 1, placement: home(10, 0) },
+      { crop: null, readyAtMs: 0, level: 1, placement: home(10, 2) },
+    ],
     pity: {}, oddsBoosts: 0, hoardLevel: 0, earningUnlocked: false,
     sell: { day: utcDay(nowMs), soldTodayMicroUsd: 0 },
     ledger: { depositedMicroUsd: 0, withdrawnMicroUsd: 0, soldMicroUsd: 0 },
-    tutorial: { breedDone: false, hatchDone: false },
+    tutorial: { breedDone: false, hatchDone: false, buildsStarted: 0 },
     nextId: 3,
     defenceTeam: null,
     trophies: 0,

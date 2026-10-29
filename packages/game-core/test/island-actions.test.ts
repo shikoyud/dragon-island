@@ -37,7 +37,7 @@ describe('buildHabitat', () => {
   it('builds with the next id', () => {
     const a = ok(run({ ...s, level: 5 }, { type: 'buildHabitat', element: 'earth' }, 7_000))
     expect(a.gold).toBe(500)
-    expect(a.habitats[2]).toEqual({ id: 'h3', element: 'earth', level: 1, lastCollectedMs: 7_000 })
+    expect(a.habitats[2]).toEqual({ id: 'h3', element: 'earth', level: 1, lastCollectedMs: 7_000, placement: { island: 'home', col: 0, row: 0, facing: 0 } })
     expect(a.nextId).toBe(4)
   })
 

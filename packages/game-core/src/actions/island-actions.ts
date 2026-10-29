@@ -34,7 +34,7 @@ export const buildHabitat: Handler<'buildHabitat'> = (s, a, ctx) => {
   if (s.habitats.length >= maxHabitats(s.level)) return failure('HABITAT_LIMIT')
   const paid = spendGold(s, habitatBuildCost(s, a.element))
   if (!paid) return failure('INSUFFICIENT_GOLD')
-  const habitat = { id: `h${s.nextId}`, element: a.element, level: 1, lastCollectedMs: ctx.nowMs }
+  const habitat = { id: `h${s.nextId}`, element: a.element, level: 1, lastCollectedMs: ctx.nowMs, placement: { island: 'home' as const, col: 0, row: 0, facing: 0 as const } }
   return success({ ...paid, habitats: [...paid.habitats, habitat], nextId: s.nextId + 1 })
 }
 

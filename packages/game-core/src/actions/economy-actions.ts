@@ -57,11 +57,11 @@ function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog): 
     case 'skip': {
       const at = <T extends { readyAtMs: number } | null>(xs: T[]) =>
         xs.map((x, i) => i === item.index && x ? { ...x, readyAtMs: nowMs } : x)
-      if (item.target === 'nest') return { ...s, nests: at(s.nests) }
+      if (item.target === 'nest') return { ...s, nests: s.nests.map((n, i) => i === item.index && n.egg ? { ...n, egg: { ...n.egg, readyAtMs: nowMs } } : n) }
       if (item.target === 'hatchery') return { ...s, hatchery: at(s.hatchery) }
       return { ...s, farms: at(s.farms) }
     }
-    case 'nest': return { ...s, nests: [...s.nests, null] }
+    case 'nest': return { ...s, nests: [...s.nests, { egg: null, level: 1, placement: { island: 'home', col: 0, row: 0, facing: 0 } }] }
     case 'foodPack': return { ...s, food: s.food + FOOD_PACK }
     case 'levelUp': {
       const collected = collectDragonHome(s, item.dragonId, c, nowMs)

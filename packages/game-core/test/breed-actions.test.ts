@@ -4,7 +4,7 @@ import type { Action } from '../src/actions/types'
 import { getSpecies } from '../src/catalog'
 import { RARITY } from '../src/rarity'
 import { createRng } from '../src/rng'
-import { newPlayer, type Dragon, type Egg, type PlayerState } from '../src/state'
+import { newPlayer, type Dragon, type Egg, type Nest, type PlayerState } from '../src/state'
 import { FIXTURE_CATALOG } from './fixtures'
 import { err, ok } from './helpers'
 
@@ -14,6 +14,7 @@ const run = (st: PlayerState, a: Action, t: number, seed = 1) => applyAction(st,
 const breed: Action = { type: 'startBreed', parentA: 'd1', parentB: 'd2' }
 const rarityOf = (id: string) => getSpecies(FIXTURE_CATALOG, id).rarity
 const egg = (speciesId: string, readyAtMs: number): Egg => ({ speciesId, readyAtMs })
+const nest = (e: Egg | null = null): Nest => ({ egg: e, level: 1, placement: { island: 'home', col: 0, row: 0, facing: 0 } })
 
 describe('startBreed', () => {
   it('validates parents', () => {
@@ -24,7 +25,7 @@ describe('startBreed', () => {
 
   it('lays a tutorial egg in 15 s and awards xp', () => {
     const a = ok(run(s4, breed, 0))
-    const e = a.nests[0]!
+    const e = a.nests[0]!.egg!
     expect(e.readyAtMs).toBe(15_000)
     expect(a.tutorial.breedDone).toBe(true)
     expect(a.xp).toBe(RARITY[rarityOf(e.speciesId)].xp)
@@ -32,16 +33,16 @@ describe('startBreed', () => {
   })
 
   it('uses the rarity breed time after the tutorial', () => {
-    const a = ok(run({ ...s4, tutorial: { breedDone: true, hatchDone: false } }, breed, 1_000))
-    const e = a.nests[0]!
+    const a = ok(run({ ...s4, tutorial: { ...s4.tutorial, breedDone: true, hatchDone: false } }, breed, 1_000))
+    const e = a.nests[0]!.egg!
     expect(e.readyAtMs).toBe(1_000 + RARITY[rarityOf(e.speciesId)].breedMs)
   })
 
   it('uses the lowest free nest', () => {
-    const a = ok(run({ ...s4, nests: [egg('fire', 5), null, null] }, breed, 0))
-    expect(a.nests[0]).toEqual(egg('fire', 5))
-    expect(a.nests[1]).not.toBeNull()
-    expect(a.nests[2]).toBeNull()
+    const a = ok(run({ ...s4, nests: [nest(egg('fire', 5)), nest(), nest()] }, breed, 0))
+    expect(a.nests[0]!.egg).toEqual(egg('fire', 5))
+    expect(a.nests[1]!.egg).not.toBeNull()
+    expect(a.nests[2]!.egg).toBeNull()
   })
 
   it('consumes an odds boost only on success', () => {
@@ -52,11 +53,11 @@ describe('startBreed', () => {
 
   it('applies and resets pity', () => {
     const a = ok(run({ ...s4, pity: { 'fire+water': 10 } }, breed, 0))
-    expect(rarityOf(a.nests[0]!.speciesId)).not.toBe('common')
+    expect(rarityOf(a.nests[0]!.egg!.speciesId)).not.toBe('common')
     expect(a.pity['fire+water']).toBe(0)
     for (let seed = 1; seed <= 20; seed++) {
       const b = ok(run(s4, breed, 0, seed))
-      expect(b.pity['fire+water']).toBe(rarityOf(b.nests[0]!.speciesId) === 'common' ? 1 : 0)
+      expect(b.pity['fire+water']).toBe(rarityOf(b.nests[0]!.egg!.speciesId) === 'common' ? 1 : 0)
     }
   })
 })
@@ -67,15 +68,15 @@ describe('collectEgg', () => {
   it('moves a ready egg to the hatchery with the tutorial hatch time', () => {
     err(run(laid, { type: 'collectEgg', nest: 0 }, 14_999), 'NOT_READY')
     const a = ok(run(laid, { type: 'collectEgg', nest: 0 }, 15_000))
-    expect(a.nests[0]).toBeNull()
-    expect(a.hatchery).toEqual([egg(laid.nests[0]!.speciesId, 30_000)])
+    expect(a.nests[0]!.egg).toBeNull()
+    expect(a.hatchery).toEqual([egg(laid.nests[0]!.egg!.speciesId, 30_000)])
     expect(a.tutorial.hatchDone).toBe(true)
     err(run(a, { type: 'collectEgg', nest: 0 }, 15_000), 'NEST_EMPTY')
     err(run(a, { type: 'collectEgg', nest: 4 }, 15_000), 'NOT_FOUND')
   })
 
   it('uses the rarity hatch time after the tutorial', () => {
-    const st = { ...s, nests: [egg('fw-rare', 0)], tutorial: { breedDone: true, hatchDone: true } }
+    const st = { ...s, nests: [nest(egg('fw-rare', 0))], tutorial: { ...s.tutorial, breedDone: true, hatchDone: true } }
     expect(ok(run(st, { type: 'collectEgg', nest: 0 }, 100)).hatchery[0]!.readyAtMs).toBe(100 + RARITY.rare.hatchMs)
   })
 

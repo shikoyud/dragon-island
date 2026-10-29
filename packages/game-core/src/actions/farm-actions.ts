@@ -6,7 +6,7 @@ export const buyFarmPlot: Handler<'buyFarmPlot'> = s => {
   if (s.farms.length >= MAX_PLOTS) return failure('MAX_PLOTS')
   const paid = spendGold(s, plotCost(s.farms.length))
   if (!paid) return failure('INSUFFICIENT_GOLD')
-  return success({ ...paid, farms: [...paid.farms, { crop: null, readyAtMs: 0 }] })
+  return success({ ...paid, farms: [...paid.farms, { crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 0, row: 0, facing: 0 } }] })
 }
 
 export const plant: Handler<'plant'> = (s, a, ctx) => {
@@ -16,7 +16,7 @@ export const plant: Handler<'plant'> = (s, a, ctx) => {
   const crop = CROPS[a.crop]
   const paid = spendGold(s, crop.cost)
   if (!paid) return failure('INSUFFICIENT_GOLD')
-  const farms = paid.farms.map((p, i) => i === a.plot ? { crop: a.crop, readyAtMs: ctx.nowMs + crop.growMs } : p)
+  const farms = paid.farms.map((p, i) => i === a.plot ? { ...p, crop: a.crop, readyAtMs: ctx.nowMs + crop.growMs } : p)
   return success({ ...paid, farms })
 }
 
@@ -25,6 +25,6 @@ export const harvest: Handler<'harvest'> = (s, a, ctx) => {
   if (!plot) return failure('NOT_FOUND')
   if (plot.crop === null) return failure('PLOT_EMPTY')
   if (ctx.nowMs < plot.readyAtMs) return failure('NOT_READY')
-  const farms = s.farms.map((p, i) => i === a.plot ? { crop: null, readyAtMs: 0 } : p)
+  const farms = s.farms.map((p, i) => i === a.plot ? { ...p, crop: null, readyAtMs: 0 } : p)
   return success({ ...s, food: s.food + CROPS[plot.crop].food, farms })
 }

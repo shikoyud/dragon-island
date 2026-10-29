@@ -52,23 +52,24 @@ describe('buy', () => {
   it('sells nests up to four', () => {
     const r = run(p0, buy({ kind: 'nest' }))
     expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 2_000_000 }])
-    expect(ok(r).nests).toEqual([null, null])
-    err(run({ ...p0, nests: [null, null, null, null] }, buy({ kind: 'nest' })), 'MAX_NESTS')
+    expect(ok(r).nests.map(n => n.egg)).toEqual([null, null])
+    expect(ok(r).nests[1]!.level).toBe(1)
+    err(run({ ...p0, nests: [p0.nests[0]!, p0.nests[0]!, p0.nests[0]!, p0.nests[0]!] }, buy({ kind: 'nest' })), 'MAX_NESTS')
   })
 
   it('skips timers', () => {
-    const st = { ...p0, nests: [{ speciesId: 'fire', readyAtMs: 1_800_001 }] }
+    const st = { ...p0, nests: [{ ...p0.nests[0]!, egg: { speciesId: 'fire', readyAtMs: 1_800_001 } }] }
     const r = run(st, buy({ kind: 'skip', target: 'nest', index: 0 }))
     expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 200_000 }])
-    expect(ok(r).nests[0]!.readyAtMs).toBe(0)
+    expect(ok(r).nests[0]!.egg!.readyAtMs).toBe(0)
     err(run(st, buy({ kind: 'skip', target: 'nest', index: 0 }), 1_800_001), 'NOTHING_TO_SKIP')
     err(run(st, buy({ kind: 'skip', target: 'nest', index: 3 })), 'NOT_FOUND')
   })
 
   it('skips hatchery and farm timers', () => {
-    const st = { ...p0, hatchery: [{ speciesId: 'fire', readyAtMs: 90_000 }], farms: [{ crop: 'sprout' as const, readyAtMs: 60_000 }, { crop: null, readyAtMs: 0 }] }
+    const st = { ...p0, hatchery: [{ speciesId: 'fire', readyAtMs: 90_000 }], farms: [{ ...p0.farms[0]!, crop: 'sprout' as const, readyAtMs: 60_000 }, p0.farms[1]!] }
     expect(ok(run(st, buy({ kind: 'skip', target: 'hatchery', index: 0 }), 10)).hatchery[0]!.readyAtMs).toBe(10)
-    expect(ok(run(st, buy({ kind: 'skip', target: 'farm', index: 0 }), 10)).farms[0]).toEqual({ crop: 'sprout', readyAtMs: 10 })
+    expect(ok(run(st, buy({ kind: 'skip', target: 'farm', index: 0 }), 10)).farms[0]).toEqual({ ...p0.farms[0], crop: 'sprout', readyAtMs: 10 })
     err(run(st, buy({ kind: 'skip', target: 'farm', index: 1 })), 'NOTHING_TO_SKIP')
     err(run(st, buy({ kind: 'skip', target: 'hatchery', index: 1 })), 'NOT_FOUND')
   })

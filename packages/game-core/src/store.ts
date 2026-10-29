@@ -18,7 +18,7 @@ const NEST_PRICES = [2_000_000, 4_000_000, 8_000_000] // 2nd, 3rd, 4th nest
 
 /** Ready time of a skip target, or `null` if the slot holds nothing. */
 export function skipTargetReadyAt(s: PlayerState, target: 'nest' | 'hatchery' | 'farm', index: number): number | null {
-  if (target === 'nest') return s.nests[index]?.readyAtMs ?? null
+  if (target === 'nest') return s.nests[index]?.egg?.readyAtMs ?? null
   if (target === 'hatchery') return s.hatchery[index]?.readyAtMs ?? null
   const plot = s.farms[index]
   return plot && plot.crop !== null ? plot.readyAtMs : null

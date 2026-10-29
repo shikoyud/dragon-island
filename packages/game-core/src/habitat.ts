@@ -15,7 +15,7 @@ export const HABITAT_LEVELS: readonly { cap: number; slots: number; upgradeCost:
 ]
 
 export function canLiveIn(sp: Species, h: Habitat): boolean {
-  return sp.elements.includes(h.element)
+  return h.element === 'any' || sp.elements.includes(h.element)
 }
 
 export function residents(s: PlayerState, habitatId: string): Dragon[] {

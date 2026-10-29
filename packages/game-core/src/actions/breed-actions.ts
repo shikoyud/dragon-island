@@ -15,7 +15,7 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const pb = s.dragons.find(d => d.id === a.parentB)
   if (!pa || !pb || pa.id === pb.id) return failure('INVALID_PARENTS')
   if (pa.level < BREED_MIN_LEVEL || pb.level < BREED_MIN_LEVEL) return failure('LEVEL_TOO_LOW')
-  const nest = s.nests.indexOf(null)
+  const nest = s.nests.findIndex(n => n.egg === null)
   if (nest < 0) return failure('NO_FREE_NEST')
 
   const boost = s.oddsBoosts > 0
@@ -24,7 +24,7 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const readyAtMs = ctx.nowMs + (s.tutorial.breedDone ? RARITY[rarity].breedMs : TUTORIAL_TIMER_MS)
   const next = {
     ...s,
-    nests: s.nests.map((e, i) => i === nest ? { speciesId: roll.speciesId, readyAtMs } : e),
+    nests: s.nests.map((n, i) => i === nest ? { ...n, egg: { speciesId: roll.speciesId, readyAtMs } } : n),
     oddsBoosts: boost ? s.oddsBoosts - 1 : s.oddsBoosts,
     pity: { ...s.pity, [roll.pairKey]: roll.rarePlus ? 0 : (s.pity[roll.pairKey] ?? 0) + 1 },
     tutorial: { ...s.tutorial, breedDone: true },
@@ -39,7 +39,7 @@ export function hatcheryUsed(s: { hatchery: readonly unknown[]; dragons: readonl
 
 export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
   if (a.nest < 0 || a.nest >= s.nests.length) return failure('NOT_FOUND')
-  const egg = s.nests[a.nest]
+  const egg = s.nests[a.nest]!.egg
   if (!egg) return failure('NEST_EMPTY')
   if (ctx.nowMs < egg.readyAtMs) return failure('NOT_READY')
   if (hatcheryUsed(s) >= HATCHERY_SLOTS) return failure('HATCHERY_FULL')
@@ -47,7 +47,7 @@ export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
   const readyAtMs = ctx.nowMs + (s.tutorial.hatchDone ? RARITY[rarity].hatchMs : TUTORIAL_TIMER_MS)
   return success({
     ...s,
-    nests: s.nests.map((e, i) => i === a.nest ? null : e),
+    nests: s.nests.map((n, i) => i === a.nest ? { ...n, egg: null } : n),
     hatchery: [...s.hatchery, { speciesId: egg.speciesId, readyAtMs }],
     tutorial: { ...s.tutorial, hatchDone: true },
   })
