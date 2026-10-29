@@ -41,6 +41,20 @@ describe('art v1 manifest', () => {
     for (const c of Object.values(art.building.cropStage)) expect(c.frames).toBe(4)
   })
 
+  it('fills every base-building slot at its footprint size', () => {
+    const fit = (key: string, s: { src: string; w: number; h: number }, w: number, h: number) => {
+      expect(s.src, key).not.toBe('')
+      expect([s.w, s.h], key).toEqual([w, h])
+    }
+    for (const e of ELEMENTS) fit(`habitat.${e}`, art.habitat[e], 80, 64)
+    fit('building.nexus', art.building.nexus, 80, 64)
+    for (const id of Object.keys(DECORATIONS) as DecorationId[]) fit(id, art.decoration[id], DECORATIONS[id].size * 16, DECORATIONS[id].size * 16)
+    for (const k of Object.keys(OBSTACLES) as ObstacleKind[]) fit(k, art.obstacle[k], OBSTACLES[k].size * 16, OBSTACLES[k].size * 16)
+    fit('island.locked', art.island.locked, 16, 16)
+    fit('island.sign', art.island.sign, 32, 32)
+    for (const id of ISLAND_ORDER) fit(`map.${id}`, art.map[id], 32, 32)
+  })
+
   it('points every entry at a PNG on disk whose size matches w × frames by h', () => {
     for (const [key, a] of Object.entries(v1.assets)) {
       const file = path.join(dir, a.file)
