@@ -3,21 +3,21 @@
     "building.farmPlot": {
       "file": "farm-plot.png",
       "w": 32,
-      "h": 24,
+      "h": 32,
       "frames": 1,
       "fps": 0
     },
     "building.hatchery": {
       "file": "hatchery.png",
-      "w": 48,
-      "h": 48,
+      "w": 64,
+      "h": 64,
       "frames": 1,
       "fps": 0
     },
     "building.hoard": {
       "file": "hoard.png",
-      "w": 48,
-      "h": 48,
+      "w": 64,
+      "h": 64,
       "frames": 1,
       "fps": 0
     },

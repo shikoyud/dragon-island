@@ -48,6 +48,10 @@ describe('art v1 manifest', () => {
     }
     for (const e of ELEMENTS) fit(`habitat.${e}`, art.habitat[e], 80, 64)
     fit('building.nexus', art.building.nexus, 80, 64)
+    fit('building.hatchery', art.building.hatchery, 64, 64)
+    fit('building.hoard', art.building.hoard, 64, 64)
+    fit('building.farmPlot', art.building.farmPlot, 32, 32)
+    fit('building.nest', art.building.nest, 32, 32)
     for (const id of Object.keys(DECORATIONS) as DecorationId[]) fit(id, art.decoration[id], DECORATIONS[id].size * 16, DECORATIONS[id].size * 16)
     for (const k of Object.keys(OBSTACLES) as ObstacleKind[]) fit(k, art.obstacle[k], OBSTACLES[k].size * 16, OBSTACLES[k].size * 16)
     fit('island.locked', art.island.locked, 16, 16)
