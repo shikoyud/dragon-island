@@ -41,7 +41,7 @@
 **Interfaces:**
 - Produces (`api/client.ts`): `class ApiError extends Error { status: number; code: string }`; `createApi(opts: { baseUrl: string; getToken: () => string | null; onUnauthorized: () => void; fetchImpl?: typeof fetch })` returning typed methods for every server route: `nonce()`, `verify(message, signature)`, `logout()`, `me()`, `action(action: ClientAction, idempotencyKey: string): Promise<ActionResponse>`, `sp()`, `offers()`, `withdraw(grossWei: bigint)`, `pendingWithdraw()`, `season()`, `seasonActions(id, playerId)`. Bigint fields are parsed from strings at the boundary. A 401 calls `onUnauthorized` once and rethrows.
 - Produces (`api/errors.ts`): `errorMessages: Record<string, string>` covering every `ActionError` and server code from `apps/server/README.md`; `messageFor(code: string): string`.
-- Produces (`api/session.ts`): `sessionStore` (token in `localStorage` key `wyrm.session`, player id, address) with `subscribe`; `useSession()`.
+- Produces (`api/session.ts`): `sessionStore` (token in `localStorage` key `dris.session`, player id, address) with `subscribe`; `useSession()`.
 - Produces (`wallet/config.ts`): `robinhoodTestnet` chain (46630, RPC from env), `wagmiAdapter`, `appKit` (`createAppKit`) and, when `VITE_TEST_WALLET=1`, a wagmi `mock` connector seeded with the e2e account so Playwright can sign without a browser wallet.
 - Produces (`wallet/SignIn.tsx`): Connect (AppKit modal) → "Sign in" builds a SIWE message with `createSiweMessage` (domain = `location.host`, uri = `location.origin`, chainId 46630, nonce from `/auth/nonce`, issuedAt now) → `signMessage` → `verify` → session stored → `/me` loaded. Shows wrong-network and rejected-signature states.
 - Produces (`state/me.ts`): `useMe()` (Query `['me']`), `applyStateFromResponse(qc, state)`.
@@ -158,7 +158,7 @@
 ### Task 6: Chain panels (enter, deposit, withdraw), Hoard, season and re-verify
 
 **Files:**
-- Create: `packages/shared/src/abi.ts` (WyrmVault + minimal ERC-20 ABI; `apps/server/scripts/sync-abi.ts` writes both), `packages/shared/src/verify.ts` (WebCrypto HMAC-SHA256 + keccak256 via viem: `verifySeed(commitHash, secretHex, label, seedHex): Promise<boolean>`)
+- Create: `packages/shared/src/abi.ts` (DrisVault + minimal ERC-20 ABI; `apps/server/scripts/sync-abi.ts` writes both), `packages/shared/src/verify.ts` (WebCrypto HMAC-SHA256 + keccak256 via viem: `verifySeed(commitHash, secretHex, label, seedHex): Promise<boolean>`)
 - Create: `apps/web/src/chain/vault.ts` (wagmi hooks: `useVault()` → `entryFeeWei`, `remainingPayoutToday`, `allowance`, `tokenBalance`; `enter()`, `approve(amount)`, `deposit(amount)`, `claim(voucher)`), `src/panels/WalletPanel.tsx`, `src/panels/HoardPanel.tsx`, `src/panels/SeasonPanel.tsx`, `src/pages/Verify.tsx`
 - Test: `packages/shared/test/verify.test.ts`, `apps/web/test/chain.test.tsx`
 
@@ -170,7 +170,7 @@
 
 - [x] **Step 1: Write failing tests**
   - `verifySeed(commitHash(S), S, 'p:1', actionSeed(S,'p',1n).seedHex)` true (vectors generated with the server's `seed.ts` and pasted as constants); wrong label false
-  - `WalletPanel` with mocked wagmi reads: Deposit disabled on chain 1 with "Switch to Robinhood Chain testnet"; with allowance 0 the primary button says "Approve"; after approve resolves it says "Deposit"; amount above wallet balance disables with "Not enough WYRM"; Withdraw above the in-game balance disabled; a pending voucher renders Claim with the deadline
+  - `WalletPanel` with mocked wagmi reads: Deposit disabled on chain 1 with "Switch to Robinhood Chain testnet"; with allowance 0 the primary button says "Approve"; after approve resolves it says "Deposit"; amount above wallet balance disables with "Not enough DRIS"; Withdraw above the in-game balance disabled; a pending voucher renders Claim with the deadline
   - `HoardPanel`: locked copy before `earningUnlocked`; with hoard 1 and 300_000 eligible gold shows "$1.00 left today" and Sell enabled
   - `Verify`: a fixture of 3 logged actions and the revealed secret → 3 ✓; a tampered seedHex → ✗ on that row
 - [x] **Step 2: Run tests** — expect FAIL

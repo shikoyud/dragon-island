@@ -26,7 +26,7 @@ export function StorePanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
 
   return (
     <Panel title="Store" onClose={onClose}>
-      <p><small>Prices in USD, paid in WYRM from your game balance at the current rate.</small></p>
+      <p><small>Prices in USD, paid in DRIS from your game balance at the current rate.</small></p>
       <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
         {items.map(({ id, label, item, disabledReason, place }) => {
           const price = priceMicroUsd(item, s, nowMs)

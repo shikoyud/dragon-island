@@ -61,7 +61,7 @@ export function WalletPanel({ onClose }: { onClose?: () => void }) {
   const depositWei = parseTokenAmount(depositInput)
   const needApprove = depositWei !== null && (vault.allowanceWei ?? 0n) < depositWei
   const amountReason = chainReason ?? busyReason
-    ?? (depositWei === null || depositWei === 0n ? 'Enter an amount' : vault.walletBalanceWei !== null && depositWei > vault.walletBalanceWei ? 'Not enough WYRM in your wallet' : undefined)
+    ?? (depositWei === null || depositWei === 0n ? 'Enter an amount' : vault.walletBalanceWei !== null && depositWei > vault.walletBalanceWei ? 'Not enough DRIS in your wallet' : undefined)
   const approveReason = amountReason ?? (needApprove ? undefined : 'Already approved')
   const depositReason = amountReason ?? (needApprove ? 'Approve first' : undefined)
 
@@ -90,9 +90,9 @@ export function WalletPanel({ onClose }: { onClose?: () => void }) {
       )}
 
       <section aria-label="Deposit" style={{ marginTop: 12 }}>
-        <h3 style={{ fontSize: 12 }}>Deposit WYRM</h3>
+        <h3 style={{ fontSize: 12 }}>Deposit DRIS</h3>
         <label>Deposit amount <input value={depositInput} onChange={e => setDepositInput(e.target.value)} inputMode="decimal" placeholder="0.0" disabled={busy !== null} /></label>
-        {depositWei !== null && depositWei > 0n && <p><small>2% fee: credited {formatWei(depositCredited(depositWei))} WYRM to your game balance.</small></p>}
+        {depositWei !== null && depositWei > 0n && <p><small>2% fee: credited {formatWei(depositCredited(depositWei))} DRIS to your game balance.</small></p>}
         <div style={{ display: 'flex', gap: 8 }}>
           <ActionButton id="approve" primary={needApprove} disabled={Boolean(approveReason)} reason={approveReason} onClick={() => depositWei !== null && void send('approve', 'Approve', () => vault.approve(depositWei))}>
             {busy === 'approve' ? 'Approving…' : 'Approve (step 1 of 2)'}
@@ -104,10 +104,10 @@ export function WalletPanel({ onClose }: { onClose?: () => void }) {
       </section>
 
       <section aria-label="Withdraw" style={{ marginTop: 12 }}>
-        <h3 style={{ fontSize: 12 }}>Withdraw WYRM</h3>
+        <h3 style={{ fontSize: 12 }}>Withdraw DRIS</h3>
         {pending.data?.voucher ? (
           <div>
-            <p>Pending voucher: {formatWei(pending.data.voucher.grossWei)} WYRM (5% fee on claim), valid until {new Date(pending.data.voucher.deadlineMs).toLocaleTimeString()}.</p>
+            <p>Pending voucher: {formatWei(pending.data.voucher.grossWei)} DRIS (5% fee on claim), valid until {new Date(pending.data.voucher.deadlineMs).toLocaleTimeString()}.</p>
             <p><small>If you don’t claim in time, the amount is re-credited to your game balance.</small></p>
             <ActionButton
               id="claim"
@@ -125,7 +125,7 @@ export function WalletPanel({ onClose }: { onClose?: () => void }) {
         ) : (
           <>
             <label>Withdraw amount <input value={withdrawInput} onChange={e => setWithdrawInput(e.target.value)} inputMode="decimal" placeholder="0.0" /></label>
-            {vault.remainingPayoutWei !== null && <p><small>Vault can still pay out {formatWei(vault.remainingPayoutWei)} WYRM today; one request takes at most 10%.</small></p>}
+            {vault.remainingPayoutWei !== null && <p><small>Vault can still pay out {formatWei(vault.remainingPayoutWei)} DRIS today; one request takes at most 10%.</small></p>}
             <ActionButton id="withdraw" primary disabled={Boolean(withdrawReason) || requestWithdrawal.isPending} reason={withdrawReason} onClick={() => withdrawWei !== null && requestWithdrawal.mutate(withdrawWei)}>
               Request withdrawal
             </ActionButton>

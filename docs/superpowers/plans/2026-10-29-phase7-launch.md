@@ -68,7 +68,7 @@ Each item lists what to do and what to send back in the thread. Claude can walk 
 - Modify: `apps/server/test/helpers/testDb.ts`
 - Modify: `apps/server/vitest.config.ts` (create if absent)
 - Create: `.github/workflows/ci.yml`
-- Modify: `CLAUDE.md` (Commands: how to run the server suite on Postgres; fix the `WyrmToken`/`WyrmVault` layout line to Dris names)
+- Modify: `CLAUDE.md` (Commands: how to run the server suite on Postgres; fix the `DrisToken`/`DrisVault` layout line to Dris names)
 
 **Interfaces:**
 - Produces: env `TEST_DATABASE_URL`; when set, `testDb()` uses `createPgDb(url)` + `migrate` once per file and the same truncate-all wipe. Vitest `fileParallelism` is `false` when it is set (one shared database).

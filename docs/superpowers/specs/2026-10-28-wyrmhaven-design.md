@@ -2,7 +2,7 @@
 
 Status: for review (2026-10-28). Supersedes the earlier MVP draft.
 Research basis: `reports/Dragon breeding genre and RaidLords.md`.
-Working title and token ticker ($WYRM) are placeholders.
+Working title and token ticker ($DRIS) are placeholders.
 
 ## 1. Goal and decisions
 
@@ -78,6 +78,8 @@ Algorithm (seeded RNG):
 The UI shows the exact odds of every pairing, including boosts and pity.
 
 ## 7. Nests, hatchery, habitats, farms
+
+Base building (grid, islands, construction, shop, decorations, speed-ups) is specified in 2026-10-29-base-building-design.md, which overrides this section where they differ.
 
 - **Nests:** 1 at start; up to 3 more from the store. A ready egg moves to the hatchery on collect.
 - **Hatchery:** 3 slots; hatch timer = child rarity's hatch time. A hatched dragon goes to the first habitat (in list order) that matches one of its elements and has a free slot; otherwise it waits in the hatchery.
@@ -201,7 +203,7 @@ packages/game-core   pure rules + battle sim (no I/O, time and RNG injected)
 packages/shared      API types and zod schemas
 apps/server          Fastify, PostgreSQL, SIWE auth, /actions, jobs, indexer, voucher signer
 apps/web             Phaser 3 scenes + React UI, Reown AppKit + wagmi/viem
-contracts            Foundry: WyrmToken, WyrmVault
+contracts            Foundry: DrisToken, DrisVault
 ```
 
 - Every action: `POST /actions` → lock player row → `applyAction(state, action, now, rng)` → persist state + append to action log.

@@ -77,13 +77,13 @@ describe('WalletPanel', () => {
     await userEvent.type(amount, '10')
     const btn = screen.getByRole('button', { name: /^approve/i })
     expect(btn).toBeEnabled()
-    expect(screen.getByText(/credited 9\.8 WYRM/i)).toBeInTheDocument()
+    expect(screen.getByText(/credited 9\.8 DRIS/i)).toBeInTheDocument()
     await userEvent.click(btn)
     expect(v.approve).toHaveBeenCalledWith(10n * E18)
     await userEvent.clear(amount)
     await userEvent.type(amount, '500')
     for (const b of screen.getAllByRole('button', { name: /^approve|^deposit/i })) expect(b).toBeDisabled()
-    expect(screen.getAllByText(/not enough wyrm in your wallet/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/not enough dris in your wallet/i).length).toBeGreaterThan(0)
   })
 
   it('shows Deposit once allowance covers the amount, and Enter until earning is unlocked', async () => {

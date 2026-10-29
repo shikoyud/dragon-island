@@ -38,18 +38,18 @@ describe('Admin page', () => {
     await userEvent.type(screen.getByLabelText(/admin token/i), TOKEN)
     await userEvent.click(screen.getByRole('button', { name: /unlock/i }))
     expect(await screen.findAllByRole('tab')).not.toHaveLength(0)
-    expect(sessionStorage.getItem('wyrm.admin')).toBe(TOKEN)
-    expect(localStorage.getItem('wyrm.admin')).toBeNull()
+    expect(sessionStorage.getItem('dris.admin')).toBe(TOKEN)
+    expect(localStorage.getItem('dris.admin')).toBeNull()
   })
 
   it('looks a player up and bans with a reason', async () => {
-    sessionStorage.setItem('wyrm.admin', TOKEN)
+    sessionStorage.setItem('dris.admin', TOKEN)
     const api = fakeAdmin()
     render(<Admin makeApi={() => api} />)
     await userEvent.type(await screen.findByLabelText(/player id or address/i), PLAYER.player.address)
     await userEvent.click(screen.getByRole('button', { name: /look up/i }))
     expect(api.playerByAddress).toHaveBeenCalledWith(PLAYER.player.address)
-    expect((await screen.findByText('Earned')).closest('dt')!.nextElementSibling).toHaveTextContent('2 WYRM')
+    expect((await screen.findByText('Earned')).closest('dt')!.nextElementSibling).toHaveTextContent('2 DRIS')
     const ban = screen.getByRole('button', { name: /^ban$/i })
     expect(ban).toBeDisabled() // no reason yet
     await userEvent.type(screen.getByLabelText(/reason/i), 'multi-accounting')
@@ -58,7 +58,7 @@ describe('Admin page', () => {
   })
 
   it('closes a season only after confirming', async () => {
-    sessionStorage.setItem('wyrm.admin', TOKEN)
+    sessionStorage.setItem('dris.admin', TOKEN)
     const api = fakeAdmin()
     render(<Admin makeApi={() => api} />)
     await userEvent.click(await screen.findByRole('tab', { name: /season/i }))

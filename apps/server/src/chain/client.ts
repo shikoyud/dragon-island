@@ -1,6 +1,6 @@
 import { createPublicClient, createWalletClient, defineChain, http, parseEventLogs, type Address, type Hex } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { wyrmVaultAbi } from './abi'
+import { drisVaultAbi } from './abi'
 
 export type VaultEventName = 'Entered' | 'Deposited' | 'Claimed' | 'PayoutDayStarted'
 
@@ -43,13 +43,13 @@ export function createViemChainClient(opts: { rpcUrl: string; vault: Address; op
   const operator = opts.operatorKey ? privateKeyToAccount(opts.operatorKey) : null
   const wallet = operator ? createWalletClient({ account: operator, chain, transport: http(opts.rpcUrl) }) : null
   const read = <T>(functionName: string, args: unknown[] = []) =>
-    pub.readContract({ address: opts.vault, abi: wyrmVaultAbi, functionName, args } as never) as Promise<T>
+    pub.readContract({ address: opts.vault, abi: drisVaultAbi, functionName, args } as never) as Promise<T>
 
   return {
     blockNumber: () => pub.getBlockNumber(),
     async vaultLogs(fromBlock, toBlock) {
       const raw = await pub.getLogs({ address: opts.vault, fromBlock, toBlock })
-      const parsed = parseEventLogs({ abi: wyrmVaultAbi, logs: raw })
+      const parsed = parseEventLogs({ abi: drisVaultAbi, logs: raw })
       return parsed
         .filter(l => EVENT_NAMES.includes(l.eventName as VaultEventName))
         .map(l => ({
@@ -65,7 +65,7 @@ export function createViemChainClient(opts: { rpcUrl: string; vault: Address; op
     entryFeeWei: () => read<bigint>('entryFeeWei'),
     async burn(amountWei) {
       if (!wallet || !operator) throw new Error('OPERATOR_KEY_MISSING')
-      return wallet.writeContract({ address: opts.vault, abi: wyrmVaultAbi, functionName: 'burn', args: [amountWei], account: operator, chain })
+      return wallet.writeContract({ address: opts.vault, abi: drisVaultAbi, functionName: 'burn', args: [amountWei], account: operator, chain })
     },
     remainingBurnToday: () => read<bigint>('remainingBurnToday'),
     async waitForTx(hash) {

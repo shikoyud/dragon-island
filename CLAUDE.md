@@ -17,7 +17,7 @@ packages/game-core/   pure rules engine + battle sim (TypeScript, Vitest)
 packages/shared/      API types, zod schemas
 apps/server/          Fastify + PostgreSQL, SIWE, /actions, jobs, indexer, voucher signer
 apps/web/             Phaser 3 + React + Reown AppKit/wagmi/viem
-contracts/            Foundry: WyrmToken (ERC-20), WyrmVault
+contracts/            Foundry: DrisToken (ERC-20), DrisVault
 docs/                 specs, plans, reference
 ```
 

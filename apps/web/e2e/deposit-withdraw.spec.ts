@@ -6,14 +6,14 @@ test('requests a withdrawal voucher from the game balance', async ({ page, reque
   await resetPlayer(request, {}, { tokenWei: (100n * 10n ** 18n).toString(), earningUnlocked: true })
   await page.reload()
   await openPanel(page, 'Wallet')
-  await expect(page.getByText(/game balance:/i)).toContainText('100 WYRM')
+  await expect(page.getByText(/game balance:/i)).toContainText('100 DRIS')
   await page.getByLabel(/withdraw amount/i).fill('1')
   await page.getByRole('button', { name: /request withdrawal/i }).click()
-  await expect(page.getByText(/pending voucher: 1 WYRM/i)).toBeVisible()
-  await expect(page.getByText(/game balance:/i)).toContainText('99 WYRM')
+  await expect(page.getByText(/pending voucher: 1 DRIS/i)).toBeVisible()
+  await expect(page.getByText(/game balance:/i)).toContainText('99 DRIS')
   await page.reload()
   await openPanel(page, 'Wallet')
-  await expect(page.getByText(/pending voucher: 1 WYRM/i)).toBeVisible()
+  await expect(page.getByText(/pending voucher: 1 DRIS/i)).toBeVisible()
 })
 
 test('deposits and claims on-chain', async () => {

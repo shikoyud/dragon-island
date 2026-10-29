@@ -1,4 +1,4 @@
-const KEY = 'wyrm.device'
+const KEY = 'dris.device'
 let memo: string | null = null
 
 /**

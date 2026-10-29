@@ -27,7 +27,7 @@ The e2e server (`E2E=1`) runs on an in-memory PGlite with a fake chain, a fixed 
 |---|---|
 | `src/api` | typed fetch client (`createApi`), error copy, session store |
 | `src/wallet` | `WalletAdapter` (wagmi + Reown AppKit in production, in-page account for e2e), SIWE sign-in |
-| `src/chain` | `VaultAdapter` (wagmi reads/writes against WyrmVault and the token) |
+| `src/chain` | `VaultAdapter` (wagmi reads/writes against DrisVault and the token) |
 | `src/state` | TanStack Query state (`useMe`), the single action hook (`useAction`), battle builder (`useBattle`) |
 | `src/game` | Phaser: `createGame`, `layout` (480×270 base, integer zoom), `islandModel` (pure), scenes, `bridge` to React |
 | `src/art` | art slots: manifest → `GameArtSet`, programmatic pixel fallbacks, Phaser loader |

@@ -33,5 +33,5 @@ export function Usd({ micro }: { micro: number | bigint }) {
   return <span className="money money--usd">{formatMicroUsd(micro)}</span>
 }
 export function Tokens({ wei }: { wei: bigint }) {
-  return <span className="money money--wyrm">{formatWei(wei)} WYRM</span>
+  return <span className="money money--dris">{formatWei(wei)} DRIS</span>
 }

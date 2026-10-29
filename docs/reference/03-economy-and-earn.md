@@ -16,7 +16,7 @@ Full rules: spec §12–16. This page is the one-screen overview.
 |---|---|---|---|
 | Gold | off-chain | habitats, battles (eligible); selling dragons, quests (not eligible) | farms, habitats, upgrades, plots |
 | Food | off-chain | farms, store | leveling |
-| $WYRM | on-chain token, off-chain balance in game | deposits, gold sell-back, season prizes, referrals | store, Hoard, pass |
+| $DRIS | on-chain token, off-chain balance in game | deposits, gold sell-back, season prizes, referrals | store, Hoard, pass |
 | Season Points | off-chain | eligible PvP wins, PvE first clears, quests (cap 150/day) | season prize ranking |
 
 ## Earning

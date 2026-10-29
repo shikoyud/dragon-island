@@ -7,7 +7,7 @@ Branch state: all Phase 5 tasks except Task 8 are committed and green. Last comm
 - **`apps/web`** — Vite 8 + React 19 + Phaser 3.90 pixel-art client (480×270 base, integer zoom, `pixelArt`, reduced-motion aware).
 - **API layer** — typed `createApi` client, error copy map, session store (localStorage), `useMe` (TanStack Query) as the single source of truth, `useAction` (one intent in flight, UUID idempotency key, one retry on network failure, toasts every failure, invalidates `/me` after charges/payouts).
 - **Wallet** — `WalletAdapter` seam: Reown AppKit + wagmi in production, in-page anvil account for e2e. SIWE sign-in pinned to chain 46630.
-- **Chain** — `VaultAdapter` seam over WyrmVault / WYRM token: enter, approve → deposit, withdraw voucher → claim, with receipt waiting and one transaction at a time. Refuses if the connected wallet is not the signed-in account.
+- **Chain** — `VaultAdapter` seam over DrisVault / DRIS token: enter, approve → deposit, withdraw voucher → claim, with receipt waiting and one transaction at a time. Refuses if the connected wallet is not the signed-in account.
 - **Game canvas** — Boot / Island / Battle scenes; a pure `islandModel` builds everything the scenes draw; a `bridge` carries state and selection between React and Phaser.
 - **Art slots** — manifest-driven sprite sheets with deterministic pixel fallbacks, so the game runs with no assets. Prompts file ready for PixelLab.
 - **Panels** — Resources, Habitat, Dragon, Breed (exact odds from game-core), Nests, Farm, Store, Hoard, Wallet, Arena (exact preview from the revealed seed), Campaign (approximate preview; server AI finishes unplanned turns), Season, Verify page (§17 re-verification).

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `WyrmToken` (fixed-supply ERC-20) and `WyrmVault` (entry fee, deposits, EIP-712 cumulative claims, operator burn, daily payout cap, pause, Safe owner) as a Foundry project with unit, fuzz and invariant tests, plus a deploy script gated to testnet 46630.
+**Goal:** `DrisToken` (fixed-supply ERC-20) and `DrisVault` (entry fee, deposits, EIP-712 cumulative claims, operator burn, daily payout cap, pause, Safe owner) as a Foundry project with unit, fuzz and invariant tests, plus a deploy script gated to testnet 46630.
 
 **Architecture:** `contracts/` is a standalone Foundry project using OpenZeppelin Contracts v5. The token has no owner and no mint; the whole supply is minted once in the constructor to three recipients (launch pool, vault, team `VestingWallet`). The vault holds tokens and all money rules the spec puts on-chain; everything else (balances, spend, prizes) stays off-chain and reaches the chain only as signed cumulative claim totals and operator burns. Fees use integer basis points and floor division; remainders stay in the vault.
 
@@ -14,7 +14,7 @@
 
 - Testnet only: chain ID **46630**. The deploy script reverts on any other chain unless `ALLOW_CHAIN_ID` matches. Never mainnet without the user's explicit go-ahead in chat.
 - No private keys in code or committed `.env`; deployment uses `forge script --account <keystore>`. `.env*` is already git-ignored.
-- Token: name `Wyrm` (placeholder), symbol `WYRM` (placeholder), 18 decimals, supply `1_000_000_000e18`, no owner, no mint, not upgradeable. Split: 50% launch, 40% vault seed, 10% team via OpenZeppelin `VestingWallet` (start = deploy time, duration 365 days, linear).
+- Token: name `Dragon Island`, symbol `DRIS`, 18 decimals, supply `1_000_000_000e18`, no owner, no mint, not upgradeable. Split: 50% launch, 40% vault seed, 10% team via OpenZeppelin `VestingWallet` (start = deploy time, duration 365 days, linear).
 - Fees in basis points (`10_000` = 100%): deposit `200` (burn `100`, vault `100`); claim `500` (burn `250`, vault `250`); daily payout cap `200` of the vault's token balance at the first claim of each UTC day; UTC day = `block.timestamp / 1 days`.
 - `block.number` is unreliable on Arbitrum Orbit: time logic uses `block.timestamp` only. No on-chain randomness.
 - Every state-changing function emits an event; every revert uses a custom error.
@@ -31,15 +31,15 @@
 
 ---
 
-### Task 1: Foundry project and `WyrmToken`
+### Task 1: Foundry project and `DrisToken`
 
 **Files:**
 - Create: `contracts/foundry.toml`, `contracts/.gitignore` (`out/`, `cache/`, `broadcast/`), `contracts/remappings.txt`
-- Create: `contracts/src/WyrmToken.sol`
-- Test: `contracts/test/WyrmToken.t.sol`
+- Create: `contracts/src/DrisToken.sol`
+- Test: `contracts/test/DrisToken.t.sol`
 
 **Interfaces:**
-- Produces: `contract WyrmToken is ERC20, ERC20Burnable, ERC20Permit` with
+- Produces: `contract DrisToken is ERC20, ERC20Burnable, ERC20Permit` with
   - `uint256 public constant TOTAL_SUPPLY = 1_000_000_000e18`
   - `constructor(address launch, address vault, address team)` — mints 50% / 40% / 10%; reverts `ZeroAddress()` on any zero address; emits standard `Transfer` events only
   - `error ZeroAddress();`
@@ -56,7 +56,7 @@ function test_SupplyAndSplit() public {
     assertEq(token.balanceOf(team), 100_000_000e18);
     assertEq(token.decimals(), 18);
 }
-function test_RevertZeroAddress() public { vm.expectRevert(WyrmToken.ZeroAddress.selector); new WyrmToken(address(0), vault, team); }
+function test_RevertZeroAddress() public { vm.expectRevert(DrisToken.ZeroAddress.selector); new DrisToken(address(0), vault, team); }
 function test_BurnReducesSupply() public { vm.prank(launch); token.burn(1e18); assertEq(token.totalSupply(), 1_000_000_000e18 - 1e18); }
 function test_NoMintFunction() public { /* selector probe: */ (bool ok,) = address(token).call(abi.encodeWithSignature("mint(address,uint256)", launch, 1)); assertFalse(ok); }
 function test_PermitWorks() public { /* sign EIP-2612 permit with vm.sign for a known key, call permit, assert allowance */ }
@@ -64,21 +64,21 @@ function test_TeamVestingLinear() public { /* deploy VestingWallet(team, uint64(
 ```
 
 - [x] **Step 3: Run `forge test -vv`** — expect FAIL (contract missing)
-- [x] **Step 4: Implement `WyrmToken.sol`**
+- [x] **Step 4: Implement `DrisToken.sol`**
 - [x] **Step 5: Run `forge test -vv` and `forge fmt --check`** — expect PASS, formatted
-- [x] **Step 6: Commit** `feat(contracts): foundry project and fixed-supply WyrmToken`
+- [x] **Step 6: Commit** `feat(contracts): foundry project and fixed-supply DrisToken`
 
-### Task 2: `WyrmVault` entry and deposits
+### Task 2: `DrisVault` entry and deposits
 
 **Files:**
-- Create: `contracts/src/WyrmVault.sol`
-- Test: `contracts/test/WyrmVault.entry.t.sol`, `contracts/test/WyrmVault.deposit.t.sol`, `contracts/test/helpers/VaultFixture.sol` (deploys token with the vault as the 40% recipient, a treasury EOA, owner, operator, signer key `uint256 signerPk = 0xA11CE`)
+- Create: `contracts/src/DrisVault.sol`
+- Test: `contracts/test/DrisVault.entry.t.sol`, `contracts/test/DrisVault.deposit.t.sol`, `contracts/test/helpers/VaultFixture.sol` (deploys token with the vault as the 40% recipient, a treasury EOA, owner, operator, signer key `uint256 signerPk = 0xA11CE`)
 
 **Interfaces:**
-- Produces: `contract WyrmVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712`
+- Produces: `contract DrisVault is Ownable2Step, Pausable, ReentrancyGuard, EIP712`
   - Constants: `DEPOSIT_FEE_BPS = 200`, `DEPOSIT_BURN_BPS = 100`, `CLAIM_FEE_BPS = 500`, `CLAIM_BURN_BPS = 250`, `PAYOUT_CAP_BPS = 200`, `BPS = 10_000`
-  - Immutables/state: `WyrmToken public immutable token`; `address payable public treasury`; `address public operator`; `address public signer`; `uint256 public entryFeeWei`; `mapping(address => bool) public entered`
-  - `constructor(WyrmToken token_, address owner_, address payable treasury_, address operator_, address signer_, uint256 entryFeeWei_)` — `EIP712("WyrmVault", "1")`, `Ownable(owner_)`; reverts `ZeroAddress()`
+  - Immutables/state: `DrisToken public immutable token`; `address payable public treasury`; `address public operator`; `address public signer`; `uint256 public entryFeeWei`; `mapping(address => bool) public entered`
+  - `constructor(DrisToken token_, address owner_, address payable treasury_, address operator_, address signer_, uint256 entryFeeWei_)` — `EIP712("DrisVault", "1")`, `Ownable(owner_)`; reverts `ZeroAddress()`
   - `enter() external payable whenNotPaused` — `AlreadyEntered()`, `InsufficientEntryFee(uint256 sent, uint256 required)`; marks entered; forwards **all** `msg.value` to `treasury` via `call` (`TreasuryTransferFailed()`); emits `Entered(address indexed player, uint256 paidWei)`
   - `deposit(uint256 amount) external whenNotPaused nonReentrant` — `ZeroAmount()`; `safeTransferFrom(msg.sender, this, amount)`; `burned = amount * DEPOSIT_BURN_BPS / BPS`; `kept = amount * (DEPOSIT_FEE_BPS − DEPOSIT_BURN_BPS) / BPS`; `credited = amount − burned − kept`; `token.burn(burned)` if > 0; emits `Deposited(address indexed player, uint256 amount, uint256 credited, uint256 burned)`
   - `setEntryFee(uint256 weiAmount)` — operator or owner (`NotOperator()`); emits `EntryFeeSet(uint256)`
@@ -90,15 +90,15 @@ function test_TeamVestingLinear() public { /* deploy VestingWallet(team, uint64(
   - fuzz `testFuzz_DepositConserves(uint96 amount)` (`amount > 0`): `credited + burned + kept == amount` and `burned ≤ amount / 100`
   - `setEntryFee` by operator and owner ok; by a stranger → `NotOperator`
 - [x] **Step 2: Run `forge test`** — expect FAIL
-- [x] **Step 3: Implement the constructor, `enter`, `deposit`, `setEntryFee` and the fee helpers in `WyrmVault.sol`** — fee math in an internal pure `_split(uint256 amount, uint256 feeBps, uint256 burnBps) returns (uint256 net, uint256 burned, uint256 kept)`
+- [x] **Step 3: Implement the constructor, `enter`, `deposit`, `setEntryFee` and the fee helpers in `DrisVault.sol`** — fee math in an internal pure `_split(uint256 amount, uint256 feeBps, uint256 burnBps) returns (uint256 net, uint256 burned, uint256 kept)`
 - [x] **Step 4: Run `forge test -vv` and `forge fmt --check`** — expect PASS
-- [x] **Step 5: Commit** `feat(contracts): WyrmVault entry fee and deposits with burn`
+- [x] **Step 5: Commit** `feat(contracts): DrisVault entry fee and deposits with burn`
 
 ### Task 3: EIP-712 cumulative claims with the daily payout cap
 
 **Files:**
-- Modify: `contracts/src/WyrmVault.sol`
-- Test: `contracts/test/WyrmVault.claim.t.sol`
+- Modify: `contracts/src/DrisVault.sol`
+- Test: `contracts/test/DrisVault.claim.t.sol`
 
 **Interfaces:**
 - Produces:
@@ -135,8 +135,8 @@ function test_TeamVestingLinear() public { /* deploy VestingWallet(team, uint64(
 ### Task 4: Operator burn, rotation, pause, and invariants
 
 **Files:**
-- Modify: `contracts/src/WyrmVault.sol`
-- Test: `contracts/test/WyrmVault.admin.t.sol`, `contracts/test/WyrmVault.invariant.t.sol`, `contracts/test/helpers/VaultHandler.sol`
+- Modify: `contracts/src/DrisVault.sol`
+- Test: `contracts/test/DrisVault.admin.t.sol`, `contracts/test/DrisVault.invariant.t.sol`, `contracts/test/helpers/VaultHandler.sol`
 
 **Interfaces:**
 - Produces:
@@ -169,8 +169,8 @@ function test_TeamVestingLinear() public { /* deploy VestingWallet(team, uint64(
 - Modify: `docs/reference/02-robinhood-chain.md` (add "Deployed addresses (testnet)" section left as TBD until the user deploys)
 
 **Interfaces:**
-- Post-review change: deployment goes through `src/WyrmDeployer.sol`, a single-use contract whose constructor deploys vesting, token and vault atomically (vault address from its own CREATE nonce 3), sets the burn limit and starts the two-step transfer; it requires `OWNER_SAFE` to be a contract. `Deploy.s.sol` just broadcasts `new WyrmDeployer(...)`.
-- Produces: `script Deploy` reading env `OWNER_SAFE`, `TREASURY`, `OPERATOR`, `SIGNER`, `LAUNCH_RECIPIENT`, `ENTRY_FEE_WEI`, `BURN_DAILY_LIMIT`, optional `ALLOW_CHAIN_ID` (default `46630`): reverts `WrongChain(uint256)` if `block.chainid != ALLOW_CHAIN_ID`; deploys `VestingWallet(teamBeneficiary = OWNER_SAFE, start = now, 365 days)`, precomputes the vault address with `vm.computeCreateAddress`, deploys `WyrmToken(launch, predictedVault, vesting)`, then `WyrmVault(token, OWNER_SAFE, TREASURY, OPERATOR, SIGNER, ENTRY_FEE_WEI)`, asserts `address(vault) == predictedVault` and `token.balanceOf(vault) == 400_000_000e18`, calls `vault.setBurnDailyLimit(BURN_DAILY_LIMIT)` (deployer is the initial owner for setup, then `transferOwnership(OWNER_SAFE)`; the Safe must `acceptOwnership`), and logs all addresses.
+- Post-review change: deployment goes through `src/DrisDeployer.sol`, a single-use contract whose constructor deploys vesting, token and vault atomically (vault address from its own CREATE nonce 3), sets the burn limit and starts the two-step transfer; it requires `OWNER_SAFE` to be a contract. `Deploy.s.sol` just broadcasts `new DrisDeployer(...)`.
+- Produces: `script Deploy` reading env `OWNER_SAFE`, `TREASURY`, `OPERATOR`, `SIGNER`, `LAUNCH_RECIPIENT`, `ENTRY_FEE_WEI`, `BURN_DAILY_LIMIT`, optional `ALLOW_CHAIN_ID` (default `46630`): reverts `WrongChain(uint256)` if `block.chainid != ALLOW_CHAIN_ID`; deploys `VestingWallet(teamBeneficiary = OWNER_SAFE, start = now, 365 days)`, precomputes the vault address with `vm.computeCreateAddress`, deploys `DrisToken(launch, predictedVault, vesting)`, then `DrisVault(token, OWNER_SAFE, TREASURY, OPERATOR, SIGNER, ENTRY_FEE_WEI)`, asserts `address(vault) == predictedVault` and `token.balanceOf(vault) == 400_000_000e18`, calls `vault.setBurnDailyLimit(BURN_DAILY_LIMIT)` (deployer is the initial owner for setup, then `transferOwnership(OWNER_SAFE)`; the Safe must `acceptOwnership`), and logs all addresses.
 - README: install, test, format, the deploy command (`forge script script/Deploy.s.sol --rpc-url rh_testnet --account <keystore> --broadcast --verify` with Blockscout verifier flags), the post-deploy checklist (Safe accepts ownership, publish addresses, verify source), and the security considerations list from Global Constraints.
 
 - [x] **Step 1: Write the failing test** `contracts/test/Deploy.t.sol`: run the script's `run()` under `vm.chainId(46630)` with env set via `vm.setEnv` → token/vault/vesting deployed, vault holds 40%, vesting holds 10%, launch 50%, `vault.owner()` is the deployer with `pendingOwner() == OWNER_SAFE`, `burnDailyLimit` set; under `vm.chainId(4663)` without `ALLOW_CHAIN_ID` → `WrongChain(4663)`

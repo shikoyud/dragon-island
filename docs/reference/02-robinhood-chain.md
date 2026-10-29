@@ -61,8 +61,8 @@ Deployed with `contracts/script/Deploy.s.sol` (see `contracts/README.md`). **TBD
 
 | Contract | Address | Verified |
 |---|---|---|
-| WyrmToken | TBD | |
-| WyrmVault | TBD | |
+| DrisToken | TBD | |
+| DrisVault | TBD | |
 | Team VestingWallet | TBD | |
 | Owner Safe | TBD | |
 

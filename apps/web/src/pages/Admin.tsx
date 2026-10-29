@@ -3,7 +3,7 @@ import { createAdminApi, type AdminApi, type AdminPlayer, type AdminSeasonSummar
 import { ApiError } from '../api/client'
 import { formatWei } from '../ui/Money'
 
-const TOKEN_KEY = 'wyrm.admin'
+const TOKEN_KEY = 'dris.admin'
 const JOBS = ['indexer', 'voucherExpiry', 'burnBatch', 'season', 'seasonClose']
 const TABS = ['Player', 'Season', 'Inflows', 'Price', 'Jobs'] as const
 type Tab = (typeof TABS)[number]
@@ -83,8 +83,8 @@ function PlayerTab({ api }: { api: AdminApi }) {
           <Row k="Earning unlocked" v={String(p.player.earningUnlocked)} /><Row k="Referrer" v={p.player.referrerId ?? '—'} />
           <Row k="Banned" v={p.player.bannedAt ? `${new Date(p.player.bannedAt).toISOString()} (${p.player.banReason ?? ''})` : 'no'} />
           {p.balance && <>
-            <Row k="Balance" v={`${formatWei(BigInt(p.balance.tokenWei))} WYRM`} /><Row k="Deposited / withdrawn" v={`${formatWei(BigInt(p.balance.depositedWei))} / ${formatWei(BigInt(p.balance.withdrawnWei))} WYRM`} />
-            <Row k="Spent" v={`${formatWei(BigInt(p.balance.spentWei))} WYRM`} /><Row k="Earned" v={`${formatWei(BigInt(p.balance.earnedWei))} WYRM`} />
+            <Row k="Balance" v={`${formatWei(BigInt(p.balance.tokenWei))} DRIS`} /><Row k="Deposited / withdrawn" v={`${formatWei(BigInt(p.balance.depositedWei))} / ${formatWei(BigInt(p.balance.withdrawnWei))} DRIS`} />
+            <Row k="Spent" v={`${formatWei(BigInt(p.balance.spentWei))} DRIS`} /><Row k="Earned" v={`${formatWei(BigInt(p.balance.earnedWei))} DRIS`} />
           </>}
           <Row k="SP" v={`${p.sp.total} total · ${p.sp.today} today`} />
         </dl>
@@ -120,9 +120,9 @@ function SeasonTab({ api }: { api: AdminApi }) {
         <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '2px 12px', marginTop: 8 }}>
           <Row k="Window" v={`${new Date(s.season.startsAtMs).toISOString()} → ${new Date(s.season.endsAtMs).toISOString()}`} />
           <Row k="Closed" v={s.closedAt ? new Date(s.closedAt).toISOString() : 'no'} />
-          <Row k="Inflows" v={`${formatWei(BigInt(s.inflows.totalWei))} WYRM (${Object.entries(s.inflows.bySource).map(([k, v]) => `${k} ${formatWei(BigInt(v))}`).join(', ')})`} />
-          <Row k="Prize pool" v={`${formatWei(BigInt(s.poolWei))} WYRM`} />
-          <Row k="Players ranked" v={s.standingsCount} /><Row k="Prizes paid" v={`${formatWei(BigInt(s.prizesPaidWei))} WYRM`} />
+          <Row k="Inflows" v={`${formatWei(BigInt(s.inflows.totalWei))} DRIS (${Object.entries(s.inflows.bySource).map(([k, v]) => `${k} ${formatWei(BigInt(v))}`).join(', ')})`} />
+          <Row k="Prize pool" v={`${formatWei(BigInt(s.poolWei))} DRIS`} />
+          <Row k="Players ranked" v={s.standingsCount} /><Row k="Prizes paid" v={`${formatWei(BigInt(s.prizesPaidWei))} DRIS`} />
           <Row k="Secret" v={s.season.revealedSecret ?? 'not revealed'} />
         </dl>
       )}
@@ -149,7 +149,7 @@ function InflowsTab({ api }: { api: AdminApi }) {
   const r = useResult()
   return (
     <section>
-      <p><small>Record a buyback the treasury made (wei of WYRM that entered the vault). Other inflows are recorded automatically.</small></p>
+      <p><small>Record a buyback the treasury made (wei of DRIS that entered the vault). Other inflows are recorded automatically.</small></p>
       <label>Amount (wei) <input value={wei} onChange={e => setWei(e.target.value)} inputMode="numeric" /></label>
       <label>Reference (tx hash or date) <input value={ref} onChange={e => setRef(e.target.value)} /></label>
       <button type="button" className="btn btn--primary" disabled={!/^[0-9]+$/.test(wei) || !ref.trim() || r.busy} onClick={() => void r.run(() => api.recordInflow('buyback', wei, ref.trim()))}>Record buyback</button>
@@ -164,7 +164,7 @@ function PriceTab({ api }: { api: AdminApi }) {
   return (
     <section>
       <label>Micro-USD per token <input value={price} onChange={e => setPrice(e.target.value)} inputMode="numeric" /></label>
-      <p><small>50,000 = $0.05 per WYRM. Used until the pool TWAP exists.</small></p>
+      <p><small>50,000 = $0.05 per DRIS. Used until the pool TWAP exists.</small></p>
       <button type="button" className="btn btn--primary" disabled={!/^[0-9]+$/.test(price) || r.busy} onClick={() => void r.run(() => api.setPrice(price))}>Set price</button>
       {r.view}
     </section>

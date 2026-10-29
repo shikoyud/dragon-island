@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 
 export interface Session { token: string; playerId: string; address: `0x${string}` }
 
-const KEY = 'wyrm.session'
+const KEY = 'dris.session'
 const listeners = new Set<() => void>()
 let cached: Session | null | undefined
 

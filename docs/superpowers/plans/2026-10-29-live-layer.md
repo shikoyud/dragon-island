@@ -163,7 +163,7 @@ it('ranks at most 100 players', () => {
 
 **Interfaces:**
 - Schema (Task 2 migration): `players.referrer_id uuid null`, `players.ip_hash text null`, `players.device_hash text null`; `referral_payouts(id, referrer_id, referred_id, wei, ref unique, created_at)`.
-- Hashes: `sha256(SESSION_SECRET ‖ value)` hex; IP from `req.ip` (trustProxy on), device from header `x-device-id` (the web client stores a random UUID in localStorage `wyrm.device` and sends it on every request). Missing header → `deviceHash = null` (never matches).
+- Hashes: `sha256(SESSION_SECRET ‖ value)` hex; IP from `req.ip` (trustProxy on), device from header `x-device-id` (the web client stores a random UUID in localStorage `dris.device` and sends it on every request). Missing header → `deviceHash = null` (never matches).
 - Produces:
   ```ts
   export const REFERRAL_BPS = 500
@@ -218,13 +218,13 @@ it('ranks at most 100 players', () => {
 
 **Files:**
 - Modify: `apps/web/src/api/client.ts` (`leaderboard(id)`, `prizeMe(id)`, `referralMe()`, `claimReferral(code)`, send `x-device-id`), `apps/web/src/api/errors.ts` (copy for the new codes), `apps/web/src/panels/SeasonPanel.tsx`
-- Create: `apps/web/src/api/device.ts` (`deviceId()` → localStorage `wyrm.device`), `apps/web/src/panels/ReferralPanel.tsx`
+- Create: `apps/web/src/api/device.ts` (`deviceId()` → localStorage `dris.device`), `apps/web/src/panels/ReferralPanel.tsx`
 - Modify: `apps/web/src/panels/PanelHost.tsx`, `apps/web/src/App.tsx` (toolbar entry `Referral`)
 - Test: `apps/web/test/live.test.tsx`
 
 **Behaviour:**
-- Season panel: prize pool so far (`Tokens`), top 10 with the caller's row highlighted and `Your rank: #n` (or `Unranked`), "Last season: you won X WYRM" when `prizeMe(previous id)` is non-null; previous id = `season.id − 1` when > 0.
-- Referral panel: your code with a copy button, `n referred · earned X WYRM`, and an input + `Claim code` button that is disabled once `referrer === true`; errors shown through the toast copy map (`REFERRAL_SELF: "You can't refer yourself"`, `REFERRAL_ALREADY_SET`, `REFERRAL_AFTER_SPEND: "Referral codes must be entered before your first purchase"`, `REFERRAL_SAME_DEVICE: "That code can't be used from this device or network"`).
+- Season panel: prize pool so far (`Tokens`), top 10 with the caller's row highlighted and `Your rank: #n` (or `Unranked`), "Last season: you won X DRIS" when `prizeMe(previous id)` is non-null; previous id = `season.id − 1` when > 0.
+- Referral panel: your code with a copy button, `n referred · earned X DRIS`, and an input + `Claim code` button that is disabled once `referrer === true`; errors shown through the toast copy map (`REFERRAL_SELF: "You can't refer yourself"`, `REFERRAL_ALREADY_SET`, `REFERRAL_AFTER_SPEND: "Referral codes must be entered before your first purchase"`, `REFERRAL_SAME_DEVICE: "That code can't be used from this device or network"`).
 
 - [x] **Step 1: Write failing tests** — leaderboard renders rank rows and the caller's rank; referral code shown and claim posts the code; claim error maps to the copy; `x-device-id` header is on every request and stable across `createApi` calls.
 - [x] **Step 2: Run** `pnpm --filter @wyrmhaven/web exec vitest run test/live.test.tsx` — Expected: FAIL.
@@ -241,7 +241,7 @@ it('ranks at most 100 players', () => {
 - Modify: `apps/web/src/App.tsx` (render `<Admin />` instead of the game when `location.hash === '#/admin'`; the Verify page is state-driven, this is the first hash route)
 - Test: `apps/web/test/admin.test.tsx`
 
-**Behaviour:** token entered once (kept in `sessionStorage` `wyrm.admin`, never localStorage); tabs: Player lookup (by id or address → the summary, Ban/Unban with a reason field), Season (summary, `Close now` with a confirm, `Reveal`), Inflows (`Record buyback` form), Price (`Set price` micro-USD per token), Jobs (buttons for each registry name). Every mutation shows the response or the error code.
+**Behaviour:** token entered once (kept in `sessionStorage` `dris.admin`, never localStorage); tabs: Player lookup (by id or address → the summary, Ban/Unban with a reason field), Season (summary, `Close now` with a confirm, `Reveal`), Inflows (`Record buyback` form), Price (`Set price` micro-USD per token), Jobs (buttons for each registry name). Every mutation shows the response or the error code.
 
 - [x] **Step 1: Write failing tests** — no token → form only; player lookup renders balance fields; Ban requires a reason and posts; `Close now` posts after confirm.
 - [x] **Step 2: Run** — Expected: FAIL.
@@ -258,7 +258,7 @@ it('ranks at most 100 players', () => {
 - Create: `apps/web/e2e/season.spec.ts`
 - Modify: `apps/web/README.md`, `apps/server/README.md` (admin routes, inflow bookkeeping), `docs/superpowers/reports/` entry comes from the executor's final report.
 
-- [x] **Step 1: Write the failing e2e** — grant SP via `/e2e/grant` (extend with `sp`), record an inflow, advance the clock 15 days, run `seasonClose` via `/admin/jobs/seasonClose/run`, reload: Season panel shows "Last season: you won … WYRM" and the leaderboard shows season 2.
+- [x] **Step 1: Write the failing e2e** — grant SP via `/e2e/grant` (extend with `sp`), record an inflow, advance the clock 15 days, run `seasonClose` via `/admin/jobs/seasonClose/run`, reload: Season panel shows "Last season: you won … DRIS" and the leaderboard shows season 2.
 - [x] **Step 2: Run** `pnpm --filter @wyrmhaven/web test:e2e` — Expected: the new spec fails.
 - [x] **Step 3: Implement** the e2e routes and helpers; write the docs.
 - [x] **Step 4: Run e2e twice, `pnpm -r test`, `pnpm -r typecheck`** — Expected: all green.
