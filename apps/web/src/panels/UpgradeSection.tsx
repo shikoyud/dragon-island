@@ -1,13 +1,12 @@
-import { constructionFor, MAX_BUILDERS, priceMicroUsd, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
+import { constructionFor, MAX_BUILDERS, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
 import { footprintOfMovable, placementOf } from '../game/buildingInfo'
 import { timerLabel } from '../game/islandModel'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { useStartPlacing } from '../state/startPlacing'
-import { formatGold, formatMicroUsd } from '../ui/Money'
+import { formatGold } from '../ui/Money'
 import { ActionButton } from '../ui/Panel'
-import { Timer } from '../ui/Timer'
-import { useAutoFinish } from './useAutoFinish'
+import { ConstructionStatus } from './ConstructionStatus'
 
 export function levelOf(s: PlayerState, b: BuildingRef): number {
   switch (b.type) {
@@ -28,14 +27,12 @@ export function UpgradeSection({ building, nowMs }: { building: BuildingRef; now
   const s = me.data?.state
   const con = s ? constructionFor(s, building) : undefined
   const index = s && con ? s.constructions.indexOf(con) : -1
-  useAutoFinish(index, con?.readyAtMs, nowMs)
   if (!s) return null
 
   const level = levelOf(s, building)
   const info = upgradeInfo(s, building)
   const id = idOf(building)
   const here = placementOf(s, building)
-  const skip = con && index >= 0 ? priceMicroUsd({ kind: 'skip', target: 'construction', index }, s, nowMs) : null
 
   const reason = !info ? '' : s.level < info.minLevel ? `Needs player level ${info.minLevel}`
     : s.gold < info.cost ? 'Not enough gold'
@@ -46,17 +43,7 @@ export function UpgradeSection({ building, nowMs }: { building: BuildingRef; now
       <span>Level {level}</span>
       {con ? (
         <>
-          <span>{con.kind === 'build' ? 'Building' : `Upgrading to ${level + 1}`} · <Timer readyAtMs={con.readyAtMs} nowMs={nowMs} /></span>
-          {nowMs >= con.readyAtMs && (
-            <ActionButton id={`finish-construction-${id}`} primary disabled={pending} onClick={() => void run({ type: 'finishConstruction', index })}>
-              Finish
-            </ActionButton>
-          )}
-          {skip !== null && (
-            <ActionButton id={`skip-construction-${id}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'construction', index } })}>
-              Skip · {formatMicroUsd(skip)}
-            </ActionButton>
-          )}
+          <ConstructionStatus index={index} readyAtMs={con.readyAtMs} nowMs={nowMs} id={id} label={con.kind === 'build' ? 'Building' : `Upgrading to ${level + 1}`} />
         </>
       ) : info ? (
         <ActionButton

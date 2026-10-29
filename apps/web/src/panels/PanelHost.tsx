@@ -6,12 +6,15 @@ import { BreedPanel } from './BreedPanel'
 import { BuildShopPanel } from './BuildShopPanel'
 import { DecorationPanel } from './DecorationPanel'
 import { DragonPanel } from './DragonPanel'
+import { ExpandSignPanel } from './ExpandSignPanel'
 import { FarmPanel } from './FarmPanel'
 import { HabitatPanel } from './HabitatPanel'
+import { IslandMapPanel } from './IslandMapPanel'
 import { NestsPanel } from './NestsPanel'
+import { ObstaclePanel } from './ObstaclePanel'
 import { StorePanel } from './StorePanel'
 
-export type PanelId = 'build' | 'breed' | 'store' | 'nests' | 'farm' | 'wallet' | 'pvp' | 'pve' | 'season' | 'hoard' | 'referral'
+export type PanelId = 'build' | 'map' | 'breed' | 'store' | 'nests' | 'farm' | 'wallet' | 'pvp' | 'pve' | 'season' | 'hoard' | 'referral'
 
 /** Opens the panel for whatever the player clicked in the scene, or a named panel from the toolbar. */
 export function PanelHost({ bridge, nowMs, named, onCloseNamed }: { bridge: Bridge; nowMs: number; named: PanelId | null; onCloseNamed: () => void }) {
@@ -23,6 +26,7 @@ export function PanelHost({ bridge, nowMs, named, onCloseNamed }: { bridge: Brid
   const startPlacing = useStartPlacing()
 
   if (named === 'build') return <BuildShopPanel view={view} onPlace={(what, size) => { startPlacing(what, size); onCloseNamed() }} onClose={onCloseNamed} />
+  if (named === 'map') return <IslandMapPanel view={view} onView={id => bridge.setView(id)} onClose={onCloseNamed} />
   if (named === 'breed') return <BreedPanel onClose={onCloseNamed} />
   if (named === 'store') return <StorePanel nowMs={nowMs} onClose={onCloseNamed} />
   if (named === 'nests') return <NestsPanel nowMs={nowMs} onClose={onCloseNamed} />
@@ -36,6 +40,8 @@ export function PanelHost({ bridge, nowMs, named, onCloseNamed }: { bridge: Brid
     case 'hatchery':
     case 'hatcheryBuilding': return <NestsPanel nowMs={nowMs} onClose={close} />
     case 'farm': return <FarmPanel nowMs={nowMs} onClose={close} />
+    case 'obstacle': return <ObstaclePanel obstacleId={target.id} nowMs={nowMs} onClose={close} />
+    case 'expandSign': return <ExpandSignPanel onClose={close} />
     case 'hoard':
     case 'empty':
     default:

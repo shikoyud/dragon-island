@@ -31,6 +31,7 @@ import { Shell } from './Shell'
 
 const TOOLBAR: { id: PanelId; label: string }[] = [
   { id: 'build', label: 'Build' },
+  { id: 'map', label: 'Map' },
   { id: 'breed', label: 'Breed' },
   { id: 'nests', label: 'Nests' },
   { id: 'farm', label: 'Farm' },
