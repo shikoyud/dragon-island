@@ -3,15 +3,18 @@ import { applyAction } from '../src/actions/apply'
 import type { Action } from '../src/actions/types'
 import { createRng } from '../src/rng'
 import { newPlayer, type PlayerState } from '../src/state'
-import type { StoreItem } from '../src/store'
+import { priceMicroUsd, type StoreItem } from '../src/store'
 import { FIXTURE_CATALOG } from './fixtures'
 import { err, ok } from './helpers'
+import { isValidAction } from '../src/index'
 
 const run = (st: PlayerState, a: Action, t = 0) => applyAction(st, a, t, createRng(1), FIXTURE_CATALOG)
 const sell = (gold: number): Action => ({ type: 'sellGold', gold })
 const buy = (item: StoreItem): Action => ({ type: 'buy', item })
 const base: PlayerState = { ...newPlayer(0), earningUnlocked: true, hoardLevel: 1, gold: 300_000, eligibleGold: 300_000 }
 const p0 = newPlayer(0)
+const s = p0
+const P = (col: number, row: number) => ({ island: 'home' as const, col, row, facing: 0 as const })
 
 describe('sellGold', () => {
   it('checks gates in order', () => {
@@ -50,11 +53,11 @@ describe('buy', () => {
   })
 
   it('sells nests up to four', () => {
-    const r = run(p0, buy({ kind: 'nest' }))
+    const r = run(p0, buy({ kind: 'nest', placement: P(6, 8) }))
     expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 2_000_000 }])
     expect(ok(r).nests.map(n => n.egg)).toEqual([null, null])
     expect(ok(r).nests[1]!.level).toBe(1)
-    err(run({ ...p0, nests: [p0.nests[0]!, p0.nests[0]!, p0.nests[0]!, p0.nests[0]!] }, buy({ kind: 'nest' })), 'MAX_NESTS')
+    err(run({ ...p0, nests: [p0.nests[0]!, p0.nests[0]!, p0.nests[0]!, p0.nests[0]!] }, buy({ kind: 'nest', placement: P(6, 8) })), 'MAX_NESTS')
   })
 
   it('skips timers', () => {
@@ -90,10 +93,43 @@ describe('buy', () => {
 
   it('builds and upgrades the Hoard', () => {
     err(run({ ...p0, level: 4 }, buy({ kind: 'hoard' })), 'LEVEL_TOO_LOW')
-    const r = run({ ...p0, level: 5 }, buy({ kind: 'hoard' }))
+    const r = run({ ...p0, level: 5 }, buy({ kind: 'hoard', placement: P(7, 6) }))
     expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 2_000_000 }])
     expect(ok(r).hoardLevel).toBe(1)
     err(run({ ...p0, level: 5, hoardLevel: 7 }, buy({ kind: 'hoard' })), 'MAX_LEVEL')
+  })
+})
+
+describe('placed store items and construction skips', () => {
+  it('prices and applies a construction skip, which finishes the build', () => {
+    const a = ok(run({ ...s, gold: 2_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    expect(priceMicroUsd({ kind: 'skip', target: 'construction', index: 0 }, a, 0)).toBe(100_000)
+    expect(priceMicroUsd({ kind: 'skip', target: 'construction', index: 0 }, a, 600_000)).toBeNull()
+    const r = run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 1_000)
+    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 100_000 }])
+    expect([ok(r).habitats[0]!.level, ok(r).constructions]).toEqual([2, []])
+  })
+  it('a construction skip frees a builder', () => {
+    const t = { ...s, gold: 50_000, level: 10, tutorial: { ...s.tutorial, buildsStarted: 2 } }
+    const two = ok(run(ok(run(t, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0)), { type: 'startUpgrade', building: { type: 'habitat', id: 'h2' } }, 0))
+    err(run(two, { type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 0), 'BUILDERS_BUSY')
+    const freed = ok(run(two, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 0))
+    expect(ok(run(freed, { type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 0)).constructions).toHaveLength(2)
+  })
+  it('a bought nest and the first Hoard are placed', () => {
+    const a = ok(run(s, { type: 'buy', item: { kind: 'nest', placement: P(6, 8) } }, 0))
+    expect(a.nests[1]).toEqual({ egg: null, level: 1, placement: P(6, 8) })
+    err(run(s, { type: 'buy', item: { kind: 'nest', placement: P(0, 0) } }, 0), 'OVERLAP')
+    err(run({ ...s, level: 5 }, { type: 'buy', item: { kind: 'hoard', placement: { island: 'isle2', col: 0, row: 0, facing: 0 } } }, 0), 'ISLAND_LOCKED')
+    const h = ok(run({ ...s, level: 5 }, { type: 'buy', item: { kind: 'hoard', placement: P(7, 6) } }, 0))
+    expect([h.hoardLevel, h.hoardPlacement]).toEqual([1, P(7, 6)])
+    expect(ok(run(h, { type: 'buy', item: { kind: 'hoard' } }, 0)).hoardLevel).toBe(2)
+    expect(isValidAction({ type: 'buy', item: { kind: 'nest' } })).toBe(false)
+  })
+  it('the first Hoard needs a home placement', () => {
+    err(run({ ...s, level: 5 }, { type: 'buy', item: { kind: 'hoard' } }, 0), 'INVALID_ACTION')
+    const t = { ...s, level: 5, islands: { ...s.islands, unlocked: ['home', 'isle2'] as PlayerState['islands']['unlocked'] } }
+    err(run(t, { type: 'buy', item: { kind: 'hoard', placement: { island: 'isle2', col: 0, row: 0, facing: 0 } } }, 0), 'WRONG_ISLAND')
   })
 })
 

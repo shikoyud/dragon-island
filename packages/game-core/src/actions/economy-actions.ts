@@ -2,7 +2,9 @@ import type { Catalog } from '../catalog'
 import { MAX_DRAGON_LEVEL } from '../dragon'
 import { HOARD, HOARD_MIN_PLAYER_LEVEL, MICRO_USD_PER_GOLD, remainingSellMicroUsd, sellCounterAt } from '../sell'
 import type { PlayerState } from '../state'
-import { FOOD_PACK, MAX_NESTS, priceMicroUsd, skipTargetReadyAt, type StoreItem } from '../store'
+import { FOOD_PACK, MAX_NESTS, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
+import { FOOTPRINT, placementError } from '../island'
+import { completeConstruction } from './build-actions'
 import { collectDragonHome } from './island-actions'
 import { failure, success, type ActionError, type Handler } from './types'
 
@@ -24,8 +26,9 @@ export const sellGold: Handler<'sellGold'> = (s, a, ctx) => {
   }, [{ type: 'payout', microUsd }])
 }
 
-function skipSlotCount(s: PlayerState, target: 'nest' | 'hatchery' | 'farm'): number {
-  return target === 'nest' ? s.nests.length : target === 'hatchery' ? s.hatchery.length : s.farms.length
+function skipSlotCount(s: PlayerState, target: SkipTarget): number {
+  return target === 'nest' ? s.nests.length : target === 'hatchery' ? s.hatchery.length
+    : target === 'construction' ? s.constructions.length : s.farms.length
 }
 
 /** Typed reason an item can't be bought now, or null if it can. */
@@ -37,7 +40,8 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
       return readyAt === null || readyAt <= nowMs ? 'NOTHING_TO_SKIP' : null
     }
     case 'nest':
-      return s.nests.length >= MAX_NESTS ? 'MAX_NESTS' : null
+      if (s.nests.length >= MAX_NESTS) return 'MAX_NESTS'
+      return placementError(s, item.placement, FOOTPRINT.nest)
     case 'levelUp': {
       const d = s.dragons.find(x => x.id === item.dragonId)
       if (!d) return 'NOT_FOUND'
@@ -45,7 +49,10 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
     }
     case 'hoard':
       if (s.hoardLevel >= HOARD.length) return 'MAX_LEVEL'
-      return s.level < HOARD_MIN_PLAYER_LEVEL ? 'LEVEL_TOO_LOW' : null
+      if (s.level < HOARD_MIN_PLAYER_LEVEL) return 'LEVEL_TOO_LOW'
+      if (s.hoardLevel > 0) return null
+      if (!item.placement) return 'INVALID_ACTION'
+      return placementError(s, item.placement, FOOTPRINT.hoard) ?? (item.placement.island === 'home' ? null : 'WRONG_ISLAND')
     case 'foodPack':
     case 'oddsBoost':
       return null
@@ -58,17 +65,20 @@ function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog): 
       const at = <T extends { readyAtMs: number } | null>(xs: T[]) =>
         xs.map((x, i) => i === item.index && x ? { ...x, readyAtMs: nowMs } : x)
       if (item.target === 'nest') return { ...s, nests: s.nests.map((n, i) => i === item.index && n.egg ? { ...n, egg: { ...n.egg, readyAtMs: nowMs } } : n) }
+      if (item.target === 'construction') {
+        return completeConstruction({ ...s, constructions: at(s.constructions) }, item.index, c, nowMs)
+      }
       if (item.target === 'hatchery') return { ...s, hatchery: at(s.hatchery) }
       return { ...s, farms: at(s.farms) }
     }
-    case 'nest': return { ...s, nests: [...s.nests, { egg: null, level: 1, placement: { island: 'home', col: 0, row: 0, facing: 0 } }] }
+    case 'nest': return { ...s, nests: [...s.nests, { egg: null, level: 1, placement: item.placement }] }
     case 'foodPack': return { ...s, food: s.food + FOOD_PACK }
     case 'levelUp': {
       const collected = collectDragonHome(s, item.dragonId, c, nowMs)
       return { ...collected, dragons: collected.dragons.map(d => d.id === item.dragonId ? { ...d, level: d.level + 1 } : d) }
     }
     case 'oddsBoost': return { ...s, oddsBoosts: s.oddsBoosts + 1 }
-    case 'hoard': return { ...s, hoardLevel: s.hoardLevel + 1 }
+    case 'hoard': return { ...s, hoardLevel: s.hoardLevel + 1, hoardPlacement: s.hoardLevel === 0 ? item.placement! : s.hoardPlacement }
   }
 }
 

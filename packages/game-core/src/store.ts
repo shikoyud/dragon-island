@@ -1,14 +1,16 @@
 import { foodToNextLevel, MAX_DRAGON_LEVEL } from './dragon'
 import { HOARD } from './sell'
-import type { PlayerState } from './state'
+import type { Placement, PlayerState } from './state'
 
 export type StoreItem =
-  | { kind: 'skip'; target: 'nest' | 'hatchery' | 'farm'; index: number }
-  | { kind: 'nest' }
+  | { kind: 'skip'; target: SkipTarget; index: number }
+  | { kind: 'nest'; placement: Placement }
   | { kind: 'foodPack' }
   | { kind: 'levelUp'; dragonId: string }
   | { kind: 'oddsBoost' }
-  | { kind: 'hoard' }
+  | { kind: 'hoard'; placement?: Placement } // placement required (and validated) when hoardLevel === 0
+
+export type SkipTarget = 'nest' | 'hatchery' | 'farm' | 'construction'
 
 export const MAX_NESTS = 4
 export const FOOD_PACK = 1_000
@@ -17,7 +19,8 @@ export const SKIP_STEP_MS = 1_800_000
 const NEST_PRICES = [2_000_000, 4_000_000, 8_000_000] // 2nd, 3rd, 4th nest
 
 /** Ready time of a skip target, or `null` if the slot holds nothing. */
-export function skipTargetReadyAt(s: PlayerState, target: 'nest' | 'hatchery' | 'farm', index: number): number | null {
+export function skipTargetReadyAt(s: PlayerState, target: SkipTarget, index: number): number | null {
+  if (target === 'construction') return s.constructions[index]?.readyAtMs ?? null
   if (target === 'nest') return s.nests[index]?.egg?.readyAtMs ?? null
   if (target === 'hatchery') return s.hatchery[index]?.readyAtMs ?? null
   const plot = s.farms[index]

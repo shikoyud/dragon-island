@@ -128,13 +128,15 @@ function isStoreItem(v: unknown): boolean {
   const item = v as Record<string, unknown>
   switch (item['kind']) {
     case 'skip':
-      return ['nest', 'hatchery', 'farm'].includes(item['target'] as string) && isIndex(item['index'])
+      return ['nest', 'hatchery', 'farm', 'construction'].includes(item['target'] as string) && isIndex(item['index'])
     case 'levelUp':
       return isId(item['dragonId'])
     case 'nest':
+      return isPlacement(item['placement'])
+    case 'hoard':
+      return item['placement'] === undefined || isPlacement(item['placement'])
     case 'foodPack':
     case 'oddsBoost':
-    case 'hoard':
       return true
     default:
       return false

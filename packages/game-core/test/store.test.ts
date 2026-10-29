@@ -24,10 +24,10 @@ describe('priceMicroUsd', () => {
 
   it('prices nests by count', () => {
     expect(MAX_NESTS).toBe(4)
-    expect(priceMicroUsd({ kind: 'nest' }, base, 0)).toBe(2_000_000)
-    expect(priceMicroUsd({ kind: 'nest' }, { ...base, nests: Array.from({ length: 2 }, () => base.nests[0]!) }, 0)).toBe(4_000_000)
-    expect(priceMicroUsd({ kind: 'nest' }, { ...base, nests: Array.from({ length: 3 }, () => base.nests[0]!) }, 0)).toBe(8_000_000)
-    expect(priceMicroUsd({ kind: 'nest' }, { ...base, nests: Array.from({ length: 4 }, () => base.nests[0]!) }, 0)).toBeNull()
+    expect(priceMicroUsd({ kind: 'nest', placement: { island: 'home', col: 6, row: 8, facing: 0 } }, base, 0)).toBe(2_000_000)
+    expect(priceMicroUsd({ kind: 'nest', placement: { island: 'home', col: 6, row: 8, facing: 0 } }, { ...base, nests: Array.from({ length: 2 }, () => base.nests[0]!) }, 0)).toBe(4_000_000)
+    expect(priceMicroUsd({ kind: 'nest', placement: { island: 'home', col: 6, row: 8, facing: 0 } }, { ...base, nests: Array.from({ length: 3 }, () => base.nests[0]!) }, 0)).toBe(8_000_000)
+    expect(priceMicroUsd({ kind: 'nest', placement: { island: 'home', col: 6, row: 8, facing: 0 } }, { ...base, nests: Array.from({ length: 4 }, () => base.nests[0]!) }, 0)).toBeNull()
   })
 
   it('prices level-ups from food cost with a floor', () => {
