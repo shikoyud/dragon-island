@@ -1,4 +1,4 @@
-import { LAUNCH_CATALOG, type Catalog, type PlayerState } from '@wyrmhaven/game-core'
+import { LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
 import { eq } from 'drizzle-orm'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { getAddress, type Address, type Hex } from 'viem'
@@ -24,6 +24,7 @@ import { withdrawRoutes } from './routes/withdraw'
 import type { WithdrawDeps } from './services/withdraw'
 import { requireActive } from './services/bans'
 import { withDerivedLedger } from './services/ledger'
+import { migrateState } from './services/stateMigration'
 import { runIndexer } from './services/indexer'
 import { ensureCurrentSeason } from './services/season'
 import { seasonRoutes } from './routes/season'
@@ -97,7 +98,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   app.get('/me', { preHandler: requireSession(db, clock) }, async req => {
     const p = req.player!
     const [bal] = await db.select().from(balances).where(eq(balances.playerId, p.id))
-    const state = p.state as PlayerState
+    // Same load path as /actions, so a save from before a game-core change reaches the client complete.
+    const state = migrateState(p.state, clock())
     return {
       playerId: p.id,
       address: getAddress(p.address),

@@ -129,6 +129,33 @@ describe('POST /actions', () => {
     expect(late.json()).toEqual({ error: 'NOT_FOUND' })
   })
 
+  it('a construction skip with a bad index or on a ready construction charges nothing', async () => {
+    const placed = await post({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { island: 'home', col: 6, row: 7, facing: 0 } })
+    expect(placed.statusCode).toBe(200)
+    const bad = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 5 } })
+    expect([bad.statusCode, bad.json()]).toEqual([422, { error: 'NOT_FOUND' }])
+    t.clock.set(placed.json().state.constructions[0].readyAtMs)
+    const ready = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } })
+    expect([ready.statusCode, ready.json()]).toEqual([422, { error: 'NOTHING_TO_SKIP' }])
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(100n * E18)
+    expect(await t.db.select().from(spendBatches)).toHaveLength(0)
+  })
+
+  it('GET /me lays out a legacy (pre-grid) save instead of returning it raw', async () => {
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const old = { ...(p!.state as PlayerState), nests: [null] } as unknown as Record<string, unknown>
+    for (const k of ['islands', 'hatcheryLevel', 'hatcheryPlacement', 'hoardPlacement', 'decorations', 'constructions']) delete old[k]
+    old['farms'] = [{ crop: null, readyAtMs: 0 }]
+    old['habitats'] = (old['habitats'] as Record<string, unknown>[]).map(({ placement, ...h }) => { void placement; return h })
+    await t.db.update(players).set({ state: old }).where(eq(players.id, playerId))
+    const me = await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })
+    expect(me.statusCode).toBe(200)
+    const state = me.json().state
+    expect(state.islands.unlocked).toEqual(['home'])
+    expect(state.nests[0].egg).toBeNull()
+    expect(state.habitats[0].placement.island).toBe('home')
+  })
+
   it('requires a stored offer for pvp battles', async () => {
     const r = await post({ type: 'pvpBattle', offerId: crypto.randomUUID(), team: ['d1', 'd2', 'd1'], moves: [] })
     expect(r.statusCode).toBe(409)
