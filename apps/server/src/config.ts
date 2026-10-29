@@ -30,6 +30,10 @@ const schema = z.object({
   /** 1 = Playwright mode: in-memory PGlite, fake chain, fixed price, POST /e2e/grant. Never in production. */
   E2E: z.enum(['0', '1']).default('0'),
   CATALOG: z.enum(['launch']).default('launch'),
+  /** Discord webhook for chain-watch alerts; alerts are only logged when absent. Treat as a secret. */
+  ALERT_WEBHOOK_URL: z.string().url().optional(),
+  /** Sentry error reporting; the SDK is only loaded when this is set. */
+  SENTRY_DSN: z.string().optional(),
   NODE_ENV: z.string().optional(),
 }).superRefine((c, ctx) => {
   // E2E mode hands out free tokens: refuse anything that could be a real deployment.

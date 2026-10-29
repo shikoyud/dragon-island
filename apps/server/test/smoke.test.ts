@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { Db } from '../src/db/client'
 import { bearer, testApp, type TestApp } from './helpers/testApp'
 import { TEST_KEYS, wallet } from './helpers/wallet'
 
@@ -26,5 +27,18 @@ describe('smoke', () => {
     expect((await t.app.inject({ method: 'GET', url: '/season' })).statusCode).toBe(200)
     expect((await t.app.inject({ method: 'GET', url: '/health' })).json()).toEqual({ ok: true })
     expect((await t.app.inject({ method: 'GET', url: '/nope' })).statusCode).toBe(404)
+  })
+
+  it('health returns 503 when the database is down', async () => {
+    // The real database object with every query rejecting, as a dropped connection would.
+    const down = Object.assign(Object.create(t.db) as Db, { execute: () => Promise.reject(new Error('connection refused')) })
+    const broken = await testApp({ db: down })
+    try {
+      const res = await broken.app.inject({ method: 'GET', url: '/health' })
+      expect(res.statusCode).toBe(503)
+      expect(res.json()).toEqual({ ok: false })
+    } finally {
+      await broken.close()
+    }
   })
 })

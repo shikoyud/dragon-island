@@ -1,5 +1,5 @@
 import { LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { getAddress, type Address, type Hex } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
@@ -12,6 +12,7 @@ import { balances } from './db/schema'
 import { registerErrorHandler } from './plugins/errors'
 import { requireSession } from './plugins/session'
 import { runBurnBatch } from './jobs/burnBatch'
+import { createChainWatch } from './jobs/chainWatch'
 import { expireVouchers } from './jobs/voucherExpiry'
 import { closeSeasons } from './jobs/seasonClose'
 import { actionRoutes } from './routes/actions'
@@ -25,6 +26,7 @@ import type { WithdrawDeps } from './services/withdraw'
 import { requireActive } from './services/bans'
 import { withDerivedLedger } from './services/ledger'
 import { migrateState } from './services/stateMigration'
+import { sendAlert } from './services/alerts'
 import { runIndexer } from './services/indexer'
 import { ensureCurrentSeason } from './services/season'
 import { seasonRoutes } from './routes/season'
@@ -61,7 +63,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   deps.price ??= new ManualPriceSource(db)
   const { config } = deps
   deps.chain ??= config.VAULT_ADDRESS && config.RPC_URL
-    ? createViemChainClient({ rpcUrl: config.RPC_URL, vault: config.VAULT_ADDRESS as Address, operatorKey: config.OPERATOR_PRIVATE_KEY as Hex | undefined })
+    ? createViemChainClient({ rpcUrl: config.RPC_URL, vault: config.VAULT_ADDRESS as Address, operatorKey: config.OPERATOR_PRIVATE_KEY as Hex | undefined, token: config.TOKEN_ADDRESS as Address | undefined })
     : new FakeChainClient()
   const withdrawDeps: WithdrawDeps | null = config.SIGNER_PRIVATE_KEY && config.VAULT_ADDRESS
     ? { db, clock, chain: deps.chain, signer: privateKeyToAccount(config.SIGNER_PRIVATE_KEY as Hex), vault: config.VAULT_ADDRESS as Address, chainId: config.CHAIN_ID }
@@ -89,10 +91,29 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     season: () => ensureCurrentSeason(db, clock),
     seasonClose: () => closeSeasons({ db, clock }),
   }
+  // Watches the real vault only; state lives in the closure for the life of the process.
+  if (config.VAULT_ADDRESS) {
+    jobs.chainWatch = createChainWatch({
+      db, clock, chain, config,
+      alert: async text => {
+        app.log.warn({ alert: text }, 'chain watch alert')
+        await sendAlert(config, fetch, text)
+      },
+      log: (message, err) => app.log.error({ err }, message),
+    })
+  }
   app.decorate('jobs', jobs)
   adminRoutes(app, deps, jobs)
 
-  app.get('/health', async () => ({ ok: true }))
+  app.get('/health', async (_req, reply) => {
+    try {
+      await db.execute(sql`select 1`)
+      return { ok: true }
+    } catch (err) {
+      app.log.error({ err }, 'health check: database unreachable')
+      return reply.status(503).send({ ok: false })
+    }
+  })
   if (config.E2E === '1') e2eRoutes(app, deps)
 
   app.get('/me', { preHandler: requireSession(db, clock) }, async req => {

@@ -13,6 +13,9 @@ export class FakeChainClient implements ChainClient {
   /** Status the next burn's receipt will report; resets to success after each burn. */
   nextTxStatus: 'success' | 'reverted' = 'success'
   txStatus = new Map<string, 'success' | 'reverted'>()
+  isPaused = false
+  signerAddress: Address = '0x0000000000000000000000000000000000000000'
+  vaultBalance = 0n
 
   async blockNumber(): Promise<bigint> {
     return this.head
@@ -42,5 +45,14 @@ export class FakeChainClient implements ChainClient {
   }
   async remainingBurnToday(): Promise<bigint> {
     return this.remainingBurn
+  }
+  async vaultPaused(): Promise<boolean> {
+    return this.isPaused
+  }
+  async vaultSigner(): Promise<Address> {
+    return this.signerAddress
+  }
+  async vaultTokenBalance(): Promise<bigint> {
+    return this.vaultBalance
   }
 }

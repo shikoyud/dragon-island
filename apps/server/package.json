@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.13",
+    "@sentry/node": "^11.9.0",
     "@wyrmhaven/game-core": "workspace:*",
     "@wyrmhaven/shared": "workspace:*",
     "drizzle-orm": "^0.45.4",

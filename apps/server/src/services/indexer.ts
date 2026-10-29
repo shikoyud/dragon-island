@@ -6,7 +6,8 @@ import { chainEvents, indexerState, players, vouchers } from '../db/schema'
 import { recordInflow } from './inflows'
 import { creditDeposit, forceDebit } from './ledger'
 
-const KEY = 'vault'
+/** indexer_state row the vault indexer advances (read by the chain watch). */
+export const INDEXER_KEY = 'vault'
 
 export interface IndexerDeps {
   db: Db
@@ -31,7 +32,7 @@ export async function runIndexer(deps: IndexerDeps): Promise<{ processed: number
   const { db, chain, confirmations, clock, startBlock, chunk } = deps
   const head = await chain.blockNumber()
   const to = head - BigInt(confirmations)
-  const [state] = await db.select().from(indexerState).where(eq(indexerState.key, KEY))
+  const [state] = await db.select().from(indexerState).where(eq(indexerState.key, INDEXER_KEY))
   let from = (state?.lastBlock ?? startBlock - 1n) + 1n
   if (from < startBlock) from = startBlock
   let processed = 0
@@ -54,7 +55,7 @@ export async function runIndexer(deps: IndexerDeps): Promise<{ processed: number
       }
       await tx
         .insert(indexerState)
-        .values({ key: KEY, lastBlock: end })
+        .values({ key: INDEXER_KEY, lastBlock: end })
         .onConflictDoUpdate({ target: indexerState.key, set: { lastBlock: end } })
     })
     from = end + 1n

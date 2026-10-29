@@ -14,6 +14,7 @@
   "dependencies": {
     "@reown/appkit": "^1.8.24",
     "@reown/appkit-adapter-wagmi": "^1.8.24",
+    "@sentry/react": "^11.9.0",
     "@tanstack/react-query": "^5.105.0",
     "@wyrmhaven/game-core": "workspace:*",
     "@wyrmhaven/shared": "workspace:*",

@@ -25,7 +25,17 @@ export interface ChainClient {
   remainingBurnToday(): Promise<bigint>
   /** Resolves once the transaction is mined. */
   waitForTx(hash: Hex): Promise<'success' | 'reverted'>
+  vaultPaused(): Promise<boolean>
+  /** The voucher signer the vault accepts. */
+  vaultSigner(): Promise<Address>
+  /** The vault's WYRM balance (ERC-20 balanceOf on the token); needs the token address configured. */
+  vaultTokenBalance(): Promise<bigint>
 }
+
+const erc20BalanceOfAbi = [{
+  type: 'function', name: 'balanceOf', stateMutability: 'view',
+  inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }],
+}] as const
 
 export const robinhoodTestnet = defineChain({
   id: 46630,
@@ -37,7 +47,7 @@ export const robinhoodTestnet = defineChain({
 
 const EVENT_NAMES: VaultEventName[] = ['Entered', 'Deposited', 'Claimed', 'PayoutDayStarted']
 
-export function createViemChainClient(opts: { rpcUrl: string; vault: Address; operatorKey?: Hex }): ChainClient {
+export function createViemChainClient(opts: { rpcUrl: string; vault: Address; operatorKey?: Hex; token?: Address }): ChainClient {
   const chain = { ...robinhoodTestnet, rpcUrls: { default: { http: [opts.rpcUrl] } } }
   const pub = createPublicClient({ chain, transport: http(opts.rpcUrl) })
   const operator = opts.operatorKey ? privateKeyToAccount(opts.operatorKey) : null
@@ -71,6 +81,12 @@ export function createViemChainClient(opts: { rpcUrl: string; vault: Address; op
     async waitForTx(hash) {
       const receipt = await pub.waitForTransactionReceipt({ hash })
       return receipt.status === 'success' ? 'success' : 'reverted'
+    },
+    vaultPaused: () => read<boolean>('paused'),
+    vaultSigner: () => read<Address>('signer'),
+    async vaultTokenBalance() {
+      if (!opts.token) throw new Error('TOKEN_ADDRESS not configured: cannot read the vault token balance')
+      return pub.readContract({ address: opts.token, abi: erc20BalanceOfAbi, functionName: 'balanceOf', args: [opts.vault] })
     },
   }
 }
