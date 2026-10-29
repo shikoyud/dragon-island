@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ApiProvider } from '../src/api/ApiProvider'
-import { createApi, type Api } from '../src/api/client'
+import { ApiError, createApi, type Api } from '../src/api/client'
 import { messageFor } from '../src/api/errors'
 import { ME_KEY } from '../src/state/me'
 import { ToastProvider } from '../src/ui/Toast'
@@ -37,10 +37,10 @@ describe('createApi', () => {
 })
 
 describe('TermsPrompt', () => {
-  function setup(links: { terms?: string; privacy?: string; risk?: string }) {
+  function setup(links: { terms?: string; privacy?: string; risk?: string }, acceptTerms = vi.fn(async (_v: string) => ({ ok: true as const }))) {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const invalidate = vi.spyOn(qc, 'invalidateQueries')
-    const api = { acceptTerms: vi.fn(async () => ({ ok: true as const })) }
+    const api = { acceptTerms }
     render(
       <QueryClientProvider client={qc}>
         <ApiProvider api={api as unknown as Api}>
@@ -62,6 +62,17 @@ describe('TermsPrompt', () => {
     const { api, invalidate } = setup({})
     await userEvent.click(screen.getByRole('button', { name: /accept/i }))
     expect(api.acceptTerms).toHaveBeenCalledWith('2026-11')
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ME_KEY })
+  })
+
+  it('on failure shows a toast, re-enables Accept and refetches /me (the version may have moved on)', async () => {
+    const acceptTerms = vi.fn(async (_v: string): Promise<{ ok: true }> => { throw new ApiError(400, 'TERMS_VERSION_MISMATCH') })
+    const { invalidate } = setup({}, acceptTerms)
+    const button = screen.getByRole('button', { name: /accept/i })
+    await userEvent.click(button)
+    expect(acceptTerms).toHaveBeenCalledWith('2026-11')
+    expect(await screen.findByRole('alert')).toHaveTextContent(/reload/i)
+    expect(button).toBeEnabled()
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ME_KEY })
   })
 })

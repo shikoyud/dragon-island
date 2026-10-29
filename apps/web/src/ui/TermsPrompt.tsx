@@ -36,6 +36,9 @@ export function TermsPrompt({ version, links = TERMS_LINKS }: { version: string;
       await qc.invalidateQueries({ queryKey: ME_KEY })
     } catch (e) {
       toasts.error(e)
+      // A TERMS_VERSION_MISMATCH means the server moved to a newer version: reload /me so the prompt
+      // offers that one instead of the stale version forever. Harmless for other failures.
+      void qc.invalidateQueries({ queryKey: ME_KEY })
     } finally {
       setPending(false)
     }
