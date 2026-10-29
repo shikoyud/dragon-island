@@ -53,14 +53,14 @@ describe('useAction', () => {
     })
     const { wrapper } = setup(impl as Api['action'])
     const { result } = renderHook(() => useAction(), { wrapper })
-    await act(async () => { await result.current.run({ type: 'buyFarmPlot' }) })
+    await act(async () => { await result.current.run({ type: 'harvest', plot: 0 }) })
     expect(impl).toHaveBeenCalledTimes(2)
     expect(impl.mock.calls[0]![1]).toBe(impl.mock.calls[1]![1])
 
     const bad = vi.fn(async () => { throw new ApiError(402, 'INSUFFICIENT_TOKENS') })
     const s2 = setup(bad as unknown as Api['action'])
     const h2 = renderHook(() => useAction(), { wrapper: s2.wrapper })
-    await act(async () => { await h2.result.current.run({ type: 'buyFarmPlot' }).catch(() => {}) })
+    await act(async () => { await h2.result.current.run({ type: 'harvest', plot: 0 }).catch(() => {}) })
     expect(bad).toHaveBeenCalledTimes(1)
   })
 
@@ -70,15 +70,15 @@ describe('useAction', () => {
     const { wrapper } = setup(impl as unknown as Api['action'])
     const { result } = renderHook(() => useAction(), { wrapper })
     let first!: Promise<unknown>
-    act(() => { first = result.current.run({ type: 'buyFarmPlot' }) })
+    act(() => { first = result.current.run({ type: 'harvest', plot: 0 }) })
     await waitFor(() => expect(result.current.pending).toBe(true))
-    await expect(result.current.run({ type: 'buyFarmPlot' })).resolves.toBeNull() // overlapping run is refused
+    await expect(result.current.run({ type: 'harvest', plot: 0 })).resolves.toBeNull() // overlapping run is refused
     await act(async () => { resolve({ state: newPlayer(0), effects: [] }); await first })
 
     const unauth = vi.fn(async () => { throw new ApiError(401, 'UNAUTHORIZED') })
     const s2 = setup(unauth as unknown as Api['action'])
     const h2 = renderHook(() => useAction(), { wrapper: s2.wrapper })
-    await act(async () => { await h2.result.current.run({ type: 'buyFarmPlot' }).catch(() => {}) })
+    await act(async () => { await h2.result.current.run({ type: 'harvest', plot: 0 }).catch(() => {}) })
     expect(sessionStore.get()).toBeNull()
   })
 

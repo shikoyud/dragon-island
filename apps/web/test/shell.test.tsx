@@ -48,7 +48,7 @@ describe('toasts and errors', () => {
     const Trigger = () => {
       const { run } = useAction()
       const toasts = useToasts()
-      return <button type="button" onClick={() => run({ type: 'buyFarmPlot' }).catch(e => toasts.error(e))}>go</button>
+      return <button type="button" onClick={() => run({ type: 'harvest', plot: 0 }).catch(e => toasts.error(e))}>go</button>
     }
     render(<Providers api={api}><Trigger /></Providers>)
     await userEvent.click(screen.getByRole('button', { name: 'go' }))

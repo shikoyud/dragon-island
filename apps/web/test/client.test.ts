@@ -40,8 +40,8 @@ describe('createApi', () => {
   it('throws ApiError with the server code', async () => {
     const f = fakeFetch(() => ({ status: 422, body: { error: 'PLOT_BUSY' } }))
     const api = createApi({ baseUrl: '/api', getToken: () => 'tok', onUnauthorized: () => {}, fetchImpl: f.impl })
-    await expect(api.action({ type: 'buyFarmPlot' }, 'k')).rejects.toMatchObject({ status: 422, code: 'PLOT_BUSY' })
-    await expect(api.action({ type: 'buyFarmPlot' }, 'k')).rejects.toBeInstanceOf(ApiError)
+    await expect(api.action({ type: 'harvest', plot: 0 }, 'k')).rejects.toMatchObject({ status: 422, code: 'PLOT_BUSY' })
+    await expect(api.action({ type: 'harvest', plot: 0 }, 'k')).rejects.toBeInstanceOf(ApiError)
   })
 
   it('reports a 401 once for concurrent failures and rethrows', async () => {

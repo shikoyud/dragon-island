@@ -1,4 +1,4 @@
-import { CROPS, MAX_PLOTS, plotCost, priceMicroUsd, type CropId } from '@wyrmhaven/game-core'
+import { CROPS, farmFood, isUnderConstruction, priceMicroUsd, type CropId } from '@wyrmhaven/game-core'
 import { useState } from 'react'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -6,6 +6,7 @@ import { formatGold, formatMicroUsd } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { isReady, Timer } from '../ui/Timer'
 import { timerLabel } from '../game/islandModel'
+import { UpgradeSection } from './UpgradeSection'
 
 const CROP_IDS = Object.keys(CROPS) as CropId[]
 
@@ -15,7 +16,6 @@ export function FarmPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => v
   const [choice, setChoice] = useState<Record<number, CropId>>({})
   const s = me.data?.state
   if (!s) return null
-  const nextPlotCost = plotCost(s.farms.length)
 
   return (
     <Panel title="Farm" onClose={onClose}>
@@ -23,15 +23,17 @@ export function FarmPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => v
         {s.farms.map((plot, i) => {
           const crop = choice[i] ?? 'sprout'
           const info = CROPS[crop]
+          const building = isUnderConstruction(s, { type: 'farm', index: i })
           const skip = priceMicroUsd({ kind: 'skip', target: 'farm', index: i }, s, nowMs)
           return (
-            <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
+            <li key={i} style={{ marginBottom: 6 }}>
+             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <span>Plot {i + 1}:</span>
               {plot.crop ? (
                 <>
                   <span>{plot.crop} · <Timer readyAtMs={plot.readyAtMs} nowMs={nowMs} /></span>
                   <ActionButton id={`harvest-${i}`} primary disabled={pending || !isReady(plot.readyAtMs, nowMs)} reason="Still growing" onClick={() => void run({ type: 'harvest', plot: i })}>
-                    Harvest · {formatGold(CROPS[plot.crop].food)} food
+                    Harvest · {formatGold(farmFood(CROPS[plot.crop].food, plot.level))} food
                   </ActionButton>
                   {skip !== null && (
                     <ActionButton id={`skip-farm-${i}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'farm', index: i } })}>
@@ -49,23 +51,18 @@ export function FarmPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => v
                       ))}
                     </select>
                   </label>
-                  <ActionButton id={`plant-${i}`} primary disabled={pending || s.gold < info.cost} reason="Not enough gold" onClick={() => void run({ type: 'plant', plot: i, crop })}>
+                  <ActionButton id={`plant-${i}`} primary disabled={pending || building || s.gold < info.cost} reason={building ? 'Still being built' : 'Not enough gold'} onClick={() => void run({ type: 'plant', plot: i, crop })}>
                     Plant
                   </ActionButton>
                 </>
               )}
+             </div>
+             <UpgradeSection building={{ type: 'farm', index: i }} nowMs={nowMs} />
             </li>
           )
         })}
       </ul>
-      <ActionButton
-        id="buy-plot"
-        disabled={pending || s.farms.length >= MAX_PLOTS || s.gold < nextPlotCost}
-        reason={s.farms.length >= MAX_PLOTS ? 'Maximum plots reached' : 'Not enough gold'}
-        onClick={() => void run({ type: 'buyFarmPlot' })}
-      >
-        Buy plot · {formatGold(nextPlotCost)} gold
-      </ActionButton>
+      <p><small>New plots come from the Build shop.</small></p>
     </Panel>
   )
 }

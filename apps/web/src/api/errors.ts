@@ -43,6 +43,16 @@ export const errorMessages: Record<string, string> = {
   WITHDRAW_LIMIT: 'That is above today’s withdrawal limit. Try a smaller amount.',
   RATE_LIMITED: 'Slow down a little and try again.',
   PRICE_UNAVAILABLE: 'The token price is unavailable right now. Try again shortly.',
+  OUT_OF_BOUNDS: 'That spot is off the island.',
+  OVERLAP: 'Something is already there.',
+  BUILDERS_BUSY: 'Both builders are busy. Finish or skip a build first.',
+  ISLAND_LOCKED: 'Unlock that island first.',
+  MAX_ISLAND: 'Every island is unlocked.',
+  WRONG_ISLAND: 'That can only go on its own island.',
+  UNDER_CONSTRUCTION: 'That building is still being built.',
+  NO_LEGENDARY: 'Own a legendary dragon to unlock Dawnspire.',
+  NEXUS_EXISTS: 'You already have the Nexus habitat.',
+  MAX_EXPANSION: 'The home island is at its full size.',
   WITHDRAWALS_DISABLED: 'Withdrawals are not enabled on this server.',
 }
 

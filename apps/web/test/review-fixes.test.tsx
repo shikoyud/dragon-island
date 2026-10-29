@@ -52,7 +52,7 @@ describe('C1: action errors surface as toasts from any panel', () => {
     const h = harness(newPlayer(0), api)
     const { result } = renderHook(() => useAction(), { wrapper: h.wrapper })
     let out: unknown = 'unset'
-    await act(async () => { out = await result.current.run({ type: 'buyFarmPlot' }) })
+    await act(async () => { out = await result.current.run({ type: 'harvest', plot: 0 }) })
     expect(out).toBeNull()
     expect(result.current.error?.code).toBe('PLOT_BUSY')
   })

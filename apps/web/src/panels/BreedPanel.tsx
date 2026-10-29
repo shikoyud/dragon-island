@@ -1,4 +1,4 @@
-import { BREED_MIN_LEVEL, breedingOdds, getSpecies, LAUNCH_CATALOG, pairKey, PITY_THRESHOLD } from '@wyrmhaven/game-core'
+import { BREED_MIN_LEVEL, breedingOdds, getSpecies, isUnderConstruction, LAUNCH_CATALOG, pairKey, PITY_THRESHOLD } from '@wyrmhaven/game-core'
 import { useState } from 'react'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -20,7 +20,7 @@ export function BreedPanel({ onClose }: { onClose?: () => void }) {
   const boost = s.oddsBoosts > 0
   const ready = pa && pb && pa.id !== pb.id
   const lowLevel = ready && (pa.level < BREED_MIN_LEVEL || pb.level < BREED_MIN_LEVEL)
-  const nestFree = s.nests.includes(null)
+  const nestFree = s.nests.some((n, i) => n.egg === null && !isUnderConstruction(s, { type: 'nest', index: i }))
   const odds = ready && !lowLevel ? breedingOdds(pa, pb, { boost, pity: s.pity }, catalog) : null
   const rows = odds ? Object.entries(odds).sort((x, y) => y[1] - x[1]) : []
   const pityKeys = ready

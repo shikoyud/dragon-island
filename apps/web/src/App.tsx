@@ -6,6 +6,7 @@ import { loadActiveArt, FALLBACK_ART } from './art/slots'
 import type { GameArtSet } from './art/types'
 import { createBridge } from './game/bridge'
 import { placingAction } from './state/placing'
+import { StartPlacingProvider, type StartPlacing } from './state/startPlacing'
 import { usePlacing } from './state/usePlacing'
 import { useAction } from './state/actions'
 import { PlacementBar } from './panels/PlacementBar'
@@ -29,6 +30,7 @@ import { SignIn } from './wallet/SignIn'
 import { Shell } from './Shell'
 
 const TOOLBAR: { id: PanelId; label: string }[] = [
+  { id: 'build', label: 'Build' },
   { id: 'breed', label: 'Breed' },
   { id: 'nests', label: 'Nests' },
   { id: 'farm', label: 'Farm' },
@@ -102,8 +104,9 @@ function Game() {
     if (!ghostAction) return
     void run(ghostAction).then(res => { if (res) dispatch({ type: 'cancel' }) })
   }
+  const startPlacing: StartPlacing = (what, size, from) => dispatch({ type: 'start', what, size, island: view, from })
   const side = (
-    <>
+    <StartPlacingProvider value={startPlacing}>
       {placing && (
         <PlacementBar legal={ghostAction !== null} pending={pending} onTurn={() => dispatch({ type: 'turn' })} onConfirm={confirmPlacing} onCancel={() => dispatch({ type: 'cancel' })} />
       )}
@@ -125,7 +128,7 @@ function Game() {
         : named === 'referral' ? <ReferralPanel onClose={() => setNamed(null)} />
         : named === 'season' ? <SeasonPanel nowMs={nowMs} onClose={() => setNamed(null)} onVerify={id => { setVerifySeason(id); setNamed(null) }} />
         : <PanelHost bridge={bridge} nowMs={nowMs} named={named} onCloseNamed={() => setNamed(null)} />}
-    </>
+    </StartPlacingProvider>
   )
   return <Shell header={header} canvas={<GameCanvas bridge={bridge} art={art} />} side={side} />
 }

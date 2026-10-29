@@ -1,9 +1,10 @@
-import { getSpecies, LAUNCH_CATALOG, priceMicroUsd } from '@wyrmhaven/game-core'
+import { getSpecies, hatcherySlots, isUnderConstruction, LAUNCH_CATALOG, priceMicroUsd } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatMicroUsd } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { isReady, Timer } from '../ui/Timer'
+import { UpgradeSection } from './UpgradeSection'
 
 export function NestsPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => void }) {
   const me = useMe()
@@ -17,29 +18,34 @@ export function NestsPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
     <Panel title="Nests & hatchery" onClose={onClose}>
       <h3 style={{ fontSize: 12 }}>Nests</h3>
       <ul style={{ listStyle: 'none', padding: 0 }}>
-        {s.nests.map((egg, i) => {
-          const price = skipPrice('nest', i)
+        {s.nests.map((nest, i) => {
+          const egg = nest.egg
+          const price = egg ? skipPrice('nest', i) : null
           return (
-            <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-              <span>Nest {i + 1}:</span>
-              {egg ? (
-                <>
-                  <span>{getSpecies(catalog, egg.speciesId).name} egg · <Timer readyAtMs={egg.readyAtMs} nowMs={nowMs} /></span>
-                  <ActionButton id={`collect-egg-${i}`} primary disabled={pending || !isReady(egg.readyAtMs, nowMs)} reason="Still incubating" onClick={() => void run({ type: 'collectEgg', nest: i })}>
-                    Collect egg
-                  </ActionButton>
-                  {price !== null && (
-                    <ActionButton id={`skip-nest-${i}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'nest', index: i } })}>
-                      Skip · {formatMicroUsd(price)}
+            <li key={i} style={{ marginBottom: 6 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span>Nest {i + 1}:</span>
+                {egg ? (
+                  <>
+                    <span>{getSpecies(catalog, egg.speciesId).name} egg · <Timer readyAtMs={egg.readyAtMs} nowMs={nowMs} /></span>
+                    <ActionButton id={`collect-egg-${i}`} primary disabled={pending || !isReady(egg.readyAtMs, nowMs)} reason="Still incubating" onClick={() => void run({ type: 'collectEgg', nest: i })}>
+                      Collect egg
                     </ActionButton>
-                  )}
-                </>
-              ) : <span><small>empty</small></span>}
+                    {price !== null && (
+                      <ActionButton id={`skip-nest-${i}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'nest', index: i } })}>
+                        Skip · {formatMicroUsd(price)}
+                      </ActionButton>
+                    )}
+                  </>
+                ) : <span><small>{isUnderConstruction(s, { type: 'nest', index: i }) ? 'being built' : 'empty'}</small></span>}
+              </div>
+              <UpgradeSection building={{ type: 'nest', index: i }} nowMs={nowMs} />
             </li>
           )
         })}
       </ul>
-      <h3 style={{ fontSize: 12 }}>Hatchery ({s.hatchery.length}/3 eggs{s.dragons.some(d => d.habitatId === null) ? ', plus waiting hatchlings' : ''})</h3>
+      <h3 style={{ fontSize: 12 }}>Hatchery ({s.hatchery.length}/{hatcherySlots(s.hatcheryLevel)} eggs{s.dragons.some(d => d.habitatId === null) ? ', plus waiting hatchlings' : ''})</h3>
+      <UpgradeSection building={{ type: 'hatchery' }} nowMs={nowMs} />
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {s.hatchery.map((egg, slot) => {
           const price = skipPrice('hatchery', slot)
