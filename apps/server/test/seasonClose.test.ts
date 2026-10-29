@@ -34,7 +34,7 @@ describe('closeSeasons', () => {
     const [p0] = await t.db.select().from(players).where(eq(players.id, ids[0]!))
     await t.db.update(players).set({ trophies: 1_500, state: { ...(p0!.state as PlayerState), trophies: 1_500 } }).where(eq(players.id, ids[0]!))
 
-    t.clock.advance(SEASON_MS + 1)
+    t.clock.advance(SEASON_MS + 6 * 60_000)
     expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual([season.id])
 
     const expected = computePrizes(prizePoolWei(1_000n * E18), [{ playerId: ids[0]!, sp: 2100 }, { playerId: ids[1]!, sp: 600 }, { playerId: ids[2]!, sp: 600 }])
@@ -59,7 +59,7 @@ describe('closeSeasons', () => {
     const season = await ensureCurrentSeason(t.db, t.clock)
     await t.db.transaction(tx => recordInflow(tx, t.clock, 'buyback', 100n * E18, 'bb'))
     await givePoints(season.id, ids[0]!, 300)
-    t.clock.advance(SEASON_MS + 1)
+    t.clock.advance(SEASON_MS + 6 * 60_000)
     await closeSeasons({ db: t.db, clock: t.clock })
     const [before] = await t.db.select().from(balances).where(eq(balances.playerId, ids[0]!))
     expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual([])
@@ -77,7 +77,7 @@ describe('closeSeasons', () => {
     await t.db.update(players).set({ bannedAt: new Date(t.clock()) }).where(eq(players.id, ids[0]!))
     await t.db.update(players).set({ earningUnlocked: false }).where(eq(players.id, ids[1]!))
     expect(await standings(t.db, season.id)).toEqual([{ playerId: ids[2], sp: 50 }])
-    t.clock.advance(SEASON_MS + 1)
+    t.clock.advance(SEASON_MS + 6 * 60_000)
     await closeSeasons({ db: t.db, clock: t.clock })
     const prizes = await t.db.select().from(seasonPrizes)
     expect(prizes.map(p => p.playerId)).toEqual([ids[2]])

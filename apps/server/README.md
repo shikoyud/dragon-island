@@ -34,7 +34,9 @@ Every token amount the vault keeps is written to `vault_inflows` for the current
 
 ### Referrals (spec §16)
 
-A code is the first 8 hex characters of a player id. `POST /referral/claim` is refused for yourself, after a code is already set, after any purchase, and when the referrer's last sign-in came from the same IP or the same `x-device-id` (both stored as salted hashes). Set `TRUST_PROXY=true` behind a reverse proxy so the IP is the client's.
+A code is the first 8 hex characters of a player id. `POST /referral/claim` is refused for yourself, after a code is already set, after any purchase, and when any sign-in of the referrer shares an IP or an `x-device-id` with any sign-in of the claimant (every origin is kept in `sign_in_origins` as salted hashes). The same overlap check runs again at every payout, and banned referrers are never paid; in both cases the vault keeps the full half of the spend. Set `TRUST_PROXY=true` behind a reverse proxy so the IP is the client's.
+
+Seasons close `CLOSE_GRACE_MS` (5 minutes) after `endsAt`, so an action that started in the old season and commits after the boundary still counts for prizes.
 
 Errors are `{ error: CODE }`: 400 `INVALID_ACTION`, 401 `UNAUTHORIZED`, 402 `INSUFFICIENT_TOKENS`, 403 `BANNED`/`FORBIDDEN`, 409 `OFFER_NOT_FOUND`/`OFFER_EXPIRED`/`VOUCHER_PENDING`/`SEASON_ACTIVE`, 422 game-core codes and `WITHDRAW_LIMIT`, 429 `RATE_LIMITED`, 503 `PRICE_UNAVAILABLE`/`WITHDRAWALS_DISABLED`.
 

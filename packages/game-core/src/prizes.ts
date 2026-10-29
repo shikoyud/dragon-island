@@ -46,10 +46,11 @@ export function computePrizes(poolWei: bigint, standings: readonly Standing[]): 
     members.forEach(m => add(m.playerId, each))
   })
 
+  // Weights always sum over all 100 ranks, so empty ranks leave their share in the vault instead of
+  // letting a handful of players split the whole placement pot.
   const top = ranked.slice(0, PRIZE.topN)
-  const weights = top.map((_, k) => BigInt(PRIZE.topN + 1 - (k + 1)))
-  const sumW = weights.reduce((n, w) => n + w, 0n)
-  top.forEach((s, k) => add(s.playerId, (placementPot * weights[k]!) / sumW))
+  const sumW = BigInt((PRIZE.topN * (PRIZE.topN + 1)) / 2)
+  top.forEach((s, k) => add(s.playerId, (placementPot * BigInt(PRIZE.topN - k)) / sumW))
 
   const awards: PrizeAward[] = []
   let spent = 0n

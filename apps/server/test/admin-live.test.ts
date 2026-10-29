@@ -59,7 +59,7 @@ describe('live-ops routes', () => {
     })
 
     expect((await t.app.inject({ method: 'POST', url: `/admin/season/${season.id}/close`, headers: admin })).json()).toEqual({ error: 'SEASON_ACTIVE' })
-    t.clock.advance(SEASON_MS + 1)
+    t.clock.advance(SEASON_MS + 6 * 60_000)
     expect((await t.app.inject({ method: 'POST', url: `/admin/season/${season.id}/close`, headers: admin })).json()).toEqual({ closed: [season.id] })
     const after = await t.app.inject({ method: 'GET', url: `/admin/season/${season.id}/summary`, headers: admin })
     expect(after.json().closedAt).not.toBeNull()

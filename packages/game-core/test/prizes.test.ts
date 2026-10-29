@@ -11,7 +11,7 @@ describe('computePrizes', () => {
     expect(a.tier).toBe(3)
     expect(a.rank).toBe(1)
     // tier 2000 pot 40% all to a; tier 500 pot 20% split b/c; tiers 200 and 1000 unreached → unspent
-    const sumW = 100n + 99n + 98n + 97n
+    const sumW = 5050n // all 100 ranks, whether or not they are filled
     expect(a.wei).toBe((threshold * 4000n) / 10_000n + (placement * 100n) / sumW)
     expect(r.awards.find(x => x.playerId === 'b')!.wei).toBe((threshold * 2000n) / 10_000n / 2n + (placement * 99n) / sumW)
     expect(r.awards.find(x => x.playerId === 'c')!.rank).toBe(3) // tie broken by playerId
@@ -20,9 +20,10 @@ describe('computePrizes', () => {
   })
 
   it('unreached tiers and empty ranks leave wei unspent', () => {
+    // Placement weights always sum over all 100 ranks (5050): a lone player gets 100/5050 of the 30% pot, the empty ranks stay in the vault.
     const r = computePrizes(1_000_000n, [{ playerId: 'a', sp: 50 }])
-    expect(r.awards).toEqual([{ playerId: 'a', wei: 300_000n, tier: null, rank: 1 }])
-    expect(r.unspentWei).toBe(700_000n)
+    expect(r.awards).toEqual([{ playerId: 'a', wei: (300_000n * 100n) / 5050n, tier: null, rank: 1 }])
+    expect(r.unspentWei).toBe(1_000_000n - (300_000n * 100n) / 5050n)
   })
 
   it('ignores zero-SP players and an empty season', () => {

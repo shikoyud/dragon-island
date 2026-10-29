@@ -77,6 +77,17 @@ export const seasonPrizes = pgTable('season_prizes', {
   createdAt: createdAt(),
 }, t => [primaryKey({ columns: [t.seasonId, t.playerId] })])
 
+/**
+ * Every (ip, device) pair a player has ever signed in from, as salted hashes ('' when unknown). Referral
+ * checks compare whole histories, so moving to a VPN for one sign-in does not hide a shared device.
+ */
+export const signInOrigins = pgTable('sign_in_origins', {
+  playerId: uuid('player_id').notNull().references(() => players.id),
+  ipHash: text('ip_hash').notNull().default(''),
+  deviceHash: text('device_hash').notNull().default(''),
+  firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.playerId, t.ipHash, t.deviceHash] })])
+
 /** Spec §16: 5% of a referred player's spend, paid to the referrer from the vault's share. */
 export const referralPayouts = pgTable('referral_payouts', {
   id: bigserial('id', { mode: 'bigint' }).primaryKey(),

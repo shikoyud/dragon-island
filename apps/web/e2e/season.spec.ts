@@ -24,7 +24,7 @@ test('a season closes: prizes land in the balance and the next season shows the 
   await expect(panel).toBeVisible()
   await expect(panel.getByText(/last season: you won/i)).toContainText('WYRM')
   await expect(panel.getByText(/no one has scored yet/i)).toBeVisible() // season 2 is fresh
-  // Prize = 30% pool × (threshold tier 200 share 10% + placement 100%) = 300 × 0.7 × 0.1 + 300 × 0.3 = 111 WYRM, in the game balance.
+  // Prize = tier-200 share (300 × 0.7 × 0.1 = 21) + rank 1 of the placement pot (300 × 0.3 × 100/5050 ≈ 1.78) ≈ 22.78 WYRM, in the game balance.
   await openPanel(page, 'Wallet')
-  await expect(page.getByRole('region', { name: /^wallet$/i }).getByText(/game balance/i).first()).toContainText('111')
+  await expect(page.getByRole('region', { name: /^wallet$/i }).getByText(/game balance/i).first()).toContainText('22.78')
 })

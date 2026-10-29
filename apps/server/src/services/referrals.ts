@@ -1,7 +1,8 @@
-import { and, eq, like, sql } from 'drizzle-orm'
+import { and, eq, like, ne, or, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import type { Clock } from '../clock'
 import type { Db, Tx } from '../db/client'
-import { players, referralPayouts } from '../db/schema'
+import { players, referralPayouts, signInOrigins } from '../db/schema'
 import { AppError } from '../plugins/errors'
 import { creditEarned, getBalance } from './ledger'
 
@@ -34,10 +35,24 @@ export async function claimReferral(tx: Tx, clock: Clock, playerId: string, code
   if (me.referrerId) throw new AppError(409, 'REFERRAL_ALREADY_SET')
   const balance = await getBalance(tx, playerId)
   if (balance.spentWei > 0n) throw new AppError(409, 'REFERRAL_AFTER_SPEND')
-  const same = (a: string | null, b: string | null) => a !== null && b !== null && a === b
-  if (same(me.ipHash, referrer.ipHash) || same(me.deviceHash, referrer.deviceHash)) throw new AppError(403, 'REFERRAL_SAME_DEVICE')
+  if (await originsOverlap(tx, playerId, referrer.id)) throw new AppError(403, 'REFERRAL_SAME_DEVICE')
 
   await tx.update(players).set({ referrerId: referrer.id, updatedAt: new Date(clock()) }).where(eq(players.id, playerId))
+}
+
+/** True when the two players have ever signed in from the same IP or the same device (unknown values never match). */
+export async function originsOverlap(tx: Db | Tx, a: string, b: string): Promise<boolean> {
+  const x = alias(signInOrigins, 'x')
+  const y = alias(signInOrigins, 'y')
+  const [row] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(x)
+    .innerJoin(y, or(
+      and(ne(x.ipHash, ''), eq(x.ipHash, y.ipHash)),
+      and(ne(x.deviceHash, ''), eq(x.deviceHash, y.deviceHash)),
+    ))
+    .where(and(eq(x.playerId, a), eq(y.playerId, b)))
+  return Number(row?.n ?? 0) > 0
 }
 
 /**
@@ -49,6 +64,10 @@ export async function payReferral(tx: Tx, clock: Clock, playerId: string, spendW
   if (!me?.referrerId) return 0n
   const wei = (spendWei * REFERRAL_BPS) / 10_000n
   if (wei <= 0n) return 0n
+  // Spec §16: banned accounts forfeit earnings, and a shared IP or device (even one seen later) pays nothing.
+  const [referrer] = await tx.select({ bannedAt: players.bannedAt }).from(players).where(eq(players.id, me.referrerId))
+  if (!referrer || referrer.bannedAt) return 0n
+  if (await originsOverlap(tx, playerId, me.referrerId)) return 0n
   const inserted = await tx
     .insert(referralPayouts)
     .values({ referrerId: me.referrerId, referredId: playerId, wei, ref, createdAt: new Date(clock()) })

@@ -9,6 +9,11 @@ import { standings } from '../services/standings'
 
 /** Postgres advisory lock id: one close run at a time (scheduler and admin trigger). */
 const CLOSE_LOCK_ID = 7_302
+/**
+ * Actions pick their season when their transaction starts, so one that began just before `endsAt`
+ * may commit SP and inflows a little after it. Closing waits this long past `endsAt` so they count.
+ */
+export const CLOSE_GRACE_MS = 5 * 60_000
 
 /**
  * Spec §12: when a season ends, 30% of its vault inflows is paid out as prizes to in-game balances,
@@ -24,11 +29,11 @@ export async function closeSeasons(deps: { db: Db; clock: Clock }): Promise<numb
     const id = await db.transaction(async tx => {
       const locked = await tx.execute(sql`select pg_try_advisory_xact_lock(${CLOSE_LOCK_ID}) as ok`)
       if (!(locked as unknown as { rows: { ok: boolean }[] }).rows[0]?.ok) return null
-      const now = new Date(clock())
+      const cutoff = new Date(clock() - CLOSE_GRACE_MS)
       const [season] = await tx
         .select()
         .from(seasons)
-        .where(and(isNull(seasons.closedAt), lte(seasons.endsAt, now)))
+        .where(and(isNull(seasons.closedAt), lte(seasons.endsAt, cutoff)))
         .orderBy(asc(seasons.id))
         .limit(1)
         .for('update')

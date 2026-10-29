@@ -6,7 +6,7 @@ import { generateSiweNonce, parseSiweMessage, validateSiweMessage } from 'viem/s
 import type { Clock } from '../clock'
 import type { Config } from '../config'
 import type { Db } from '../db/client'
-import { balances, players, sessions, siweNonces } from '../db/schema'
+import { balances, players, sessions, signInOrigins, siweNonces } from '../db/schema'
 import { AppError } from '../plugins/errors'
 import { applyPendingEvents } from './indexer'
 
@@ -48,16 +48,23 @@ export async function verifyAndLogin(
   const address = parsed.address.toLowerCase() as Address
   const playerId = await db.transaction(async tx => {
     const [existing] = await tx.select({ id: players.id }).from(players).where(eq(players.address, address))
+    let id: string
     if (existing) {
-      // The latest sign-in origin is what referral checks compare against.
-      await tx.update(players).set({ ipHash: origin.ipHash, deviceHash: origin.deviceHash, updatedAt: new Date(clock()) }).where(eq(players.id, existing.id))
-      return existing.id
+      id = existing.id
+      await tx.update(players).set({ ipHash: origin.ipHash, deviceHash: origin.deviceHash, updatedAt: new Date(clock()) }).where(eq(players.id, id))
+    } else {
+      const [created] = await tx.insert(players).values({ address, state: newPlayer(clock()), ipHash: origin.ipHash, deviceHash: origin.deviceHash }).returning({ id: players.id })
+      id = created!.id
+      await tx.insert(balances).values({ playerId: id })
+      // Deposits or entries made before this wallet ever signed in.
+      await applyPendingEvents(tx, id, address, clock)
     }
-    const [created] = await tx.insert(players).values({ address, state: newPlayer(clock()), ipHash: origin.ipHash, deviceHash: origin.deviceHash }).returning({ id: players.id })
-    await tx.insert(balances).values({ playerId: created!.id })
-    // Deposits or entries made before this wallet ever signed in.
-    await applyPendingEvents(tx, created!.id, address, clock)
-    return created!.id
+    // Spec §16: the whole origin history feeds the referral checks, not just the latest sign-in.
+    await tx
+      .insert(signInOrigins)
+      .values({ playerId: id, ipHash: origin.ipHash ?? '', deviceHash: origin.deviceHash ?? '', firstSeenAt: new Date(clock()) })
+      .onConflictDoNothing()
+    return id
   })
 
   const token = randomBytes(32).toString('hex')
