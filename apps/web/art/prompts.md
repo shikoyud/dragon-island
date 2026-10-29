@@ -119,3 +119,27 @@ Cleanup (code, `process.cjs` in the art session): alpha forced to 0 or 255, stra
 | Locked land | `create_topdown_tileset` standard 16 px | 1 | its all-fog base tile |
 
 `building.nest` keeps its 32×32 batch sprite. Hatchery eggs and waiting hatchlings still use the old `hatcherySpot` offsets, so they sit over the dome.
+
+## HUD, iso ground and animation set (2026-10-30)
+
+Keys follow `docs/art/hud-art-list.md`. Cleanup (code): alpha forced to 0 or 255; dragons, hatchlings, eggs and the sign keep their main shape only (stray specks removed); habitats keep everything (embers, sparks and motes are part of the loop). `top` is the fewest transparent top rows across a sheet's frames. Total spend this round: 284 generations (1,656 left of 2,000 on 2026-10-30).
+
+| Run | Tool | Cost | Used for |
+| --- | --- | --- | --- |
+| Ground (outlined) | `create_tiles_pro` isometric 32 px, view angle 30, depth 0, seed 31 | 10 | discarded except as a check (1 px outline shows a grid when tiled) |
+| Ground (seamless) | `create_tiles_pro` isometric 32 px, view angle 30, depth 0, `outline_mode` segmentation, seed 33: "1). bright green meadow grass 2). … flowers 3). … pebbles 4). darker lush green grass with clover 5). clear blue sea water with small white wave highlights 6). shallow turquoise water over sand 7). dark blue-grey night fog 8). grass with small tufts" | 10 | `ground.grass.0/1/2` (tiles 0, 5, 6), water start frame (tile 10) |
+| Cloud fog | same settings, seed 34: "soft white and pale grey fluffy cloud fog completely covering the ground" ×4 | 10 | `ground.fog` (tile 12) |
+| Cliffs | `create_tiles_pro` isometric 32 px, view angle 30, depth 0.6, seed 32: "green grass top with a tall layered brown dirt cliff side with small roots" (+3 others) | 10 | `ground.cliff.sw/se` (tile 4) |
+| Cliffs (wrong view) | same, `tile_view` side, seed 31 | 10 | discarded: flat 2 px diamond |
+| Shore set | `create_tiles_pro` tileset "grass to water", seed 31 | 10 | not used yet (corner set with block sides; kept in the PixelLab account) |
+| HUD sheets | `create_ui_asset` ×3 (256², 512×288, 256²), seeds 41–43, warm brown wood + amber gold | 45 | style source only (`ui.*` small pieces were redrawn at native size below) |
+| HUD pieces | `create_image_pro_flash` seed 61/63, style image = 48×48 crop of the pill sheet's icon slot (24×16 crop for the bars) | 35 | `ui.button.round`, `ui.button.round.active`, `ui.avatarFrame`, `ui.close` (16 px, no style), `ui.pill`, `ui.xpBar` (8 middle rows of a 24×16), `ui.tab` |
+| Icons | `create_image_pro_flash` 32×32 seed 51, style image `icon-light.png`, "game UI icon: <subject>, chunky pixel art icon, 1px dark outline, centered, transparent background" | 80 (+3 heavy-load failures, not charged) | `icon.<name>.32`; `.16` is a 2× mode downsample in code |
+| Sign | `create_image_pro_flash` 32×32 seed 62, style = 32×32 crop of `hatchery.png` | 5 | `island.sign` |
+| Map backdrop | `create_map_object` 320×180 high top-down lineless | 2 runs | run 1 drew a corner island (discarded); run 2 "open deep blue ocean … wave contour lines like an old sea chart, a faint pale compass rose … no land" → `map.backdrop` |
+| Animations | `animate_image` (1 generation each) on frame 0 of the v1 sprite, frame_count 4; sheet = input + first 3 generated frames | 44 | see below |
+| FX starts | `create_image_pro_flash` 32×32 hammer + dust, 48×48 egg burst, seed 64 | 10 | start frames for `fx.construction` / `fx.hatch` |
+
+Subjects: food meat drumstick on the bone; gold stack of gold coins; dris round violet and teal crystal token coin with a small dragon claw emblem; xp glowing blue five-point star; timer brass hourglass; build wooden hammer; map rolled-open parchment map with a red X; season green banner flag with a leaf and sun emblem; leaderboard golden trophy cup; referral two hands shaking with a small green plus; settings grey metal cog; dragons cute green dragon head in profile; breed two small dragon eggs with a pink heart; battle two crossed swords over a small round shield; hoard open chest overflowing with coins and gems; store market stall with a red and white striped awning.
+
+Animation actions (seed): dragons (71) "gentle breathing idle loop: chest rises and falls, wings shift slightly, tail sways a little, feet stay planted, returns to the starting pose" (earth re-rolled with seed 81 "subtle breathing … back spikes keep their exact shape"; fire uses generated frames 1–4 because frame 0 has a ground shadow the others lack); hatchlings (72) "baby dragon breathing idle loop …" (light re-rolled, seed 81, "the golden halo stays floating above its head"); eggs (73) "egg wobbles gently side to side … settles back upright"; habitats (74) one line per element (lava cracks glow and embers flicker / pond ripples and glints / dust motes drift / grass and ferns sway / sparks between copper coils / frost sparkles (re-rolled seed 82) / forge vent glows with steam / runes pulse / sunburst shimmers), platform held still; `ground.water` (75) wave shimmer on the 32×32 tile, cropped to the 32×16 diamond; `crop.<crop>.sway` (76, sprout re-rolled 82) on the ripe stage; `fx.construction` (77) hammer strike loop; `fx.hatch` (77) frame_count 6, input + 5 generated frames.

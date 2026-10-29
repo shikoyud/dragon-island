@@ -78,3 +78,30 @@ Style: the v1 set's palette and 1 px dark outline, transparent background, origi
 | `fx.hatch` | 48x48 | 6 | 12 | Shell-burst flash, played once where an egg hatches |
 
 `<speciesId>` covers every species in the launch catalog (`LAUNCH_CATALOG.species`); `<element>` is fire, water, earth, nature, electric, ice, metal, dark, light; `<crop>` is sprout, bushel, harvest, bounty.
+
+## Delivered (2026-10-30)
+
+All keys above are in `apps/web/public/art/v1/manifest.json` with these sheets (prompts and job details in `apps/web/art/prompts.md`; contact sheet `docs/art/hud-art-preview.png`):
+
+| Key(s) | Frame | Frames | fps | Notes |
+|---|---|---|---|---|
+| `ground.grass.0/1/2` | 16x8 | 1 | 0 | no outline, tile seamlessly (faint diagonal shading reads as a soft grid) |
+| `ground.fog` | 16x8 | 1 | 0 | white cloud diamond |
+| `ground.cliff.sw` / `.se` | 16x16 | 1 | 0 | frame origin = the cell's bounding box (top vertex at x 8, y 0); the face hangs 8 px below the cell's lower-left (sw, x 0–7) or lower-right (se, x 8–15) edge, 1 px grass lip |
+| `ground.water` | 32x16 | 4 | 6 | |
+| `island.sign` | 32x32 | 1 | 0 | redrawn in three-quarter view |
+| `ui.button.round` / `.active`, `ui.avatarFrame` | 48x48 | 1 | 0 | |
+| `ui.close` | 16x16 | 1 | 0 | |
+| `ui.pill`, `ui.tab` | 24x16 | 1 | 0 | pill art fills the middle ~8 rows |
+| `ui.xpBar` | 24x8 | 1 | 0 | |
+| `icon.<name>.32` / `.16` | 32 / 16 | 1 | 0 | all 16 names |
+| `map.backdrop` | 320x180 | 1 | 0 | opaque |
+| `dragon.<element>` | 48x48 | 4 | 6 | same three-quarter facing as v1 (not straight south) |
+| `hatchling.<element>` | 32x32 | 4 | 6 | |
+| `egg.<element>` | 32x32 | 4 | 4 | |
+| `habitat.<element>` | 80x64 | 4 | 4 | |
+| `crop.<crop>.sway` | 16x16 | 4 | 4 | ripe stage only; `crop.<crop>` growth sheets unchanged |
+| `fx.construction` | 32x32 | 4 | 8 | |
+| `fx.hatch` | 48x48 | 6 | 12 | play once |
+
+`map.home` … `map.dawnspire` are unchanged from v1.

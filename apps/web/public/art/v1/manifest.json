@@ -48,12 +48,28 @@
       "fps": 0,
       "top": 1
     },
+    "crop.bounty.sway": {
+      "file": "crop-bounty-sway.png",
+      "w": 16,
+      "h": 16,
+      "frames": 4,
+      "fps": 4,
+      "top": 1
+    },
     "crop.bushel": {
       "file": "crop-bushel.png",
       "w": 16,
       "h": 16,
       "frames": 4,
       "fps": 0,
+      "top": 1
+    },
+    "crop.bushel.sway": {
+      "file": "crop-bushel-sway.png",
+      "w": 16,
+      "h": 16,
+      "frames": 4,
+      "fps": 4,
       "top": 1
     },
     "crop.harvest": {
@@ -64,12 +80,28 @@
       "fps": 0,
       "top": 1
     },
+    "crop.harvest.sway": {
+      "file": "crop-harvest-sway.png",
+      "w": 16,
+      "h": 16,
+      "frames": 4,
+      "fps": 4,
+      "top": 1
+    },
     "crop.sprout": {
       "file": "crop-sprout.png",
       "w": 16,
       "h": 16,
       "frames": 4,
       "fps": 0,
+      "top": 1
+    },
+    "crop.sprout.sway": {
+      "file": "crop-sprout-sway.png",
+      "w": 16,
+      "h": 16,
+      "frames": 4,
+      "fps": 4,
       "top": 1
     },
     "decoration.boneArch": {
@@ -197,31 +229,31 @@
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4,
-      "top": 5
+      "fps": 6,
+      "top": 3
     },
     "dragon.earth": {
       "file": "dragon-earth.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4,
-      "top": 7
+      "fps": 6,
+      "top": 4
     },
     "dragon.electric": {
       "file": "dragon-electric.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4,
-      "top": 4
+      "fps": 6,
+      "top": 2
     },
     "dragon.fire": {
       "file": "dragon-fire.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4,
+      "fps": 6,
       "top": 3
     },
     "dragon.ice": {
@@ -229,15 +261,15 @@
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4,
-      "top": 5
+      "fps": 6,
+      "top": 3
     },
     "dragon.light": {
       "file": "dragon-light.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4,
+      "fps": 6,
       "top": 2
     },
     "dragon.metal": {
@@ -245,15 +277,15 @@
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4,
-      "top": 5
+      "fps": 6,
+      "top": 2
     },
     "dragon.nature": {
       "file": "dragon-nature.png",
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4,
+      "fps": 6,
       "top": 4
     },
     "dragon.water": {
@@ -261,151 +293,223 @@
       "w": 48,
       "h": 48,
       "frames": 4,
-      "fps": 4,
+      "fps": 6,
       "top": 4
     },
     "egg.dark": {
       "file": "egg-dark.png",
       "w": 32,
       "h": 32,
-      "frames": 6,
-      "fps": 8,
+      "frames": 4,
+      "fps": 4,
       "top": 1
     },
     "egg.earth": {
       "file": "egg-earth.png",
       "w": 32,
       "h": 32,
-      "frames": 6,
-      "fps": 8,
-      "top": 1
+      "frames": 4,
+      "fps": 4,
+      "top": 0
     },
     "egg.electric": {
       "file": "egg-electric.png",
       "w": 32,
       "h": 32,
-      "frames": 6,
-      "fps": 8,
+      "frames": 4,
+      "fps": 4,
       "top": 1
     },
     "egg.fire": {
       "file": "egg-fire.png",
       "w": 32,
       "h": 32,
-      "frames": 6,
-      "fps": 8,
+      "frames": 4,
+      "fps": 4,
       "top": 1
     },
     "egg.ice": {
       "file": "egg-ice.png",
       "w": 32,
       "h": 32,
-      "frames": 6,
-      "fps": 8,
+      "frames": 4,
+      "fps": 4,
       "top": 1
     },
     "egg.light": {
       "file": "egg-light.png",
       "w": 32,
       "h": 32,
-      "frames": 6,
-      "fps": 8,
+      "frames": 4,
+      "fps": 4,
       "top": 1
     },
     "egg.metal": {
       "file": "egg-metal.png",
       "w": 32,
       "h": 32,
-      "frames": 6,
-      "fps": 8,
-      "top": 1
+      "frames": 4,
+      "fps": 4,
+      "top": 0
     },
     "egg.nature": {
       "file": "egg-nature.png",
       "w": 32,
       "h": 32,
-      "frames": 6,
-      "fps": 8,
+      "frames": 4,
+      "fps": 4,
       "top": 1
     },
     "egg.water": {
       "file": "egg-water.png",
       "w": 32,
       "h": 32,
-      "frames": 6,
+      "frames": 4,
+      "fps": 4,
+      "top": 1
+    },
+    "fx.construction": {
+      "file": "fx-construction.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
       "fps": 8,
       "top": 1
+    },
+    "fx.hatch": {
+      "file": "fx-hatch.png",
+      "w": 48,
+      "h": 48,
+      "frames": 6,
+      "fps": 12,
+      "top": 6
+    },
+    "ground.cliff.se": {
+      "file": "ground-cliff-se.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "ground.cliff.sw": {
+      "file": "ground-cliff-sw.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "ground.fog": {
+      "file": "ground-fog.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.grass.0": {
+      "file": "ground-grass-0.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.grass.1": {
+      "file": "ground-grass-1.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.grass.2": {
+      "file": "ground-grass-2.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.water": {
+      "file": "ground-water.png",
+      "w": 32,
+      "h": 16,
+      "frames": 4,
+      "fps": 6,
+      "top": 0
     },
     "habitat.dark": {
       "file": "habitat-dark.png",
       "w": 80,
       "h": 64,
-      "frames": 1,
-      "fps": 0,
+      "frames": 4,
+      "fps": 4,
       "top": 8
     },
     "habitat.earth": {
       "file": "habitat-earth.png",
       "w": 80,
       "h": 64,
-      "frames": 1,
-      "fps": 0,
-      "top": 10
+      "frames": 4,
+      "fps": 4,
+      "top": 0
     },
     "habitat.electric": {
       "file": "habitat-electric.png",
       "w": 80,
       "h": 64,
-      "frames": 1,
-      "fps": 0,
-      "top": 13
+      "frames": 4,
+      "fps": 4,
+      "top": 0
     },
     "habitat.fire": {
       "file": "habitat-fire.png",
       "w": 80,
       "h": 64,
-      "frames": 1,
-      "fps": 0,
-      "top": 10
+      "frames": 4,
+      "fps": 4,
+      "top": 7
     },
     "habitat.ice": {
       "file": "habitat-ice.png",
       "w": 80,
       "h": 64,
-      "frames": 1,
-      "fps": 0,
-      "top": 15
+      "frames": 4,
+      "fps": 4,
+      "top": 5
     },
     "habitat.light": {
       "file": "habitat-light.png",
       "w": 80,
       "h": 64,
-      "frames": 1,
-      "fps": 0,
+      "frames": 4,
+      "fps": 4,
       "top": 11
     },
     "habitat.metal": {
       "file": "habitat-metal.png",
       "w": 80,
       "h": 64,
-      "frames": 1,
-      "fps": 0,
-      "top": 11
+      "frames": 4,
+      "fps": 4,
+      "top": 0
     },
     "habitat.nature": {
       "file": "habitat-nature.png",
       "w": 80,
       "h": 64,
-      "frames": 1,
-      "fps": 0,
+      "frames": 4,
+      "fps": 4,
       "top": 10
     },
     "habitat.water": {
       "file": "habitat-water.png",
       "w": 80,
       "h": 64,
-      "frames": 1,
-      "fps": 0,
+      "frames": 4,
+      "fps": 4,
       "top": 10
     },
     "hatchling.dark": {
@@ -413,7 +517,7 @@
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4,
+      "fps": 6,
       "top": 0
     },
     "hatchling.earth": {
@@ -421,7 +525,7 @@
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4,
+      "fps": 6,
       "top": 1
     },
     "hatchling.electric": {
@@ -429,7 +533,7 @@
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4,
+      "fps": 6,
       "top": 1
     },
     "hatchling.fire": {
@@ -437,15 +541,15 @@
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4,
-      "top": 2
+      "fps": 6,
+      "top": 0
     },
     "hatchling.ice": {
       "file": "hatchling-ice.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4,
+      "fps": 6,
       "top": 2
     },
     "hatchling.light": {
@@ -453,7 +557,7 @@
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4,
+      "fps": 6,
       "top": 0
     },
     "hatchling.metal": {
@@ -461,24 +565,72 @@
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4,
-      "top": 2
+      "fps": 6,
+      "top": 0
     },
     "hatchling.nature": {
       "file": "hatchling-nature.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4,
-      "top": 2
+      "fps": 6,
+      "top": 0
     },
     "hatchling.water": {
       "file": "hatchling-water.png",
       "w": 32,
       "h": 32,
       "frames": 4,
-      "fps": 4,
+      "fps": 6,
       "top": 1
+    },
+    "icon.battle.16": {
+      "file": "icon-battle-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.battle.32": {
+      "file": "icon-battle-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
+    },
+    "icon.breed.16": {
+      "file": "icon-breed-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.breed.32": {
+      "file": "icon-breed-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
+    },
+    "icon.build.16": {
+      "file": "icon-build-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.build.32": {
+      "file": "icon-build-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
     },
     "icon.dark": {
       "file": "icon-dark.png",
@@ -487,6 +639,38 @@
       "frames": 1,
       "fps": 0,
       "top": 1
+    },
+    "icon.dragons.16": {
+      "file": "icon-dragons-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.dragons.32": {
+      "file": "icon-dragons-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
+    },
+    "icon.dris.16": {
+      "file": "icon-dris-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.dris.32": {
+      "file": "icon-dris-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
     },
     "icon.earth": {
       "file": "icon-earth.png",
@@ -512,6 +696,54 @@
       "fps": 0,
       "top": 1
     },
+    "icon.food.16": {
+      "file": "icon-food-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "icon.food.32": {
+      "file": "icon-food-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 9
+    },
+    "icon.gold.16": {
+      "file": "icon-gold-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "icon.gold.32": {
+      "file": "icon-gold-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 8
+    },
+    "icon.hoard.16": {
+      "file": "icon-hoard-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "icon.hoard.32": {
+      "file": "icon-hoard-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
     "icon.ice": {
       "file": "icon-ice.png",
       "w": 16,
@@ -520,6 +752,22 @@
       "fps": 0,
       "top": 1
     },
+    "icon.leaderboard.16": {
+      "file": "icon-leaderboard-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.leaderboard.32": {
+      "file": "icon-leaderboard-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
     "icon.light": {
       "file": "icon-light.png",
       "w": 16,
@@ -527,6 +775,22 @@
       "frames": 1,
       "fps": 0,
       "top": 1
+    },
+    "icon.map.16": {
+      "file": "icon-map-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.map.32": {
+      "file": "icon-map-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
     },
     "icon.metal": {
       "file": "icon-metal.png",
@@ -544,6 +808,86 @@
       "fps": 0,
       "top": 2
     },
+    "icon.referral.16": {
+      "file": "icon-referral-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "icon.referral.32": {
+      "file": "icon-referral-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "icon.season.16": {
+      "file": "icon-season-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "icon.season.32": {
+      "file": "icon-season-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "icon.settings.16": {
+      "file": "icon-settings-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.settings.32": {
+      "file": "icon-settings-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.store.16": {
+      "file": "icon-store-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.store.32": {
+      "file": "icon-store-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.timer.16": {
+      "file": "icon-timer-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.timer.32": {
+      "file": "icon-timer-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
     "icon.water": {
       "file": "icon-water.png",
       "w": 16,
@@ -551,6 +895,22 @@
       "frames": 1,
       "fps": 0,
       "top": 2
+    },
+    "icon.xp.16": {
+      "file": "icon-xp-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "icon.xp.32": {
+      "file": "icon-xp-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 8
     },
     "island.base": {
       "file": "island.png",
@@ -582,7 +942,15 @@
       "h": 32,
       "frames": 1,
       "fps": 0,
-      "top": 4
+      "top": 1
+    },
+    "map.backdrop": {
+      "file": "map-backdrop.png",
+      "w": 320,
+      "h": 180,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
     },
     "map.dawnspire": {
       "file": "map-dawnspire.png",
@@ -672,6 +1040,14 @@
       "fps": 0,
       "top": 2
     },
+    "ui.avatarFrame": {
+      "file": "ui-avatar-frame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
     "ui.button": {
       "file": "ui-button.png",
       "w": 24,
@@ -679,6 +1055,30 @@
       "frames": 1,
       "fps": 0,
       "top": 0
+    },
+    "ui.button.round": {
+      "file": "ui-button-round.png",
+      "w": 48,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "ui.button.round.active": {
+      "file": "ui-button-round-active.png",
+      "w": 48,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "ui.close": {
+      "file": "ui-close.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
     },
     "ui.cursor": {
       "file": "ui-cursor.png",
@@ -695,6 +1095,30 @@
       "frames": 1,
       "fps": 0,
       "top": 0
+    },
+    "ui.pill": {
+      "file": "ui-pill.png",
+      "w": 24,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "ui.tab": {
+      "file": "ui-tab.png",
+      "w": 24,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.xpBar": {
+      "file": "ui-xp-bar.png",
+      "w": 24,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
     }
   }
 }
