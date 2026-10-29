@@ -55,6 +55,8 @@ describe('Admin page', () => {
     await userEvent.type(screen.getByLabelText(/reason/i), 'multi-accounting')
     await userEvent.click(ban)
     expect(api.ban).toHaveBeenCalledWith(PLAYER.player.id, 'multi-accounting')
+    await waitFor(() => expect(api.player).toHaveBeenCalledWith(PLAYER.player.id)) // reloaded after the ban
+    expect(await screen.findByRole('status')).toHaveTextContent('"ok": true')
   })
 
   it('closes a season only after confirming', async () => {
@@ -69,6 +71,8 @@ describe('Admin page', () => {
     expect(api.closeSeason).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: /yes, close/i }))
     await waitFor(() => expect(api.closeSeason).toHaveBeenCalledWith(1))
+    expect(await screen.findByRole('status')).toHaveTextContent('"closed"') // reply stays under the buttons
+    await waitFor(() => expect(api.seasonSummary).toHaveBeenCalledTimes(2)) // summary refreshed
   })
 
   it('createAdminApi sends the token header to the admin routes', async () => {

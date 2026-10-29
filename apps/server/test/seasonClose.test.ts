@@ -35,7 +35,7 @@ describe('closeSeasons', () => {
     await t.db.update(players).set({ trophies: 1_500, state: { ...(p0!.state as PlayerState), trophies: 1_500 } }).where(eq(players.id, ids[0]!))
 
     t.clock.advance(SEASON_MS + 6 * 60_000)
-    expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual([season.id])
+    expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual({ closed: [season.id], busy: false })
 
     const expected = computePrizes(prizePoolWei(1_000n * E18), [{ playerId: ids[0]!, sp: 2100 }, { playerId: ids[1]!, sp: 600 }, { playerId: ids[2]!, sp: 600 }])
     for (const a of expected.awards) {
@@ -62,7 +62,7 @@ describe('closeSeasons', () => {
     t.clock.advance(SEASON_MS + 6 * 60_000)
     await closeSeasons({ db: t.db, clock: t.clock })
     const [before] = await t.db.select().from(balances).where(eq(balances.playerId, ids[0]!))
-    expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual([])
+    expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual({ closed: [], busy: false })
     const [after] = await t.db.select().from(balances).where(eq(balances.playerId, ids[0]!))
     expect(after!.tokenWei).toBe(before!.tokenWei)
     expect(before!.tokenWei).toBeGreaterThan(0n)
@@ -85,6 +85,32 @@ describe('closeSeasons', () => {
 
   it('does not close a running season', async () => {
     await ensureCurrentSeason(t.db, t.clock)
-    expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual([])
+    expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual({ closed: [], busy: false })
+  })
+
+  it('with a seasonId closes only that season', async () => {
+    const s1 = await ensureCurrentSeason(t.db, t.clock)
+    t.clock.advance(SEASON_MS + 6 * 60_000)
+    const s2 = await ensureCurrentSeason(t.db, t.clock)
+    t.clock.advance(SEASON_MS + 6 * 60_000)
+    expect(s2.id).toBeGreaterThan(s1.id)
+    expect(await closeSeasons({ db: t.db, clock: t.clock }, { seasonId: s2.id })).toEqual({ closed: [s2.id], busy: false })
+    const rows = await t.db.select().from(seasons)
+    expect(rows.find(r => r.id === s1.id)!.closedAt).toBeNull()
+    expect(rows.find(r => r.id === s2.id)!.closedAt).not.toBeNull()
+  })
+
+  it('scheduler path still closes every ended season in order', async () => {
+    const s1 = await ensureCurrentSeason(t.db, t.clock)
+    t.clock.advance(SEASON_MS + 6 * 60_000)
+    const s2 = await ensureCurrentSeason(t.db, t.clock)
+    t.clock.advance(SEASON_MS + 6 * 60_000)
+    expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual({ closed: [s1.id, s2.id], busy: false })
+  })
+
+  it('reports busy when the advisory lock is held elsewhere', async () => {
+    // PGlite has one connection, so a second holder cannot be opened; fake a transaction whose try-lock fails.
+    const fake = { transaction: async (fn: (tx: unknown) => unknown) => fn({ execute: async () => ({ rows: [{ ok: false }] }) }) }
+    expect(await closeSeasons({ db: fake as never, clock: t.clock })).toEqual({ closed: [], busy: true })
   })
 })

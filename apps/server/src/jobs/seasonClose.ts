@@ -20,29 +20,31 @@ export const CLOSE_GRACE_MS = 5 * 60_000
  * the secret is revealed (§17) and trophies above 1,000 are halved towards 1,000 (§11). Each ended,
  * unclosed season is closed in its own transaction; standings are read inside it under the lock, so
  * SP written by a concurrent action lands either in this season's snapshot or not at all for prizes.
- * Returns the ids closed in this run.
+ * Returns the ids closed in this run and whether the advisory lock was held by someone else (`busy`).
+ * With `opts.seasonId` only that season is considered (still requiring it to be ended past the grace and unclosed).
  */
-export async function closeSeasons(deps: { db: Db; clock: Clock }): Promise<number[]> {
+export async function closeSeasons(deps: { db: Db; clock: Clock }, opts: { seasonId?: number } = {}): Promise<{ closed: number[]; busy: boolean }> {
   const { db, clock } = deps
   const closed: number[] = []
   for (;;) {
-    const id = await db.transaction(async tx => {
+    const step = await db.transaction(async (tx): Promise<{ busy: true } | { id: number } | null> => {
       const locked = await tx.execute(sql`select pg_try_advisory_xact_lock(${CLOSE_LOCK_ID}) as ok`)
-      if (!(locked as unknown as { rows: { ok: boolean }[] }).rows[0]?.ok) return null
+      if (!(locked as unknown as { rows: { ok: boolean }[] }).rows[0]?.ok) return { busy: true }
       const cutoff = new Date(clock() - CLOSE_GRACE_MS)
       const [season] = await tx
         .select()
         .from(seasons)
-        .where(and(isNull(seasons.closedAt), lte(seasons.endsAt, cutoff)))
+        .where(and(isNull(seasons.closedAt), lte(seasons.endsAt, cutoff), opts.seasonId === undefined ? undefined : eq(seasons.id, opts.seasonId)))
         .orderBy(asc(seasons.id))
         .limit(1)
         .for('update')
       if (!season) return null
       await closeOne(tx, season.id, clock)
-      return season.id
+      return { id: season.id }
     })
-    if (id === null) return closed
-    closed.push(id)
+    if (step === null) return { closed, busy: false }
+    if ('busy' in step) return { closed, busy: true }
+    closed.push(step.id)
   }
 }
 

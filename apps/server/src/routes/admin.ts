@@ -7,10 +7,10 @@ import { z } from 'zod'
 import type { AppDeps } from '../app'
 import type { Db } from '../db/client'
 import { actionLog, balances, players, seasonPrizes, vouchers } from '../db/schema'
-import { closeSeasons } from '../jobs/seasonClose'
+import { CLOSE_GRACE_MS, closeSeasons } from '../jobs/seasonClose'
 import { AppError } from '../plugins/errors'
 import { banPlayer, unbanPlayer } from '../services/bans'
-import { INFLOW_SOURCES, recordInflow, seasonInflows, type InflowSource } from '../services/inflows'
+import { recordInflow, seasonInflows } from '../services/inflows'
 import { setManualPrice } from '../services/price'
 import { ensureCurrentSeason, getSeasonById, revealSecret, toSeasonInfo } from '../services/season'
 import { spTotals } from '../services/sp'
@@ -21,7 +21,7 @@ export type JobRegistry = Record<string, () => Promise<unknown>>
 const banBody = z.object({ playerId: z.string().uuid(), reason: z.string().min(1).max(500) })
 const unbanBody = z.object({ playerId: z.string().uuid() })
 const priceBody = z.object({ microUsdPerToken: z.string().regex(/^[0-9]+$/) })
-const inflowBody = z.object({ source: z.enum(INFLOW_SOURCES as [InflowSource, ...InflowSource[]]), wei: z.string().regex(/^[0-9]+$/), ref: z.string().min(1).max(200) })
+const inflowBody = z.object({ source: z.literal('buyback'), wei: z.string().regex(/^[0-9]+$/), ref: z.string().min(1).max(200) })
 const idParam = z.object({ id: z.coerce.number().int().positive() })
 const playerParam = z.object({ id: z.string().uuid() })
 const addressQuery = z.object({ address: z.string().regex(/^0x[0-9a-fA-F]{40}$/) })
@@ -108,8 +108,15 @@ export function adminRoutes(app: FastifyInstance, deps: AppDeps, jobs: JobRegist
     const { id } = idParam.parse(req.params)
     const s = await getSeasonById(db, id)
     if (!s) throw new AppError(404, 'NOT_FOUND')
+    if (s.closedAt) throw new AppError(409, 'ALREADY_CLOSED')
     if (s.endsAt.getTime() > clock()) throw new AppError(409, 'SEASON_ACTIVE')
-    return { closed: await closeSeasons({ db, clock }) }
+    // Ended but inside the grace window: late actions may still commit, so closing now would drop them.
+    if (s.endsAt.getTime() + CLOSE_GRACE_MS > clock()) throw new AppError(409, 'SEASON_GRACE')
+    const { closed, busy } = await closeSeasons({ db, clock }, { seasonId: id })
+    if (busy) throw new AppError(409, 'SEASON_BUSY')
+    // Closed by a concurrent run between our read and the lock.
+    if (!closed.includes(id)) throw new AppError(409, 'ALREADY_CLOSED')
+    return { closed }
   })
 
   app.get('/admin/stats', opts, async () => {

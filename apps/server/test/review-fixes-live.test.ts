@@ -27,9 +27,9 @@ describe('Review 1: a season is closed only after a grace period, so late writer
     t.clock.advance(SEASON_MS + 1) // the season has ended, an action started just before is still committing
     await t.db.insert(spLedger).values({ playerId: a.playerId, seasonId: season.id, day: 14, source: 'late', points: 250, ref: '' })
     await t.db.insert(vaultInflows).values({ seasonId: season.id, source: 'buyback', wei: 1_000n * E18, ref: 'late' })
-    expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual([]) // inside the grace period: not yet
+    expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual({ closed: [], busy: false }) // inside the grace period: not yet
     t.clock.advance(CLOSE_GRACE_MS)
-    expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual([season.id])
+    expect(await closeSeasons({ db: t.db, clock: t.clock })).toEqual({ closed: [season.id], busy: false })
     const [prize] = await t.db.select().from(seasonPrizes).where(eq(seasonPrizes.playerId, a.playerId))
     expect(prize!.wei).toBeGreaterThan(0n)
     expect(prize!.tier).toBe(0)

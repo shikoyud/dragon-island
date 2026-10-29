@@ -72,7 +72,10 @@ function PlayerTab({ api }: { api: AdminApi }) {
   const [p, setP] = useState<AdminPlayer | null>(null)
   const [reason, setReason] = useState('')
   const r = useResult()
-  const lookup = () => r.run(async () => { const res = /^0x[0-9a-fA-F]{40}$/.test(q.trim()) ? await api.playerByAddress(q.trim()) : await api.player(q.trim()); setP(res); return { found: res.player.id } })
+  const fetchPlayer = async () => (/^0x[0-9a-fA-F]{40}$/.test(q.trim()) ? api.playerByAddress(q.trim()) : api.player(q.trim()))
+  const lookup = () => r.run(async () => { const res = await fetchPlayer(); setP(res); return { found: res.player.id } })
+  /** Runs a ban/unban, then reloads the player so the Banned row reflects it; the reply stays visible. */
+  const mutate = (fn: () => Promise<unknown>) => r.run(async () => { const reply = await fn(); setP(await api.player(p!.player.id)); return reply })
   return (
     <section>
       <label>Player id or address <input value={q} onChange={e => setQ(e.target.value)} style={{ width: '100%' }} /></label>
@@ -92,8 +95,8 @@ function PlayerTab({ api }: { api: AdminApi }) {
       {p && (
         <div style={{ marginTop: 8 }}>
           <label>Reason <input value={reason} onChange={e => setReason(e.target.value)} /></label>
-          <button type="button" className="btn btn--danger" disabled={!reason.trim() || r.busy || p.player.bannedAt !== null} onClick={() => void r.run(() => api.ban(p.player.id, reason.trim()))}>Ban</button>
-          <button type="button" className="btn" disabled={r.busy || p.player.bannedAt === null} onClick={() => void r.run(() => api.unban(p.player.id))}>Unban</button>
+          <button type="button" className="btn btn--danger" disabled={!reason.trim() || r.busy || p.player.bannedAt !== null} onClick={() => void mutate(() => api.ban(p.player.id, reason.trim()))}>Ban</button>
+          <button type="button" className="btn" disabled={r.busy || p.player.bannedAt === null} onClick={() => void mutate(() => api.unban(p.player.id))}>Unban</button>
         </div>
       )}
       {r.view}
@@ -112,6 +115,8 @@ function SeasonTab({ api }: { api: AdminApi }) {
   const r = useResult()
   const n = Number(id)
   const load = () => r.run(async () => { const res = await api.seasonSummary(n); setS(res); return { loaded: res.season.id } })
+  /** Runs close/reveal, then refreshes the summary; the reply from the action stays visible. */
+  const act = (fn: () => Promise<unknown>) => r.run(async () => { const reply = await fn(); setS(await api.seasonSummary(s!.season.id)); return reply })
   return (
     <section>
       <label>Season id <input value={id} onChange={e => setId(e.target.value)} inputMode="numeric" /></label>
@@ -132,10 +137,10 @@ function SeasonTab({ api }: { api: AdminApi }) {
             ? <button type="button" className="btn btn--danger" disabled={r.busy || s.closedAt !== null} onClick={() => setConfirm(true)}>Close now</button>
             : <>
                 <span>Credit prizes, reset trophies and reveal the secret for season {s.season.id}?</span>
-                <button type="button" className="btn btn--danger" onClick={() => { setConfirm(false); void r.run(() => api.closeSeason(s.season.id)).then(load) }}>Yes, close</button>
+                <button type="button" className="btn btn--danger" onClick={() => { setConfirm(false); void act(() => api.closeSeason(s.season.id)) }}>Yes, close</button>
                 <button type="button" className="btn" onClick={() => setConfirm(false)}>Cancel</button>
               </>}
-          <button type="button" className="btn" disabled={r.busy || s.season.revealedSecret !== null} onClick={() => void r.run(() => api.revealSeason(s.season.id)).then(load)}>Reveal</button>
+          <button type="button" className="btn" disabled={r.busy || s.season.revealedSecret !== null} onClick={() => void act(() => api.revealSeason(s.season.id))}>Reveal</button>
         </div>
       )}
       {r.view}

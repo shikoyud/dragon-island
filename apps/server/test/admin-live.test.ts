@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { loadConfig } from '../src/config'
-import { balances, players, spLedger } from '../src/db/schema'
+import { balances, players, seasons, spLedger } from '../src/db/schema'
 import { recordInflow } from '../src/services/inflows'
 import { ensureCurrentSeason, SEASON_MS } from '../src/services/season'
 import { TEST_ADMIN_TOKEN, testApp, type TestApp } from './helpers/testApp'
@@ -67,5 +67,33 @@ describe('live-ops routes', () => {
 
     const stats = await t.app.inject({ method: 'GET', url: '/admin/stats', headers: admin })
     expect(stats.json()).toEqual({ players: 1, earningUnlocked: 1, banned: 0, actions24h: 0, openVouchers: 0 })
+  })
+})
+
+describe('tightened admin routes', () => {
+  it('POST /admin/inflow accepts only buyback', async () => {
+    const post = (payload: object) => t.app.inject({ method: 'POST', url: '/admin/inflow', headers: admin, payload })
+    expect((await post({ source: 'spend', wei: '1', ref: 'x' })).statusCode).toBe(400)
+    expect((await post({ source: 'buyback', wei: '1', ref: 'b1' })).statusCode).toBe(200)
+  })
+
+  it('close targets only the requested season, and rejects closed or still-graced seasons', async () => {
+    const s1 = await ensureCurrentSeason(t.db, t.clock)
+    t.clock.advance(SEASON_MS + 6 * 60_000)
+    const s2 = await ensureCurrentSeason(t.db, t.clock)
+    const close = (id: number) => t.app.inject({ method: 'POST', url: `/admin/season/${id}/close`, headers: admin })
+    expect(s2.id).not.toBe(s1.id)
+    t.clock.advance(s2.endsAt.getTime() - t.clock() + 1) // s2 ended but is inside the grace period
+    expect((await close(s2.id)).json()).toEqual({ error: 'SEASON_GRACE' })
+    t.clock.advance(6 * 60_000)
+    const r = await close(s2.id)
+    expect(r.json()).toEqual({ closed: [s2.id] })
+    const closedAt = async (id: number) => (await t.db.select().from(seasons).where(eq(seasons.id, id)))[0]!.closedAt
+    expect(await closedAt(s1.id)).toBeNull()
+    expect(await closedAt(s2.id)).not.toBeNull()
+    const again = await close(s2.id)
+    expect(again.statusCode).toBe(409)
+    expect(again.json()).toEqual({ error: 'ALREADY_CLOSED' })
+    expect((await close(9999)).statusCode).toBe(404)
   })
 })
