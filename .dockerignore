@@ -1,0 +1,27 @@
+# Build context for apps/server/Dockerfile (built from the repo root). Keep secrets and bulk out.
+**/node_modules
+**/.pglite
+**/.env
+**/.env.*
+**/dist
+**/.next
+**/coverage
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo
+.git
+.github
+.superpowers
+.claude
+contracts
+deploy
+docs
+reports
+research_notes
+scripts
+# The image needs only the web and waitlist manifests (the frozen lockfile covers every workspace package).
+apps/web
+!apps/web/package.json
+apps/waitlist
+!apps/waitlist/package.json
+apps/server/test

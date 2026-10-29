@@ -2,3 +2,9 @@ node_modules
 dist
 .env*
 .superpowers/
+# Deploy bundle: real env and backup settings stay on the VPS; only the examples are tracked.
+deploy/.env
+deploy/.env.server
+deploy/backup.env
+!deploy/.env.example
+!deploy/.env.server.example

@@ -1,0 +1,84 @@
+# Dragon Island production stack (Robinhood Chain testnet 46630). Run from deploy/:
+#   docker compose up -d
+# Compose reads deploy/.env for ${...} variables (PLAY_DOMAIN, POSTGRES_PASSWORD) and passes
+# deploy/.env.server to the game server. Neither file is committed; copy the *.example files.
+# See deploy/README.md for the full runbook.
+
+name: dragon-island
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "5"
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dragon
+      POSTGRES_DB: dragon
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No published port: only containers on this network reach the database.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dragon -d dragon"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  server:
+    build:
+      context: ..
+      dockerfile: apps/server/Dockerfile
+    image: dragon-island-server:local
+    restart: unless-stopped
+    env_file: .env.server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Listens on :3000 inside the network only; Caddy is the sole way in.
+    expose:
+      - "3000"
+    stop_grace_period: 30s
+    logging: *logging
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      PLAY_DOMAIN: ${PLAY_DOMAIN:?set PLAY_DOMAIN in deploy/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The Vite build (apps/web/dist), produced off-box and synced here; see README "Web build".
+      - ../apps/web/dist:/srv:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - server
+    logging: *logging
+
+  # Optional: the waitlist site (apps/waitlist, Next.js) on its own domain. It has no image in this
+  # bundle yet; add apps/waitlist/Dockerfile, uncomment, and add a site block to the Caddyfile.
+  # waitlist:
+  #   build:
+  #     context: ..
+  #     dockerfile: apps/waitlist/Dockerfile
+  #   restart: unless-stopped
+  #   env_file: .env.waitlist
+  #   expose:
+  #     - "3000"
+  #   profiles: ["waitlist"]
+  #   logging: *logging
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

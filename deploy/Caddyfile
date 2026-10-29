@@ -1,0 +1,40 @@
+# Dragon Island edge: TLS, the static web build, and /api/* -> game server.
+# PLAY_DOMAIN comes from deploy/.env (e.g. play.example.com).
+
+{
+	servers {
+		# Traffic arrives through Cloudflare's proxy. Only these ranges may tell Caddy the client IP
+		# (via CF-Connecting-IP); anyone hitting the origin directly is identified by their socket
+		# address. Keep in sync with https://www.cloudflare.com/ips/ .
+		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+		client_ip_headers CF-Connecting-IP
+	}
+}
+
+{$PLAY_DOMAIN} {
+	encode zstd gzip
+
+	# Same as apps/web/vite.config.ts: /api/foo -> server:3000/foo (prefix stripped).
+	handle_path /api/* {
+		reverse_proxy server:3000 {
+			# The server runs with TRUST_PROXY=true and takes the left-most X-Forwarded-For entry,
+			# so send exactly one value: the client IP Caddy resolved above. Never pass a
+			# client-supplied X-Forwarded-For through.
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+
+	# Single-page app: real files from the build, everything else falls back to index.html.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
