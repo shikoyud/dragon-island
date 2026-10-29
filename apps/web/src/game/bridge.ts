@@ -1,4 +1,4 @@
-import type { BattlePreview, PlayerState } from '@wyrmhaven/game-core'
+import type { BattlePreview, Facing, Footprint, IslandId, MovableRef, Placeable, PlayerState } from '@wyrmhaven/game-core'
 import type { GameArtSet } from '../art/types'
 
 /** Something the player can click in a scene. */
@@ -9,7 +9,21 @@ export type Target =
   | { kind: 'hatchery'; slot: number }
   | { kind: 'farm'; plot: number }
   | { kind: 'hoard' }
+  | { kind: 'hatcheryBuilding' }
+  | { kind: 'decoration'; id: string }
+  | { kind: 'obstacle'; id: string }
+  | { kind: 'expandSign' }
+  | { kind: 'cell'; col: number; row: number }
   | { kind: 'empty' }
+
+/** A building being placed or moved: the ghost the island scene draws under the pointer. */
+export interface Placing {
+  what: Placeable | { kind: 'move'; target: MovableRef } | { kind: 'nest' } | { kind: 'hoard' }
+  size: Footprint
+  col: number
+  row: number
+  facing: Facing
+}
 
 export type GameEvent =
   | { type: 'select'; target: Target }
@@ -17,6 +31,9 @@ export type GameEvent =
   | { type: 'battleTarget'; slot: number }
   | { type: 'battle'; preview: BattlePreview | null }
   | { type: 'state'; state: PlayerState | null }
+  | { type: 'cell'; col: number; row: number }
+  | { type: 'view'; view: IslandId }
+  | { type: 'placing'; placing: Placing | null }
   | { type: 'ready' }
 
 type Handler<T extends GameEvent['type']> = (e: Extract<GameEvent, { type: T }>) => void
@@ -34,6 +51,8 @@ export function createBridge() {
     reducedMotion: false,
     battle: null as BattlePreview | null,
     selected: { kind: 'empty' } as Target,
+    view: 'home' as IslandId,
+    placing: null as Placing | null,
     on<T extends GameEvent['type']>(type: T, h: Handler<T>): () => void {
       const set = handlers.get(type) ?? new Set()
       handlers.set(type, set)
@@ -54,6 +73,14 @@ export function createBridge() {
     setArt(art: GameArtSet): void { bridge.art = art },
     setClock(nowMs: number): void { bridge.nowMs = nowMs },
     setReducedMotion(v: boolean): void { bridge.reducedMotion = v },
+    setView(id: IslandId): void {
+      bridge.view = id
+      bridge.emit({ type: 'view', view: id })
+    },
+    setPlacing(placing: Placing | null): void {
+      bridge.placing = placing
+      bridge.emit({ type: 'placing', placing })
+    },
     setBattle(preview: BattlePreview | null): void {
       bridge.battle = preview
       bridge.emit({ type: 'battle', preview })

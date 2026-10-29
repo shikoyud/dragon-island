@@ -1,4 +1,4 @@
-import type { CropId, Element } from '@wyrmhaven/game-core'
+import type { CropId, DecorationId, Element, ObstacleKind } from '@wyrmhaven/game-core'
 
 /** One image or horizontal sprite sheet. Same shape as the waitlist site's manifest entries. */
 export interface Sprite {
@@ -28,7 +28,23 @@ export interface GameArtSet {
   elementIcon: Record<Element, Sprite>
   ui: { panel: Sprite; button: Sprite; cursor: Sprite }
   island: { base: Sprite; layers: Sprite[] }
+  /** Base-building slots (Task 14 fills the manifest); absent ones draw at OPTIONAL_SLOT_SIZES. */
+  obstacle?: Record<ObstacleKind, Sprite>
+  decoration?: Record<DecorationId, Sprite>
+  nexus?: Sprite
+  sign?: Sprite
+  locked?: Sprite
+  map?: Sprite
 }
+
+/** Fallback pixel sizes of the optional slots; obstacles and decorations scale with their footprint (1/2/3 cells). */
+export const OPTIONAL_SLOT_SIZES = {
+  footprint: { 1: { w: 16, h: 16 }, 2: { w: 32, h: 32 }, 3: { w: 48, h: 48 } },
+  nexus: { w: 80, h: 64 },
+  sign: { w: 32, h: 32 },
+  locked: { w: 16, h: 16 },
+  map: { w: 32, h: 32 },
+} as const
 
 /** Default pixel sizes per slot, used when an asset is missing. */
 export const SLOT_SIZES = {

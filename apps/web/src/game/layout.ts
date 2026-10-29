@@ -1,37 +1,36 @@
-/** Pixel layout of the island at the 480×270 base. Every position is a whole pixel. */
+/** Grid layout of an island. Cells are 16 px; every position is a whole pixel. */
 export const BASE = { w: 480, h: 270 } as const
+/** Edge of one grid cell in world pixels. */
+export const CELL = 16
 
 export interface Pos { x: number; y: number }
 
-/** Grid cells [col, row] in fill order: the open meadow in the middle first, the edges last. */
-const HABITAT_ORDER: readonly (readonly [number, number])[] = [
-  [1, 1], [2, 1], [1, 0], [2, 0], [1, 2], [2, 2], [0, 1], [3, 1], [0, 0], [3, 0], [0, 2], [3, 2],
-]
-
-/** Habitat platforms (96×64 tiles, bottom-centre origin): a 4×3 grid across the island body (up to 12). */
-export function habitatSlots(index: number, _count: number): Pos {
-  const [col, row] = HABITAT_ORDER[index % HABITAT_ORDER.length]!
-  // Back-row dragon heads clear the farm strip (y 36); rows overlap by 22 px so a front tile hides
-  // the back tile's wall (the island model draws back to front); the front row clears the nests.
-  return { x: 96 + col * 96, y: 120 + row * 42 }
+/** World size in pixels of a grid of `w` x `h` cells. */
+export function worldSize(w: number, h: number): { w: number; h: number } {
+  return { w: w * CELL, h: h * CELL }
 }
 
-/** Dragon spots on a platform: a 4+3 arrangement standing on the tile's top face. */
-export function dragonSlots(habitatIndex: number, slot: number, _slots: number, count: number): Pos {
-  const p = habitatSlots(habitatIndex, count)
+/** Bottom-centre of a `size` x `size` building whose top-left cell is (col, row). */
+export function anchor(col: number, row: number, size: number): Pos {
+  return { x: col * CELL + size * (CELL / 2), y: (row + size) * CELL }
+}
+
+/** Dragon spots on a platform: a 4+3 arrangement standing on the top face of a 5x5 habitat. */
+export function dragonSpot(a: Pos, slot: number): Pos {
   const row = slot < 4 ? 0 : 1
   const col = slot < 4 ? slot : slot - 4
-  return { x: p.x - 30 + col * 20 + row * 10, y: p.y - 36 + row * 12 }
+  return { x: a.x - 30 + col * 20 + row * 10, y: a.y - 36 + row * 12 }
 }
 
-/** Nests along the bottom-left shore. */
-export const nestPos = (i: number): Pos => ({ x: 40 + i * 36, y: 236 })
-/** Hatchery slots on the bottom-right. */
-export const hatcheryPos = (slot: number): Pos => ({ x: 356 + slot * 36, y: 236 })
-/** Farm plots across the top strip. */
-export const farmPos = (plot: number): Pos => ({ x: 48 + plot * 40, y: 36 })
-/** The Hoard sits top-right. */
-export const hoardPos = (): Pos => ({ x: 432, y: 40 })
+/** Egg and hatchling spots on the top face of the 4x4 hatchery: rows of four. */
+export function hatcherySpot(a: Pos, slot: number): Pos {
+  return { x: a.x - 24 + (slot % 4) * 16, y: a.y - 32 + Math.floor(slot / 4) * 12 }
+}
+
+/** The grid cell under a world position (floor division, so negatives fall outside the island). */
+export function pointerToCell(worldX: number, worldY: number): { col: number; row: number } {
+  return { col: Math.floor(worldX / CELL), row: Math.floor(worldY / CELL) }
+}
 
 /** Largest whole-number zoom that fits the viewport; never below 1. */
 export function integerZoom(viewportW: number, viewportH: number): number {
