@@ -17,7 +17,7 @@ const manifest: Manifest = {
 }
 
 // War has no sprites yet (Task B3): the drawn fallback covers it.
-const ELEMENTS_WITH_ART = ELEMENTS.filter(e => e !== 'war')
+const ELEMENTS_WITH_ART = ELEMENTS
 
 describe('art v1 manifest', () => {
   const dir = path.join(__dirname, '..', 'public', 'art', 'v1')
@@ -34,14 +34,14 @@ describe('art v1 manifest', () => {
         [`egg.${e}`, art.egg[e]], [`hatchling.${e}`, art.hatchling[e]],
         [`habitat.${e}`, art.habitat[e]], [`icon.${e}`, art.elementIcon[e]],
       ] as [string, { src: string }][]),
-      ...Object.entries(art.dragon).filter(([id]) => id !== 'war').map(([id, s]) => [`dragon.${id}`, s] as [string, { src: string }]),
+      ...Object.entries(art.dragon).map(([id, s]) => [`dragon.${id}`, s] as [string, { src: string }]),
       ['nest', art.building.nest], ['hatchery', art.building.hatchery], ['farmPlot', art.building.farmPlot],
       ...Object.entries(art.building.cropStage).map(([c, s]) => [`crop.${c}`, s] as [string, { src: string }]),
       ['ui.panel', art.ui.panel], ['ui.button', art.ui.button], ['ui.cursor', art.ui.cursor], ['island.base', art.island.base],
     ]
     for (const [key, s] of sprites) expect(s.src, key).not.toBe('')
     expect(art.island.layers.length).toBeGreaterThan(0)
-    for (const c of Object.values(art.building.cropStage)) expect(c.frames).toBe(4)
+    for (const c of Object.values(art.building.cropStage)) expect(c.frames).toBe(3)
   })
 
   it('fills every base-building slot at its footprint size', () => {
@@ -211,9 +211,10 @@ describe('drawFallback', () => {
     expect(FALLBACK_PALETTE.war.base).toBe('#a32638')
   })
 
-  it('draws War from the fallback until it has art: every slot is empty, with a drawn texture row', () => {
+  it('draws an element from the fallback when the manifest lacks it: every slot is empty, with a drawn texture row', () => {
     const v1 = JSON.parse(readFileSync(path.join(__dirname, '..', 'public', 'art', 'v1', 'manifest.json'), 'utf8')) as Manifest
-    const rows = artEntries(artSetFromManifest('v1', v1, LAUNCH_CATALOG))
+    const noWar = Object.fromEntries(Object.entries(v1.assets).filter(([k]) => !/\.war(\.|$)/.test(k)))
+    const rows = artEntries(artSetFromManifest('v1', { assets: noWar }, LAUNCH_CATALOG))
     for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'icon']) {
       const row = rows.find(r => r.key === `art:${slot}.war`)
       expect(row, slot).toMatchObject({ element: 'war', sprite: { src: '' } })
