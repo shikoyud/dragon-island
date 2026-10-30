@@ -4,6 +4,13 @@ const group = (digits: string): string => digits.replace(/\B(?=(\d{3})+(?!\d))/g
 
 export const formatGold = (n: number): string => group(Math.trunc(n).toString())
 
+/** Gold per minute from twentieths (R7): "1,320", or one decimal only when there is a fraction ("12.5"). Integer math. */
+export function formatPerMinuteX20(x20: number): string {
+  if (x20 % 20 === 0) return formatGold(x20 / 20)
+  const tenths = Math.round(x20 / 2)
+  return tenths % 10 === 0 ? formatGold(tenths / 10) : `${formatGold(Math.floor(tenths / 10))}.${tenths % 10}`
+}
+
 /** "$0.50", "$2.00"; shows up to 6 decimals when the amount is below a cent. */
 export function formatMicroUsd(micro: number | bigint): string {
   const m = BigInt(micro)

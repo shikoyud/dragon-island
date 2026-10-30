@@ -1,6 +1,6 @@
 import {
   constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
-  DEFAULT_PRESET, OBSTACLES, placementRuleError, residents, storedGold,
+  DEFAULT_PRESET, habitatCap, OBSTACLES, placementRuleError, residents, storedGold,
   type BuildingRef, type Catalog, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
@@ -16,7 +16,11 @@ export interface IslandObject {
   x: number
   y: number
   target: Target
-  badge?: string
+  /**
+   * 'gold' / 'full' mark a habitat with Gold to collect (tappable); any other string is a timer or status label.
+   * (The brief's `{ timer: number }` form is not used: labels like 'no room' and 'ready' need a string.)
+   */
+  badge?: 'gold' | 'full' | (string & {})
   scale?: number
   /** Static frame of a multi-frame sheet to show (crop growth stages). */
   frame?: number
@@ -162,7 +166,8 @@ export function buildIslandModel(
       : { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
     const group: IslandObject[] = [{
       id: `habitat:${h.id}`, ...base, ...a, target: { kind: 'habitat', id: h.id },
-      badge: gold > 0 ? `${gold}g` : undefined, ...look({ type: 'habitat', id: h.id }, h.placement),
+      badge: gold > 0 && gold >= habitatCap(h.element, h.level, preset) ? 'full' : gold > 0 ? 'gold' : undefined,
+      ...look({ type: 'habitat', id: h.id }, h.placement),
     }]
     markers.habitats.push(h.id)
     residents(state, h.id).forEach((d, slot) => {

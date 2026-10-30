@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
 import type Phaser from 'phaser'
 import type { GameArtSet } from '../art/types'
-import { presetOf, useMe } from '../state/me'
+import { useAction } from '../state/actions'
+import { useMe } from '../state/me'
+import { presetOf } from '../state/preset'
 import type { Bridge } from './bridge'
 import { createGame } from './config'
 
@@ -30,6 +32,12 @@ export function GameCanvas({ bridge, art }: { bridge: Bridge; art: GameArtSet })
       game.current = null
     }
   }, [bridge, art])
+
+  // A tap on a gold badge collects that habitat's Gold; the action hook reports failures as toasts.
+  const { run } = useAction()
+  const runRef = useRef(run)
+  runRef.current = run
+  useEffect(() => bridge.on('collectGold', e => { void runRef.current({ type: 'collectGold', habitatId: e.habitatId }) }), [bridge])
 
   // The preset goes first so the redraw the state triggers already uses it.
   useEffect(() => {

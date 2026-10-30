@@ -34,7 +34,8 @@ describe('island model', () => {
 
   it('shows stored gold and timers as badges', () => {
     const { objects } = model(newPlayer(0), 600_000)
-    expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('1800g')
+    expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('gold')
+    expect(model(newPlayer(0), 0).objects.find(o => o.id === 'habitat:h1')!.badge).toBeUndefined()
     const withEgg = model({ ...newPlayer(0), nests: [{ ...newPlayer(0).nests[0]!, egg: { speciesId: 'flame', readyAtMs: 15_000 } }] }, 1_000)
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.badge).toBe('14s')
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.scale).toBe(NEST_EGG_SCALE) // sits inside the 32x32 nest
@@ -42,6 +43,11 @@ describe('island model', () => {
     expect(timerLabel(0, 5)).toBe('ready')
     expect(timerLabel(3_600_000 * 4, 0)).toBe('4h')
     expect(timerLabel(90_000, 0)).toBe('2m')
+  })
+
+  it('badges a habitat full once its stored gold reaches the cap', () => {
+    const { objects } = model(newPlayer(0), 10_000_000_000)
+    expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('full')
   })
 
   it('places a waiting hatchling in the hatchery, badges the hatchery no room and never overlaps dragons', () => {

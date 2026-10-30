@@ -45,10 +45,40 @@ describe('HabitatPanel', () => {
   it('shows stored gold and upgrade cost, and collects', async () => {
     const { wrap, action } = harness(base, 600_000)
     wrap(<HabitatPanel habitatId="h1" nowMs={600_000} />)
-    expect(screen.getByText(/1,800 gold stored/i)).toBeInTheDocument()
+    expect(screen.getByText('1,800 / 80,000')).toBeInTheDocument()
+    expect(screen.queryByText('FULL')).toBeNull()
+    expect(screen.getByText(/Level 1 · 1\/2 dragons/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /upgrade to 2/i })).toHaveTextContent('10,000')
     await userEvent.click(screen.getByRole('button', { name: /collect/i }))
     expect(action).toHaveBeenCalledWith({ type: 'collectGold', habitatId: 'h1' }, expect.any(String))
+  })
+
+  it('shows FULL and stored / cap for a capped habitat', () => {
+    const { wrap } = harness(base, 10_000_000_000)
+    wrap(<HabitatPanel habitatId="h1" nowMs={10_000_000_000} />)
+    expect(screen.getByText('80,000 / 80,000')).toBeInTheDocument()
+    expect(screen.getByText('FULL')).toBeInTheDocument()
+  })
+
+  it('shows Gold/min as the residents sum and lists residents that open the dragon panel', async () => {
+    const two: PlayerState = { ...base, dragons: base.dragons.map(d => ({ ...d, speciesId: 'terra', level: 5, habitatId: 'h1' })) }
+    const { wrap } = harness(two)
+    const onOpenDragon = vi.fn()
+    wrap(<HabitatPanel habitatId="h1" nowMs={0} onOpenDragon={onOpenDragon} />)
+    expect(screen.getByText('1,320 gold/min')).toBeInTheDocument()
+    const list = screen.getByRole('list', { name: /residents/i })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2)
+    const first = within(list).getAllByRole('button')[0]!
+    expect(first).toHaveTextContent(/Terra Basic · Lv 5 · juvenile/)
+    await userEvent.click(first)
+    expect(onOpenDragon).toHaveBeenCalledWith('d1')
+  })
+
+  it('disables Collect with the reason when nothing is stored', () => {
+    const { wrap } = harness(base)
+    wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
+    expect(screen.getByRole('button', { name: /collect/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /collect/i })).toHaveAccessibleDescription('Nothing to collect yet')
   })
 
   it('offers moves only for dragons that fit', () => {

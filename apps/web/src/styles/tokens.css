@@ -46,6 +46,7 @@ canvas, .sprite, img.pixel { image-rendering: pixelated; image-rendering: crisp-
   cursor: pointer;
   font-size: 12px;
 }
+.panel .btn { min-height: 44px; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn--ghost { background: transparent; }
 .btn--primary { background: var(--accent); color: #1b1300; border-color: #b89a1a; }

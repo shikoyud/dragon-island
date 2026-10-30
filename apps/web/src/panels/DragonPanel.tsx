@@ -1,6 +1,7 @@
 import { foodPerFeed, getSpecies, goldPerMinuteX20, LAUNCH_CATALOG, levelCap, SELL_GOLD } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
-import { useMe, usePreset } from '../state/me'
+import { useMe } from '../state/me'
+import { usePreset } from '../state/preset'
 import { formatGold } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 

@@ -1,4 +1,4 @@
-import { DEFAULT_PRESET, PRESETS, type PlayerState, type Preset } from '@wyrmhaven/game-core'
+import type { PlayerState } from '@wyrmhaven/game-core'
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useApi } from '../api/ApiProvider'
 import type { Me } from '../api/client'
@@ -16,16 +16,6 @@ export function useMe() {
     enabled: session !== null,
     staleTime: 10_000,
   })
-}
-
-/** The soft-economy preset the server runs (`/me.game.preset`); Flash-14 until /me has loaded. */
-export function presetOf(me: Pick<Me, 'game'> | undefined): Preset {
-  return PRESETS[me?.game?.preset ?? DEFAULT_PRESET.id]
-}
-
-/** Task B9 replaces this pass-through with the proper preset hook. */
-export function usePreset(): Preset {
-  return presetOf(useMe().data)
 }
 
 /**
