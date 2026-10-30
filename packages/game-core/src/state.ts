@@ -1,7 +1,7 @@
 import type { Element } from './elements'
 import { utcDay, type DayCounter } from './time'
 
-export type CropId = 'sprout' | 'bushel' | 'harvest' | 'bounty'
+export type CropId = 'dragonBush' | 'emberWheat' | 'seaMelon' | 'thunderPumpkin' | 'frostBerries' | 'warlordPepper'
 
 export interface Egg { speciesId: string; readyAtMs: number }
 /** `habitatId: null` = hatched and waiting in the hatchery. */

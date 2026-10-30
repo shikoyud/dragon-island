@@ -129,6 +129,8 @@ function isStoreItem(v: unknown): boolean {
       return true
     case 'habitatL5':
       return isId(item['habitatId'])
+    case 'farmL5':
+      return isIndex(item['index'])
     case 'goldenAerie':
       return isPlacement(item['placement'])
     default:

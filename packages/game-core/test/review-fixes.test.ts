@@ -25,7 +25,7 @@ describe('malformed actions are rejected, never applied', () => {
     err(raw(laid, { type: 'collectEgg', nest: '0' }), 'INVALID_ACTION')
     err(raw(laid, { type: 'hatch', slot: '0' }), 'INVALID_ACTION')
     err(raw(laid, { type: 'hatch', slot: 0.5 }), 'INVALID_ACTION')
-    err(raw(s, { type: 'plant', plot: -1, crop: 'sprout' }), 'INVALID_ACTION')
+    err(raw(s, { type: 'plant', plot: -1, crop: 'dragonBush' }), 'INVALID_ACTION')
     err(raw(s, { type: 'harvest', plot: Number.NaN }), 'INVALID_ACTION')
   })
 
@@ -37,7 +37,7 @@ describe('malformed actions are rejected, never applied', () => {
   })
 
   it('still reports player mistakes with their own codes', () => {
-    err(run(s, { type: 'plant', plot: 7, crop: 'sprout' }), 'NOT_FOUND')
+    err(run(s, { type: 'plant', plot: 7, crop: 'dragonBush' }), 'NOT_FOUND')
   })
 })
 

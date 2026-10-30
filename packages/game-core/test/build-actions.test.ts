@@ -46,11 +46,21 @@ describe('placeBuilding', () => {
     const flame = ok(run(t, { type: 'placeBuilding', building: { kind: 'habitat', element: 'flame' }, placement: P(6, 7) }, 0))
     expect([flame.gold, flame.constructions[0]!.readyAtMs]).toEqual([98_000, 100_000])
   })
-  it('a third plot costs 500 and takes 2 min after the tutorial builds', () => {
-    const t = { ...s, tutorial: { ...s.tutorial, buildsStarted: 2 } }
+  it('a third farm needs PL 4, costs 9,000 and takes 10 s (60 s classic / 6) after the tutorial builds', () => {
+    const t = { ...s, level: 4, gold: 20_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }
     const a = ok(run(t, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(6, 7) }, 0))
     expect(a.farms[2]).toEqual({ crop: null, readyAtMs: 0, level: 1, placement: P(6, 7) })
-    expect([a.gold, a.constructions[0]!.readyAtMs]).toEqual([500, 120_000])
+    expect([a.gold, a.constructions[0]!.readyAtMs]).toEqual([11_000, 10_000])
+  })
+  it('gates farms by player level (§5.3) and caps them at 8', () => {
+    const t = { ...s, gold: 1e9, tutorial: { ...s.tutorial, buildsStarted: 2 } }
+    err(run({ ...t, level: 3 }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(6, 7) }, 0), 'LEVEL_TOO_LOW')
+    ok(run({ ...t, level: 4 }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(6, 7) }, 0))
+    const fakeFarm = (i: number) => ({ crop: null, readyAtMs: 0, level: 1, placement: P(20 + i, 0) })
+    const two = { ...t, level: 3, farms: [fakeFarm(0), fakeFarm(1)] }
+    ok(run({ ...two, farms: [fakeFarm(0)] }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(6, 7) }, 0))
+    err(run(two, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(6, 7) }, 0), 'LEVEL_TOO_LOW')
+    err(run({ ...t, level: 50, farms: Array.from({ length: 8 }, (_, i) => fakeFarm(i)) }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(6, 7) }, 0), 'MAX_PLOTS')
   })
   it('unfinished habitats take no dragons', () => {
     const a = ok(run({ ...s, level: 5, gold: 5_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'flame' }, placement: P(6, 7) }, 0))
@@ -78,9 +88,9 @@ describe('placeBuilding', () => {
 
 describe('plant on unfinished plots', () => {
   it('rejects a plot under construction', () => {
-    const t = { ...s, tutorial: { ...s.tutorial, buildsStarted: 2 } }
+    const t = { ...s, level: 4, gold: 20_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }
     const a = ok(run(t, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(6, 7) }, 0))
-    err(run(a, { type: 'plant', plot: 2, crop: 'sprout' }, 0), 'UNDER_CONSTRUCTION')
+    err(run(a, { type: 'plant', plot: 2, crop: 'dragonBush' }, 0), 'UNDER_CONSTRUCTION')
   })
 })
 
@@ -173,8 +183,8 @@ describe('startUpgrade / finishConstruction', () => {
   it('farm, nest and hatchery levels change yields, breed time and slots', () => {
     const t = { ...s, level: 30, gold: 200_000, tutorial: { breedDone: true, hatchDone: true, buildsStarted: 2 } }
     const f = ok(run(ok(run(t, { type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 0)), { type: 'finishConstruction', index: 0 }, 900_000))
-    const planted = ok(run({ ...f, farms: f.farms.map((p, i) => i === 0 ? { ...p, crop: 'bounty' as const, readyAtMs: 0 } : p) }, { type: 'harvest', plot: 0 }, 900_000))
-    expect(planted.food - f.food).toBe(3_450)
+    const planted = ok(run({ ...f, farms: f.farms.map((p, i) => i === 0 ? { ...p, crop: 'warlordPepper' as const, readyAtMs: 0 } : p) }, { type: 'harvest', plot: 0 }, 900_000))
+    expect(planted.food - f.food).toBe(39_000)
     const n = ok(run(ok(run(t, { type: 'startUpgrade', building: { type: 'nest', index: 0 } }, 0)), { type: 'finishConstruction', index: 0 }, 7_200_000))
     const parents = n.dragons.map(d => ({ ...d, level: 4 }))
     const bred = ok(run({ ...n, dragons: parents }, { type: 'startBreed', parentA: 'd1', parentB: 'd2' }, 7_200_000))
@@ -199,8 +209,8 @@ describe('upgrading buildings keep working (spec 6)', () => {
   })
 
   it('a farm plot under upgrade can be planted, an unfinished one cannot', () => {
-    expect(ok(run(up({ type: 'farm', index: 0 }), { type: 'plant', plot: 0, crop: 'sprout' }, 0)).farms[0]!.crop).toBe('sprout')
-    err(run(unfinished({ type: 'farm', index: 0 }), { type: 'plant', plot: 0, crop: 'sprout' }, 0), 'UNDER_CONSTRUCTION')
+    expect(ok(run(up({ type: 'farm', index: 0 }), { type: 'plant', plot: 0, crop: 'dragonBush' }, 0)).farms[0]!.crop).toBe('dragonBush')
+    err(run(unfinished({ type: 'farm', index: 0 }), { type: 'plant', plot: 0, crop: 'dragonBush' }, 0), 'UNDER_CONSTRUCTION')
   })
 
   it('an unfinished habitat still refuses dragons', () => {

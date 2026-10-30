@@ -5,7 +5,7 @@ import { FIXTURE_CATALOG } from './fixtures'
 const OBSTACLE_ID = 'home-s1-bush'
 const script: [Action, number][] = [
   [{ type: 'collectGold', habitatId: 'h1' }, 60_000],
-  [{ type: 'plant', plot: 0, crop: 'sprout' }, 60_000],
+  [{ type: 'plant', plot: 0, crop: 'dragonBush' }, 60_000],
   [{ type: 'harvest', plot: 0 }, 120_000],
   ...Array.from({ length: 12 }, (): [Action, number] => [{ type: 'feed', dragonId: 'd1' }, 120_000]),
   ...Array.from({ length: 12 }, (): [Action, number] => [{ type: 'feed', dragonId: 'd2' }, 120_000]),

@@ -86,8 +86,8 @@ describe('POST /actions', () => {
   })
 
   it('maps game-core errors to 422 and still consumes the nonce', async () => {
-    await post({ type: 'plant', plot: 0, crop: 'sprout' })
-    const r = await post({ type: 'plant', plot: 0, crop: 'sprout' })
+    await post({ type: 'plant', plot: 0, crop: 'dragonBush' })
+    const r = await post({ type: 'plant', plot: 0, crop: 'dragonBush' })
     expect(r.statusCode).toBe(422)
     expect(r.json()).toEqual({ error: 'PLOT_BUSY' })
     const logs = await t.db.select().from(actionLog)
@@ -105,13 +105,13 @@ describe('POST /actions', () => {
   })
 
   it('runs placeBuilding and finishConstruction through /actions and charges a construction skip', async () => {
-    const placed = await post({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { island: 'home', col: 6, row: 7, facing: 0 } })
+    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 6, row: 7, facing: 0 } })
     expect(placed.statusCode).toBe(200)
     expect(placed.json().state.constructions).toHaveLength(1)
     const skipped = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } })
     expect(skipped.statusCode).toBe(200)
     expect(skipped.json().effects).toEqual([{ type: 'charge', microUsd: 100_000 }])
-    expect(skipped.json().state.farms).toHaveLength(3)
+    expect(skipped.json().state.habitats).toHaveLength(3)
     expect(skipped.json().state.constructions).toEqual([])
     const late = await post({ type: 'finishConstruction', index: 0 })
     expect(late.statusCode).toBe(422)
@@ -119,7 +119,7 @@ describe('POST /actions', () => {
   })
 
   it('a construction skip with a bad index or on a ready construction charges nothing', async () => {
-    const placed = await post({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { island: 'home', col: 6, row: 7, facing: 0 } })
+    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 6, row: 7, facing: 0 } })
     expect(placed.statusCode).toBe(200)
     const bad = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 5 } })
     expect([bad.statusCode, bad.json()]).toEqual([422, { error: 'NOT_FOUND' }])

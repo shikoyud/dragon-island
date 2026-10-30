@@ -28,6 +28,12 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
       if (h.element === 'aerie' || h.level >= 5) return 'MAX_LEVEL'
       return h.level === 4 ? null : 'INVALID_ACTION'
     }
+    case 'farmL5': {
+      const f = s.farms[item.index]
+      if (!f) return 'NOT_FOUND'
+      if (f.level >= 5) return 'MAX_LEVEL'
+      return f.level === 4 ? null : 'INVALID_ACTION'
+    }
     // The Aerie takes a habitat footprint, on any island.
     case 'goldenAerie':
       return placementRuleError(s, { kind: 'habitat', element: 'terra' }, item.placement)
@@ -52,6 +58,8 @@ function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, p
       const collected = collectHabitat(s, item.habitatId, c, nowMs, preset)
       return { ...collected, habitats: collected.habitats.map(h => h.id === item.habitatId ? { ...h, level: 5 } : h) }
     }
+    case 'farmL5':
+      return { ...s, farms: s.farms.map((f, i) => i === item.index ? { ...f, level: 5 } : f) }
     case 'goldenAerie':
       return {
         ...s,

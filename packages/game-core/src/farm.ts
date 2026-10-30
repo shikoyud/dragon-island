@@ -1,15 +1,24 @@
+import { CROPS, FARM_LEVELS, FIRST_FARM_GOLD } from './data/farms'
+import type { Preset } from './data/presets'
 import type { CropId } from './state'
 
-export const CROPS: Record<CropId, { growMs: number; cost: number; food: number }> = {
-  sprout: { growMs: 60_000, cost: 20, food: 10 },
-  bushel: { growMs: 1_800_000, cost: 200, food: 150 },
-  harvest: { growMs: 14_400_000, cost: 1_000, food: 900 },
-  bounty: { growMs: 43_200_000, cost: 2_500, food: 3_000 },
+export * from './data/farms'
+
+/** Gold for farm `n` (1-based): 1,000 x 3^(n - 1). */
+export function farmBuildGold(n: number): number {
+  return FIRST_FARM_GOLD * 3 ** (n - 1)
 }
 
-export const MAX_PLOTS = 6
+/** Grow time under `preset` (classic / cropTimerDiv, floored: R10). */
+export function cropGrowMs(crop: CropId, preset: Preset): number {
+  return Math.floor(CROPS[crop].growClassicMs / preset.cropTimerDiv)
+}
 
-/** Cost of the next plot when the player owns `currentPlots` (starts at 2). */
-export function plotCost(currentPlots: number): number {
-  return 500 * 2 ** (currentPlots - 2)
+/** Food of one harvest: floor(food x cropYieldMult x farm yield percent / 100). */
+export function cropFood(crop: CropId, farmLevel: number, preset: Preset): number {
+  return Math.floor(CROPS[crop].food * preset.cropYieldMult * FARM_LEVELS[farmLevel - 1]!.yieldPct / 100)
+}
+
+export function cropUnlocked(crop: CropId, playerLevel: number): boolean {
+  return playerLevel >= CROPS[crop].unlockPl
 }

@@ -31,8 +31,8 @@ describe('HUD model', () => {
     const s = base()
     s.nests[0]!.egg = { speciesId: 'flame', readyAtMs: 1_000 }
     s.hatchery = [{ speciesId: 'sea', readyAtMs: 90_000 }] as PlayerState['hatchery']
-    s.farms[0] = { ...s.farms[0]!, crop: 'sprout', readyAtMs: 500 }
-    s.farms[1] = { ...s.farms[1]!, crop: 'sprout', readyAtMs: 800 }
+    s.farms[0] = { ...s.farms[0]!, crop: 'dragonBush', readyAtMs: 500 }
+    s.farms[1] = { ...s.farms[1]!, crop: 'dragonBush', readyAtMs: 800 }
     s.dragons.push({ ...s.dragons[0]!, id: 'd9', habitatId: null })
     const items = attentionItems(s, 2_000)
     const byId = Object.fromEntries(items.map(i => [i.id, i]))

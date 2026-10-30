@@ -1,10 +1,11 @@
 import { upgradeInfo } from '../buildings'
 import type { Catalog } from '../catalog'
 import type { Preset } from '../data/presets'
-import { FARM_PLOT_BUILD_MS, isUnderConstruction, startConstruction } from '../construction'
+import { isUnderConstruction, startConstruction } from '../construction'
+import { FARM_UNLOCK_PL, FIRST_FARM_CLASSIC_MS, MAX_FARMS } from '../data/farms'
 import { HABITATS, habitatBuildMs } from '../data/habitats'
 import { DECORATIONS, decorationRefund } from '../decorations'
-import { MAX_PLOTS, plotCost } from '../farm'
+import { farmBuildGold } from '../farm'
 import { placementRuleError } from '../placement-rules'
 import type { PlayerState } from '../state'
 import { earnGold, spendGold } from '../wallet'
@@ -19,11 +20,12 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
   if (bad) return failure(bad)
   if (b.kind === 'decoration' && s.level < DECORATIONS[b.decoration].minLevel) return failure('LEVEL_TOO_LOW')
   if (b.kind === 'habitat' && s.level < HABITATS[b.element].unlockPl) return failure('LEVEL_TOO_LOW')
-  if (b.kind === 'farm' && s.farms.length >= MAX_PLOTS) return failure('MAX_PLOTS')
+  if (b.kind === 'farm' && s.farms.length >= MAX_FARMS) return failure('MAX_PLOTS')
+  if (b.kind === 'farm' && s.level < FARM_UNLOCK_PL[s.farms.length]!) return failure('LEVEL_TOO_LOW')
 
   const cost = b.kind === 'decoration' ? DECORATIONS[b.decoration].cost
     : b.kind === 'habitat' ? HABITATS[b.element].buildGold
-    : plotCost(s.farms.length)
+    : farmBuildGold(s.farms.length + 1)
   const paid = spendGold(s, cost)
   if (!paid) return failure('INSUFFICIENT_GOLD')
 
@@ -36,7 +38,7 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
   }
   if (b.kind === 'farm') {
     const index = s.farms.length
-    const started = startConstruction(paid, { kind: 'build', building: { type: 'farm', index } }, FARM_PLOT_BUILD_MS[index - 2]!, ctx.nowMs)
+    const started = startConstruction(paid, { kind: 'build', building: { type: 'farm', index } }, Math.floor(FIRST_FARM_CLASSIC_MS / ctx.preset.timerDiv), ctx.nowMs)
     if (!started) return failure('BUILDERS_BUSY')
     return success({ ...started, farms: [...started.farms, { crop: null, readyAtMs: 0, level: 1, placement: a.placement }] })
   }

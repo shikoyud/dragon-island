@@ -15,7 +15,7 @@ describe('priceMicroUsd', () => {
   })
 
   it('prices hatchery and farm skips', () => {
-    const s = { ...base, hatchery: [{ speciesId: 'flame', readyAtMs: 60_000 }], farms: [{ ...base.farms[0]!, crop: 'bounty' as const, readyAtMs: 43_200_000 }, base.farms[1]!] }
+    const s = { ...base, hatchery: [{ speciesId: 'flame', readyAtMs: 60_000 }], farms: [{ ...base.farms[0]!, crop: 'warlordPepper' as const, readyAtMs: 43_200_000 }, base.farms[1]!] }
     expect(priceMicroUsd({ kind: 'skip', target: 'hatchery', index: 0 }, s, 0)).toBe(100_000)
     expect(priceMicroUsd({ kind: 'skip', target: 'farm', index: 0 }, s, 0)).toBe(2_400_000)
     expect(priceMicroUsd({ kind: 'skip', target: 'farm', index: 1 }, s, 0)).toBeNull()
@@ -29,6 +29,15 @@ describe('priceMicroUsd', () => {
     expect(priceMicroUsd(item, at('terra', 3), 0)).toBeNull()
     expect(priceMicroUsd(item, at('terra', 5), 0)).toBeNull()
     expect(priceMicroUsd({ kind: 'habitatL5', habitatId: 'h9' }, at('terra', 4), 0)).toBeNull()
+  })
+
+  it('prices the farm L5 upgrade at $2.00, only from level 4 (§5.3)', () => {
+    const at = (level: number) => ({ ...base, farms: [{ ...base.farms[0]!, level }, base.farms[1]!] })
+    const item = { kind: 'farmL5' as const, index: 0 }
+    expect(priceMicroUsd(item, at(4), 0)).toBe(2_000_000)
+    expect(priceMicroUsd(item, at(3), 0)).toBeNull()
+    expect(priceMicroUsd(item, at(5), 0)).toBeNull()
+    expect(priceMicroUsd({ kind: 'farmL5', index: 9 }, at(4), 0)).toBeNull()
   })
 
   it('prices the Golden Aerie at $5.00', () => {

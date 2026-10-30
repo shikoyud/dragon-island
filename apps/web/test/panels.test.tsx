@@ -124,11 +124,11 @@ describe('NestsPanel and FarmPanel', () => {
   it('plants and harvests when ready', async () => {
     const { wrap, action } = harness(base)
     wrap(<FarmPanel nowMs={0} />)
-    await userEvent.selectOptions(screen.getAllByLabelText(/crop/i)[0]!, 'sprout')
+    await userEvent.selectOptions(screen.getAllByLabelText(/crop/i)[0]!, 'dragonBush')
     await userEvent.click(screen.getAllByRole('button', { name: /^plant$/i })[0]!)
-    expect(action).toHaveBeenCalledWith({ type: 'plant', plot: 0, crop: 'sprout' }, expect.any(String))
+    expect(action).toHaveBeenCalledWith({ type: 'plant', plot: 0, crop: 'dragonBush' }, expect.any(String))
 
-    const growing = { ...base, farms: [{ ...base.farms[0]!, crop: 'sprout' as const, readyAtMs: 60_000 }, base.farms[1]!] }
+    const growing = { ...base, farms: [{ ...base.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 60_000 }, base.farms[1]!] }
     const h2 = harness(growing, 30_000)
     h2.wrap(<FarmPanel nowMs={30_000} />)
     const harvest = screen.getAllByRole('button', { name: /harvest/i })[0]!

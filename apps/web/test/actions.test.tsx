@@ -39,7 +39,7 @@ describe('useAction', () => {
     const impl = vi.fn(async () => { throw new ApiError(422, 'PLOT_BUSY') })
     const { wrapper, state } = setup(impl as unknown as Api['action'])
     const { result } = renderHook(() => useAction(), { wrapper })
-    await act(async () => { await result.current.run({ type: 'plant', plot: 0, crop: 'sprout' }).catch(() => {}) })
+    await act(async () => { await result.current.run({ type: 'plant', plot: 0, crop: 'dragonBush' }).catch(() => {}) })
     expect(state().gold).toBe(1000)
     await waitFor(() => expect(result.current.error?.code).toBe('PLOT_BUSY'))
   })

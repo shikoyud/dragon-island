@@ -31,9 +31,9 @@ describe('buy', () => {
   })
 
   it('skips hatchery and farm timers', () => {
-    const st = { ...p0, hatchery: [{ speciesId: 'flame', readyAtMs: 90_000 }], farms: [{ ...p0.farms[0]!, crop: 'sprout' as const, readyAtMs: 60_000 }, p0.farms[1]!] }
+    const st = { ...p0, hatchery: [{ speciesId: 'flame', readyAtMs: 90_000 }], farms: [{ ...p0.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 60_000 }, p0.farms[1]!] }
     expect(ok(run(st, buy({ kind: 'skip', target: 'hatchery', index: 0 }), 10)).hatchery[0]!.readyAtMs).toBe(10)
-    expect(ok(run(st, buy({ kind: 'skip', target: 'farm', index: 0 }), 10)).farms[0]).toEqual({ ...p0.farms[0], crop: 'sprout', readyAtMs: 10 })
+    expect(ok(run(st, buy({ kind: 'skip', target: 'farm', index: 0 }), 10)).farms[0]).toEqual({ ...p0.farms[0], crop: 'dragonBush', readyAtMs: 10 })
     err(run(st, buy({ kind: 'skip', target: 'farm', index: 1 })), 'NOTHING_TO_SKIP')
     err(run(st, buy({ kind: 'skip', target: 'hatchery', index: 1 })), 'NOT_FOUND')
   })
@@ -74,6 +74,28 @@ describe('placed store items and construction skips', () => {
     err(run(two, { type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 0), 'BUILDERS_BUSY')
     const freed = ok(run(two, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 0))
     expect(ok(run(freed, { type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 0)).constructions).toHaveLength(2)
+  })
+})
+
+describe('farm L5', () => {
+  const farmAt = (level: number): PlayerState => ({ ...s, farms: s.farms.map((f, i) => i === 0 ? { ...f, level } : f) })
+  const l5 = { kind: 'farmL5', index: 0 } as const
+
+  it('a level 4 farm goes to level 5 for $2.00, instantly', () => {
+    const r = run(farmAt(4), buy(l5))
+    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 2_000_000 }])
+    expect(ok(r).farms[0]!.level).toBe(5)
+    expect(ok(r).constructions).toEqual([])
+  })
+  it('refuses unknown, maxed and too-low farms', () => {
+    err(run(farmAt(4), buy({ kind: 'farmL5', index: 9 })), 'NOT_FOUND')
+    err(run(farmAt(5), buy(l5)), 'MAX_LEVEL')
+    err(run(farmAt(3), buy(l5)), 'INVALID_ACTION')
+  })
+  it('validates the store item', () => {
+    expect(isValidAction(buy(l5))).toBe(true)
+    expect(isValidAction(buy({ kind: 'farmL5', index: -1 } as never))).toBe(false)
+    expect(isValidAction(buy({ kind: 'farmL5' } as never))).toBe(false)
   })
 })
 

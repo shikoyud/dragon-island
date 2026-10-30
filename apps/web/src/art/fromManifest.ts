@@ -8,7 +8,11 @@ export interface Manifest { assets: Record<string, ManifestEntry> }
 /** Manifest keys the HUD reads (docs/art/hud-art-list.md). */
 const HUD_KEY = /^(icon\.[a-z]+\.(16|32)|ui\..+|map\.backdrop)$/
 
-const CROPS: CropId[] = ['sprout', 'bushel', 'harvest', 'bounty']
+const CROPS: CropId[] = ['dragonBush', 'emberWheat', 'seaMelon', 'thunderPumpkin', 'frostBerries', 'warlordPepper']
+/** The v1 crop art predates the GDD crops, so each crop reads its tier's old manifest key until new crop art ships. */
+const CROP_ART_KEY: Record<CropId, string> = {
+  dragonBush: 'sprout', emberWheat: 'sprout', seaMelon: 'bushel', thunderPumpkin: 'harvest', frostBerries: 'harvest', warlordPepper: 'bounty',
+}
 
 /** Builds the typed art set; any key the manifest lacks becomes an empty sprite at its slot's default size. */
 export function artSetFromManifest(version: string, manifest: Manifest, catalog: Catalog): GameArtSet {
@@ -36,8 +40,8 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
       nest: get('building.nest', 'nest'),
       hatchery: get('building.hatchery', 'hatchery'),
       farmPlot: get('building.farmPlot', 'farmPlot'),
-      cropStage: Object.fromEntries(CROPS.map(c => [c, get(`crop.${c}`, 'crop')])) as Record<CropId, Sprite>,
-      cropSway: Object.fromEntries(CROPS.flatMap(c => { const s = present(`crop.${c}.sway`); return s ? [[c, s]] : [] })),
+      cropStage: Object.fromEntries(CROPS.map(c => [c, get(`crop.${CROP_ART_KEY[c]}`, 'crop')])) as Record<CropId, Sprite>,
+      cropSway: Object.fromEntries(CROPS.flatMap(c => { const s = present(`crop.${CROP_ART_KEY[c]}.sway`); return s ? [[c, s]] : [] })),
       nexus: get('building.nexus', 'nexus'),
     },
     elementIcon: perElement('icon', 'icon'),

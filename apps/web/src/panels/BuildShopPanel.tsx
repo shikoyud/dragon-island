@@ -1,6 +1,6 @@
 import {
-  DECORATIONS, ELEMENTS, FOOTPRINT, HABITATS, MAX_PLOTS,
-  plotCost, type DecorationId, type Footprint, type IslandId, type PlayerState,
+  DECORATIONS, ELEMENTS, FOOTPRINT, HABITATS, FARM_UNLOCK_PL, farmBuildGold, MAX_FARMS,
+  type DecorationId, type Footprint, type IslandId, type PlayerState,
 } from '@wyrmhaven/game-core'
 import type { ReactNode } from 'react'
 import type { Placing } from '../game/bridge'
@@ -48,8 +48,8 @@ function Shop({ s, onPlace, view, onClose }: { s: PlayerState; onPlace: (what: P
             gold(buildGold, unlockPl), { kind: 'habitat', element: el }, FOOTPRINT.habitat)
         })}
       </>)}
-      {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_PLOTS ? 'maximum' : `${formatGold(plotCost(plots))} gold`,
-        plots >= MAX_PLOTS ? 'Maximum plots reached' : gold(plotCost(plots), 1), { kind: 'farm' }, FOOTPRINT.farm))}
+      {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_FARMS ? 'maximum' : `${formatGold(farmBuildGold(plots + 1))} gold`,
+        plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), FARM_UNLOCK_PL[plots]!), { kind: 'farm' }, FOOTPRINT.farm))}
       {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {
         const d = DECORATIONS[id]
         // Locked items stay visible, greyed (spec section 8): Dawnspire-only ones say so off the Dawnspire.

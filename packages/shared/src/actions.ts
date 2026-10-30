@@ -8,7 +8,7 @@ const level = z.number().int().min(1).max(40)
 const elementSchema = z.enum(['terra', 'flame', 'sea', 'nature', 'electric', 'ice', 'metal', 'dark', 'light', 'war'])
 const coord = z.number().int().min(0).max(63)
 const decorationSchema = z.custom<DecorationId>(v => typeof v === 'string' && Object.hasOwn(DECORATIONS, v))
-const cropSchema = z.enum(['sprout', 'bushel', 'harvest', 'bounty'])
+const cropSchema = z.enum(['dragonBush', 'emberWheat', 'seaMelon', 'thunderPumpkin', 'frostBerries', 'warlordPepper'])
 
 export const placementSchema = z.object({
   island: z.enum(ISLAND_ORDER as unknown as [IslandId, ...IslandId[]]),
@@ -43,6 +43,7 @@ export const storeItemSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('skip'), target: z.enum(['nest', 'hatchery', 'farm', 'construction']), index }),
   z.object({ kind: z.literal('foodPack') }),
   z.object({ kind: z.literal('habitatL5'), habitatId: id }),
+  z.object({ kind: z.literal('farmL5'), index }),
   z.object({ kind: z.literal('goldenAerie'), placement: placementSchema }),
 ])
 

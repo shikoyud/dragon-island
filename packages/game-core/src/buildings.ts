@@ -1,16 +1,9 @@
+import { FARM_LEVELS } from './data/farms'
 import { habitatUpgradeGold, habitatUpgradeMs } from './data/habitats'
 import type { Preset } from './data/presets'
 import type { BuildingRef, PlayerState } from './state'
 
 export interface UpgradeStep { cost: number; timerMs: number; minLevel: number }
-
-/** Index = plot level - 1. */
-export const FARM_LEVELS: readonly { foodPct: number; up: UpgradeStep | null }[] = [
-  { foodPct: 100, up: { cost: 1_500, timerMs: 900_000, minLevel: 4 } },
-  { foodPct: 115, up: { cost: 8_000, timerMs: 3_600_000, minLevel: 10 } },
-  { foodPct: 130, up: { cost: 30_000, timerMs: 14_400_000, minLevel: 18 } },
-  { foodPct: 150, up: null },
-]
 
 /** Index = hatchery level - 1. */
 export const HATCHERY_LEVELS: readonly { slots: number; up: UpgradeStep | null }[] = [
@@ -34,13 +27,9 @@ export function nestBreedMs(baseMs: number, nestLevel: number): number {
   return Math.floor(baseMs * NEST_LEVELS[nestLevel - 1]!.breedPct / 100)
 }
 
-export function farmFood(cropFood: number, plotLevel: number): number {
-  return Math.floor(cropFood * FARM_LEVELS[plotLevel - 1]!.foodPct / 100)
-}
-
 /**
  * Next Gold upgrade of a building, or null at max level (or an unknown building). A habitat has a Gold upgrade to
- * L2..L4 only; L5 is a store item (§5.2), so L4 and the Golden Aerie return null.
+ * L2..L4 only; L5 is a store item (§5.2, §5.3), so L4 and the Golden Aerie return null.
  */
 export function upgradeInfo(s: PlayerState, ref: BuildingRef, preset: Preset): UpgradeStep | null {
   switch (ref.type) {
@@ -51,8 +40,12 @@ export function upgradeInfo(s: PlayerState, ref: BuildingRef, preset: Preset): U
       return { cost: habitatUpgradeGold(h.element, to), timerMs: habitatUpgradeMs(to, preset), minLevel: 1 }
     }
     case 'farm': {
+      // Entry `level` of the table holds the cost of reaching level + 1. L5 is a store item (§5.3), so L4 returns null.
       const f = s.farms[ref.index]
-      return f ? FARM_LEVELS[f.level - 1]?.up ?? null : null
+      const next = f ? FARM_LEVELS[f.level] : undefined
+      return next && next.upgradeGold !== null
+        ? { cost: next.upgradeGold, timerMs: Math.floor(next.classicMs / preset.timerDiv), minLevel: 1 }
+        : null
     }
     case 'nest': {
       const n = s.nests[ref.index]

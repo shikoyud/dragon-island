@@ -1,4 +1,4 @@
-import { CROPS, LAUNCH_CATALOG, newPlayer, outerObstacles, type Dragon } from '@wyrmhaven/game-core'
+import { cropGrowMs, DEFAULT_PRESET, LAUNCH_CATALOG, newPlayer, outerObstacles, type Dragon } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
@@ -75,7 +75,7 @@ describe('island model', () => {
     const s = {
       ...newPlayer(0),
       hatchery: [{ speciesId: 'sea', readyAtMs: 30_000 }],
-      farms: [{ ...newPlayer(0).farms[0]!, crop: 'sprout' as const, readyAtMs: 60_000 }, newPlayer(0).farms[1]!],
+      farms: [{ ...newPlayer(0).farms[0]!, crop: 'dragonBush' as const, readyAtMs: 37_500 }, newPlayer(0).farms[1]!],
     }
     const { markers, objects } = model(s, 30_000)
     expect(objects.find(o => o.id === 'hoard')).toBeUndefined()
@@ -85,7 +85,7 @@ describe('island model', () => {
     expect(objects.find(o => o.id === 'hatchery:0')!.scale).toBe(0.25) // sits in a niche of the hatchery
     const crop = objects.find(o => o.id === 'crop:0')!
     expect(crop.scale).toBeCloseTo(0.75, 5) // half grown
-    expect(crop.badge).toBe('30s')
+    expect(crop.badge).toBe('8s') // 7.5 s left of the 15 s Flash-14 grow time
   })
 
   it('draws back to front by col + row + size (isometric depth), a habitat before its own dragons', () => {
@@ -105,23 +105,23 @@ describe('island model', () => {
         'crop.sprout.sway': { file: 'crop-sprout-sway.png', w: 16, h: 16, frames: 4, fps: 4 },
       },
     }, C)
-    const s = (readyAtMs: number) => ({ ...newPlayer(0), farms: [{ ...newPlayer(0).farms[0]!, crop: 'sprout' as const, readyAtMs }] })
-    const crop = (nowMs: number) => buildIslandModel(s(CROPS.sprout.growMs), art, C, nowMs, 'home', null).objects.find(o => o.id === 'crop:0')!
-    expect(crop(0)).toMatchObject({ key: textureKey('crop.sprout'), frame: 0 })
-    const ripe = crop(CROPS.sprout.growMs)
-    expect(ripe).toMatchObject({ key: textureKey('crop.sprout.sway'), sprite: { fps: 4, frames: 4 } })
+    const s = (readyAtMs: number) => ({ ...newPlayer(0), farms: [{ ...newPlayer(0).farms[0]!, crop: 'dragonBush' as const, readyAtMs }] })
+    const crop = (nowMs: number) => buildIslandModel(s(cropGrowMs('dragonBush', DEFAULT_PRESET)), art, C, nowMs, 'home', null).objects.find(o => o.id === 'crop:0')!
+    expect(crop(0)).toMatchObject({ key: textureKey('crop.dragonBush'), frame: 0 })
+    const ripe = crop(cropGrowMs('dragonBush', DEFAULT_PRESET))
+    expect(ripe).toMatchObject({ key: textureKey('crop.dragonBush.sway'), sprite: { fps: 4, frames: 4 } })
     expect(ripe.frame).toBeUndefined()
-    expect(artEntries(art).map(r => r.key)).toContain(textureKey('crop.sprout.sway'))
+    expect(artEntries(art).map(r => r.key)).toContain(textureKey('crop.dragonBush.sway'))
   })
 
   it('picks the growth-stage frame when the crop sprite is a stage sheet', () => {
     const art = artSetFromManifest('v1', {
       assets: { 'crop.sprout': { file: 'crop-sprout.png', w: 16, h: 16, frames: 4, fps: 0 } },
     }, C)
-    const s = (readyAtMs: number) => ({ ...newPlayer(0), farms: [{ ...newPlayer(0).farms[0]!, crop: 'sprout' as const, readyAtMs }] })
+    const s = (readyAtMs: number) => ({ ...newPlayer(0), farms: [{ ...newPlayer(0).farms[0]!, crop: 'dragonBush' as const, readyAtMs }] })
     const crop = (readyAtMs: number, nowMs: number) =>
       buildIslandModel(s(readyAtMs), art, C, nowMs, 'home', null).objects.find(o => o.id === 'crop:0')!
-    const grow = CROPS.sprout.growMs
+    const grow = cropGrowMs('dragonBush', DEFAULT_PRESET)
     expect(crop(grow, 0)).toMatchObject({ frame: 0 })
     expect(crop(grow, 0).scale).toBeUndefined()
     expect(crop(grow, grow / 2)).toMatchObject({ frame: 1 })

@@ -1,5 +1,5 @@
 import {
-  constructionFor, CROPS, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
+  constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
   DEFAULT_PRESET, OBSTACLES, placementRuleError, residents, storedGold,
   type BuildingRef, type Catalog, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
@@ -226,7 +226,7 @@ export function buildIslandModel(
       target: { kind: 'farm', plot: i }, ...look({ type: 'farm', index: i }, plot.placement),
     }]
     if (plot.crop) {
-      const grow = CROPS[plot.crop].growMs
+      const grow = cropGrowMs(plot.crop, preset)
       const fraction = Math.min(1, Math.max(0, 1 - (plot.readyAtMs - nowMs) / grow))
       const sprite = art.building.cropStage[plot.crop]
       // A stage sheet shows growth by frame; a single still (or fallback) grows by scale.
