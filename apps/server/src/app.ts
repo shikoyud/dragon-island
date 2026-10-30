@@ -80,7 +80,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const onStateReset = (playerId: string) => app.log.warn({ playerId }, 'player state reset: stored version differs (R2)')
   deps.onStateReset = onStateReset
   const actionDeps: ActionDeps = {
-    db, clock, catalog: deps.catalog, preset: config.PRESET, price: deps.price,
+    db, clock, catalog: deps.catalog, preset: config.PRESET, launchAt: config.LAUNCH_AT, price: deps.price,
     resolveOffer, settleDefence, peekOfferOpponent, onStateReset,
   }
   authRoutes(app, deps)

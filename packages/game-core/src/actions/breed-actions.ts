@@ -1,4 +1,4 @@
-import { rollOffspring } from '../breeding'
+import { activeLegendaries, breedValidity, rollOffspring } from '../breeding'
 import { hatcherySlots, nestBreedMs } from '../buildings'
 import { getSpecies } from '../catalog'
 import { isUnfinished } from '../construction'
@@ -17,16 +17,17 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const pb = s.dragons.find(d => d.id === a.parentB)
   if (!pa || !pb || pa.id === pb.id) return failure('INVALID_PARENTS')
   if (pa.level < BREED_MIN_LEVEL || pb.level < BREED_MIN_LEVEL) return failure('LEVEL_TOO_LOW')
+  const sa = getSpecies(ctx.catalog, pa.speciesId), sb = getSpecies(ctx.catalog, pb.speciesId)
+  const invalid = breedValidity(sa, sb)
+  if (invalid) return failure(invalid)
   const nest = s.nests.findIndex(n => n.egg === null)
   if (nest < 0) return failure('NO_FREE_NEST')
 
-  const roll = rollOffspring(pa, pb, { pity: s.pity }, ctx.catalog, ctx.rng)
-  const child = getSpecies(ctx.catalog, roll.speciesId)
+  const child = rollOffspring(sa, sb, { activeLegendaries: activeLegendaries(ctx.day, ctx.preset) }, ctx.catalog, ctx.rng)
   const readyAtMs = ctx.nowMs + nestBreedMs(breedTimerMs(child.rarity, child.elements, ctx.preset), s.nests[nest]!.level)
   const next = {
     ...s,
-    nests: s.nests.map((n, i) => i === nest ? { ...n, egg: { speciesId: roll.speciesId, readyAtMs } } : n),
-    pity: { ...s.pity, [roll.pairKey]: roll.rarePlus ? 0 : (s.pity[roll.pairKey] ?? 0) + 1 },
+    nests: s.nests.map((n, i) => i === nest ? { ...n, egg: { speciesId: child.id, readyAtMs } } : n),
     tutorial: { ...s.tutorial, breedDone: true },
   }
   return success(addXp(next, START_BREED_XP))

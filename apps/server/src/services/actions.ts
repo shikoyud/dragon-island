@@ -1,5 +1,5 @@
 import {
-  PRESETS, applyAction, createRng, utcDay, type Action, type Catalog, type OpponentSnapshot, type PlayerState, type PresetId,
+  PRESETS, applyAction, createRng, gameDay, utcDay, type Action, type Catalog, type OpponentSnapshot, type PlayerState, type PresetId,
 } from '@wyrmhaven/game-core'
 import type { ActionRequest, ActionResponse, ClientAction, ErrorResponse } from '@wyrmhaven/shared'
 import { and, eq } from 'drizzle-orm'
@@ -20,6 +20,8 @@ export interface ActionDeps {
   catalog: Catalog
   /** Soft-economy preset id (config PRESET); applyAction gets PRESETS[preset]. */
   preset: PresetId
+  /** Config LAUNCH_AT (ISO). Unset in dev: the game row's launch time is used. */
+  launchAt?: string | undefined
   /** R2: called with the player id when a stored state of another version is replaced by a fresh one. */
   onStateReset?: (playerId: string) => void
   price: PriceSource
@@ -90,7 +92,9 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       }
     }
 
-    const result = applyAction(state, action, nowMs, createRng(seed32), deps.catalog, PRESETS[deps.preset])
+    // The same launch time /game reports: LAUNCH_AT when set, else the game row's default (ensureGame ran above).
+    const launchAtMs = deps.launchAt ? Date.parse(deps.launchAt) : secretRow.launchAt.getTime()
+    const result = applyAction(state, action, nowMs, createRng(seed32), deps.catalog, PRESETS[deps.preset], gameDay(launchAtMs, nowMs))
     const day = utcDay(nowMs)
 
     let status: number

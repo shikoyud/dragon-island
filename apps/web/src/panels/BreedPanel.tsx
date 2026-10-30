@@ -1,7 +1,8 @@
-import { BREED_MIN_LEVEL, breedingOdds, getSpecies, isUnfinished, LAUNCH_CATALOG } from '@wyrmhaven/game-core'
+import { activeLegendaries, BREED_MIN_LEVEL, breedingOdds, gameDay, getSpecies, isUnfinished, LAUNCH_CATALOG } from '@wyrmhaven/game-core'
 import { useState } from 'react'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
+import { usePreset } from '../state/preset'
 import { ActionButton, Panel } from '../ui/Panel'
 
 const pct = (p: number) => `${(p * 100).toFixed(2)}%`
@@ -10,6 +11,7 @@ const pct = (p: number) => `${(p * 100).toFixed(2)}%`
 export function BreedPanel({ onClose }: { onClose?: () => void }) {
   const me = useMe()
   const { run, pending } = useAction()
+  const preset = usePreset()
   const [a, setA] = useState('')
   const [b, setB] = useState('')
   const s = me.data?.state
@@ -20,7 +22,8 @@ export function BreedPanel({ onClose }: { onClose?: () => void }) {
   const ready = pa && pb && pa.id !== pb.id
   const lowLevel = ready && (pa.level < BREED_MIN_LEVEL || pb.level < BREED_MIN_LEVEL)
   const nestFree = s.nests.some((n, i) => n.egg === null && !isUnfinished(s, { type: 'nest', index: i }))
-  const odds = ready && !lowLevel ? breedingOdds(pa, pb, { pity: s.pity }, catalog) : null
+  const day = gameDay(me.data?.game?.launchAtMs ?? 0, Date.now())
+  const odds = ready && !lowLevel ? breedingOdds(getSpecies(catalog, pa.speciesId), getSpecies(catalog, pb.speciesId), { activeLegendaries: activeLegendaries(day, preset) }, catalog) : null
   const rows = odds ? Object.entries(odds).sort((x, y) => y[1] - x[1]) : []
   const reason = !ready ? 'Pick two different dragons' : lowLevel ? `Both parents must be level ${BREED_MIN_LEVEL}` : !nestFree ? 'Every nest is busy' : ''
 

@@ -239,8 +239,10 @@ describe('BreedPanel', () => {
     await userEvent.selectOptions(screen.getByLabelText(/first parent/i), 'd1')
     await userEvent.selectOptions(screen.getByLabelText(/second parent/i), 'd2')
     const table = screen.getByRole('table', { name: /odds/i })
-    expect(within(table).getAllByText('50.00%')).toHaveLength(2)
-    expect(within(table).getAllByRole('row')).toHaveLength(3) // header + flame + sea
+    // Terra x Flame (§3.2): two Basics at 1000 and two Rare hybrids at 200, out of 2400.
+    expect(within(table).getAllByText('41.67%')).toHaveLength(2)
+    expect(within(table).getAllByText('8.33%')).toHaveLength(2)
+    expect(within(table).getAllByRole('row')).toHaveLength(5) // header + terra + flame + two hybrids
     expect(screen.queryByText(/odds boost|pity/i)).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: /^breed$/i }))
     expect(action).toHaveBeenCalledWith({ type: 'startBreed', parentA: 'd1', parentB: 'd2' }, expect.any(String))

@@ -13,7 +13,7 @@ describe('newPlayer', () => {
       hatcheryLevel: 1, hatcheryPlacement: { island: 'home', col: 0, row: 8, facing: 0 },
       decorations: [], islands: { homeStep: 0, unlocked: ['home'], obstacles: [] }, constructions: [],
       farms: [{ crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 10, row: 0, facing: 0 } }],
-      pity: {}, version: 2,
+      version: 3,
       tutorial: { breedDone: false, hatchDone: false }, nextId: 3,
       defenceTeam: null, trophies: 0, pvp: { day: 0, count: 0 }, pve: { cleared: 0, replays: { day: 0, count: 0 } },
     })
@@ -61,7 +61,7 @@ describe('newPlayer', () => {
   it('new players carry the state version and no removed fields', () => {
     const s = newPlayer(0)
     expect(s.version).toBe(STATE_VERSION)
-    expect(STATE_VERSION).toBe(2)
+    expect(STATE_VERSION).toBe(3)
     expect(s).not.toHaveProperty('hoardLevel')
     expect(s).not.toHaveProperty('eligibleGold')
     expect(s).not.toHaveProperty('ledger')

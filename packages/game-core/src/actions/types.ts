@@ -42,7 +42,7 @@ export type Action =
   | { type: 'pveBattle'; stage: number; team: TeamIds; moves: PlayerMove[] }
 
 export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'INSUFFICIENT_GOLD' | 'INSUFFICIENT_FOOD' | 'MAX_LEVEL' | 'LEVEL_CAP'
-  | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'NO_FREE_NEST' | 'NEST_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'
+  | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'OPPOSITE_BASICS' | 'NO_FREE_NEST' | 'NEST_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'
   | 'NO_HABITAT_SLOT' | 'ELEMENT_MISMATCH' | 'MAX_PLOTS' | 'PLOT_BUSY' | 'PLOT_EMPTY'
   | 'LAST_DRAGONS' | 'NOT_SELLABLE' | 'NOTHING_TO_SKIP'
   | 'INVALID_TEAM' | 'NO_DEFENCE_TEAM' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'
@@ -62,7 +62,7 @@ export type ActionResult =
   | { ok: true; state: PlayerState; effects: Effect[]; battle?: BattleReport }
   | { ok: false; error: ActionError }
 
-export interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog; preset: Preset }
+export interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog; preset: Preset; /** Game day (§1.5); 1 is launch day. */ day: number }
 
 export type Handler<T extends Action['type']> =
   (s: PlayerState, a: Extract<Action, { type: T }>, ctx: ActionCtx) => ActionResult

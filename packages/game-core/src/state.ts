@@ -24,7 +24,7 @@ export type Construction =
   | { kind: 'clear'; obstacleId: string; readyAtMs: number }
 
 /** Bumped when the saved shape changes; there is no save migration (R2). */
-export const STATE_VERSION = 2
+export const STATE_VERSION = 3
 
 export interface PlayerState {
   version: number
@@ -44,8 +44,6 @@ export interface PlayerState {
   islands: { homeStep: number; unlocked: IslandId[]; obstacles: Obstacle[] }
   constructions: Construction[]
   farms: FarmPlot[]
-  /** Consecutive common results per element pair key. */
-  pity: Record<string, number>
   tutorial: { breedDone: boolean; hatchDone: boolean }
   nextId: number
   /** Saved 3-dragon team other players attack; cleared if a member is sold. */
@@ -81,7 +79,6 @@ export function newPlayer(nowMs: number): PlayerState {
     islands: { homeStep: 0, unlocked: ['home'], obstacles: [] },
     constructions: [],
     farms: [{ crop: null, readyAtMs: 0, level: 1, placement: home(10, 0) }],
-    pity: {},
     tutorial: { breedDone: false, hatchDone: false },
     nextId: 3,
     defenceTeam: null,

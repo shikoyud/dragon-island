@@ -3,20 +3,21 @@ import { applyAction } from '../src/actions/apply'
 import type { Action } from '../src/actions/types'
 import { getSpecies } from '../src/catalog'
 import { breedTimerMs } from '../src/data/breeding-timers'
+import { breedingPool, activeLegendaries } from '../src/breeding'
+import { LAUNCH_CATALOG } from '../src/data/launch-catalog'
 import { FLASH_14 } from '../src/data/presets'
 import { HATCH_XP, START_BREED_XP } from '../src/data/xp'
 import { createRng } from '../src/rng'
 import { newPlayer, type Dragon, type Egg, type Nest, type PlayerState } from '../src/state'
-import { FIXTURE_CATALOG } from './fixtures'
 import { err, ok } from './helpers'
 
 const s = newPlayer(0)
 const s4: PlayerState = { ...s, dragons: s.dragons.map(d => ({ ...d, level: 4 })) }
-// Flame and Sea parents: the only pair in the fixture catalog with rare offspring.
-const fs4: PlayerState = { ...s4, dragons: [{ ...s4.dragons[0]!, speciesId: 'flame' }, { ...s4.dragons[1]!, speciesId: 'sea' }] }
-const run = (st: PlayerState, a: Action, t: number, seed = 1) => applyAction(st, a, t, createRng(seed), FIXTURE_CATALOG)
+const withParents = (a: string, b: string): PlayerState =>
+  ({ ...s4, dragons: [{ ...s4.dragons[0]!, speciesId: a }, { ...s4.dragons[1]!, speciesId: b }] })
+const run = (st: PlayerState, a: Action, t: number, seed = 1) => applyAction(st, a, t, createRng(seed), LAUNCH_CATALOG)
 const breed: Action = { type: 'startBreed', parentA: 'd1', parentB: 'd2' }
-const rarityOf = (id: string) => getSpecies(FIXTURE_CATALOG, id).rarity
+const rarityOf = (id: string) => getSpecies(LAUNCH_CATALOG, id).rarity
 const egg = (speciesId: string, readyAtMs: number): Egg => ({ speciesId, readyAtMs })
 const nest = (e: Egg | null = null): Nest => ({ egg: e, level: 1, placement: { island: 'home', col: 0, row: 0, facing: 0 } })
 
@@ -30,7 +31,7 @@ describe('startBreed', () => {
   it('takes the real breed timer on the very first breed (no tutorial timer) and awards xp', () => {
     const a = ok(run(s4, breed, 1_000))
     const e = a.nests[0]!.egg!
-    const child = getSpecies(FIXTURE_CATALOG, e.speciesId)
+    const child = getSpecies(LAUNCH_CATALOG, e.speciesId)
     expect(e.readyAtMs).not.toBe(1_000 + 15_000)
     expect(e.readyAtMs).toBe(1_000 + breedTimerMs(child.rarity, child.elements, FLASH_14))
     expect(a.xp).toBe(START_BREED_XP)
@@ -44,14 +45,81 @@ describe('startBreed', () => {
     expect(a.nests[2]!.egg).toBeNull()
   })
 
-  it('applies and resets pity', () => {
-    const a = ok(run({ ...fs4, pity: { 'flame+sea': 10 } }, breed, 0))
-    expect(rarityOf(a.nests[0]!.egg!.speciesId)).not.toBe('common')
-    expect(a.pity['flame+sea']).toBe(0)
-    for (let seed = 1; seed <= 20; seed++) {
-      const b = ok(run(fs4, breed, 0, seed))
-      expect(b.pity['flame+sea']).toBe(rarityOf(b.nests[0]!.egg!.speciesId) === 'common' ? 1 : 0)
+  it('refuses two opposite Basics in either order, before the nest check and without using the RNG', () => {
+    let calls = 0
+    const counting = { next: () => { calls++; return 0 }, int: () => { calls++; return 0 } }
+    for (const [x, y] of [['flame', 'ice'], ['ice', 'flame']] as const) {
+      const st = withParents(x, y)
+      const r = applyAction(st, breed, 0, counting, LAUNCH_CATALOG)
+      expect(r).toEqual({ ok: false, error: 'OPPOSITE_BASICS' })
+      const busy = { ...st, nests: [nest(egg('flame', 5))] }
+      expect(applyAction(busy, breed, 0, counting, LAUNCH_CATALOG)).toEqual({ ok: false, error: 'OPPOSITE_BASICS' })
     }
+    expect(calls).toBe(0)
+  })
+
+  it('checks the level before the opposite rule, and the free nest last without using the RNG', () => {
+    let calls = 0
+    const counting = { next: () => { calls++; return 0 }, int: () => { calls++; return 0 } }
+    const low = { ...withParents('flame', 'ice'), dragons: withParents('flame', 'ice').dragons.map(d => ({ ...d, level: 1 })) }
+    expect(applyAction(low, breed, 0, counting, LAUNCH_CATALOG)).toEqual({ ok: false, error: 'LEVEL_TOO_LOW' })
+    const busy = { ...s4, nests: [nest(egg('flame', 5))] }
+    expect(applyAction(busy, breed, 0, counting, LAUNCH_CATALOG)).toEqual({ ok: false, error: 'NO_FREE_NEST' })
+    expect(calls).toBe(0)
+  })
+
+  it('a hybrid carrying opposite elements breeds normally', () => {
+    const st = withParents('flame-ice', 'ice-flame')
+    expect(ok(run(st, breed, 0)).nests[0]!.egg).not.toBeNull()
+  })
+
+  it('has no pity state and one rng.int per breed', () => {
+    expect(s).not.toHaveProperty('pity')
+    expect(ok(run(s4, breed, 0))).not.toHaveProperty('pity')
+  })
+
+  describe('Legendary events', () => {
+    const tf = withParents('terra', 'flame')
+    /** An rng whose single int() lands on `target` in the pool of Terra x Flame on `day`. */
+    const forcing = (day: number, speciesId: string) => {
+      const pool = breedingPool(
+        getSpecies(LAUNCH_CATALOG, 'terra'), getSpecies(LAUNCH_CATALOG, 'flame'),
+        { activeLegendaries: activeLegendaries(day, FLASH_14) }, LAUNCH_CATALOG)
+      let acc = 0
+      for (const e of pool) { if (e.species.id === speciesId) return { next: () => 0, int: () => acc }; acc += e.weight }
+      return { next: () => 0, int: () => 0 }
+    }
+
+    it('can give Magma Sovereign on day 4 and never on day 5, under Flash-14', () => {
+      const on = applyAction(tf, breed, 0, forcing(4, 'magma-sovereign'), LAUNCH_CATALOG, FLASH_14, 4)
+      const egg4 = ok(on).nests[0]!.egg!
+      expect(egg4.speciesId).toBe('magma-sovereign')
+      // Timer comes from the offspring.
+      const child = getSpecies(LAUNCH_CATALOG, 'magma-sovereign')
+      expect(egg4.readyAtMs).toBe(breedTimerMs(child.rarity, child.elements, FLASH_14))
+      // Day 5: the pool has no Legendary, so even the largest roll cannot hit it.
+      for (const seed of [1, 2, 3, 4, 5]) {
+        const off = ok(applyAction(tf, breed, 0, createRng(seed), LAUNCH_CATALOG, FLASH_14, 5))
+        expect(off.nests[0]!.egg!.speciesId).not.toBe('magma-sovereign')
+      }
+      const huge = { next: () => 0.999999, int: (n: number) => n - 1 }
+      expect(ok(applyAction(tf, breed, 0, huge, LAUNCH_CATALOG, FLASH_14, 5)).nests[0]!.egg!.speciesId).not.toBe('magma-sovereign')
+    })
+
+    it('an egg bred on the last event day still hatches after the event ends (day 6)', () => {
+      const laid = ok(applyAction(tf, breed, 0, forcing(4, 'magma-sovereign'), LAUNCH_CATALOG, FLASH_14, 4))
+      const readyAt = laid.nests[0]!.egg!.readyAtMs
+      const day6 = 5 * 86_400_000 + 1
+      const collected = ok(applyAction(laid, { type: 'collectEgg', nest: 0 }, Math.max(readyAt, day6), createRng(1), LAUNCH_CATALOG, FLASH_14, 6))
+      const hatchAt = collected.hatchery[0]!.readyAtMs
+      const hatched = ok(applyAction(collected, { type: 'hatch', slot: 0 }, hatchAt, createRng(1), LAUNCH_CATALOG, FLASH_14, 6))
+      expect(hatched.dragons.some(d => d.speciesId === 'magma-sovereign')).toBe(true)
+    })
+
+    it('defaults to day 1, where no Legendary is active', () => {
+      const huge = { next: () => 0.999999, int: (n: number) => n - 1 }
+      expect(ok(applyAction(tf, breed, 0, huge, LAUNCH_CATALOG)).nests[0]!.egg!.speciesId).not.toBe('magma-sovereign')
+    })
   })
 })
 
@@ -60,7 +128,7 @@ describe('collectEgg', () => {
 
   it('moves a ready egg to the hatchery with the real hatch time on the first hatch', () => {
     const ready = laid.nests[0]!.egg!.readyAtMs
-    const sp = getSpecies(FIXTURE_CATALOG, laid.nests[0]!.egg!.speciesId)
+    const sp = getSpecies(LAUNCH_CATALOG, laid.nests[0]!.egg!.speciesId)
     err(run(laid, { type: 'collectEgg', nest: 0 }, ready - 1), 'NOT_READY')
     const a = ok(run(laid, { type: 'collectEgg', nest: 0 }, ready))
     expect(a.nests[0]!.egg).toBeNull()
@@ -70,12 +138,12 @@ describe('collectEgg', () => {
   })
 
   it('uses the rarity hatch time', () => {
-    const st = { ...s, nests: [nest(egg('fw-rare', 0))] }
-    expect(ok(run(st, { type: 'collectEgg', nest: 0 }, 100)).hatchery[0]!.readyAtMs).toBe(100 + breedTimerMs('rare', ['flame', 'sea'], FLASH_14))
+    const st = { ...s, nests: [nest(egg('terra-flame', 0))] }
+    expect(ok(run(st, { type: 'collectEgg', nest: 0 }, 100)).hatchery[0]!.readyAtMs).toBe(100 + breedTimerMs('rare', ['terra', 'flame'], FLASH_14))
   })
 
   it('refuses when eggs plus waiting dragons fill the hatchery', () => {
-    const waiting: Dragon = { id: 'd9', speciesId: 'fw-common', level: 1, feeds: 0, habitatId: null }
+    const waiting: Dragon = { id: 'd9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }
     const st = { ...laid, hatchery: [egg('flame', 0), egg('sea', 0)], dragons: [...laid.dragons, waiting] }
     err(run(st, { type: 'collectEgg', nest: 0 }, laid.nests[0]!.egg!.readyAtMs), 'HATCHERY_FULL')
     expect(st.nests[0]).toEqual(laid.nests[0])
@@ -83,11 +151,11 @@ describe('collectEgg', () => {
 })
 
 describe('hatch', () => {
-  const ready = { ...s, hatchery: [egg('fw-common', 30_000)] }
+  const ready = { ...s, hatchery: [egg('flame', 30_000)] }
 
   it('creates a dragon in the first matching habitat', () => {
     const a = ok(run(ready, { type: 'hatch', slot: 0 }, 30_000))
-    expect(a.dragons[2]).toEqual({ id: 'd3', speciesId: 'fw-common', level: 1, feeds: 0, habitatId: 'h2' })
+    expect(a.dragons[2]).toEqual({ id: 'd3', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h2' })
     expect(a.hatchery).toEqual([])
     expect(a.nextId).toBe(4)
     expect(a.xp).toBe(HATCH_XP.common)

@@ -1,91 +1,66 @@
-import { getSpecies, type Catalog, type Species } from './catalog'
-import { pairKey, type Element } from './elements'
-import { RARITIES, type Rarity } from './rarity'
+// GDD §3.2: one pool function that both the odds and the roll read.
+import { isBasic, type Catalog, type Species } from './catalog'
+import { BREED_WEIGHT, LEGENDARY_EVENTS } from './data/breeding'
+import type { Preset } from './data/presets'
+import { isOpposite, type Element } from './elements'
 import type { Rng } from './rng'
 
-export interface Parent { speciesId: string; level: number }
-export interface BreedContext { pity: Readonly<Record<string, number>> }
-export interface BreedRoll { speciesId: string; pairKey: string; rarePlus: boolean }
+export interface BreedContext { activeLegendaries: readonly string[] }
+export interface PoolEntry { species: Species; weight: number }
 
-export const PITY_THRESHOLD = 10
+/** Legendaries whose event window contains `day` (§8.4). */
+export function activeLegendaries(day: number, preset: Preset): readonly string[] {
+  return LEGENDARY_EVENTS
+    .filter(e => day >= e.days[preset.id][0] && day <= e.days[preset.id][1])
+    .map(e => e.speciesId)
+}
 
-/**
- * Transitional (task M2 reworks breeding odds): rarity score S for the weights below. Uncommon scores 0 and has a
- * flat weight so the four existing tiers keep their odds.
- */
-const RARITY_SCORE: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 1, epic: 2, legendary: 3 }
+/** §3.2 rule 1: two opposite Basics cannot breed. */
+export function breedValidity(a: Species, b: Species): 'OPPOSITE_BASICS' | null {
+  return isBasic(a) && isBasic(b) && isOpposite(a.elements[0]!, b.elements[0]!) ? 'OPPOSITE_BASICS' : null
+}
 
-export function tierWeights(scoreSum: number): Record<Rarity, number> {
-  return {
-    common: 70,
-    uncommon: 30,
-    rare: 25 + 5 * scoreSum,
-    epic: 5 + 2 * scoreSum,
-    legendary: 1,
+/** Qualifying species with their integer weights, in id order. */
+export function breedingPool(a: Species, b: Species, ctx: BreedContext, c: Catalog): PoolEntry[] {
+  const union = new Set<Element>([...a.elements, ...b.elements])
+  const primaries = new Set<Element>([a.elements[0]!, b.elements[0]!])
+  const parentBasic = isBasic(a) || isBasic(b)
+  const picked: Species[] = []
+  for (const s of c.species.values()) {
+    if (!primaries.has(s.elements[0]!)) continue
+    if (!s.elements.every(e => union.has(e))) continue
+    if (isBasic(s) && !parentBasic) continue
+    if (s.rarity === 'legendary' && !ctx.activeLegendaries.includes(s.id)) continue
+    picked.push(s)
   }
-}
-
-function sameSet(elements: readonly Element[], eA: Element, eB: Element): boolean {
-  const want = new Set([eA, eB])
-  const have = new Set(elements)
-  return have.size === want.size && [...want].every(e => have.has(e))
-}
-
-export function poolFor(eA: Element, eB: Element, a: Parent, b: Parent, c: Catalog): Species[] {
-  const pool = [...c.species.values()].filter(s => s.rarity !== 'legendary' && sameSet(s.elements, eA, eB))
-  if (pool.length > 0) return pool
-  const parents = [getSpecies(c, a.speciesId)]
-  if (b.speciesId !== a.speciesId) parents.push(getSpecies(c, b.speciesId))
-  return parents
-}
-
-interface Tier { rarity: Rarity; weight: number; species: Species[] }
-
-/** Tiers present in the pool with their integer weights, after pity. */
-function tiersFor(pool: Species[], scoreSum: number, ctx: BreedContext, key: string): Tier[] {
-  const w = tierWeights(scoreSum)
-  let tiers = RARITIES
-    .map(rarity => ({ rarity, weight: w[rarity], species: pool.filter(s => s.rarity === rarity) }))
-    .filter(t => t.species.length > 0)
-  if ((ctx.pity[key] ?? 0) >= PITY_THRESHOLD && tiers.some(t => t.rarity !== 'common')) {
-    tiers = tiers.filter(t => t.rarity !== 'common')
-  }
-  return tiers
-}
-
-function scoreSum(a: Species, b: Species): number {
-  return RARITY_SCORE[a.rarity] + RARITY_SCORE[b.rarity]
-}
-
-/** Exact probabilities of each child species (non-zero entries only). */
-export function breedingOdds(a: Parent, b: Parent, ctx: BreedContext, c: Catalog): Record<string, number> {
-  const sa = getSpecies(c, a.speciesId), sb = getSpecies(c, b.speciesId)
-  const odds: Record<string, number> = {}
-  const add = (id: string, p: number) => { if (p > 0) odds[id] = (odds[id] ?? 0) + p }
-  const pick = 1 / (sa.elements.length * sb.elements.length)
-  for (const eA of sa.elements) {
-    for (const eB of sb.elements) {
-      const tiers = tiersFor(poolFor(eA, eB, a, b, c), scoreSum(sa, sb), ctx, pairKey(eA, eB))
-      const total = tiers.reduce((n, t) => n + t.weight, 0)
-      for (const t of tiers) for (const s of t.species) add(s.id, pick * (t.weight / total) / t.species.length)
+  // Floor guard: with no Common or Uncommon in reach, each parent's primary Basic joins the pool.
+  if (!picked.some(s => s.rarity === 'common' || s.rarity === 'uncommon')) {
+    for (const p of primaries) {
+      const basic = [...c.species.values()].find(s => isBasic(s) && s.rarity === 'common' && s.elements[0] === p)
+      if (basic && !picked.includes(basic)) picked.push(basic)
     }
   }
-  return odds
+  return picked
+    .sort((x, y) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0))
+    .map(species => ({ species, weight: BREED_WEIGHT[species.rarity] }))
 }
 
-/** RNG call order is fixed for replay: element A, element B, recipe, tier, species. */
-export function rollOffspring(a: Parent, b: Parent, ctx: BreedContext, c: Catalog, rng: Rng): BreedRoll {
-  const sa = getSpecies(c, a.speciesId), sb = getSpecies(c, b.speciesId)
-  const eA = sa.elements[rng.int(sa.elements.length)]!
-  const eB = sb.elements[rng.int(sb.elements.length)]!
-  const key = pairKey(eA, eB)
-  const tiers = tiersFor(poolFor(eA, eB, a, b, c), scoreSum(sa, sb), ctx, key)
-  let roll = rng.int(tiers.reduce((n, t) => n + t.weight, 0))
-  let tier = tiers[tiers.length - 1]!
-  for (const t of tiers) {
-    if (roll < t.weight) { tier = t; break }
-    roll -= t.weight
+/** Exact probabilities (for display); the roll uses the integer weights. */
+export function breedingOdds(a: Species, b: Species, ctx: BreedContext, c: Catalog): Record<string, number> {
+  const pool = breedingPool(a, b, ctx, c)
+  const total = pool.reduce((n, e) => n + e.weight, 0)
+  return Object.fromEntries(pool.map(e => [e.species.id, e.weight / total]))
+}
+
+/** One `rng.int(total)` picks the offspring; replays pin this order. */
+export function rollOffspring(a: Species, b: Species, ctx: BreedContext, c: Catalog, rng: Rng): Species {
+  const pool = breedingPool(a, b, ctx, c)
+  const total = pool.reduce((n, e) => n + e.weight, 0)
+  if (total === 0) throw new Error('EMPTY_POOL')
+  let roll = rng.int(total)
+  for (const e of pool) {
+    if (roll < e.weight) return e.species
+    roll -= e.weight
   }
-  const child = tier.species[rng.int(tier.species.length)]!
-  return { speciesId: child.id, pairKey: key, rarePlus: child.rarity !== 'common' }
+  return pool[pool.length - 1]!.species
 }

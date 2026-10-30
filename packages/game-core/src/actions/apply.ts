@@ -15,10 +15,10 @@ import { isValidAction } from './validate'
 
 /** Single entry point: pure, deterministic given (state, action, nowMs, rng, catalog, preset). */
 export function applyAction(
-  s: PlayerState, a: Action, nowMs: number, rng: Rng, catalog: Catalog = LAUNCH_CATALOG, preset: Preset = DEFAULT_PRESET,
+  s: PlayerState, a: Action, nowMs: number, rng: Rng, catalog: Catalog = LAUNCH_CATALOG, preset: Preset = DEFAULT_PRESET, day = 1,
 ): ActionResult {
   if (!isValidAction(a)) return failure('INVALID_ACTION')
-  const ctx: ActionCtx = { nowMs, rng, catalog, preset }
+  const ctx: ActionCtx = { nowMs, rng, catalog, preset, day }
   switch (a.type) {
     case 'collectGold': return collectGold(s, a, ctx)
     case 'placeBuilding': return placeBuilding(s, a, ctx)

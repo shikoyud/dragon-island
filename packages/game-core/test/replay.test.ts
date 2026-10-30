@@ -41,6 +41,8 @@ it('replays to an identical state', () => {
   const a = replay(), b = replay()
   expect(a).toEqual(b)
   expect(a.state.dragons).toHaveLength(3)
+  // Pins the RNG order: breeding draws one rng.int(total), after the earlier actions' draws.
+  expect(a.state.dragons[2]!.speciesId).toBe('terra')
   expect(a.state.dragons.slice(0, 2).map(d => d.level)).toEqual([4, 4])
 })
 
