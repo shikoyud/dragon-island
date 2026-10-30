@@ -46,6 +46,11 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   return success(addXp(next, START_BREED_XP, ctx.preset))
 }
 
+/** The Dragon Book with `speciesId` added once (R22). */
+function discover(discovered: readonly string[], speciesId: string): string[] {
+  return discovered.includes(speciesId) ? [...discovered] : [...discovered, speciesId]
+}
+
 /** Hatchery slots hold eggs and hatched dragons that found no habitat. */
 export function hatcheryUsed(s: { hatchery: readonly unknown[]; dragons: readonly { habitatId: string | null }[] }): number {
   return s.hatchery.length + s.dragons.filter(d => d.habitatId === null).length
@@ -83,6 +88,7 @@ export const buyBasic: Handler<'buyBasic'> = (s, a, ctx) => {
   return success({
     ...collected,
     dragons: [...collected.dragons, { id: `d${s.nextId}`, speciesId: a.element, level: 1, feeds: 0, habitatId: home.id }],
+    discovered: discover(s.discovered, a.element),
     nextId: s.nextId + 1,
   })
 }
@@ -99,6 +105,7 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
     ...collected,
     hatchery: collected.hatchery.filter((_, i) => i !== a.slot),
     dragons: [...collected.dragons, dragon],
+    discovered: discover(s.discovered, egg.speciesId),
     nextId: s.nextId + 1,
   }
   return success(addXp(next, HATCH_XP[species.rarity], ctx.preset))

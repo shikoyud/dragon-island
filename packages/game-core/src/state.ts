@@ -52,6 +52,8 @@ export interface PlayerState {
   tutorial: { breedDone: boolean; hatchDone: boolean }
   /** True once the scripted first hybrid has been bred (§3.5). */
   firstHybridDone: boolean
+  /** Dragon Book: species ids hatched or bought, starters first (§1.4, R22). */
+  discovered: string[]
   nextId: number
   /** Saved 3-dragon team other players attack; cleared if a member is sold. */
   defenceTeam: [string, string, string] | null
@@ -86,6 +88,7 @@ export function newPlayer(nowMs: number): PlayerState {
     farms: [{ crop: null, readyAtMs: 0, level: 1, placement: home(10, 0) }],
     tutorial: { breedDone: false, hatchDone: false },
     firstHybridDone: false,
+    discovered: ['terra', 'flame'],
     nextId: 3,
     defenceTeam: null,
     trophies: 0,

@@ -3,7 +3,9 @@ import { applyAction } from '../src/actions/apply'
 import { getSpecies, makeCatalog } from '../src/catalog'
 import { FLASH_14, FLASH_28 } from '../src/data/presets'
 import { habitatCap } from '../src/data/habitats'
-import { canLiveIn, habitatCapacity, habitatSlots, residents, storedGold } from '../src/habitat'
+import { goldPerMinuteX20 } from '../src/dragon'
+import { LAUNCH_CATALOG } from '../src/data/launch-catalog'
+import { canLiveIn, dragonRateX20, habitatCapacity, habitatSlots, residents, storedGold } from '../src/habitat'
 import { createRng } from '../src/rng'
 import { newPlayer, type Dragon, type Habitat, type PlayerState } from '../src/state'
 import { FIXTURE_CATALOG as C } from './fixtures'
@@ -128,5 +130,34 @@ describe('caps (Review Focus 1)', () => {
   it('the cap follows the level (L3 = L1 x 12.25)', () => {
     const l3 = holding('terra', 'terra', 2, 3)
     expect(gold(l3, 1_000 * HOUR)).toBe(980_000)
+  })
+})
+
+describe('habitatRateCap (A13, R21)', () => {
+  const capped = { ...FLASH_14, habitatRateCap: 125 }
+  const hab = (element: Habitat['element']): Habitat => ({ id: 'x1', element, level: 1, lastCollectedMs: 0, placement: PL })
+  const sp = (id: string) => getSpecies(LAUNCH_CATALOG, id)
+
+  it('with no cap a Lv 5 Terra-War Rare in a War habitat earns its full Terra rate', () => {
+    expect(goldPerMinuteX20('terra', 'rare', 5, FLASH_14)).toBe(19_800)
+    expect(dragonRateX20(sp('terra-war'), 5, hab('war'), FLASH_14)).toBe(19_800)
+  })
+
+  it('with the 125 cap it earns 125 % of the native War rate, floored', () => {
+    expect(dragonRateX20(sp('terra-war'), 5, hab('war'), capped)).toBe(Math.floor(goldPerMinuteX20('war', 'rare', 5, capped) * 125 / 100))
+    expect(dragonRateX20(sp('terra-war'), 5, hab('war'), capped)).toBe(8_625)
+  })
+
+  it('leaves a native dragon, a Terra-War in a Terra habitat and the Golden Aerie uncapped', () => {
+    expect(dragonRateX20(sp('war'), 5, hab('war'), capped)).toBe(goldPerMinuteX20('war', 'common', 5, capped))
+    expect(dragonRateX20(sp('terra-war'), 5, hab('terra'), capped)).toBe(19_800)
+    expect(dragonRateX20(sp('terra-war'), 5, hab('aerie'), capped)).toBe(19_800)
+  })
+
+  it('storedGold pays the capped rate', () => {
+    const h = hab('war')
+    const d: Dragon = { id: 'x0', speciesId: 'terra-war', level: 5, feeds: 0, habitatId: 'x1' }
+    expect(storedGold(h, [d], LAUNCH_CATALOG, 20 * 60_000, capped)).toBe(8_625)
+    expect(storedGold(h, [d], LAUNCH_CATALOG, 20 * 60_000, FLASH_14)).toBe(19_800)
   })
 })

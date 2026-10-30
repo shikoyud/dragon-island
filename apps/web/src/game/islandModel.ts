@@ -1,7 +1,7 @@
 import {
   constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
-  DEFAULT_PRESET, goldPerMinuteX20, habitatCap, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
-  type BuildingRef, type Catalog, type Dragon, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
+  DEFAULT_PRESET, dragonRateX20, habitatCap, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
+  type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
@@ -68,10 +68,10 @@ export const GOLD_BADGE_CAP_PERCENT = 5
  * The per-minute rate is the one the habitat panel shows (sum of goldPerMinuteX20 ÷ 20). Client-only; collecting from
  * the panel still works from 1 Gold.
  */
-export function goldBadgeThreshold(live: readonly Dragon[], cap: number, catalog: Catalog, preset: Preset): number {
+export function goldBadgeThreshold(h: Habitat, live: readonly Dragon[], cap: number, catalog: Catalog, preset: Preset): number {
   const perMinuteX20 = live.reduce((n, d) => {
     const sp = getSpecies(catalog, d.speciesId)
-    return n + goldPerMinuteX20(sp.elements[0]!, sp.rarity, d.level, preset)
+    return n + dragonRateX20(sp, d.level, h, preset)
   }, 0)
   return Math.min(Math.floor(perMinuteX20 / 20), Math.floor(cap * GOLD_BADGE_CAP_PERCENT / 100))
 }
@@ -206,7 +206,7 @@ export function buildIslandModel(
       : { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
     const group: IslandObject[] = [{
       id: `habitat:${h.id}`, ...base, ...a, target: { kind: 'habitat', id: h.id },
-      badge: gold > 0 && gold >= cap ? 'full' : gold > 0 && gold >= goldBadgeThreshold(live, cap, catalog, preset) ? 'gold' : undefined,
+      badge: gold > 0 && gold >= cap ? 'full' : gold > 0 && gold >= goldBadgeThreshold(h, live, cap, catalog, preset) ? 'gold' : undefined,
       ...look({ type: 'habitat', id: h.id }, h.placement),
     }]
     markers.habitats.push(h.id)

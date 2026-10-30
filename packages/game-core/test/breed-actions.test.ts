@@ -215,6 +215,14 @@ describe('collectEgg', () => {
 describe('hatch', () => {
   const ready = { ...s, hatchery: [egg('flame', 30_000)] }
 
+  it('discovers a new species once and dedupes a second hatch', () => {
+    const st = { ...s, hatchery: [egg('terra-flame', 0), egg('terra-flame', 0)] }
+    const a = ok(run(st, { type: 'hatch', slot: 0 }, 0))
+    expect(a.discovered).toEqual(['terra', 'flame', 'terra-flame'])
+    expect(ok(run(a, { type: 'hatch', slot: 0 }, 0)).discovered).toEqual(['terra', 'flame', 'terra-flame'])
+    expect(ok(run(ready, { type: 'hatch', slot: 0 }, 30_000)).discovered).toEqual(['terra', 'flame'])
+  })
+
   it('creates a dragon in the first matching habitat', () => {
     const a = ok(run(ready, { type: 'hatch', slot: 0 }, 30_000))
     expect(a.dragons[2]).toEqual({ id: 'd3', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h2' })
@@ -242,6 +250,11 @@ describe('buyBasic', () => {
   const seaHab = { id: 'h3', element: 'sea' as const, level: 1, lastCollectedMs: 0, placement: { island: 'home' as const, col: 9, row: 0, facing: 0 as const } }
   const rich: PlayerState = { ...s, level: 3, gold: 5_000, habitats: [...s.habitats, seaHab] }
   const buy: Action = { type: 'buyBasic', element: 'sea' }
+
+  it('adds the species to the Dragon Book once', () => {
+    const a = ok(run(rich, buy, 1_000))
+    expect(a.discovered).toEqual(['terra', 'flame', 'sea'])
+  })
 
   it('prices a Basic at its habitat build Gold', () => {
     expect(basicPriceGold('sea')).toBe(5_000)

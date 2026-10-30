@@ -4,7 +4,7 @@ import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
-import { badgeY, buildIslandModel, dragonKey, timerLabel } from '../src/game/islandModel'
+import { badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, timerLabel } from '../src/game/islandModel'
 import { NEST_EGG_SCALE } from '../src/game/layout'
 import { nearestLegalCell } from '../src/state/placing'
 
@@ -83,6 +83,13 @@ describe('island model', () => {
       expect(storedGold(s.habitats[0]!, residents(s, 'h1'), C, 59_999, DEFAULT_PRESET)).toBe(1_319)
       expect(at(s, 60_000).badge).toBe('gold') // 1,320
       expect(at(s, 59_999).target).toEqual({ kind: 'habitat', id: 'h1' })
+    })
+    it('counts the capped rate when the preset has a habitatRateCap (A13)', () => {
+      const war = { id: 'h1', element: 'war' as const, level: 1, lastCollectedMs: 0, placement: { island: 'home' as const, col: 0, row: 0, facing: 0 as const } }
+      const d: Dragon = { id: 'x', speciesId: 'terra-war', level: 5, feeds: 0, habitatId: 'h1' }
+      const capped = { ...DEFAULT_PRESET, habitatRateCap: 125 }
+      expect(goldBadgeThreshold(war, [d], 10_000_000, C, DEFAULT_PRESET)).toBe(990) // 19,800 / 20
+      expect(goldBadgeThreshold(war, [d], 10_000_000, C, capped)).toBe(431) // floor(8,625 / 20)
     })
     it('uses 5 % of the cap when that is smaller than a minute of income', () => {
       // The launch catalog has no Legendary yet: use its richest species at Lv 40, housed in its own element.
