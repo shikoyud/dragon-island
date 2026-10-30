@@ -130,7 +130,7 @@ const decorationLook = (art: GameArtSet, kind: DecorationKind) => ({
  * then they stand on a 2-cell footprint (R9), so they are drawn smaller. Change this constant, not the sheet sizes;
  * M4 sets it back to 1. The `building.nest` fallback is 32x32 already and keeps its native scale.
  */
-export const BREEDER_ART_SCALE = 0.6
+export const BREEDER_ART_SCALE = 0.5
 /**
  * A Mountain or Grove at `level`: its own `building.<kind>.<level>` sheet, else the nearest lower level's, else the small
  * nest sprite (which stands on the footprint's bottom vertex like any building).

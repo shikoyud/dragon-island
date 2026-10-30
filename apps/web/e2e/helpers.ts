@@ -62,7 +62,10 @@ export async function openPanel(page: Page, label: string) {
   if (await page.getByTestId('dialog-scrim').isVisible().catch(() => false)) await page.keyboard.press('Escape')
   const main = (name: string) => page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).click()
   const side = (name: string) => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name, exact: true }).click()
-  const select = (target: unknown) => page.evaluate(t => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: t }), target)
+  const select = async (target: unknown) => {
+    await page.waitForFunction(() => '__bridge' in window)
+    return page.evaluate(t => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: t }), target)
+  }
   switch (label) {
     case 'Campaign':
     case 'Arena':
