@@ -40,6 +40,9 @@ shiko also said the token use and reward system will be discussed again after th
 | M1 Q3 | Waitlist copy | Fix the copy that promises 14-day seasons and Season Points. |
 | M1 Q4 | Waitlist War art | Goes on the M2 art list. |
 | M1 Q5 | R13, R14 | Confirmed. |
+| M3 Q1 | XP farming | (c) Both: no XP when two Common parents produce a Common egg, and a level limit per game day from §7.2 with banked XP (R40). |
+| M3 Q2 | Build XP | (a) Not multiplied by xpMult, and at most one level per build. |
+| M3 Goals | The 14 Goals | As drafted (R36). |
 
 ## Rulings applied by the plans (defaults, not GDD text)
 
@@ -72,3 +75,16 @@ shiko also said the token use and reward system will be discussed again after th
 | R25 | **The first hybrid's 1 minute** is real time under both presets, for breed and hatch, with no building reduction. Applies whichever answer to Q1 of the M2 plan. | §3.5 states a time, not a classic value. |
 | R26 | **Buying a Basic needs room**: a finished habitat that can house it (its element, or a Golden Aerie) with a free slot, otherwise `NO_HABITAT_SLOT`. | The Hatchery should not fill with bought dragons. |
 | R27 | **`xpMult` applies to all XP and harvest gives crop tier × 2 XP from M2** (§4.3, §7.2). M3 keeps the rest of the XP table. | M2 is unplayable to PL 2 without it; no GDD number changes. |
+| R28 | **The XP curve is a literal integer table** of ⌈50 × PL^1.8⌉. Totals are exact: 9,741, 31,864, 73,067, 232,934, each within 0.1 % of §4.3's rounded 9,742, 31,862, 73,062, 232,892. | Same treatment as R5; `Math.pow` isn't guaranteed identical across engines. |
+| R29 | **`xpMult` multiplies awards, not the curve.** The roadmap's "curve × preset" is read this way. | §4.3: "Flash-14 multiplies all XP by 12", and its PL 30 Day 4 target only fits with an unmultiplied curve. |
+| R30 | **First-time double XP** is on hatching only, when the species isn't yet in `discovered`. Buying a Basic adds it to the Book with no hatch XP. | §4.3 says "First-time hatch". |
+| R31 | **Build XP** counts Gold spent on habitats, farms, Grove, Roost, upgrades, expansions and islands, paid when the Gold is spent. Decorations and $DRIS-priced items pay none. Obstacles keep §5.6's XP. | The 5 XP minimum on a 10 Gold decoration would be a farm; there's no Gold in a premium price. |
+| R32 | **`UNLOCKS` uses §4.4 and §5.5 where they speak**, moving PvE to PL 4 and Islands 3–6 to PL 18, 25, 32, 40. Home expansions keep today's PLs until M4. PvP and decorations keep their own gates until M6 and M7. | §4.4 lists these; M4, M6 and M7 own the rest. |
+| R33 | **The Roost is one building on 2 cells until M4**, with art at its final size drawn scaled down. Its tier rises when the build finishes. | R9, and R15's measured lesson about room. |
+| R34 | **"Tier 1 is unlocked by a tutorial goal at PL 5"** means PL 5 is the gate and Goal 11 leads the player there. | §4.4 lists PL 5; a Goal gate could block a player who skips Goals. |
+| R35 | **Ascension** spends its Gold and $2.00 when it starts, is skippable like any timer, and books its 100 % burn in M7. | §4.2, §7.4; the ledger split arrives in M7. |
+| R36 | **The 14 Goals in Task 5** are ours, in §4.3's 25–500 XP range, with modest Gold rewards. | §1.4 and §4.2 name Goals but list none. |
+| R37 | **Goals need a Claim tap**, are checked from state and simple counters, and count progress from the start of the game, so one already met can be claimed at once. | Keeps them pure and forgiving. |
+| R38 | **The level-up screen pays nothing**: it reports new levels and what opened, and combines a jump into one screen. | §4.3 and §4.4 list no level rewards. |
+| R39 | **The maximum Player Level stays 50**, with the curve through PL 49. | §7.2 says "40+"; §5.5's last gate is PL 40. |
+| R40 | **If Q1 (b) or (c):** XP above the day's limit is banked and pays on the first action of the next day. Limits end with Rush. | Nobody loses play; §7.2's Endgame row says only "30+". |
