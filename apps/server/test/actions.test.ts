@@ -1,6 +1,6 @@
 import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { eq, sql } from 'drizzle-orm'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { actionLog, balances, players, spendBatches } from '../src/db/schema'
 import { FixedPriceSource } from '../src/services/price'
 import { bearer, testApp, type TestApp } from './helpers/testApp'
@@ -138,6 +138,23 @@ describe('POST /actions', () => {
     expect(me.json().state.version).toBe(newPlayer(0).version)
     expect(me.json().state.gold).toBe(newPlayer(0).gold)
     expect(me.json()).not.toHaveProperty('season')
+  })
+
+  it('logs the player id once when a stored state of another version is reset (R2), on /me and on actions', async () => {
+    const warn = vi.spyOn(t.app.log, 'warn')
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const { version, ...unversioned } = p!.state as PlayerState
+    void version
+    await t.db.update(players).set({ state: unversioned }).where(eq(players.id, playerId))
+    expect((await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })).statusCode).toBe(200)
+    const resets = () => warn.mock.calls.filter(c => JSON.stringify(c).includes('state reset'))
+    expect(resets()).toHaveLength(1)
+    expect(resets()[0]![0]).toMatchObject({ playerId })
+
+    await t.db.update(players).set({ state: unversioned }).where(eq(players.id, playerId))
+    expect((await post({ type: 'collectGold', habitatId: 'h1' })).statusCode).toBeLessThan(500)
+    expect(resets()).toHaveLength(2)
+    expect(resets()[1]![0]).toMatchObject({ playerId })
   })
 
   it('runs a startBreed action without a seasons table and logs no season_id', async () => {

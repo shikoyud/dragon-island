@@ -9,7 +9,6 @@ export const DEFAULT_INTERVALS_MS = {
   indexer: 15_000,
   voucherExpiry: 60_000,
   burnBatch: 10 * 60_000,
-  game: 60_000,
   prune: 60 * 60_000,
   /** Registered only when VAULT_ADDRESS is set; an interval without a job is skipped. */
   chainWatch: 5 * 60_000,

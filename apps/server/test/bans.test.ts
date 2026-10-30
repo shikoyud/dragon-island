@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeChainClient } from '../src/chain/fake'
 import { balances, sessions } from '../src/db/schema'
+import { ensureGame } from '../src/services/game'
 import { FixedPriceSource } from '../src/services/price'
 import { bearer, TEST_ADMIN_TOKEN, testApp, type TestApp } from './helpers/testApp'
 import { TEST_KEYS, wallet } from './helpers/wallet'
@@ -91,7 +92,20 @@ describe('admin', () => {
   it('runs jobs', async () => {
     expect((await t.app.inject({ method: 'POST', url: '/admin/jobs/indexer/run', headers: admin })).statusCode).toBe(200)
     expect((await t.app.inject({ method: 'POST', url: '/admin/jobs/nope/run', headers: admin })).statusCode).toBe(404)
-    expect((await t.app.inject({ method: 'POST', url: '/admin/jobs/game/run', headers: admin })).statusCode).toBe(200) // creates the game secret
     expect((await t.app.inject({ method: 'POST', url: '/admin/season/1/reveal', headers: admin })).statusCode).toBe(404) // seasons are gone
+  })
+
+  it('has no game job, and no admin or /me response carries the game secret', async () => {
+    const g = await ensureGame(t.db, t.clock)
+    expect((await t.app.inject({ method: 'POST', url: '/admin/jobs/game/run', headers: admin })).statusCode).toBe(404)
+    const bodies = [
+      ...(await Promise.all(['/admin/stats', '/admin/beta', `/admin/players/${playerId}`].map(url => t.app.inject({ method: 'GET', url, headers: admin })))),
+      await t.app.inject({ method: 'POST', url: '/admin/jobs/indexer/run', headers: admin }),
+      await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) }),
+    ].map(r => r.body)
+    for (const b of bodies) {
+      expect(b).not.toContain(g.secretHex)
+      expect(b).not.toContain('secretHex')
+    }
   })
 })

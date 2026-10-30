@@ -18,13 +18,15 @@ export interface ActionDeps {
   db: Db
   clock: Clock
   catalog: Catalog
+  /** R2: called with the player id when a stored state of another version is replaced by a fresh one. */
+  onStateReset?: (playerId: string) => void
   price: PriceSource
   /** Task 6: turns a client offerId into the stored opponent and battle seed. */
   resolveOffer?: (tx: Tx, playerId: string, offerId: string, nowMs: number) => Promise<ResolvedOffer>
   /** Task 6: who an offer is against, so both rows can be locked in id order. */
   peekOfferOpponent?: (tx: Tx, offerId: string) => Promise<string | null>
   /** Task 6: applies a defenceResult effect to the other player. */
-  settleDefence?: (tx: Tx, defenderPlayerId: string, trophyDelta: number, nowMs: number) => Promise<void>
+  settleDefence?: (tx: Tx, defenderPlayerId: string, trophyDelta: number, nowMs: number, onReset?: () => void) => Promise<void>
 }
 
 export interface ResolvedOffer { opponent: OpponentSnapshot; opponentPlayerId: string | null; seed32: number; seedHex: `0x${string}` }
@@ -55,7 +57,7 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
     if (replay) return { status: replay.status, body: replay.response as ActionResponse | ErrorResponse }
 
     const price = await deps.price.microUsdPerToken(tx)
-    const state = migrateState(player.state, nowMs)
+    const state = migrateState(player.state, nowMs, () => deps.onStateReset?.(playerId))
 
     const secretRow = await ensureGame(tx, clock)
     const nonce = player.actionNonce + 1n
@@ -100,7 +102,7 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
           if (price === null) throw new AppError(503, 'PRICE_UNAVAILABLE')
           await charge(tx, clock, playerId, usdToTokenWei(BigInt(effect.microUsd), price), day)
         } else if (effect.type === 'defenceResult') {
-          if (deps.settleDefence) await deps.settleDefence(tx, effect.playerId, effect.trophyDelta, nowMs)
+          if (deps.settleDefence) await deps.settleDefence(tx, effect.playerId, effect.trophyDelta, nowMs, () => deps.onStateReset?.(effect.playerId))
         }
       }
       const next: PlayerState = result.state

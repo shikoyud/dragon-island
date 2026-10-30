@@ -26,7 +26,6 @@ import { pvpRoutes } from './routes/pvp'
 import { withdrawRoutes } from './routes/withdraw'
 import type { WithdrawDeps } from './services/withdraw'
 import { requireActive } from './services/bans'
-import { ensureGame } from './services/game'
 import { migrateState } from './services/stateMigration'
 import { sendAlert } from './services/alerts'
 import { runIndexer } from './services/indexer'
@@ -47,6 +46,8 @@ export interface AppDeps {
   chain?: ChainClient
   /** Fastify logger option; production passes true, tests leave it off. */
   logger?: boolean
+  /** Called when a stored player state of another version is replaced (set by buildApp). */
+  onStateReset?: (playerId: string) => void
   /** Called only for errors answered with 500 (production passes Sentry's captureException). */
   onInternalError?: (err: unknown) => void
 }
@@ -73,9 +74,12 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   registerErrorHandler(app, deps.onInternalError)
   registerGeoBlock(app, config)
 
+  /** R2: a stored state of another version is replaced by a fresh player; say so, never silently. */
+  const onStateReset = (playerId: string) => app.log.warn({ playerId }, 'player state reset: stored version differs (R2)')
+  deps.onStateReset = onStateReset
   const actionDeps: ActionDeps = {
     db, clock, catalog: deps.catalog, price: deps.price,
-    resolveOffer, settleDefence, peekOfferOpponent,
+    resolveOffer, settleDefence, peekOfferOpponent, onStateReset,
   }
   authRoutes(app, deps)
   actionRoutes(app, deps, actionDeps)
@@ -87,7 +91,6 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     indexer: () => runIndexer({ db, chain, confirmations: config.CONFIRMATIONS, clock, startBlock: config.INDEXER_START_BLOCK, chunk: config.INDEXER_CHUNK }),
     voucherExpiry: () => expireVouchers({ db, clock, chain }),
     burnBatch: () => runBurnBatch({ db, chain, clock }),
-    game: () => ensureGame(db, clock),
     prune: () => prune({ db, clock }),
   }
   // Watches the real vault only; state lives in the closure for the life of the process.
@@ -119,7 +122,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     const p = req.player!
     const [bal] = await db.select().from(balances).where(eq(balances.playerId, p.id))
     // Same load path as /actions, so a save of another version reaches the client as a fresh player (R2).
-    const state = migrateState(p.state, clock())
+    const state = migrateState(p.state, clock(), () => onStateReset(p.id))
     return {
       playerId: p.id,
       address: getAddress(p.address),
