@@ -49,7 +49,6 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
       case 'store': return <StorePanel nowMs={nowMs} onClose={close} />
       case 'dragons': return <DragonsPanel onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
       case 'battle': return <BattleHub nowMs={nowMs} onPve={onPve} onPvp={onPvp} onClose={close} />
-      case 'quests': return null // the quests panel returns with the GDD goals (Season panel is gone)
       case 'settings': return <div className="settings-dialog"><WalletPanel onClose={close} /><div className="settings-dialog__account"><SignIn /></div></div>
     }
   }

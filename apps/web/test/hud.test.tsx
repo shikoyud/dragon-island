@@ -73,8 +73,14 @@ describe('HUD', () => {
     expect(within(left).getByText('Building Farm plot 2')).toBeInTheDocument()
     await userEvent.click(within(left).getByRole('button', { name: 'Finish' }))
     expect(action).toHaveBeenCalledWith({ type: 'finishConstruction', index: 0 }, expect.any(String))
-    await userEvent.click(within(left).getByRole('button', { name: /Daily quests/ }))
-    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'quests' })
+    await userEvent.click(within(left).getByRole('button', { name: /Building Farm plot 2/ }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'target', target: { kind: 'farm', plot: 1 } })
+  })
+
+  it('has no Daily quests control anywhere', () => {
+    renderHud(base())
+    expect(screen.queryByRole('button', { name: /quests/i })).toBeNull()
+    expect(screen.queryByText(/quests/i)).toBeNull()
   })
 
   it('reports the space its top and bottom take to the bridge', () => {

@@ -10,7 +10,7 @@ import { formatGold, formatWei } from '../ui/Money'
 import { attentionItems, xpFraction, type AttentionItem } from './hudModel'
 import { Icon, type IconName } from './Icon'
 
-export type PanelId = 'build' | 'map' | 'breed' | 'store' | 'dragons' | 'battle' | 'settings' | 'quests'
+export type PanelId = 'build' | 'map' | 'breed' | 'store' | 'dragons' | 'battle' | 'settings'
 /** What the one dialog shows: a named panel, or the panel of something clicked on the island. */
 export type DialogKey = { kind: 'panel'; id: PanelId } | { kind: 'target'; target: Target }
 
@@ -49,8 +49,8 @@ const ACTION_VERB: Partial<Record<ClientAction['type'], string>> = { finishConst
 
 function Shortcut({ item, nowMs, onOpen }: { item: AttentionItem; nowMs: number; onOpen: (k: DialogKey) => void }) {
   const { run, pending } = useAction()
-  const open = () => onOpen(item.panel.kind === 'quests' ? { kind: 'panel', id: 'quests' } : { kind: 'target', target: item.panel })
-  const icon: IconName = item.id === 'quests' ? 'quests' : item.id.startsWith('construction') ? 'build' : item.id === 'crops' ? 'food' : 'breed'
+  const open = () => onOpen({ kind: 'target', target: item.panel })
+  const icon: IconName = item.id.startsWith('construction') ? 'build' : item.id === 'crops' ? 'food' : 'breed'
   return (
     <li className={`hud-shortcut${item.ready ? ' hud-shortcut--ready' : ''}`}>
       <button type="button" className="hud-shortcut__open" onClick={open}>

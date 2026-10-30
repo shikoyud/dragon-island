@@ -19,7 +19,7 @@ export interface AttentionItem {
   /** Sent by the shortcut's button when ready. */
   action?: ClientAction
   /** What the shortcut opens otherwise: the same panel a click on the island would. */
-  panel: Target | { kind: 'quests' }
+  panel: Target
 }
 
 export const MAX_ATTENTION = 5
@@ -57,8 +57,8 @@ function constructionItem(s: PlayerState, c: Construction, index: number, nowMs:
 
 /**
  * Shortcuts for what needs attention: constructions (Finish when ready), eggs in nests (Collect when ready),
- * the hatchery's soonest egg, ripe crops (harvest the first), hatchlings with no room, and the daily quests.
- * Ready items first, then by time left; at most MAX_ATTENTION, with the quests always last.
+ * the hatchery's soonest egg, ripe crops (harvest the first), and hatchlings with no room.
+ * Ready items first, then by time left; at most MAX_ATTENTION.
  */
 export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
   const items: AttentionItem[] = s.constructions.map((c, i) => constructionItem(s, c, i, nowMs))
@@ -80,5 +80,5 @@ export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
     items.push({ id: 'noRoom', label: waiting === 1 ? 'Hatchling: no room' : `${waiting} hatchlings: no room`, ready: true, panel: { kind: 'hatcheryBuilding' } })
   }
   const ordered = items.sort((p, q) => Number(q.ready) - Number(p.ready) || (p.readyAtMs ?? 0) - (q.readyAtMs ?? 0))
-  return [...ordered.slice(0, MAX_ATTENTION - 1), { id: 'quests', label: 'Daily quests', ready: true, panel: { kind: 'quests' } }]
+  return ordered.slice(0, MAX_ATTENTION)
 }

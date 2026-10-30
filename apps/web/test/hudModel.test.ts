@@ -11,8 +11,8 @@ describe('HUD model', () => {
     expect(xpFraction({ ...base(), level: 2, xp: 999 })).toBe(1)
   })
 
-  it('lists daily quests even when nothing else needs attention', () => {
-    expect(attentionItems(base(), 0).map(i => i.id)).toEqual(['quests'])
+  it('lists nothing when nothing needs attention (no daily quests entry)', () => {
+    expect(attentionItems(base(), 0)).toEqual([])
   })
 
   it('lists builds with a timer, and a Finish action once ready', () => {
@@ -41,13 +41,12 @@ describe('HUD model', () => {
     expect(byId['hatchery']).toMatchObject({ ready: false, readyAtMs: 90_000 })
     expect(byId['noRoom']).toMatchObject({ ready: true, label: expect.stringMatching(/no room/i), panel: { kind: 'hatcheryBuilding' } })
     expect(items.length).toBeLessThanOrEqual(MAX_ATTENTION)
-    expect(items.at(-1)!.id).toBe('quests')
+    expect(items.some(i => i.id === 'quests')).toBe(false)
   })
 
-  it('keeps at most MAX_ATTENTION items, quests always last', () => {
+  it('keeps at most MAX_ATTENTION items', () => {
     const s = { ...base(), constructions: [0, 1, 2, 3, 4, 5].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 1000 * i })) }
     const items = attentionItems(s, 0)
     expect(items).toHaveLength(MAX_ATTENTION)
-    expect(items.at(-1)!.id).toBe('quests')
   })
 })

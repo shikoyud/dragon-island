@@ -30,7 +30,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       for (const b of ['Dragons', 'Breed', 'Battle', 'Build', 'Store']) await expect(page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name: b, exact: true })).toBeVisible()
       await expect(page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name: 'Map', exact: true })).toBeVisible()
       for (const b of ['Hoard', 'Season', 'Ranks', 'Referral']) await expect(page.getByRole('button', { name: b, exact: true })).toHaveCount(0)
-      await expect(page.getByRole('complementary', { name: 'Needs attention' }).getByRole('button', { name: /daily quests/i })).toBeVisible()
+      await expect(page.getByRole('complementary', { name: 'Needs attention' }).getByRole('button', { name: /daily quests/i })).toHaveCount(0)
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0)
       await page.screenshot({ path: `test-results/hud-${size.name}.png` })
     })
