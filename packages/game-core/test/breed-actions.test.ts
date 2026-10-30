@@ -45,12 +45,6 @@ describe('startBreed', () => {
     expect(a.nests[2]!.egg).toBeNull()
   })
 
-  it('consumes an odds boost only on success', () => {
-    expect(ok(run({ ...s4, oddsBoosts: 1 }, breed, 0)).oddsBoosts).toBe(0)
-    const failed = run({ ...s, oddsBoosts: 1 }, breed, 0)
-    err(failed, 'LEVEL_TOO_LOW')
-  })
-
   it('applies and resets pity', () => {
     const a = ok(run({ ...s4, pity: { 'fire+water': 10 } }, breed, 0))
     expect(rarityOf(a.nests[0]!.egg!.speciesId)).not.toBe('common')

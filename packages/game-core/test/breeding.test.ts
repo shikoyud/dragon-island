@@ -4,7 +4,7 @@ import { createRng } from '../src/rng'
 import { FIXTURE_CATALOG as C } from './fixtures'
 
 const p = (id: string, level = 4): Parent => ({ speciesId: id, level })
-const none: BreedContext = { boost: false, pity: {} }
+const none: BreedContext = { pity: {} }
 
 function expectOdds(actual: Record<string, number>, expected: Record<string, number>) {
   expect(Object.keys(actual).sort()).toEqual(Object.keys(expected).sort())
@@ -13,9 +13,9 @@ function expectOdds(actual: Record<string, number>, expected: Record<string, num
 }
 
 describe('tierWeights', () => {
-  it('scales with score and boost', () => {
-    expect(tierWeights(0, false)).toEqual({ common: 70, rare: 25, epic: 5, legendary: 1 })
-    expect(tierWeights(3, true)).toEqual({ common: 70, rare: 50, epic: 16, legendary: 1 })
+  it('scales with score', () => {
+    expect(tierWeights(0)).toEqual({ common: 70, rare: 25, epic: 5, legendary: 1 })
+    expect(tierWeights(3)).toEqual({ common: 70, rare: 40, epic: 11, legendary: 1 })
   })
 })
 
@@ -24,13 +24,8 @@ describe('breedingOdds', () => {
     expectOdds(breedingOdds(p('fire'), p('water'), none, C), { 'fw-common': 0.7, 'fw-rare': 0.25, 'fw-epic': 0.05 })
   })
 
-  it('applies the odds boost', () => {
-    expectOdds(breedingOdds(p('fire'), p('water'), { boost: true, pity: {} }, C),
-      { 'fw-common': 70 / 115, 'fw-rare': 35 / 115, 'fw-epic': 10 / 115 })
-  })
-
   it('applies pity by dropping commons', () => {
-    expectOdds(breedingOdds(p('fire'), p('water'), { boost: false, pity: { 'fire+water': 10 } }, C),
+    expectOdds(breedingOdds(p('fire'), p('water'), { pity: { 'fire+water': 10 } }, C),
       { 'fw-rare': 25 / 30, 'fw-epic': 5 / 30 })
   })
 
@@ -71,7 +66,7 @@ describe('rollOffspring', () => {
 
   it('never returns a common under pity', () => {
     const rng = createRng(3)
-    const ctx = { boost: false, pity: { 'fire+water': 10 } }
+    const ctx = { pity: { 'fire+water': 10 } }
     for (let i = 0; i < 1_000; i++) {
       const r = rollOffspring(p('fire'), p('water'), ctx, C, rng)
       expect(r.speciesId).not.toBe('fw-common')

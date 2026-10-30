@@ -24,8 +24,3 @@ export function pvpWinGold(trophies: number): number {
 export function applyTrophies(trophies: number, delta: number): number {
   return Math.max(0, trophies + delta)
 }
-
-/** Spec §12: at season reset, trophies above 1,000 become 1,000 + floor((t − 1,000) / 2). */
-export function seasonResetTrophies(t: number): number {
-  return t > 1000 ? 1000 + Math.floor((t - 1000) / 2) : t
-}

@@ -40,13 +40,13 @@ describe('placeBuilding', () => {
     const full = { ...a, dragons: [...a.dragons, ...['d3', 'd4'].map(id => ({ id, speciesId: 'fire', level: 1, habitatId: 'h1' }))], hatchery: [{ speciesId: 'fire', readyAtMs: 0 }] }
     expect(ok(run(full, { type: 'hatch', slot: 0 }, 0)).dragons.at(-1)!.habitatId).toBeNull()
   })
-  it('decorations are instant, level-gated, refundable at 25% ineligible', () => {
+  it('decorations are instant, level-gated, refundable at 25%', () => {
     err(run(s, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'hayCart' }, placement: P(6, 7) }, 0), 'LEVEL_TOO_LOW')
     err(run({ ...s, level: 45 }, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'starPool' }, placement: P(6, 7) }, 0), 'WRONG_ISLAND')
-    const a = ok(run({ ...s, level: 6, gold: 1_000, eligibleGold: 1_000 }, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'hayCart' }, placement: P(6, 7) }, 0))
+    const a = ok(run({ ...s, level: 6, gold: 1_000 }, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'hayCart' }, placement: P(6, 7) }, 0))
     expect([a.gold, a.constructions.length, a.decorations[0]!.id]).toEqual([0, 0, 'c3'])
     const b = ok(run(a, { type: 'removeDecoration', id: 'c3' }, 0))
-    expect([b.gold, b.eligibleGold, b.decorations]).toEqual([250, 0, []])
+    expect([b.gold, b.decorations]).toEqual([250, []])
     err(run(a, { type: 'removeDecoration', id: 'c9' }, 0), 'NOT_FOUND')
   })
   it('the Nexus only goes on the Dawnspire, once', () => {
@@ -119,7 +119,7 @@ describe('startUpgrade / finishConstruction', () => {
     err(run(a, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'UNDER_CONSTRUCTION')
     err(run(a, { type: 'finishConstruction', index: 0 }, 599_999), 'NOT_READY')
     const b = ok(run(a, { type: 'finishConstruction', index: 0 }, 600_000))
-    expect([b.habitats[0]!.level, b.constructions, b.gold, b.eligibleGold]).toEqual([2, [], 1_020, 20])
+    expect([b.habitats[0]!.level, b.constructions, b.gold]).toEqual([2, [], 1_020])
   })
   it('gates habitat level 3 at player level 5', () => {
     const l2 = { ...s, gold: 10_000, habitats: s.habitats.map(h => ({ ...h, level: 2 })) }

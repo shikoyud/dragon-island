@@ -62,7 +62,6 @@ export const moveBuilding: Handler<'moveBuilding'> = (s, a) => {
     case 'farm': return success({ ...s, farms: s.farms.map((f, i) => i === t.index ? { ...f, placement: p } : f) })
     case 'nest': return success({ ...s, nests: s.nests.map((n, i) => i === t.index ? { ...n, placement: p } : n) })
     case 'hatchery': return success({ ...s, hatcheryPlacement: p })
-    case 'hoard': return success({ ...s, hoardPlacement: p })
     default: return success({ ...s, decorations: s.decorations.map(d => d.id === t.id ? { ...d, placement: p } : d) })
   }
 }
@@ -70,7 +69,7 @@ export const moveBuilding: Handler<'moveBuilding'> = (s, a) => {
 export const removeDecoration: Handler<'removeDecoration'> = (s, a) => {
   const d = s.decorations.find(x => x.id === a.id)
   if (!d) return failure('NOT_FOUND')
-  return success(earnGold({ ...s, decorations: s.decorations.filter(x => x.id !== a.id) }, decorationRefund(d.kind), false))
+  return success(earnGold({ ...s, decorations: s.decorations.filter(x => x.id !== a.id) }, decorationRefund(d.kind)))
 }
 
 export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {

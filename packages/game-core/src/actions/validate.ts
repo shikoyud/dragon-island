@@ -47,8 +47,6 @@ export function isValidAction(a: unknown): a is Action {
       return isIndex(x['nest'])
     case 'hatch':
       return isIndex(x['slot'])
-    case 'sellGold':
-      return typeof x['gold'] === 'number'
     case 'buy':
       return isStoreItem(x['item'])
     case 'setDefenceTeam':
@@ -101,8 +99,7 @@ function isMovable(v: unknown): boolean {
     case 'decoration': return isId(t['id'])
     case 'farm':
     case 'nest': return isIndex(t['index'])
-    case 'hatchery':
-    case 'hoard': return true
+    case 'hatchery': return true
     default: return false
   }
 }
@@ -129,14 +126,7 @@ function isStoreItem(v: unknown): boolean {
   switch (item['kind']) {
     case 'skip':
       return ['nest', 'hatchery', 'farm', 'construction'].includes(item['target'] as string) && isIndex(item['index'])
-    case 'levelUp':
-      return isId(item['dragonId'])
-    case 'nest':
-      return isPlacement(item['placement'])
-    case 'hoard':
-      return item['placement'] === undefined || isPlacement(item['placement'])
     case 'foodPack':
-    case 'oddsBoost':
       return true
     default:
       return false

@@ -5,17 +5,12 @@ import { earnGold, spendGold } from '../src/wallet'
 describe('wallet', () => {
   const s = newPlayer(0)
 
-  it('tracks eligible gold on earn', () => {
-    const e = earnGold(s, 500, true)
-    expect([e.gold, e.eligibleGold]).toEqual([1500, 500])
-    expect(earnGold(s, 100, false).eligibleGold).toBe(0)
+  it('adds earned gold', () => {
+    expect(earnGold(s, 500).gold).toBe(1500)
   })
 
-  it('spends ineligible gold first', () => {
-    const sp = spendGold(earnGold(s, 500, true), 1200)!
-    expect([sp.gold, sp.eligibleGold]).toEqual([300, 300])
-    const small = spendGold(earnGold(s, 500, true), 200)!
-    expect([small.gold, small.eligibleGold]).toEqual([1300, 500])
+  it('subtracts spent gold', () => {
+    expect(spendGold(earnGold(s, 500), 1200)!.gold).toBe(300)
   })
 
   it('refuses overspending', () => {
@@ -23,7 +18,7 @@ describe('wallet', () => {
   })
 
   it('does not mutate input', () => {
-    spendGold(earnGold(s, 5, true), 3)
+    spendGold(earnGold(s, 5), 3)
     expect(s).toEqual(newPlayer(0))
   })
 })

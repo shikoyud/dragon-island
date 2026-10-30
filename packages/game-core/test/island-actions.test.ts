@@ -15,11 +15,11 @@ const setD1 = (patch: Partial<Dragon>, extra: Partial<PlayerState> = {}): Player
   ({ ...s, ...extra, dragons: s.dragons.map(d => d.id === 'd1' ? { ...d, ...patch } : d) })
 
 describe('collectGold', () => {
-  it('collects eligible gold and stamps the time', () => {
+  it('collects gold and stamps the time', () => {
     const r = run(s, { type: 'collectGold', habitatId: 'h1' }, 600_000)
     expect(r.ok && r.effects).toEqual([])
     const a = ok(r)
-    expect([a.gold, a.eligibleGold, a.habitats[0]!.lastCollectedMs]).toEqual([1020, 20, 600_000])
+    expect([a.gold, a.habitats[0]!.lastCollectedMs]).toEqual([1020, 600_000])
     const b = ok(run(a, { type: 'collectGold', habitatId: 'h1' }, 300_000))
     expect([b.gold, b.habitats[0]!.lastCollectedMs]).toEqual([1020, 600_000])
   })
@@ -43,7 +43,6 @@ describe('moveDragon', () => {
     const st = withDragon(s, { ...d9, habitatId: 'h1' })
     const a = ok(run(st, { type: 'moveDragon', dragonId: 'd9', habitatId: 'h2' }, 600_000))
     expect(a.gold).toBe(1000 + 40 + 20)
-    expect(a.eligibleGold).toBe(60)
     expect(a.habitats.map(h => h.lastCollectedMs)).toEqual([600_000, 600_000])
   })
 
@@ -84,9 +83,9 @@ describe('sellDragon', () => {
     err(run(s, { type: 'sellDragon', dragonId: 'd1' }, 0), 'LAST_DRAGONS')
   })
 
-  it('credits ineligible gold', () => {
+  it('credits sale gold', () => {
     const a = ok(run(withDragon(s, d9), { type: 'sellDragon', dragonId: 'd9' }, 0))
-    expect([a.gold, a.eligibleGold, a.dragons.length]).toEqual([1100, 0, 2])
+    expect([a.gold, a.dragons.length]).toEqual([1100, 2])
   })
 
   it('rejects unknown dragons', () => {

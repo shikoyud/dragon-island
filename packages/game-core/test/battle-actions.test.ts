@@ -62,7 +62,7 @@ describe('pvpBattle', () => {
     expect(r.ok && r.effects).toEqual([])
     expect(r.ok && r.battle?.winner).toBe('attacker')
     const a = ok(r)
-    expect([a.trophies, a.gold, a.eligibleGold, a.xp, a.pvp]).toEqual([30, 1000, 0, 20, { day: 0, count: 1 }])
+    expect([a.trophies, a.gold, a.xp, a.pvp]).toEqual([30, 1000, 20, { day: 0, count: 1 }])
   })
 
   it('reports a defence loss to a human opponent', () => {
@@ -72,7 +72,7 @@ describe('pvpBattle', () => {
 
   it('pays league gold from trophies before the battle', () => {
     const a = ok(run({ ...s8, trophies: 850 }, pvp(bot)))
-    expect([a.gold, a.eligibleGold, a.trophies]).toEqual([1200, 200, 880])
+    expect([a.gold, a.trophies]).toEqual([1200, 880])
     const b = ok(run({ ...s8, trophies: 790 }, pvp(bot)))
     expect([b.gold, b.trophies]).toEqual([1100, 820])
   })
@@ -104,7 +104,7 @@ describe('pveBattle', () => {
 
   it('pays a first clear in full and unlocks the next stage', () => {
     const a = ok(run(sWater, pve(1)))
-    expect([a.gold, a.eligibleGold, a.food, a.xp, a.pve]).toEqual([1100, 100, 120, 15, { cleared: 1, replays: { day: 0, count: 0 } }])
+    expect([a.gold, a.food, a.xp, a.pve]).toEqual([1100, 120, 15, { cleared: 1, replays: { day: 0, count: 0 } }])
     expect(ok(run({ ...a, dragons: fireTeam(30) }, pve(2))).pve.cleared).toBe(2)
   })
 

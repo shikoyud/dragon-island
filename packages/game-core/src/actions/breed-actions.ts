@@ -20,14 +20,12 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const nest = s.nests.findIndex(n => n.egg === null)
   if (nest < 0) return failure('NO_FREE_NEST')
 
-  const boost = s.oddsBoosts > 0
-  const roll = rollOffspring(pa, pb, { boost, pity: s.pity }, ctx.catalog, ctx.rng)
+  const roll = rollOffspring(pa, pb, { pity: s.pity }, ctx.catalog, ctx.rng)
   const rarity = getSpecies(ctx.catalog, roll.speciesId).rarity
   const readyAtMs = ctx.nowMs + (s.tutorial.breedDone ? nestBreedMs(RARITY[rarity].breedMs, s.nests[nest]!.level) : TUTORIAL_TIMER_MS)
   const next = {
     ...s,
     nests: s.nests.map((n, i) => i === nest ? { ...n, egg: { speciesId: roll.speciesId, readyAtMs } } : n),
-    oddsBoosts: boost ? s.oddsBoosts - 1 : s.oddsBoosts,
     pity: { ...s.pity, [roll.pairKey]: roll.rarePlus ? 0 : (s.pity[roll.pairKey] ?? 0) + 1 },
     tutorial: { ...s.tutorial, breedDone: true },
   }

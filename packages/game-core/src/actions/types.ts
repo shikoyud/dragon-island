@@ -10,7 +10,7 @@ export type TeamIds = [string, string, string]
 
 export type Placeable =
   | { kind: 'habitat'; element: Element } | { kind: 'nexus' } | { kind: 'farm' } | { kind: 'decoration'; decoration: DecorationId }
-export type MovableRef = BuildingRef | { type: 'hoard' } | { type: 'decoration'; id: string }
+export type MovableRef = BuildingRef | { type: 'decoration'; id: string }
 
 export type Action =
   | { type: 'collectGold'; habitatId: string }
@@ -30,7 +30,6 @@ export type Action =
   | { type: 'startBreed'; parentA: string; parentB: string }
   | { type: 'collectEgg'; nest: number }
   | { type: 'hatch'; slot: number }
-  | { type: 'sellGold'; gold: number }
   | { type: 'buy'; item: StoreItem }
   | { type: 'setDefenceTeam'; dragonIds: TeamIds }
   /**
@@ -44,7 +43,7 @@ export type Action =
 export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'INSUFFICIENT_GOLD' | 'INSUFFICIENT_FOOD' | 'MAX_LEVEL'
   | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'NO_FREE_NEST' | 'NEST_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'
   | 'NO_HABITAT_SLOT' | 'HABITAT_LIMIT' | 'ELEMENT_MISMATCH' | 'MAX_PLOTS' | 'PLOT_BUSY' | 'PLOT_EMPTY'
-  | 'MAX_NESTS' | 'LAST_DRAGONS' | 'EARNING_LOCKED' | 'NO_HOARD' | 'SELL_LIMIT_REACHED' | 'NOTHING_TO_SKIP'
+  | 'LAST_DRAGONS' | 'NOTHING_TO_SKIP'
   | 'INVALID_TEAM' | 'NO_DEFENCE_TEAM' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'
   | 'OUT_OF_BOUNDS' | 'OVERLAP' | 'BUILDERS_BUSY' | 'ISLAND_LOCKED' | 'MAX_ISLAND' | 'WRONG_ISLAND' | 'UNDER_CONSTRUCTION'
   | 'NO_LEGENDARY' | 'NEXUS_EXISTS' | 'MAX_EXPANSION'
@@ -52,7 +51,6 @@ export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'I
 /** Side effects the server settles after persisting the new state. */
 export type Effect =
   | { type: 'charge'; microUsd: number }
-  | { type: 'payout'; microUsd: number }
   /** Apply to the defending player with `applyTrophies` (floor 0); spec §11 defence win/loss. */
   | { type: 'defenceResult'; playerId: string; trophyDelta: number }
 

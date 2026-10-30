@@ -4,7 +4,7 @@ import type { Rng } from '../rng'
 import type { PlayerState } from '../state'
 import { pveBattle, pvpBattle, setDefenceTeam } from './battle-actions'
 import { collectEgg, hatch, startBreed } from './breed-actions'
-import { buy, sellGold } from './economy-actions'
+import { buy } from './economy-actions'
 import { harvest, plant } from './farm-actions'
 import { finishConstruction, moveBuilding, placeBuilding, removeDecoration, startUpgrade } from './build-actions'
 import { clearObstacle, expandIsland, unlockIsland } from './island-unlock-actions'
@@ -36,7 +36,6 @@ export function applyAction(
     case 'startBreed': return startBreed(s, a, ctx)
     case 'collectEgg': return collectEgg(s, a, ctx)
     case 'hatch': return hatch(s, a, ctx)
-    case 'sellGold': return sellGold(s, a, ctx)
     case 'buy': return buy(s, a, ctx)
     case 'setDefenceTeam': return setDefenceTeam(s, a, ctx)
     case 'pvpBattle': return pvpBattle(s, a, ctx)
