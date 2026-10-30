@@ -1,14 +1,15 @@
 /* Shared with the waitlist site: same element palette, same fonts, same pixel rules. */
 :root {
-  --el-fire: #e4572e;
-  --el-water: #3a86c8;
-  --el-earth: #a0683b;
+  --el-flame: #e4572e;
+  --el-sea: #3a86c8;
+  --el-terra: #a0683b;
   --el-nature: #4caf50;
   --el-electric: #f4d03f;
   --el-ice: #9ad7f0;
   --el-metal: #9aa5b1;
   --el-dark: #5b4b8a;
   --el-light: #f7f0c8;
+  --el-war: #a32638;
 
   --bg: #0f1324;
   --bg-panel: #1b2140;

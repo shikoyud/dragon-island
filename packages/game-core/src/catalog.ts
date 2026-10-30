@@ -31,7 +31,7 @@ export function getSpecies(c: Catalog, id: string): Species {
   return s
 }
 
-/** Pool key for a species: pairKey of its element set (pure fire → 'fire+fire'). */
+/** Pool key for a species: pairKey of its element set (pure flame → 'flame+flame'). */
 export function speciesPairKey(s: Species): string {
   const [a, b] = s.elements
   return pairKey(a!, b ?? a!)

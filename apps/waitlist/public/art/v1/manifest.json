@@ -7,13 +7,6 @@
       "frames": 6,
       "fps": 8
     },
-    "egg.earth": {
-      "file": "egg-earth.png",
-      "w": 32,
-      "h": 32,
-      "frames": 6,
-      "fps": 8
-    },
     "egg.electric": {
       "file": "egg-electric.png",
       "w": 32,
@@ -21,8 +14,8 @@
       "frames": 6,
       "fps": 8
     },
-    "egg.fire": {
-      "file": "egg-fire.png",
+    "egg.flame": {
+      "file": "egg-flame.png",
       "w": 32,
       "h": 32,
       "frames": 6,
@@ -56,8 +49,15 @@
       "frames": 6,
       "fps": 8
     },
-    "egg.water": {
-      "file": "egg-water.png",
+    "egg.sea": {
+      "file": "egg-sea.png",
+      "w": 32,
+      "h": 32,
+      "frames": 6,
+      "fps": 8
+    },
+    "egg.terra": {
+      "file": "egg-terra.png",
       "w": 32,
       "h": 32,
       "frames": 6,
@@ -70,13 +70,6 @@
       "frames": 4,
       "fps": 4
     },
-    "hatchling.earth": {
-      "file": "hatchling-earth.png",
-      "w": 32,
-      "h": 32,
-      "frames": 4,
-      "fps": 4
-    },
     "hatchling.electric": {
       "file": "hatchling-electric.png",
       "w": 32,
@@ -84,8 +77,8 @@
       "frames": 4,
       "fps": 4
     },
-    "hatchling.fire": {
-      "file": "hatchling-fire.png",
+    "hatchling.flame": {
+      "file": "hatchling-flame.png",
       "w": 32,
       "h": 32,
       "frames": 4,
@@ -119,8 +112,15 @@
       "frames": 4,
       "fps": 4
     },
-    "hatchling.water": {
-      "file": "hatchling-water.png",
+    "hatchling.sea": {
+      "file": "hatchling-sea.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "hatchling.terra": {
+      "file": "hatchling-terra.png",
       "w": 32,
       "h": 32,
       "frames": 4,
@@ -147,13 +147,6 @@
       "frames": 1,
       "fps": 0
     },
-    "icon.earth": {
-      "file": "icon-earth.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "fps": 0
-    },
     "icon.electric": {
       "file": "icon-electric.png",
       "w": 32,
@@ -161,8 +154,8 @@
       "frames": 1,
       "fps": 0
     },
-    "icon.fire": {
-      "file": "icon-fire.png",
+    "icon.flame": {
+      "file": "icon-flame.png",
       "w": 32,
       "h": 32,
       "frames": 1,
@@ -196,8 +189,15 @@
       "frames": 1,
       "fps": 0
     },
-    "icon.water": {
-      "file": "icon-water.png",
+    "icon.sea": {
+      "file": "icon-sea.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0
+    },
+    "icon.terra": {
+      "file": "icon-terra.png",
       "w": 32,
       "h": 32,
       "frames": 1,

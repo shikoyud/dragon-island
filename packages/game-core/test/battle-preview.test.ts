@@ -11,23 +11,23 @@ const SWEEP: PlayerMove[] = [{ move: 0, target: 0 }, { move: 0, target: 1 }, { m
 
 describe('battlePreview', () => {
   it('stops at the first attacker action without a move', () => {
-    const p = battlePreview(three('fire', 20), three('nature', 1), [], createRng(1), C)
+    const p = battlePreview(three('flame', 20), three('nature', 1), [], createRng(1), C)
     expect(p.done).toBeNull()
     expect(p.next).toEqual({ side: 'attacker', slot: 0 })
     expect(p.round).toBe(1)
     expect(p.log.filter(e => e.side === 'attacker')).toHaveLength(0)
-    expect(p.attacker.every(c => c.hp === c.stats.hp)).toBe(true) // nature L1 (spd 51) acts after fire L20 (spd 75)
+    expect(p.attacker.every(c => c.hp === c.stats.hp)).toBe(true) // nature L1 (spd 51) acts after flame L20 (spd 75)
   })
 
   it('reports the full outcome when every move is supplied', () => {
-    const p = battlePreview(three('fire', 20), three('nature', 1), SWEEP, createRng(1), C)
-    expect(p.done).toEqual(simulateBattle(three('fire', 20), three('nature', 1), SWEEP, createRng(1), C))
+    const p = battlePreview(three('flame', 20), three('nature', 1), SWEEP, createRng(1), C)
+    expect(p.done).toEqual(simulateBattle(three('flame', 20), three('nature', 1), SWEEP, createRng(1), C))
     expect(p.next).toBeNull()
     expect(p.defender.map(c => c.hp)).toEqual([0, 0, 0])
   })
 
   it('reports an illegal move instead of guessing', () => {
-    const p = battlePreview(three('fire', 20), three('nature', 1), [{ move: 0, target: 0 }, { move: 0, target: 0 }], createRng(1), C)
+    const p = battlePreview(three('flame', 20), three('nature', 1), [{ move: 0, target: 0 }, { move: 0, target: 0 }], createRng(1), C)
     expect(p.done).toEqual({ ok: false, error: 'ILLEGAL_MOVE', at: 1 })
   })
 

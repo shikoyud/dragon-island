@@ -14,7 +14,7 @@ describe('placing', () => {
     // The start event puts the ghost on that cell.
     expect(placingReducer(null, { type: 'start', what: { kind: 'farm' }, size: 2, island: 'home', cell: mid })).toMatchObject(mid)
     // Nowhere legal: a full grid gives null.
-    expect(nearestLegalCell({ ...s, gold: 0 }, { kind: 'habitat', element: 'fire' }, 'isle2', { col: 0, row: 0 })).toBeNull()
+    expect(nearestLegalCell({ ...s, gold: 0 }, { kind: 'habitat', element: 'flame' }, 'isle2', { col: 0, row: 0 })).toBeNull()
   })
 
   it('placing reducer tracks the cursor, turns and cancels', () => {

@@ -236,7 +236,7 @@ h3 {
 .wordmark-gem {
   width: 16px;
   height: 16px;
-  background: var(--el-fire);
+  background: var(--el-flame);
   box-shadow:
     inset 4px 4px 0 0 var(--el-electric),
     inset -4px -4px 0 0 #a8321a;
@@ -420,7 +420,7 @@ h3 {
 
 .hatchlings {
   display: grid;
-  grid-template-columns: repeat(9, 32px);
+  grid-template-columns: repeat(10, 32px);
   gap: 4px;
   justify-content: center;
   margin: 0;
@@ -766,7 +766,7 @@ h3 {
 }
 
 .notice-warn {
-  border-left-color: var(--el-fire);
+  border-left-color: var(--el-flame);
   color: #ffd2c4;
 }
 
@@ -1021,25 +1021,27 @@ h3 {
 
 /* ---------- Element accents ---------- */
 
-.el-accent-fire { --accent: var(--el-fire); }
-.el-accent-water { --accent: var(--el-water); }
-.el-accent-earth { --accent: var(--el-earth); }
+.el-accent-flame { --accent: var(--el-flame); }
+.el-accent-sea { --accent: var(--el-sea); }
+.el-accent-terra { --accent: var(--el-terra); }
 .el-accent-nature { --accent: var(--el-nature); }
 .el-accent-electric { --accent: var(--el-electric); }
 .el-accent-ice { --accent: var(--el-ice); }
 .el-accent-metal { --accent: var(--el-metal); }
 .el-accent-dark { --accent: #a77fe0; }
 .el-accent-light { --accent: var(--el-light); }
+.el-accent-war { --accent: #d9566a; }
 
-.el-text-fire { color: var(--el-fire); }
-.el-text-water { color: var(--el-water); }
-.el-text-earth { color: var(--el-earth); }
+.el-text-flame { color: var(--el-flame); }
+.el-text-sea { color: var(--el-sea); }
+.el-text-terra { color: var(--el-terra); }
 .el-text-nature { color: var(--el-nature); }
 .el-text-electric { color: var(--el-electric); }
 .el-text-ice { color: var(--el-ice); }
 .el-text-metal { color: var(--el-metal); }
 .el-text-dark { color: #a77fe0; }
 .el-text-light { color: var(--el-light); }
+.el-text-war { color: #d9566a; }
 
 /* ---------- Motion (all stepped) ---------- */
 

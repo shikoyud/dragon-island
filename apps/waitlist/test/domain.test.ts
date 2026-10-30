@@ -6,13 +6,13 @@ import { CONFIRM_DELAY_MS, TASKS, canConfirm, taskIntentUrl } from '../src/domai
 import { newRefCode } from '../src/domain/refCode'
 
 describe('elements', () => {
-  it('has the nine elements in order', () => {
-    expect(ELEMENTS).toEqual(['fire', 'water', 'earth', 'nature', 'electric', 'ice', 'metal', 'dark', 'light'])
+  it('has the ten elements in GDD order', () => {
+    expect(ELEMENTS).toEqual(['terra', 'flame', 'sea', 'nature', 'electric', 'ice', 'metal', 'dark', 'light', 'war'])
   })
   it('picks deterministically from sha256 of the X user id', () => {
-    expect(pickElement('12345')).toBe('light')
-    expect(pickElement('44196397')).toBe('metal')
-    expect(pickElement('2')).toBe('ice')
+    expect(pickElement('12345')).toBe('war')
+    expect(pickElement('44196397')).toBe('sea')
+    expect(pickElement('2')).toBe('sea')
   })
   it('has a colour triple for every element', () => {
     for (const e of ELEMENTS) {

@@ -39,19 +39,19 @@ describe('startBreed', () => {
   })
 
   it('uses the lowest free nest', () => {
-    const a = ok(run({ ...s4, nests: [nest(egg('fire', 5)), nest(), nest()] }, breed, 0))
-    expect(a.nests[0]!.egg).toEqual(egg('fire', 5))
+    const a = ok(run({ ...s4, nests: [nest(egg('flame', 5)), nest(), nest()] }, breed, 0))
+    expect(a.nests[0]!.egg).toEqual(egg('flame', 5))
     expect(a.nests[1]!.egg).not.toBeNull()
     expect(a.nests[2]!.egg).toBeNull()
   })
 
   it('applies and resets pity', () => {
-    const a = ok(run({ ...s4, pity: { 'fire+water': 10 } }, breed, 0))
+    const a = ok(run({ ...s4, pity: { 'flame+sea': 10 } }, breed, 0))
     expect(rarityOf(a.nests[0]!.egg!.speciesId)).not.toBe('common')
-    expect(a.pity['fire+water']).toBe(0)
+    expect(a.pity['flame+sea']).toBe(0)
     for (let seed = 1; seed <= 20; seed++) {
       const b = ok(run(s4, breed, 0, seed))
-      expect(b.pity['fire+water']).toBe(rarityOf(b.nests[0]!.egg!.speciesId) === 'common' ? 1 : 0)
+      expect(b.pity['flame+sea']).toBe(rarityOf(b.nests[0]!.egg!.speciesId) === 'common' ? 1 : 0)
     }
   })
 })
@@ -76,7 +76,7 @@ describe('collectEgg', () => {
 
   it('refuses when eggs plus waiting dragons fill the hatchery', () => {
     const waiting: Dragon = { id: 'd9', speciesId: 'fw-common', level: 1, habitatId: null }
-    const st = { ...laid, hatchery: [egg('fire', 0), egg('water', 0)], dragons: [...laid.dragons, waiting] }
+    const st = { ...laid, hatchery: [egg('flame', 0), egg('sea', 0)], dragons: [...laid.dragons, waiting] }
     err(run(st, { type: 'collectEgg', nest: 0 }, 15_000), 'HATCHERY_FULL')
     expect(st.nests[0]).toEqual(laid.nests[0])
   })
@@ -95,7 +95,7 @@ describe('hatch', () => {
 
   it('waits in the hatchery when every matching habitat is full', () => {
     const extra = ['d5', 'd6', 'd7', 'd8'].map((id, i): Dragon =>
-      ({ id, speciesId: i < 2 ? 'fire' : 'water', level: 1, habitatId: i < 2 ? 'h1' : 'h2' }))
+      ({ id, speciesId: i < 2 ? 'flame' : 'sea', level: 1, habitatId: i < 2 ? 'h1' : 'h2' }))
     const full = { ...ready, dragons: [...ready.dragons, ...extra] }
     const a = ok(run(full, { type: 'hatch', slot: 0 }, 30_000))
     expect(a.dragons.find(d => d.id === 'd3')!.habitatId).toBeNull()

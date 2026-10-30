@@ -11,14 +11,14 @@ import { ELEMENTS, ELEMENT_COLORS } from '../src/domain/elements'
 afterEach(cleanup)
 
 const manifest: Manifest = {
-  assets: { 'egg.fire': { file: 'egg-fire.png', w: 16, h: 20, frames: 6, fps: 8 } },
+  assets: { 'egg.flame': { file: 'egg-flame.png', w: 16, h: 20, frames: 6, fps: 8 } },
 }
 
 describe('artSetFromManifest', () => {
   it('maps a manifest entry to a versioned src with its frame data', () => {
     const art = artSetFromManifest('v1', manifest)
     expect(art.version).toBe('v1')
-    expect(art.egg.fire).toEqual({ src: '/art/v1/egg-fire.png', w: 16, h: 20, frames: 6, fps: 8 })
+    expect(art.egg.flame).toEqual({ src: '/art/v1/egg-flame.png', w: 16, h: 20, frames: 6, fps: 8 })
   })
 
   it('yields an empty src for missing keys', () => {
@@ -44,7 +44,7 @@ describe('artSetFromManifest', () => {
 
   it('ACTIVE_ART is the PixelLab v1 set', () => {
     expect(ACTIVE_ART.version).toBe('v1')
-    expect(ACTIVE_ART.egg.fire.src).toBe('/art/v1/egg-fire.png')
+    expect(ACTIVE_ART.egg.flame.src).toBe('/art/v1/egg-flame.png')
   })
 })
 
@@ -54,8 +54,21 @@ describe('art v1 manifest', () => {
 
   it('has every per-element key plus the hero and UI keys', () => {
     const keys = ['hero.base', 'hero.layer.0', 'ui.panel', 'ui.button']
-    for (const e of ELEMENTS) keys.push(`egg.${e}`, `hatchling.${e}`, `icon.${e}`)
+    for (const e of ELEMENTS) if (e !== 'war') keys.push(`egg.${e}`, `hatchling.${e}`, `icon.${e}`)
     for (const k of keys) expect(v1.assets[k], k).toBeDefined()
+  })
+
+  it('has no War art yet: every War slot is empty and renders the colour block', () => {
+    for (const prefix of ['egg', 'hatchling', 'icon']) expect(v1.assets[`${prefix}.war`], prefix).toBeUndefined()
+    for (const sprite of [ACTIVE_ART.egg.war, ACTIVE_ART.hatchling.war, ACTIVE_ART.elementIcon.war]) {
+      expect(sprite.src).toBe('')
+      const { container } = render(<Sprite sprite={sprite} element="war" scale={1} />)
+      const el = container.firstElementChild as HTMLElement
+      expect(el.className).toContain('wh-sprite-fallback')
+      const probe = document.createElement('div')
+      probe.style.backgroundColor = ELEMENT_COLORS.war.base
+      expect(el.style.backgroundColor).toBe(probe.style.backgroundColor)
+    }
   })
 
   it('points every entry at a PNG on disk whose size matches w × frames by h', () => {
@@ -73,12 +86,12 @@ describe('art v1 manifest', () => {
 describe('<Sprite>', () => {
   it('renders a flat element-coloured block when src is empty', () => {
     const { container } = render(
-      <Sprite sprite={{ src: '', w: 16, h: 16, frames: 1, fps: 1 }} element="fire" scale={2} />,
+      <Sprite sprite={{ src: '', w: 16, h: 16, frames: 1, fps: 1 }} element="flame" scale={2} />,
     )
     const el = container.firstElementChild as HTMLElement
     expect(el.style.backgroundColor).not.toBe('')
     const probe = document.createElement('div')
-    probe.style.backgroundColor = ELEMENT_COLORS.fire.base
+    probe.style.backgroundColor = ELEMENT_COLORS.flame.base
     expect(el.style.backgroundColor).toBe(probe.style.backgroundColor)
     expect(el.style.width).toBe('32px')
     expect(el.style.height).toBe('32px')
@@ -86,7 +99,7 @@ describe('<Sprite>', () => {
 
   it('animates a multi-frame sheet with steps(frames)', () => {
     const { container } = render(
-      <Sprite sprite={{ src: '/a.png', w: 16, h: 20, frames: 6, fps: 8 }} element="water" scale={3} />,
+      <Sprite sprite={{ src: '/a.png', w: 16, h: 20, frames: 6, fps: 8 }} element="sea" scale={3} />,
     )
     const el = container.firstElementChild as HTMLElement
     expect(el.style.animationTimingFunction).toBe('steps(6)')
@@ -108,7 +121,7 @@ describe('<Sprite>', () => {
 
   it('throws on a non-integer scale', () => {
     expect(() =>
-      render(<Sprite sprite={{ src: '', w: 8, h: 8, frames: 1, fps: 1 }} element="fire" scale={1.5} />),
+      render(<Sprite sprite={{ src: '', w: 8, h: 8, frames: 1, fps: 1 }} element="flame" scale={1.5} />),
     ).toThrow()
   })
 })

@@ -52,12 +52,12 @@ describe('HabitatPanel', () => {
   })
 
   it('offers moves only for dragons that fit', () => {
-    const waiting: PlayerState = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'water', level: 1, habitatId: null }] }
+    const waiting: PlayerState = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'sea', level: 1, habitatId: null }] }
     const { wrap } = harness(waiting)
     wrap(<HabitatPanel habitatId="h2" nowMs={0} />)
     const move = screen.getByRole('group', { name: /move a dragon here/i })
     expect(within(move).getByRole('button', { name: /d9/ })).toBeEnabled()
-    expect(within(move).queryByRole('button', { name: /d1/ })).toBeNull() // fire cannot live in water
+    expect(within(move).queryByRole('button', { name: /d1/ })).toBeNull() // flame cannot live in sea
     expect(screen.queryByRole('button', { name: /build new habitat/i })).toBeNull() // the Build shop owns new habitats
   })
 })
@@ -93,14 +93,14 @@ describe('BreedPanel', () => {
     await userEvent.selectOptions(screen.getByLabelText(/second parent/i), 'd2')
     const table = screen.getByRole('table', { name: /odds/i })
     expect(within(table).getAllByText('50.00%')).toHaveLength(2)
-    expect(within(table).getAllByRole('row')).toHaveLength(3) // header + fire + water
+    expect(within(table).getAllByRole('row')).toHaveLength(3) // header + flame + sea
     expect(screen.queryByText(/odds boost|pity/i)).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: /^breed$/i }))
     expect(action).toHaveBeenCalledWith({ type: 'startBreed', parentA: 'd1', parentB: 'd2' }, expect.any(String))
   })
 
   it('disables breeding without a free nest or with low-level parents', async () => {
-    const busy = { ...level(level(base, 'd1', 4), 'd2', 4), nests: [{ ...base.nests[0]!, egg: { speciesId: 'fire', readyAtMs: 99 } }] }
+    const busy = { ...level(level(base, 'd1', 4), 'd2', 4), nests: [{ ...base.nests[0]!, egg: { speciesId: 'flame', readyAtMs: 99 } }] }
     const { wrap } = harness(busy)
     wrap(<BreedPanel />)
     await userEvent.selectOptions(screen.getByLabelText(/first parent/i), 'd1')
@@ -112,7 +112,7 @@ describe('BreedPanel', () => {
 
 describe('NestsPanel and FarmPanel', () => {
   it('shows nest timers, collects ready eggs and prices skips', async () => {
-    const s = { ...base, nests: [{ ...base.nests[0]!, egg: { speciesId: 'fire', readyAtMs: 1_800_001 } }], hatchery: [{ speciesId: 'water', readyAtMs: 0 }] }
+    const s = { ...base, nests: [{ ...base.nests[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001 } }], hatchery: [{ speciesId: 'sea', readyAtMs: 0 }] }
     const { wrap, action } = harness(s)
     wrap(<NestsPanel nowMs={0} />)
     expect(screen.getByRole('button', { name: /skip.*\$0\.20/i })).toBeInTheDocument()

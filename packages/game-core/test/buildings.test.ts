@@ -21,7 +21,7 @@ describe('buildings', () => {
   })
   it('habitat limit counts outer islands and the Nexus is free', () => {
     expect([maxHabitats(1, 0), maxHabitats(50, 0), maxHabitats(50, 5)]).toEqual([2, 12, 27])
-    expect(canLiveIn(FIXTURE_CATALOG.species.get('fire')!, { id: 'x', element: 'any', level: 5, lastCollectedMs: 0, placement: P })).toBe(true)
+    expect(canLiveIn(FIXTURE_CATALOG.species.get('flame')!, { id: 'x', element: 'any', level: 5, lastCollectedMs: 0, placement: P })).toBe(true)
   })
   it('decorations table and refund', () => {
     expect(DECORATIONS.stonePath).toEqual({ size: 1, cost: 10, minLevel: 1 })

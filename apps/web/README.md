@@ -37,7 +37,7 @@ The e2e server (`E2E=1`) runs on an in-memory PGlite with a fake chain, a fixed 
 
 ## Art slots
 
-Art is chosen only through `src/art/slots.ts`. `public/art/<version>/manifest.json` lists sprite sheets as `{ "egg.fire": { file, w, h, frames, fps }, ... }` with keys `egg.<element>`, `hatchling.<element>`, `dragon.<speciesId>`, `habitat.<element>`, `building.nest|hatchery|farmPlot|nexus`, `decoration.<id>`, `obstacle.<kind>`, `map.<islandId>`, `island.locked|sign`, `crop.<cropId>`, `icon.<element>`, `ui.panel|button|cursor`, `island.base`, `island.layer.<n>`. Missing keys get a deterministic pixel fallback, so the game runs with no assets. To ship PixelLab art: add `public/art/v1/`, write its manifest, set `ART_VERSION` in `slots.ts`, record prompts in `art/prompts.md` (our own designs only).
+Art is chosen only through `src/art/slots.ts`. `public/art/<version>/manifest.json` lists sprite sheets as `{ "egg.flame": { file, w, h, frames, fps }, ... }` with keys `egg.<element>`, `hatchling.<element>`, `dragon.<speciesId>`, `habitat.<element>`, `building.nest|hatchery|farmPlot|nexus`, `decoration.<id>`, `obstacle.<kind>`, `map.<islandId>`, `island.locked|sign`, `crop.<cropId>`, `icon.<element>`, `ui.panel|button|cursor`, `island.base`, `island.layer.<n>`. Missing keys get a deterministic pixel fallback, so the game runs with no assets. To ship PixelLab art: add `public/art/v1/`, write its manifest, set `ART_VERSION` in `slots.ts`, record prompts in `art/prompts.md` (our own designs only).
 
 Base-building slots fall back to coloured boxes sized by footprint (16 px per cell; habitat and Nexus 80x64). The full generation list is `docs/art/base-building-art-list.md`. Facings 0/2 draw the sprite, 1/3 mirror it.
 

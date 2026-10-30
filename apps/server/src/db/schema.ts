@@ -60,7 +60,7 @@ export const game = pgTable('game', {
   commitHash: text('commit_hash').notNull(),
   revealed: boolean('revealed').notNull().default(false),
   createdAt: createdAt(),
-  /** Dev default for the launch time (ง1.5): set to created_at on first use; LAUNCH_AT config overrides it. */
+  /** Dev default for the launch time (ยง1.5): set to created_at on first use; LAUNCH_AT config overrides it. */
   launchAt: timestamp('launch_at', { withTimezone: true }).notNull().defaultNow(),
 })
 

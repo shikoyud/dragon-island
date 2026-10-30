@@ -3,7 +3,7 @@ import { newPlayer } from '../src/state'
 import { FOOD_PACK, MAX_NESTS, priceMicroUsd } from '../src/store'
 
 const base = newPlayer(0)
-const egg = (readyAtMs: number) => ({ ...newPlayer(0), nests: [{ ...base.nests[0]!, egg: { speciesId: 'fire', readyAtMs } }] })
+const egg = (readyAtMs: number) => ({ ...newPlayer(0), nests: [{ ...base.nests[0]!, egg: { speciesId: 'flame', readyAtMs } }] })
 
 describe('priceMicroUsd', () => {
   it('prices timer skips per started 30 minutes', () => {
@@ -15,7 +15,7 @@ describe('priceMicroUsd', () => {
   })
 
   it('prices hatchery and farm skips', () => {
-    const s = { ...base, hatchery: [{ speciesId: 'fire', readyAtMs: 60_000 }], farms: [{ ...base.farms[0]!, crop: 'bounty' as const, readyAtMs: 43_200_000 }, base.farms[1]!] }
+    const s = { ...base, hatchery: [{ speciesId: 'flame', readyAtMs: 60_000 }], farms: [{ ...base.farms[0]!, crop: 'bounty' as const, readyAtMs: 43_200_000 }, base.farms[1]!] }
     expect(priceMicroUsd({ kind: 'skip', target: 'hatchery', index: 0 }, s, 0)).toBe(100_000)
     expect(priceMicroUsd({ kind: 'skip', target: 'farm', index: 0 }, s, 0)).toBe(2_400_000)
     expect(priceMicroUsd({ kind: 'skip', target: 'farm', index: 1 }, s, 0)).toBeNull()

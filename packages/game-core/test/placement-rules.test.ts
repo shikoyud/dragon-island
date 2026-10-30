@@ -9,13 +9,13 @@ const both = { ...s, islands: { ...s.islands, unlocked: ['home', 'dawnspire'] as
 
 describe('placementRuleError', () => {
   it('free cells for a habitat, farm or plain decoration on any unlocked island', () => {
-    expect(placementRuleError(s, { kind: 'habitat', element: 'earth' }, P(6, 7))).toBeNull()
+    expect(placementRuleError(s, { kind: 'habitat', element: 'terra' }, P(6, 7))).toBeNull()
     expect(placementRuleError(s, { kind: 'farm' }, P(6, 7))).toBeNull()
     expect(placementRuleError(both, { kind: 'decoration', decoration: 'stonePath' }, dp)).toBeNull()
   })
   it('returns the grid error first, with the subject footprint', () => {
-    expect(placementRuleError(s, { kind: 'habitat', element: 'earth' }, P(0, 0))).toBe('OVERLAP')
-    expect(placementRuleError(s, { kind: 'habitat', element: 'earth' }, P(8, 8))).toBe('OUT_OF_BOUNDS')
+    expect(placementRuleError(s, { kind: 'habitat', element: 'terra' }, P(0, 0))).toBe('OVERLAP')
+    expect(placementRuleError(s, { kind: 'habitat', element: 'terra' }, P(8, 8))).toBe('OUT_OF_BOUNDS')
     expect(placementRuleError(s, { kind: 'decoration', decoration: 'stonePath' }, P(11, 11))).toBeNull()
     expect(placementRuleError(s, { kind: 'nexus' }, { ...dp })).toBe('ISLAND_LOCKED')
   })

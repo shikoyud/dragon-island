@@ -21,14 +21,14 @@ describe('habitat rules', () => {
   })
 
   it('lets a dragon live where any element matches', () => {
-    const water = s.habitats[1]!
-    expect(canLiveIn(getSpecies(C, 'fw-common'), water)).toBe(true)
-    expect(canLiveIn(getSpecies(C, 'fire'), water)).toBe(false)
+    const sea = s.habitats[1]!
+    expect(canLiveIn(getSpecies(C, 'fw-common'), sea)).toBe(true)
+    expect(canLiveIn(getSpecies(C, 'flame'), sea)).toBe(false)
   })
 
   it('doubles build cost per owned habitat of that element', () => {
-    expect(habitatBuildCost(s, 'earth')).toBe(500)
-    expect(habitatBuildCost(s, 'fire')).toBe(1000)
+    expect(habitatBuildCost(s, 'terra')).toBe(500)
+    expect(habitatBuildCost(s, 'flame')).toBe(1000)
   })
 
   it('limits habitats by player level', () => {

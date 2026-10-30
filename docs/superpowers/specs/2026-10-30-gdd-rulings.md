@@ -42,3 +42,4 @@ shiko also said the token use and reward system will be discussed again after th
 | R10 | **Flash-28 crop timer ÷1.5** uses `Math.floor(ms / 1.5)` (time, not currency). | §7.2. |
 | R11 | **Evolution sprites**: Baby uses the hatchling sprite, Adult the dragon sprite, Juvenile a new `juvenile.<species>` sprite when the manifest has it, else the dragon sprite. | §4.1; art arrives separately. |
 | R12 | **Interim items until M7/M8**: the Store keeps timer skips and the existing Food pack; the shop's other items are removed in M0. | Playtests need food; the GDD's Supply Crates replace the pack in M7. |
+| R14 | **Waitlist element rename.** A waitlist SQL migration maps stored fire/water/earth to flame/sea/terra; `war` is added to its element list. | Entrants have a persisted element; without it their cards would have no colour or art. |

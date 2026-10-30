@@ -1,9 +1,9 @@
-import { DECORATIONS, OBSTACLES, type Element } from '@wyrmhaven/game-core'
+import { DECORATIONS, ELEMENTS, OBSTACLES, type Element } from '@wyrmhaven/game-core'
 import type Phaser from 'phaser'
 import { drawFallback, fallbackKey, type FallbackSlot } from './fallback'
 import type { GameArtSet, Sprite } from './types'
 
-/** Texture key for a slot path such as `egg.fire` or `dragon.fw-rare`. */
+/** Texture key for a slot path such as `egg.flame` or `dragon.fw-rare`. */
 export const textureKey = (slotPath: string): string => `art:${slotPath}`
 
 interface Entry { key: string; sprite: Sprite; slot: FallbackSlot; element: Element }
@@ -11,7 +11,7 @@ interface Entry { key: string; sprite: Sprite; slot: FallbackSlot; element: Elem
 /** Flattens the art set into (texture key, sprite, fallback slot, element) rows. */
 export function artEntries(art: GameArtSet): Entry[] {
   const rows: Entry[] = []
-  const add = (path: string, sprite: Sprite, slot: FallbackSlot, element: Element = 'fire') =>
+  const add = (path: string, sprite: Sprite, slot: FallbackSlot, element: Element = 'flame') =>
     rows.push({ key: textureKey(path), sprite, slot, element })
   for (const [el, s] of Object.entries(art.egg) as [Element, Sprite][]) add(`egg.${el}`, s, 'egg', el)
   for (const [el, s] of Object.entries(art.hatchling) as [Element, Sprite][]) add(`hatchling.${el}`, s, 'hatchling', el)
@@ -24,29 +24,28 @@ export function artEntries(art: GameArtSet): Entry[] {
   for (const [c, s] of Object.entries(art.building.cropSway)) if (s) add(`crop.${c}.sway`, s, 'crop', 'nature')
   add('building.nexus', art.building.nexus, 'nexus')
   for (const [d, s] of Object.entries(art.decoration)) add(`decoration.${d}`, s, 'decoration', DECORATIONS[d as keyof typeof DECORATIONS].island ? 'light' : 'nature')
-  for (const [k, s] of Object.entries(art.obstacle)) add(`obstacle.${k}`, s, 'obstacle', OBSTACLES[k as keyof typeof OBSTACLES].size > 1 ? 'earth' : 'nature')
-  for (const [i, s] of Object.entries(art.map)) add(`map.${i}`, s, 'map', 'water')
+  for (const [k, s] of Object.entries(art.obstacle)) add(`obstacle.${k}`, s, 'obstacle', OBSTACLES[k as keyof typeof OBSTACLES].size > 1 ? 'terra' : 'nature')
+  for (const [i, s] of Object.entries(art.map)) add(`map.${i}`, s, 'map', 'sea')
   for (const [el, s] of Object.entries(art.elementIcon) as [Element, Sprite][]) add(`icon.${el}`, s, 'icon', el)
   add('ui.panel', art.ui.panel, 'panel')
   add('ui.button', art.ui.button, 'button')
   add('ui.cursor', art.ui.cursor, 'cursor')
-  add('island.base', art.island.base, 'island', 'water')
+  add('island.base', art.island.base, 'island', 'sea')
   add('island.locked', art.island.locked, 'locked')
   add('island.sign', art.island.sign, 'sign')
-  art.island.layers.forEach((s, i) => add(`island.layer.${i}`, s, 'island', 'water'))
-  add('fx.construction', art.fx.construction, 'fx', 'earth')
+  art.island.layers.forEach((s, i) => add(`island.layer.${i}`, s, 'island', 'sea'))
+  add('fx.construction', art.fx.construction, 'fx', 'terra')
   add('fx.hatch', art.fx.hatch, 'fx', 'light')
   // Ground tiles load only when they exist: without them the island scene draws its own diamonds.
   const ground = art.ground
   ground.grass.forEach((s, i) => add(`ground.grass.${i}`, s, 'island', 'nature'))
-  for (const [k, s] of [['fog', ground.fog], ['water', ground.water], ['cliff.sw', ground.cliffSw], ['cliff.se', ground.cliffSe]] as const) if (s) add(`ground.${k}`, s, 'island', 'earth')
+  for (const [k, s] of [['fog', ground.fog], ['water', ground.water], ['cliff.sw', ground.cliffSw], ['cliff.se', ground.cliffSe]] as const) if (s) add(`ground.${k}`, s, 'island', 'terra')
   return rows
 }
 
-/** Pure species ids are element names; hybrids fall back to fire until the catalog carries art hints. */
+/** Pure species ids are element names; hybrids fall back to flame until the catalog carries art hints. */
 function elementOfSpecies(id: string): Element {
-  const pure = ['fire', 'water', 'earth', 'nature', 'electric', 'ice', 'metal', 'dark', 'light'] as const
-  return (pure as readonly string[]).includes(id) ? (id as Element) : 'fire'
+  return (ELEMENTS as readonly string[]).includes(id) ? (id as Element) : 'flame'
 }
 
 /**

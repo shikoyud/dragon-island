@@ -36,7 +36,7 @@ export async function getGame(db: Db | Tx): Promise<Game | null> {
 }
 
 /**
- * The public face of the game (ง1.5, A12): launch time, preset, current day and phase, the commitment, and
+ * The public face of the game (ยง1.5, A12): launch time, preset, current day and phase, the commitment, and
  * the secret only once the game has revealed it. LAUNCH_AT wins over the row's dev default.
  */
 export async function gameInfo(db: Db | Tx, clock: Clock, config: Pick<Config, 'LAUNCH_AT' | 'PRESET'>): Promise<GameInfo> {

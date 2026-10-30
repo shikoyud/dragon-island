@@ -5,7 +5,7 @@ import { z } from 'zod'
 const id = z.string().min(1)
 const index = z.number().int().min(0)
 const level = z.number().int().min(1).max(30)
-const elementSchema = z.enum(['fire', 'water', 'earth', 'nature', 'electric', 'ice', 'metal', 'dark', 'light'])
+const elementSchema = z.enum(['terra', 'flame', 'sea', 'nature', 'electric', 'ice', 'metal', 'dark', 'light', 'war'])
 const coord = z.number().int().min(0).max(63)
 const decorationSchema = z.custom<DecorationId>(v => typeof v === 'string' && Object.hasOwn(DECORATIONS, v))
 const cropSchema = z.enum(['sprout', 'bushel', 'harvest', 'bounty'])

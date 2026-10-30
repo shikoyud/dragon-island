@@ -17,16 +17,16 @@ const P = (col: number, row: number) => ({ island: 'home' as const, col, row, fa
 
 describe('placeBuilding', () => {
   it('places a habitat under construction and charges gold', () => {
-    const a = ok(run({ ...s, level: 5, gold: 5_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'earth' }, placement: P(6, 7) }, 1_000))
-    expect(a.habitats[2]).toEqual({ id: 'h3', element: 'earth', level: 1, lastCollectedMs: 1_000, placement: P(6, 7) })
+    const a = ok(run({ ...s, level: 5, gold: 5_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(6, 7) }, 1_000))
+    expect(a.habitats[2]).toEqual({ id: 'h3', element: 'terra', level: 1, lastCollectedMs: 1_000, placement: P(6, 7) })
     expect(a.gold).toBe(4_500)
     expect(a.constructions).toEqual([{ kind: 'build', building: { type: 'habitat', id: 'h3' }, readyAtMs: 16_000 }])
   })
   it('rejects overlap, bounds, limit and gold', () => {
-    err(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'earth' }, placement: P(0, 0) }, 0), 'OVERLAP')
-    err(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'earth' }, placement: P(8, 8) }, 0), 'OUT_OF_BOUNDS')
-    err(run(s, { type: 'placeBuilding', building: { kind: 'habitat', element: 'earth' }, placement: P(6, 7) }, 0), 'HABITAT_LIMIT')
-    err(run({ ...s, level: 5, gold: 10 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'earth' }, placement: P(6, 7) }, 0), 'INSUFFICIENT_GOLD')
+    err(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(0, 0) }, 0), 'OVERLAP')
+    err(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(8, 8) }, 0), 'OUT_OF_BOUNDS')
+    err(run(s, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(6, 7) }, 0), 'HABITAT_LIMIT')
+    err(run({ ...s, level: 5, gold: 10 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(6, 7) }, 0), 'INSUFFICIENT_GOLD')
   })
   it('a third plot costs 500 and takes 2 min after the tutorial builds', () => {
     const t = { ...s, tutorial: { ...s.tutorial, buildsStarted: 2 } }
@@ -35,9 +35,9 @@ describe('placeBuilding', () => {
     expect([a.gold, a.constructions[0]!.readyAtMs]).toEqual([500, 120_000])
   })
   it('unfinished habitats take no dragons', () => {
-    const a = ok(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'fire' }, placement: P(6, 7) }, 0))
+    const a = ok(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'flame' }, placement: P(6, 7) }, 0))
     err(run(a, { type: 'moveDragon', dragonId: 'd1', habitatId: 'h3' }, 0), 'UNDER_CONSTRUCTION')
-    const full = { ...a, dragons: [...a.dragons, ...['d3', 'd4'].map(id => ({ id, speciesId: 'fire', level: 1, habitatId: 'h1' }))], hatchery: [{ speciesId: 'fire', readyAtMs: 0 }] }
+    const full = { ...a, dragons: [...a.dragons, ...['d3', 'd4'].map(id => ({ id, speciesId: 'flame', level: 1, habitatId: 'h1' }))], hatchery: [{ speciesId: 'flame', readyAtMs: 0 }] }
     expect(ok(run(full, { type: 'hatch', slot: 0 }, 0)).dragons.at(-1)!.habitatId).toBeNull()
   })
   it('decorations are instant, level-gated, refundable at 25%', () => {
@@ -60,7 +60,7 @@ describe('placeBuilding', () => {
   })
   it('builders can all be busy', () => {
     const busy = { ...s, level: 5, constructions: [0, 1].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 9 })) }
-    err(run(busy, { type: 'placeBuilding', building: { kind: 'habitat', element: 'earth' }, placement: P(6, 7) }, 0), 'BUILDERS_BUSY')
+    err(run(busy, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(6, 7) }, 0), 'BUILDERS_BUSY')
   })
 })
 
@@ -142,7 +142,7 @@ describe('startUpgrade / finishConstruction', () => {
     err(run(b, { type: 'finishConstruction', index: 0 }, 65_000), 'NOT_FOUND')
   })
   it('finishing a build only removes the construction', () => {
-    const a = ok(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'earth' }, placement: P(6, 7) }, 0))
+    const a = ok(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(6, 7) }, 0))
     const b = ok(run(a, { type: 'finishConstruction', index: 0 }, 15_000))
     expect([b.constructions, b.habitats.length, b.habitats[2]!.level]).toEqual([[], 3, 1])
   })
@@ -171,10 +171,10 @@ describe('upgrading buildings keep working (spec 6)', () => {
   const unfinished = (b: object): PlayerState => ({ ...s, constructions: [{ kind: 'build', building: b, readyAtMs: 999_999 } as never] })
 
   it('a habitat under upgrade takes a moved and a hatched dragon', () => {
-    const base = { ...s, dragons: [...s.dragons, { id: 'd9', speciesId: 'fire', level: 1, habitatId: null }] }
+    const base = { ...s, dragons: [...s.dragons, { id: 'd9', speciesId: 'flame', level: 1, habitatId: null }] }
     const upgrading = { ...base, constructions: up({ type: 'habitat', id: 'h1' }).constructions }
     expect(ok(run(upgrading, { type: 'moveDragon', dragonId: 'd9', habitatId: 'h1' }, 0)).dragons.find(d => d.id === 'd9')!.habitatId).toBe('h1')
-    const hatching = { ...upgrading, hatchery: [{ speciesId: 'fire', readyAtMs: 0 }] }
+    const hatching = { ...upgrading, hatchery: [{ speciesId: 'flame', readyAtMs: 0 }] }
     const hatched = ok(run(hatching, { type: 'hatch', slot: 0 }, 0))
     expect(hatched.dragons.find(d => d.id === `d${hatching.nextId}`)!.habitatId).toBe('h1')
   })
@@ -185,7 +185,7 @@ describe('upgrading buildings keep working (spec 6)', () => {
   })
 
   it('an unfinished habitat still refuses dragons', () => {
-    const st = { ...unfinished({ type: 'habitat', id: 'h1' }), dragons: [...s.dragons, { id: 'd9', speciesId: 'fire', level: 1, habitatId: null }] }
+    const st = { ...unfinished({ type: 'habitat', id: 'h1' }), dragons: [...s.dragons, { id: 'd9', speciesId: 'flame', level: 1, habitatId: null }] }
     err(run(st, { type: 'moveDragon', dragonId: 'd9', habitatId: 'h1' }, 0), 'UNDER_CONSTRUCTION')
   })
 })

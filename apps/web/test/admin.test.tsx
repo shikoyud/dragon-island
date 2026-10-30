@@ -76,8 +76,8 @@ describe('Admin page', () => {
     const b = '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
     await userEvent.click(box)
     await userEvent.paste(`position,handle,wallet,element
-1,a,${a},fire
-2,b,,water
+1,a,${a},flame
+2,b,,sea
 3,c,${b},ice
 `)
     await userEvent.click(screen.getByRole('button', { name: /allow wallets/i }))

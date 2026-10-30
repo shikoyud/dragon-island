@@ -25,8 +25,8 @@ describe('island model', () => {
     expect(markers.nests).toEqual([{ index: 0, egg: false }])
     expect(markers.hatchery).toEqual([])
     expect(markers.farms).toHaveLength(2)
-    expect(objects.find(o => o.id === 'habitat:h1')!.key).toBe(textureKey('habitat.fire'))
-    expect(objects.find(o => o.id === 'dragon:d2')!.key).toBe(textureKey('dragon.water'))
+    expect(objects.find(o => o.id === 'habitat:h1')!.key).toBe(textureKey('habitat.flame'))
+    expect(objects.find(o => o.id === 'dragon:d2')!.key).toBe(textureKey('dragon.sea'))
     for (const o of objects) {
       expect(Number.isInteger(o.x) && Number.isInteger(o.y)).toBe(true)
     }
@@ -35,7 +35,7 @@ describe('island model', () => {
   it('shows stored gold and timers as badges', () => {
     const { objects } = model(newPlayer(0), 600_000)
     expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('20g')
-    const withEgg = model({ ...newPlayer(0), nests: [{ ...newPlayer(0).nests[0]!, egg: { speciesId: 'fire', readyAtMs: 15_000 } }] }, 1_000)
+    const withEgg = model({ ...newPlayer(0), nests: [{ ...newPlayer(0).nests[0]!, egg: { speciesId: 'flame', readyAtMs: 15_000 } }] }, 1_000)
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.badge).toBe('14s')
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.scale).toBe(NEST_EGG_SCALE) // sits inside the 32x32 nest
     expect(withEgg.markers.nests).toEqual([{ index: 0, egg: true }])
@@ -46,8 +46,8 @@ describe('island model', () => {
 
   it('places a waiting hatchling in the hatchery, badges the hatchery no room and never overlaps dragons', () => {
     const base = newPlayer(0)
-    const waiting: Dragon = { id: 'd9', speciesId: 'fire', level: 1, habitatId: null }
-    const three: Dragon[] = ['d3', 'd4', 'd5'].map(id => ({ id, speciesId: 'fire', level: 1, habitatId: 'h1' }))
+    const waiting: Dragon = { id: 'd9', speciesId: 'flame', level: 1, habitatId: null }
+    const three: Dragon[] = ['d3', 'd4', 'd5'].map(id => ({ id, speciesId: 'flame', level: 1, habitatId: 'h1' }))
     const { markers, objects } = model({ ...base, dragons: [...base.dragons, ...three, waiting] })
     expect(markers.dragons).toHaveLength(6)
     expect(markers.waiting).toEqual([{ id: 'd9', noRoom: true }])
@@ -60,11 +60,11 @@ describe('island model', () => {
     expect(wait.y).toBeLessThan(hatch.y)
     expect(wait.badge).toBeUndefined()
     expect(hatch.badge).toBe('no room')
-    expect(wait.key).toBe(textureKey('hatchling.fire'))
+    expect(wait.key).toBe(textureKey('hatchling.flame'))
   })
 
   it('gives the hatchery one badge with its soonest egg timer instead of one per egg', () => {
-    const s = { ...newPlayer(0), hatcheryLevel: 3, hatchery: [{ speciesId: 'water', readyAtMs: 3_600_000 }, { speciesId: 'fire', readyAtMs: 540_000 }, { speciesId: 'nature', readyAtMs: 1_200_000 }] }
+    const s = { ...newPlayer(0), hatcheryLevel: 3, hatchery: [{ speciesId: 'sea', readyAtMs: 3_600_000 }, { speciesId: 'flame', readyAtMs: 540_000 }, { speciesId: 'nature', readyAtMs: 1_200_000 }] }
     const { objects } = model(s, 0)
     expect(objects.find(o => o.id === 'hatchery')!.badge).toBe('9m')
     expect(objects.filter(o => o.id.startsWith('hatchery:')).map(o => o.badge)).toEqual([undefined, undefined, undefined])
@@ -74,7 +74,7 @@ describe('island model', () => {
   it('shows hatchery eggs and crops with growth', () => {
     const s = {
       ...newPlayer(0),
-      hatchery: [{ speciesId: 'water', readyAtMs: 30_000 }],
+      hatchery: [{ speciesId: 'sea', readyAtMs: 30_000 }],
       farms: [{ ...newPlayer(0).farms[0]!, crop: 'sprout' as const, readyAtMs: 60_000 }, newPlayer(0).farms[1]!],
     }
     const { markers, objects } = model(s, 30_000)
@@ -150,7 +150,7 @@ describe('island model', () => {
   it('draws the home view from placements, with a sign and no other islands', () => {
     const s = { ...newPlayer(0), islands: { homeStep: 0, unlocked: ['home', 'isle2'] as ('home' | 'isle2')[], obstacles: outerObstacles('isle2') } }
     const home = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', null)
-    expect(home.objects.find(o => o.id === 'habitat:h2')).toMatchObject({ x: 40, y: 60, key: textureKey('habitat.water') }) // bottom vertex of its 5x5 diamond
+    expect(home.objects.find(o => o.id === 'habitat:h2')).toMatchObject({ x: 40, y: 60, key: textureKey('habitat.sea') }) // bottom vertex of its 5x5 diamond
     expect(home.markers.obstacles).toEqual([])
     expect(home.markers.sign).toEqual({ cost: 1_000, minLevel: 2 })
     const isle = buildIslandModel(s, FALLBACK_ART, C, 0, 'isle2', null)

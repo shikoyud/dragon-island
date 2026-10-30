@@ -5,8 +5,8 @@ test('breeds, collects the egg, hatches a third dragon', async ({ page, request 
   await signIn(page)
   // Both starters at level 4 (breeding needs ≥ 4); the tutorial egg and hatch take 15 s each.
   await resetPlayer(request, { food: 1_000, dragons: [
-    { id: 'd1', speciesId: 'fire', level: 4, habitatId: 'h1' },
-    { id: 'd2', speciesId: 'water', level: 4, habitatId: 'h2' },
+    { id: 'd1', speciesId: 'flame', level: 4, habitatId: 'h1' },
+    { id: 'd2', speciesId: 'sea', level: 4, habitatId: 'h2' },
   ] })
   await page.reload()
   await openPanel(page, 'Breed')

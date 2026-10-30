@@ -64,12 +64,12 @@ export function newPlayer(nowMs: number): PlayerState {
     version: STATE_VERSION,
     gold: 1000, food: 100, xp: 0, level: 1,
     dragons: [
-      { id: 'd1', speciesId: 'fire', level: 1, habitatId: 'h1' },
-      { id: 'd2', speciesId: 'water', level: 1, habitatId: 'h2' },
+      { id: 'd1', speciesId: 'flame', level: 1, habitatId: 'h1' },
+      { id: 'd2', speciesId: 'sea', level: 1, habitatId: 'h2' },
     ],
     habitats: [
-      { id: 'h1', element: 'fire', level: 1, lastCollectedMs: nowMs, placement: home(0, 0) },
-      { id: 'h2', element: 'water', level: 1, lastCollectedMs: nowMs, placement: home(5, 0) },
+      { id: 'h1', element: 'flame', level: 1, lastCollectedMs: nowMs, placement: home(0, 0) },
+      { id: 'h2', element: 'sea', level: 1, lastCollectedMs: nowMs, placement: home(5, 0) },
     ],
     nests: [{ egg: null, level: 1, placement: home(4, 8) }],
     hatchery: [],

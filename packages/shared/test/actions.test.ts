@@ -11,7 +11,9 @@ const bot = { playerId: null, trophies: 0, level: 8, team: [1, 2, 3].map(() => (
 const payloads: unknown[] = [
   { type: 'collectGold', habitatId: 'h1' },
   { type: 'collectGold', habitatId: '' },
-  { type: 'placeBuilding', building: { kind: 'habitat', element: 'earth' }, placement: PL },
+  { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: PL },
+  { type: 'placeBuilding', building: { kind: 'habitat', element: 'war' }, placement: PL },
+  { type: 'placeBuilding', building: { kind: 'habitat', element: 'fire' }, placement: PL },
   { type: 'placeBuilding', building: { kind: 'habitat', element: 'plasma' }, placement: PL },
   { type: 'placeBuilding', building: { kind: 'nexus' }, placement: { ...PL, island: 'dawnspire' } },
   { type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...PL, island: 'isle9' } },

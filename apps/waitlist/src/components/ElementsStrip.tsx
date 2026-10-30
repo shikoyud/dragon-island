@@ -6,7 +6,7 @@ export function ElementsStrip() {
   return (
     <section id="elements" className="section wrap" aria-labelledby="elements-title">
       <h2 id="elements-title" className="section-title">
-        Nine elements
+        Ten elements
       </h2>
       <p className="section-lead">
         Every dragon carries an element, and every element is strong against others. Learn the matchups and build your

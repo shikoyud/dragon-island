@@ -53,7 +53,7 @@ describe('moveDragon', () => {
 
   it('refuses a full habitat', () => {
     let st = s
-    for (const id of ['d7', 'd8']) st = withDragon(st, { id, speciesId: 'water', level: 1, habitatId: 'h2' })
+    for (const id of ['d7', 'd8']) st = withDragon(st, { id, speciesId: 'sea', level: 1, habitatId: 'h2' })
     err(run(withDragon(st, d9), { type: 'moveDragon', dragonId: 'd9', habitatId: 'h2' }, 0), 'NO_HABITAT_SLOT')
   })
 

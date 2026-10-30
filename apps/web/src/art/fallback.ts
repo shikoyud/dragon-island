@@ -2,15 +2,16 @@ import type { Element } from '@wyrmhaven/game-core'
 
 /** Element colours (same values as styles/tokens.css) with a darker outline and lighter highlight. */
 export const FALLBACK_PALETTE: Record<Element, { base: string; dark: string; light: string }> = {
-  fire: { base: '#e4572e', dark: '#8c2f14', light: '#f7a07a' },
-  water: { base: '#3a86c8', dark: '#1f4f7a', light: '#8fc3ea' },
-  earth: { base: '#a0683b', dark: '#5e3a1d', light: '#d1a373' },
+  terra: { base: '#a0683b', dark: '#5e3a1d', light: '#d1a373' },
+  flame: { base: '#e4572e', dark: '#8c2f14', light: '#f7a07a' },
+  sea: { base: '#3a86c8', dark: '#1f4f7a', light: '#8fc3ea' },
   nature: { base: '#4caf50', dark: '#276a2b', light: '#9ad99c' },
   electric: { base: '#f4d03f', dark: '#9a7f12', light: '#fbe99a' },
   ice: { base: '#9ad7f0', dark: '#4d8aa8', light: '#d6f0fa' },
   metal: { base: '#9aa5b1', dark: '#555e68', light: '#d0d6dc' },
   dark: { base: '#5b4b8a', dark: '#2d2447', light: '#9d8fc9' },
   light: { base: '#f7f0c8', dark: '#b5a86a', light: '#fffbe6' },
+  war: { base: '#a32638', dark: '#5e1420', light: '#d9566a' },
 }
 const OUTLINE = '#141627'
 const WOOD = '#6b4a2b'

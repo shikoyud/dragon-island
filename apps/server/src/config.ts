@@ -41,9 +41,9 @@ const schema = z.object({
   /** 1 = Playwright mode: in-memory PGlite, fake chain, fixed price, POST /e2e/grant. Never in production. */
   E2E: z.enum(['0', '1']).default('0'),
   CATALOG: z.enum(['launch']).default('launch'),
-  /** Game launch time, ISO 8601 (GDD ง1.5). Unset = the `game` row's launch_at, which defaults to when it was created (dev). */
+  /** Game launch time, ISO 8601 (GDD ยง1.5). Unset = the `game` row's launch_at, which defaults to when it was created (dev). */
   LAUNCH_AT: z.string().datetime().optional(),
-  /** Soft-economy preset (GDD ง7.2): Flash-14 by default, Flash-28 is a second preset, not a code path. */
+  /** Soft-economy preset (GDD ยง7.2): Flash-14 by default, Flash-28 is a second preset, not a code path. */
   PRESET: z.enum(['flash14', 'flash28']).default('flash14'),
   /** Discord webhook for chain-watch alerts; alerts are only logged when absent. Treat as a secret. */
   ALERT_WEBHOOK_URL: z.string().url().optional(),

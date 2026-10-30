@@ -21,7 +21,7 @@ async function setup(playerId: string, patch: Partial<PlayerState>, columns: Par
   const base = newPlayer(0)
   const state: PlayerState = {
     ...base,
-    dragons: [...base.dragons, { id: 'd3', speciesId: 'fire', level: 1, habitatId: 'h1' }],
+    dragons: [...base.dragons, { id: 'd3', speciesId: 'flame', level: 1, habitatId: 'h1' }],
     ...patch,
   }
   await t.db.update(players).set({
@@ -34,9 +34,9 @@ beforeEach(async () => {
   A = await t.login(wallet(TEST_KEYS.alice))
   B = await t.login(wallet(TEST_KEYS.bob))
   C = await t.login(wallet(TEST_KEYS.carol))
-  // A: water L20 ×3 (water is ×2 vs fire, so SWEEP one-shots B's 120-hp fire dragons). B: fire L1 ×3.
-  await setup(A.playerId, { level: 8, dragons: waterTeam(20), defenceTeam: TEAM })
-  await setup(B.playerId, { level: 8, dragons: fireTeam(1), defenceTeam: TEAM })
+  // A: sea L20 ×3 (sea is ×2 vs flame, so SWEEP one-shots B's 120-hp flame dragons). B: flame L1 ×3.
+  await setup(A.playerId, { level: 8, dragons: seaTeam(20), defenceTeam: TEAM })
+  await setup(B.playerId, { level: 8, dragons: flameTeam(1), defenceTeam: TEAM })
   await setup(C.playerId, { level: 8 }) // no defence team
 })
 afterEach(async () => {
@@ -50,8 +50,8 @@ const offers = async (tok: string) => {
 }
 const post = (tok: string, action: unknown) =>
   t.app.inject({ method: 'POST', url: '/actions', headers: bearer(tok), payload: { action, idempotencyKey: crypto.randomUUID() } })
-const waterTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'water', level, habitatId: 'h2' }))
-const fireTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'fire', level, habitatId: 'h1' }))
+const seaTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'sea', level, habitatId: 'h2' }))
+const flameTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'flame', level, habitatId: 'h1' }))
 const row = async (id: string) => (await t.db.select().from(players).where(eq(players.id, id)))[0]!
 
 describe('GET /pvp/offers', () => {
@@ -68,11 +68,11 @@ describe('GET /pvp/offers', () => {
     expect(stored).toHaveLength(3)
     expect(stored[0]!.expiresAt.getTime()).toBe(1_000 + OFFER_TTL_MS)
     const b = list.find(o => o.opponent.playerId === B.playerId)!
-    expect(b.opponent.team).toEqual([{ speciesId: 'fire', level: 1 }, { speciesId: 'fire', level: 1 }, { speciesId: 'fire', level: 1 }])
+    expect(b.opponent.team).toEqual([{ speciesId: 'flame', level: 1 }, { speciesId: 'flame', level: 1 }, { speciesId: 'flame', level: 1 }])
   })
 
   it('needs player level 8', async () => {
-    await setup(A.playerId, { level: 7, dragons: waterTeam(20), defenceTeam: TEAM })
+    await setup(A.playerId, { level: 7, dragons: seaTeam(20), defenceTeam: TEAM })
     expect((await t.app.inject({ method: 'GET', url: '/pvp/offers', headers: bearer(A.token) })).statusCode).toBe(422)
   })
 })
@@ -86,7 +86,7 @@ describe('pvpBattle via offers', () => {
     const body = r.json()
     const seed32 = Buffer.from(hexToBytes(offer.seedHex)).readUInt32BE(0)
     const local = simulateBattle(
-      TEAM.map((): BattleDragonSpec => ({ speciesId: 'water', level: 20 })), offer.opponent.team, SWEEP, createRng(seed32), t.deps.catalog!,
+      TEAM.map((): BattleDragonSpec => ({ speciesId: 'sea', level: 20 })), offer.opponent.team, SWEEP, createRng(seed32), t.deps.catalog!,
     )
     expect(body.battle).toEqual(local)
     expect(body.battle.winner).toBe('attacker')
@@ -129,7 +129,7 @@ describe('pvpBattle via offers', () => {
     ])
     expect([ra.statusCode, rb.statusCode]).toEqual([200, 200])
     const a = await row(A.playerId), b = await row(B.playerId)
-    // A beats B (+30 / B −10 → 0); B's fire L1 attack on A's water L20 forfeits: B −15 → 0, A +5.
+    // A beats B (+30 / B −10 → 0); B's flame L1 attack on A's sea L20 forfeits: B −15 → 0, A +5.
     expect(a.trophies).toBe(35)
     expect(b.trophies).toBe(0)
     expect((a.state as PlayerState).trophies).toBe(35)
@@ -147,7 +147,7 @@ describe('pveBattle seeding', () => {
     // Rebuild the same player on a fresh offer list: same secret, same nonce → same battle.
     const [p] = await t.db.select().from(players).where(eq(players.id, A.playerId))
     await t.db.update(players).set({ actionNonce: p!.actionNonce - 1n }).where(eq(players.id, A.playerId))
-    await setup(A.playerId, { level: 8, dragons: waterTeam(20), defenceTeam: TEAM })
+    await setup(A.playerId, { level: 8, dragons: seaTeam(20), defenceTeam: TEAM })
     const second = await run()
     expect(second).toEqual(first)
   })

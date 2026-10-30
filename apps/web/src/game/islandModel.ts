@@ -61,9 +61,9 @@ export function badgeY(o: Pick<IslandObject, 'y' | 'sprite' | 'scale'>): number 
   return o.y - Math.round((o.sprite.h - (o.sprite.top ?? 0)) * (o.scale ?? 1)) - 2
 }
 
-/** Dragon sheet for a species, falling back to the fire dragon until hybrids have art. */
+/** Dragon sheet for a species, falling back to the flame dragon until hybrids have art. */
 export function dragonKey(speciesId: string, art: GameArtSet): string {
-  return art.dragon[speciesId] ? textureKey(`dragon.${speciesId}`) : textureKey('dragon.fire')
+  return art.dragon[speciesId] ? textureKey(`dragon.${speciesId}`) : textureKey('dragon.flame')
 }
 
 const flip = (facing: number): { flipX?: true } => (facing === 1 || facing === 3 ? { flipX: true } : {})
@@ -166,7 +166,7 @@ export function buildIslandModel(
     }]
     markers.habitats.push(h.id)
     residents(state, h.id).forEach((d, slot) => {
-      group.push({ id: `dragon:${d.id}`, key: dragonKey(d.speciesId, art), sprite: art.dragon[d.speciesId] ?? art.dragon['fire']!, ...dragonSpot(a, slot), target: { kind: 'dragon', id: d.id } })
+      group.push({ id: `dragon:${d.id}`, key: dragonKey(d.speciesId, art), sprite: art.dragon[d.speciesId] ?? art.dragon['flame']!, ...dragonSpot(a, slot), target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
     })
     // Residents back to front on the platform, after the platform itself.

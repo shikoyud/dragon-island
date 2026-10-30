@@ -10,7 +10,7 @@ export interface NonceResponse { nonce: string }
 export interface VerifyRequest { message: string; signature: `0x${string}` }
 export interface VerifyResponse { token: string; playerId: string; address: `0x${string}` }
 
-/** GET /game (ง1.5, A12). `revealedSecret` stays null until the game reveals it. */
+/** GET /game (ยง1.5, A12). `revealedSecret` stays null until the game reveals it. */
 export interface GameInfo {
   launchAtMs: number
   preset: PresetId

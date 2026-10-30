@@ -7,16 +7,16 @@ const sp = (id: string, elements: Element[], rarity: Rarity, recipeOnly = false)
 
 export const FIXTURE_CATALOG = makeCatalog(
   [
-    sp('fire', ['fire'], 'common'),
-    sp('water', ['water'], 'common'),
+    sp('flame', ['flame'], 'common'),
+    sp('sea', ['sea'], 'common'),
     sp('ice', ['ice'], 'common'),
     sp('nature', ['nature'], 'common'),
-    sp('fn-rare', ['fire', 'nature'], 'rare'),
-    { id: 'wall', name: 'wall', elements: ['earth'], rarity: 'legendary', baseSpeed: 1, recipeOnly: true },
-    sp('fw-common', ['fire', 'water'], 'common'),
-    sp('fw-rare', ['fire', 'water'], 'rare'),
-    sp('fw-epic', ['fire', 'water'], 'epic'),
-    sp('fw-legend', ['fire', 'water'], 'legendary', true),
+    sp('fn-rare', ['flame', 'nature'], 'rare'),
+    { id: 'wall', name: 'wall', elements: ['terra'], rarity: 'legendary', baseSpeed: 1, recipeOnly: true },
+    sp('fw-common', ['flame', 'sea'], 'common'),
+    sp('fw-rare', ['flame', 'sea'], 'rare'),
+    sp('fw-epic', ['flame', 'sea'], 'epic'),
+    sp('fw-legend', ['flame', 'sea'], 'legendary', true),
   ],
   [{ parents: ['fw-rare', 'fw-epic'], legendaryId: 'fw-legend' }],
 )

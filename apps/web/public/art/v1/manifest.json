@@ -232,14 +232,6 @@
       "fps": 6,
       "top": 3
     },
-    "dragon.earth": {
-      "file": "dragon-earth.png",
-      "w": 48,
-      "h": 48,
-      "frames": 4,
-      "fps": 6,
-      "top": 4
-    },
     "dragon.electric": {
       "file": "dragon-electric.png",
       "w": 48,
@@ -248,8 +240,8 @@
       "fps": 6,
       "top": 2
     },
-    "dragon.fire": {
-      "file": "dragon-fire.png",
+    "dragon.flame": {
+      "file": "dragon-flame.png",
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -288,8 +280,16 @@
       "fps": 6,
       "top": 4
     },
-    "dragon.water": {
-      "file": "dragon-water.png",
+    "dragon.sea": {
+      "file": "dragon-sea.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.terra": {
+      "file": "dragon-terra.png",
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -304,14 +304,6 @@
       "fps": 4,
       "top": 1
     },
-    "egg.earth": {
-      "file": "egg-earth.png",
-      "w": 32,
-      "h": 32,
-      "frames": 4,
-      "fps": 4,
-      "top": 0
-    },
     "egg.electric": {
       "file": "egg-electric.png",
       "w": 32,
@@ -320,8 +312,8 @@
       "fps": 4,
       "top": 1
     },
-    "egg.fire": {
-      "file": "egg-fire.png",
+    "egg.flame": {
+      "file": "egg-flame.png",
       "w": 32,
       "h": 32,
       "frames": 4,
@@ -360,13 +352,21 @@
       "fps": 4,
       "top": 1
     },
-    "egg.water": {
-      "file": "egg-water.png",
+    "egg.sea": {
+      "file": "egg-sea.png",
       "w": 32,
       "h": 32,
       "frames": 4,
       "fps": 4,
       "top": 1
+    },
+    "egg.terra": {
+      "file": "egg-terra.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4,
+      "top": 0
     },
     "fx.construction": {
       "file": "fx-construction.png",
@@ -448,14 +448,6 @@
       "fps": 4,
       "top": 8
     },
-    "habitat.earth": {
-      "file": "habitat-earth.png",
-      "w": 80,
-      "h": 64,
-      "frames": 4,
-      "fps": 4,
-      "top": 0
-    },
     "habitat.electric": {
       "file": "habitat-electric.png",
       "w": 80,
@@ -464,8 +456,8 @@
       "fps": 4,
       "top": 0
     },
-    "habitat.fire": {
-      "file": "habitat-fire.png",
+    "habitat.flame": {
+      "file": "habitat-flame.png",
       "w": 80,
       "h": 64,
       "frames": 4,
@@ -504,13 +496,21 @@
       "fps": 4,
       "top": 10
     },
-    "habitat.water": {
-      "file": "habitat-water.png",
+    "habitat.sea": {
+      "file": "habitat-sea.png",
       "w": 80,
       "h": 64,
       "frames": 4,
       "fps": 4,
       "top": 10
+    },
+    "habitat.terra": {
+      "file": "habitat-terra.png",
+      "w": 80,
+      "h": 64,
+      "frames": 4,
+      "fps": 4,
+      "top": 0
     },
     "hatchling.dark": {
       "file": "hatchling-dark.png",
@@ -520,14 +520,6 @@
       "fps": 6,
       "top": 0
     },
-    "hatchling.earth": {
-      "file": "hatchling-earth.png",
-      "w": 32,
-      "h": 32,
-      "frames": 4,
-      "fps": 6,
-      "top": 1
-    },
     "hatchling.electric": {
       "file": "hatchling-electric.png",
       "w": 32,
@@ -536,8 +528,8 @@
       "fps": 6,
       "top": 1
     },
-    "hatchling.fire": {
-      "file": "hatchling-fire.png",
+    "hatchling.flame": {
+      "file": "hatchling-flame.png",
       "w": 32,
       "h": 32,
       "frames": 4,
@@ -576,8 +568,16 @@
       "fps": 6,
       "top": 0
     },
-    "hatchling.water": {
-      "file": "hatchling-water.png",
+    "hatchling.sea": {
+      "file": "hatchling-sea.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 6,
+      "top": 1
+    },
+    "hatchling.terra": {
+      "file": "hatchling-terra.png",
       "w": 32,
       "h": 32,
       "frames": 4,
@@ -672,14 +672,6 @@
       "fps": 0,
       "top": 7
     },
-    "icon.earth": {
-      "file": "icon-earth.png",
-      "w": 16,
-      "h": 16,
-      "frames": 1,
-      "fps": 0,
-      "top": 2
-    },
     "icon.electric": {
       "file": "icon-electric.png",
       "w": 16,
@@ -688,8 +680,8 @@
       "fps": 0,
       "top": 1
     },
-    "icon.fire": {
-      "file": "icon-fire.png",
+    "icon.flame": {
+      "file": "icon-flame.png",
       "w": 16,
       "h": 16,
       "frames": 1,
@@ -824,6 +816,14 @@
       "fps": 0,
       "top": 5
     },
+    "icon.sea": {
+      "file": "icon-sea.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
     "icon.season.16": {
       "file": "icon-season-16.png",
       "w": 16,
@@ -872,6 +872,14 @@
       "fps": 0,
       "top": 7
     },
+    "icon.terra": {
+      "file": "icon-terra.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
     "icon.timer.16": {
       "file": "icon-timer-16.png",
       "w": 16,
@@ -887,14 +895,6 @@
       "frames": 1,
       "fps": 0,
       "top": 7
-    },
-    "icon.water": {
-      "file": "icon-water.png",
-      "w": 16,
-      "h": 16,
-      "frames": 1,
-      "fps": 0,
-      "top": 2
     },
     "icon.xp.16": {
       "file": "icon-xp-16.png",

@@ -12,9 +12,9 @@ Scenes add their own lighting: night for the waitlist hero, warm daylight for th
 
 | Element | Egg | Hatchling |
 | --- | --- | --- |
-| fire | ember orange shell with dark red speckles and a wavy flame band | ember orange scales, cream belly, two stubby horns, tiny wings, flame tipped tail |
-| water | ocean blue shell with pale aqua wave stripes | ocean blue scales, pale aqua belly, fin crest on head, finned tail |
-| earth | warm brown shell with tan pebble spots and a crack-like ridge | warm brown scales, rocky plates on back, blunt nose horn |
+| flame | ember orange shell with dark red speckles and a wavy flame band | ember orange scales, cream belly, two stubby horns, tiny wings, flame tipped tail |
+| sea | ocean blue shell with pale aqua wave stripes | ocean blue scales, pale aqua belly, fin crest on head, finned tail |
+| terra | warm brown shell with tan pebble spots and a crack-like ridge | warm brown scales, rocky plates on back, blunt nose horn |
 | nature | leaf green shell with light green leaf pattern | leaf green scales, leaf shaped ears, vine tail with a leaf tip |
 | electric | bright yellow shell with a dark gold zigzag bolt stripe | bright yellow scales, zigzag crest, bolt shaped tail tip |
 | ice | pale cyan shell with white frost crystal spots | pale cyan scales, white belly, small frost crystal spikes on back |

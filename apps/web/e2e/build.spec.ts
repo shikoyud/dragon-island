@@ -43,7 +43,7 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows isl
 
   // Upgrade h1.
   await bridge(page, b => b.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
-  const habitat = page.getByRole('region', { name: /fire habitat h1/i })
+  const habitat = page.getByRole('region', { name: /flame habitat h1/i })
   await habitat.locator('#upgrade-h1').click()
   await expect(habitat.getByText(/^Upgrading to 2 · /)).toBeVisible()
   await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
@@ -58,7 +58,7 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows isl
 
   // Turn it.
   await bridge(page, b => b.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
-  await page.getByRole('region', { name: /fire habitat h1/i }).getByRole('button', { name: /^turn$/i }).click()
+  await page.getByRole('region', { name: /flame habitat h1/i }).getByRole('button', { name: /^turn$/i }).click()
   await expect.poll(() => bridge(page, b => b.state!.habitats.find(h => h.id === 'h1')!.placement.facing)).toBe(1)
 
   // The island map: at level 5 isle2 is still locked. It is the next island in order, so the panel shows a disabled

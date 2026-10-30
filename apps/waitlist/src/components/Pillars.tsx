@@ -8,8 +8,8 @@ const PILLARS: { title: string; text: string; element: Element; sprite: SpriteDa
   {
     title: 'Breed',
     text: 'Raise your dragons, pair them up in nests and hatch their eggs. Every pairing is a chance at something new.',
-    element: 'fire',
-    sprite: ACTIVE_ART.egg.fire,
+    element: 'flame',
+    sprite: ACTIVE_ART.egg.flame,
   },
   {
     title: 'Build',

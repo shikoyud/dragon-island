@@ -8,14 +8,14 @@ describe('artEntries', () => {
   it('flattens every slot with a texture key and a fallback slot', () => {
     const rows = artEntries(FALLBACK_ART)
     const keys = rows.map(r => r.key)
-    expect(keys).toContain(textureKey('egg.fire'))
-    expect(keys).toContain(textureKey('dragon.water'))
+    expect(keys).toContain(textureKey('egg.flame'))
+    expect(keys).toContain(textureKey('dragon.sea'))
     expect(keys).not.toContain(textureKey('building.hoard'))
     expect(keys).toContain(textureKey('crop.bounty'))
     expect(keys).toContain(textureKey('island.base'))
     expect(new Set(keys).size).toBe(keys.length)
-    // base: 9 eggs + 9 hatchlings + 9 dragons + 9 habitats + 9 icons + ...; plus nexus, 15 decorations, 5 obstacles, 6 map icons, locked + sign; was: 3 buildings + 4 crops + 9 icons + 3 ui + island
-    expect(rows).toHaveLength(9 * 5 + 3 + 4 + 3 + 1 + 1 + 15 + 5 + 6 + 2 + 2) // + fx.construction, fx.hatch
+    // base: 10 eggs + 10 hatchlings + 10 dragons + 10 habitats + 10 icons + ...; plus nexus, 15 decorations, 5 obstacles, 6 map icons, locked + sign; was: 3 buildings + 4 crops + 10 icons + 3 ui + island
+    expect(rows).toHaveLength(10 * 5 + 3 + 4 + 3 + 1 + 1 + 15 + 5 + 6 + 2 + 2) // + fx.construction, fx.hatch
     expect(rows.find(r => r.key === textureKey('dragon.ice'))!.element).toBe('ice')
     expect(rows.find(r => r.key === textureKey('egg.dark'))!.slot).toBe('egg')
   })
@@ -47,22 +47,22 @@ function stubSprite(existing = false) {
 describe('playOrStill', () => {
   it('shows frame 0 and never animates for static sheets or reduced motion', () => {
     const a = stubSprite()
-    playOrStill(a.sprite, 'art:egg.fire', 1, 0, false)
-    expect(a.raw.setTexture).toHaveBeenCalledWith('art:egg.fire', 0)
+    playOrStill(a.sprite, 'art:egg.flame', 1, 0, false)
+    expect(a.raw.setTexture).toHaveBeenCalledWith('art:egg.flame', 0)
     expect(a.raw.play).not.toHaveBeenCalled()
     const b = stubSprite()
-    playOrStill(b.sprite, 'art:egg.fire', 6, 8, true)
+    playOrStill(b.sprite, 'art:egg.flame', 6, 8, true)
     expect(b.raw.play).not.toHaveBeenCalled()
     expect(b.raw.anims.stop).toHaveBeenCalled()
   })
 
   it('creates the idle animation once and plays it', () => {
     const a = stubSprite(false)
-    playOrStill(a.sprite, 'art:egg.fire', 6, 8, false)
-    expect(a.create).toHaveBeenCalledWith(expect.objectContaining({ key: animKey('art:egg.fire'), frameRate: 8, repeat: -1 }))
-    expect(a.raw.play).toHaveBeenCalledWith(animKey('art:egg.fire'))
+    playOrStill(a.sprite, 'art:egg.flame', 6, 8, false)
+    expect(a.create).toHaveBeenCalledWith(expect.objectContaining({ key: animKey('art:egg.flame'), frameRate: 8, repeat: -1 }))
+    expect(a.raw.play).toHaveBeenCalledWith(animKey('art:egg.flame'))
     const b = stubSprite(true)
-    playOrStill(b.sprite, 'art:egg.fire', 6, 8, false)
+    playOrStill(b.sprite, 'art:egg.flame', 6, 8, false)
     expect(b.create).not.toHaveBeenCalled()
   })
 })

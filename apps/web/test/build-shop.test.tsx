@@ -25,7 +25,7 @@ describe('BuildShopPanel', () => {
     const hay = screen.getByRole('button', { name: /Hay cart/ })
     expect(hay).toBeDisabled()
     expect(hay).toHaveAccessibleDescription(/Level 6/)
-    expect(screen.getByRole('button', { name: /fire habitat/i })).toBeDisabled() // limit 2 at level 3
+    expect(screen.getByRole('button', { name: /flame habitat/i })).toBeDisabled() // limit 2 at level 3
     await userEvent.click(screen.getByRole('button', { name: /Flower patch/ }))
     expect(onPlace).toHaveBeenCalledWith({ kind: 'decoration', decoration: 'flowerPatch' }, 1)
   })
@@ -33,21 +33,21 @@ describe('BuildShopPanel', () => {
   it('enables habitats while under the limit', () => {
     const { wrap } = harness({ ...base, level: 7 })
     wrap(<BuildShopPanel onPlace={vi.fn()} view="home" />)
-    expect(screen.getByRole('button', { name: /earth habitat/i })).toBeEnabled() // limit 3 at level 7
+    expect(screen.getByRole('button', { name: /terra habitat/i })).toBeEnabled() // limit 3 at level 7
   })
 
   it('names the next multiple of 5 when the habitat limit is reached', () => {
     const { wrap } = harness({ ...base, level: 3 })
     wrap(<BuildShopPanel onPlace={vi.fn()} view="home" />)
-    expect(screen.getByRole('button', { name: /fire habitat/i })).toHaveAccessibleDescription('Reach level 5 for another habitat')
+    expect(screen.getByRole('button', { name: /flame habitat/i })).toHaveAccessibleDescription('Reach level 5 for another habitat')
   })
 
   it('starts habitats and farm plots with their footprints', async () => {
     const onPlace = vi.fn()
     const { wrap } = harness({ ...base, level: 5, gold: 100_000 })
     wrap(<BuildShopPanel onPlace={onPlace} view="home" />)
-    await userEvent.click(screen.getByRole('button', { name: /earth habitat/i }))
-    expect(onPlace).toHaveBeenLastCalledWith({ kind: 'habitat', element: 'earth' }, 5)
+    await userEvent.click(screen.getByRole('button', { name: /terra habitat/i }))
+    expect(onPlace).toHaveBeenLastCalledWith({ kind: 'habitat', element: 'terra' }, 5)
     await userEvent.click(within(screen.getByTestId('shop-farming')).getByRole('button'))
     expect(onPlace).toHaveBeenLastCalledWith({ kind: 'farm' }, 2)
   })
@@ -147,7 +147,7 @@ describe('Finish button and upgrades that keep working', () => {
   })
 
   it('lets dragons move into a habitat that is only being upgraded', async () => {
-    const waiting = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'fire', level: 1, habitatId: null }], constructions: [{ kind: 'upgrade' as const, building: h1, readyAtMs: 99 }] }
+    const waiting = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'flame', level: 1, habitatId: null }], constructions: [{ kind: 'upgrade' as const, building: h1, readyAtMs: 99 }] }
     harness(waiting).wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
     expect(screen.getByRole('button', { name: /d9/ })).toBeEnabled()
   })
