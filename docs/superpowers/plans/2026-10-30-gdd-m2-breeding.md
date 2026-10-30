@@ -241,6 +241,10 @@ export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'
 - [ ] **Step 4: Run tests + typecheck** — expected: PASS.
 - [ ] **Step 5: Commit** — `feat: buy Basics for Gold, gated by Player Level (§4.4, §5.7)`
 
+### Task 5b: XP multiplier and harvest XP (R27), plus Task 4 clean-up
+
+See `.superpowers/sdd/2026-10-30-gdd-m2-breeding/task-5b-brief.md`.
+
 ### Task 6: Dragon Book state and the hybrid arbitrage flag (§1.4, §5.2, A13)
 
 **Files:**
@@ -361,6 +365,7 @@ Also recorded in `docs/superpowers/specs/2026-10-30-gdd-rulings.md`.
 | R24 | **PvE stages and bots draw from the full catalog until M5**, with today's rarity rules, so stages 11+ meet real Rares and Epics. | M5 rewrites both from §6; not worth a stopgap. |
 | R25 | **The first hybrid's 1 minute** is real time under both presets, for breed and hatch, with no building reduction. Applies whichever answer to Q1 of the M2 plan. | §3.5 states a time, not a classic value. |
 | R26 | **Buying a Basic needs room**: a finished habitat of its element with a free slot, otherwise `NO_HABITAT_SLOT`. | The Hatchery should not fill with bought dragons. |
+| R27 | **`xpMult` applies to all XP and harvest gives crop tier × 2 XP from M2** (§4.3, §7.2). M3 keeps the rest of the XP table. | M2 is unplayable to PL 2 without it; no GDD number changes. |
 
 ## Self-review notes
 

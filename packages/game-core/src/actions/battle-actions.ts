@@ -49,7 +49,7 @@ export const pvpBattle: Handler<'pvpBattle'> = (s, a, ctx) => {
 
   let next: PlayerState = { ...s, pvp: { ...pvp, count: pvp.count + 1 } }
   // League gold uses trophies before the battle, so a boundary-crossing win pays the old league.
-  if (won) next = addXp(earnGold(next, pvpWinGold(s.trophies)), PVP_WIN_XP)
+  if (won) next = addXp(earnGold(next, pvpWinGold(s.trophies)), PVP_WIN_XP, ctx.preset)
   next = { ...next, trophies: applyTrophies(s.trophies, won ? TROPHY.attackWin : TROPHY.attackLoss) }
 
   const effects = a.opponent.playerId === null ? [] : [{
@@ -77,7 +77,7 @@ export const pveBattle: Handler<'pveBattle'> = (s, a, ctx) => {
   let next: PlayerState = firstClear ? s : { ...s, pve: { ...s.pve, replays: { ...replays, count: replays.count + 1 } } }
   if (outcome.ok && outcome.winner === 'attacker') {
     const reward = stageRewards(a.stage, firstClear)
-    next = addXp(earnGold({ ...next, food: next.food + reward.food }, reward.gold), reward.xp)
+    next = addXp(earnGold({ ...next, food: next.food + reward.food }, reward.gold), reward.xp, ctx.preset)
     if (firstClear) next = { ...next, pve: { ...next.pve, cleared: a.stage } }
   }
   return success(next, [], report)

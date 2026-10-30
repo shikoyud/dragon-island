@@ -73,7 +73,7 @@ describe('feed', () => {
 
   it('takes four feeds per level, one feed per call', () => {
     const one = feed1(s)
-    expect([one.dragons[0]!.level, one.dragons[0]!.feeds, one.food, one.xp]).toEqual([1, 1, 45, 1])
+    expect([one.dragons[0]!.level, one.dragons[0]!.feeds, one.food, one.xp]).toEqual([1, 1, 45, 12])
     const three = feed1(feed1(one))
     expect([three.dragons[0]!.level, three.dragons[0]!.feeds]).toEqual([1, 3])
     const four = feed1(three)

@@ -109,7 +109,7 @@ export function completeConstruction(s: PlayerState, index: number, c: Catalog, 
     const cleared = { ...rest, islands: { ...rest.islands, obstacles: rest.islands.obstacles.filter(x => x.id !== con.obstacleId) } }
     if (!o) return cleared
     const reward = clearReward(o)
-    return addXp({ ...cleared, food: cleared.food + reward.food }, reward.xp)
+    return addXp({ ...cleared, food: cleared.food + reward.food }, reward.xp, preset)
   }
   const ref = con.building
   switch (ref.type) {

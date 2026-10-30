@@ -34,7 +34,7 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const bctx = { activeLegendaries: activeLegendaries(ctx.day, ctx.preset), firstHybridPending: !s.firstHybridDone }
   const child = rollOffspring(sa, sb, bctx, ctx.catalog, ctx.rng)
   // R25: the scripted breed takes a flat minute, only when the restricted pool was actually used.
-  const scripted = bctx.firstHybridPending && child.elements.length >= 2
+  const scripted = bctx.firstHybridPending && child.elements.length >= 2 && child.rarity !== 'legendary'
   const hatchMs = scripted ? FIRST_HYBRID_MS : breedTimerMs(child.rarity, child.elements, ctx.preset)
   const readyAtMs = ctx.nowMs + (scripted ? FIRST_HYBRID_MS : breederBreedMs(hatchMs, s.breeders[index]!))
   const next = {
@@ -43,7 +43,7 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
     tutorial: { ...s.tutorial, breedDone: true },
     firstHybridDone: s.firstHybridDone || scripted,
   }
-  return success(addXp(next, START_BREED_XP))
+  return success(addXp(next, START_BREED_XP, ctx.preset))
 }
 
 /** Hatchery slots hold eggs and hatched dragons that found no habitat. */
@@ -101,5 +101,5 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
     dragons: [...collected.dragons, dragon],
     nextId: s.nextId + 1,
   }
-  return success(addXp(next, HATCH_XP[species.rarity]))
+  return success(addXp(next, HATCH_XP[species.rarity], ctx.preset))
 }

@@ -6,5 +6,8 @@ export const HATCH_XP: Record<Rarity, number> = {
   common: 10, uncommon: 30, rare: 80, epic: 200, legendary: 500,
 }
 
+/** §4.3 "Harvest a crop": crop tier x 2. */
+export const HARVEST_XP_PER_TIER = 2
+
 /** §4.3 "Start a breed". */
 export const START_BREED_XP = 5

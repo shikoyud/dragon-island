@@ -35,7 +35,7 @@ describe('startBreed', () => {
     const child = getSpecies(LAUNCH_CATALOG, e.speciesId)
     expect(e.readyAtMs).not.toBe(1_000 + 15_000)
     expect(e.readyAtMs).toBe(1_000 + breedTimerMs(child.rarity, child.elements, FLASH_14))
-    expect(a.xp).toBe(START_BREED_XP)
+    expect(a.xp).toBe(START_BREED_XP * 12) // 60, PL 2 needs 200
     err(run(a, breed, 0), 'NO_FREE_BREEDER')
   })
 
@@ -84,95 +84,104 @@ describe('startBreed', () => {
     expect([ints, nexts]).toEqual([1, 0])
   })
 
-  describe('the scripted first hybrid (ง3.5, R25)', () => {
-  const pending: PlayerState = { ...s4, firstHybridDone: false }
-  const tf = (st: PlayerState) => ({ ...st, dragons: [{ ...st.dragons[0]!, speciesId: 'terra' }, { ...st.dragons[1]!, speciesId: 'flame' }] })
-  const at = (target: number) => ({ next: () => 0, int: (n: number) => (target < 0 ? n - 1 : target) })
+  describe('the scripted first hybrid (ยง3.5, R25)', () => {
+    const pending: PlayerState = { ...s4, firstHybridDone: false }
+    const tf = (st: PlayerState) => ({ ...st, dragons: [{ ...st.dragons[0]!, speciesId: 'terra' }, { ...st.dragons[1]!, speciesId: 'flame' }] })
+    const at = (target: number) => ({ next: () => 0, int: (n: number) => (target < 0 ? n - 1 : target) })
 
-  it('rolls terra-flame or flame-terra, 60 s, under both presets and any Mountain level, and marks it done', () => {
-    for (const preset of [FLASH_14, FLASH_28]) for (const level of [1, 2, 3]) for (const pick of [0, 1]) {
-      const st = { ...tf(pending), breeders: [{ ...breeder(), level }] }
-      const r = ok(applyAction(st, breed, 5_000, { next: () => 0, int: (n: number) => (pick ? n - 1 : 0) }, LAUNCH_CATALOG, preset, 1))
+    it('rolls terra-flame or flame-terra, 60 s, under both presets and any Mountain level, and marks it done', () => {
+      for (const preset of [FLASH_14, FLASH_28]) for (const level of [1, 2, 3]) for (const pick of [0, 1]) {
+        const st = { ...tf(pending), breeders: [{ ...breeder(), level }] }
+        const r = ok(applyAction(st, breed, 5_000, { next: () => 0, int: (n: number) => (pick ? n - 1 : 0) }, LAUNCH_CATALOG, preset, 1))
+        const e = r.breeders[0]!.egg!
+        expect(['terra-flame', 'flame-terra']).toContain(e.speciesId)
+        expect(e.readyAtMs).toBe(5_000 + 60_000)
+        expect(e.hatchMs).toBe(60_000)
+        expect(r.firstHybridDone).toBe(true)
+      }
+    })
+
+    it('a scripted egg hatches 60 s after collectEgg', () => {
+      const bred = ok(run(tf(pending), breed, 0))
+      const collectedAt = 100_000
+      const collected = ok(run(bred, { type: 'collectEgg', breeder: 0 }, collectedAt))
+      expect(collected.hatchery[0]!.readyAtMs).toBe(collectedAt + 60_000)
+      err(run(collected, { type: 'hatch', slot: 0 }, collectedAt + 59_999), 'NOT_READY')
+      ok(run(collected, { type: 'hatch', slot: 0 }, collectedAt + 60_000))
+    })
+
+    it('is 50/50 between the two hybrids', () => {
+      const a = ok(applyAction(tf(pending), breed, 0, at(0), LAUNCH_CATALOG, FLASH_14, 1)).breeders[0]!.egg!.speciesId
+      const b = ok(applyAction(tf(pending), breed, 0, at(-1), LAUNCH_CATALOG, FLASH_14, 1)).breeders[0]!.egg!.speciesId
+      expect(new Set([a, b])).toEqual(new Set(['terra-flame', 'flame-terra']))
+    })
+
+    it('the next breed uses normal odds and timers', () => {
+      const first = ok(run(tf(pending), breed, 0))
+      const again = { ...first, breeders: [breeder()] }
+      const r = ok(applyAction(again, breed, 0, at(0), LAUNCH_CATALOG, FLASH_14, 1))
       const e = r.breeders[0]!.egg!
-      expect(['terra-flame', 'flame-terra']).toContain(e.speciesId)
-      expect(e.readyAtMs).toBe(5_000 + 60_000)
-      expect(e.hatchMs).toBe(60_000)
-      expect(r.firstHybridDone).toBe(true)
-    }
-  })
+      const child = getSpecies(LAUNCH_CATALOG, e.speciesId)
+      expect(e.speciesId).toBe('flame') // lowest id in the full pool, weight 1000 first
+      expect(e.hatchMs).toBe(breedTimerMs(child.rarity, child.elements, FLASH_14))
+      expect(e.hatchMs).not.toBe(60_000)
+    })
 
-  it('is 50/50 between the two hybrids', () => {
-    const a = ok(applyAction(tf(pending), breed, 0, at(0), LAUNCH_CATALOG, FLASH_14, 1)).breeders[0]!.egg!.speciesId
-    const b = ok(applyAction(tf(pending), breed, 0, at(-1), LAUNCH_CATALOG, FLASH_14, 1)).breeders[0]!.egg!.speciesId
-    expect(new Set([a, b])).toEqual(new Set(['terra-flame', 'flame-terra']))
-  })
+    it('Terra x Terra while pending gives terra and leaves the script pending', () => {
+      const st = { ...pending, dragons: pending.dragons.map(d => ({ ...d, speciesId: 'terra' })) }
+      const r = ok(run(st, breed, 0))
+      expect(r.breeders[0]!.egg!.speciesId).toBe('terra')
+      expect(r.firstHybridDone).toBe(false)
+    })
 
-  it('the next breed uses normal odds and timers', () => {
-    const first = ok(run(tf(pending), breed, 0))
-    const again = { ...first, breeders: [breeder()] }
-    const r = ok(applyAction(again, breed, 0, at(0), LAUNCH_CATALOG, FLASH_14, 1))
-    const e = r.breeders[0]!.egg!
-    const child = getSpecies(LAUNCH_CATALOG, e.speciesId)
-    expect(e.speciesId).toBe('flame') // lowest id in the full pool, weight 1000 first
-    expect(e.hatchMs).toBe(breedTimerMs(child.rarity, child.elements, FLASH_14))
-    expect(e.hatchMs).not.toBe(60_000)
-  })
-
-  it('Terra x Terra while pending gives terra and leaves the script pending', () => {
-    const st = { ...pending, dragons: pending.dragons.map(d => ({ ...d, speciesId: 'terra' })) }
-    const r = ok(run(st, breed, 0))
-    expect(r.breeders[0]!.egg!.speciesId).toBe('terra')
-    expect(r.firstHybridDone).toBe(false)
-  })
-
-  it('with Magma Sovereign featured the scripted roll cannot be it', () => {
-    for (let i = 0; i < 40; i++) {
-      const r = ok(applyAction(tf(pending), breed, 0, createRng(i), LAUNCH_CATALOG, FLASH_14, 1))
-      expect(r.breeders[0]!.egg!.speciesId).not.toBe('magma-sovereign')
-    }
-    const top = ok(applyAction(tf(pending), breed, 0, at(10_000), LAUNCH_CATALOG, FLASH_14, 1))
-    expect(top.breeders[0]!.egg!.speciesId).not.toBe('magma-sovereign')
+    it('with Magma Sovereign featured the scripted roll cannot be it', () => {
+      for (let i = 0; i < 40; i++) {
+        const r = ok(applyAction(tf(pending), breed, 0, createRng(i), LAUNCH_CATALOG, FLASH_14, 1))
+        expect(r.breeders[0]!.egg!.speciesId).not.toBe('magma-sovereign')
+      }
+      const top = ok(applyAction(tf(pending), breed, 0, at(10_000), LAUNCH_CATALOG, FLASH_14, 1))
+      expect(top.breeders[0]!.egg!.speciesId).not.toBe('magma-sovereign')
+    })
   })
 })
 
 describe('Legendary events', () => {
-    const tf = withParents('terra', 'flame')
-    /** An rng whose single int() lands on `target` in the pool of Terra x Flame on `day`. */
-    const forcing = (day: number, speciesId: string) => {
-      const pool = breedingPool(
-        getSpecies(LAUNCH_CATALOG, 'terra'), getSpecies(LAUNCH_CATALOG, 'flame'),
-        { activeLegendaries: activeLegendaries(day, FLASH_14), firstHybridPending: false }, LAUNCH_CATALOG)
-      let acc = 0
-      for (const e of pool) { if (e.species.id === speciesId) return { next: () => 0, int: () => acc }; acc += e.weight }
-      return { next: () => 0, int: () => 0 }
-    }
+  const tf = withParents('terra', 'flame')
+  /** An rng whose single int() lands on `target` in the pool of Terra x Flame on `day`. */
+  const forcing = (day: number, speciesId: string) => {
+    const pool = breedingPool(
+      getSpecies(LAUNCH_CATALOG, 'terra'), getSpecies(LAUNCH_CATALOG, 'flame'),
+      { activeLegendaries: activeLegendaries(day, FLASH_14), firstHybridPending: false }, LAUNCH_CATALOG)
+    let acc = 0
+    for (const e of pool) { if (e.species.id === speciesId) return { next: () => 0, int: () => acc }; acc += e.weight }
+    return { next: () => 0, int: () => 0 }
+  }
 
-    it('can give Magma Sovereign on day 4 and never on day 5, under Flash-14', () => {
-      const on = applyAction(tf, breed, 0, forcing(4, 'magma-sovereign'), LAUNCH_CATALOG, FLASH_14, 4)
-      const egg4 = ok(on).breeders[0]!.egg!
-      expect(egg4.speciesId).toBe('magma-sovereign')
-      // Timer comes from the offspring.
-      const child = getSpecies(LAUNCH_CATALOG, 'magma-sovereign')
-      expect(egg4.readyAtMs).toBe(breedTimerMs(child.rarity, child.elements, FLASH_14))
-      // Day 5: the same roll (1200, Magma's slot on day 4) lands on the next species of the day-5 pool, which is Terra.
-      const off = ok(applyAction(tf, breed, 0, forcing(4, 'magma-sovereign'), LAUNCH_CATALOG, FLASH_14, 5))
-      expect(off.breeders[0]!.egg!.speciesId).toBe('terra')
-    })
+  it('can give Magma Sovereign on day 4 and never on day 5, under Flash-14', () => {
+    const on = applyAction(tf, breed, 0, forcing(4, 'magma-sovereign'), LAUNCH_CATALOG, FLASH_14, 4)
+    const egg4 = ok(on).breeders[0]!.egg!
+    expect(egg4.speciesId).toBe('magma-sovereign')
+    // Timer comes from the offspring.
+    const child = getSpecies(LAUNCH_CATALOG, 'magma-sovereign')
+    expect(egg4.readyAtMs).toBe(breedTimerMs(child.rarity, child.elements, FLASH_14))
+    // Day 5: the same roll (1200, Magma's slot on day 4) lands on the next species of the day-5 pool, which is Terra.
+    const off = ok(applyAction(tf, breed, 0, forcing(4, 'magma-sovereign'), LAUNCH_CATALOG, FLASH_14, 5))
+    expect(off.breeders[0]!.egg!.speciesId).toBe('terra')
+  })
 
-    it('an egg bred on the last event day still hatches after the event ends (day 6)', () => {
-      const laid = ok(applyAction(tf, breed, 0, forcing(4, 'magma-sovereign'), LAUNCH_CATALOG, FLASH_14, 4))
-      const readyAt = laid.breeders[0]!.egg!.readyAtMs
-      const day6 = 5 * 86_400_000 + 1
-      const collected = ok(applyAction(laid, { type: 'collectEgg', breeder: 0 }, Math.max(readyAt, day6), createRng(1), LAUNCH_CATALOG, FLASH_14, 6))
-      const hatchAt = collected.hatchery[0]!.readyAtMs
-      const hatched = ok(applyAction(collected, { type: 'hatch', slot: 0 }, hatchAt, createRng(1), LAUNCH_CATALOG, FLASH_14, 6))
-      expect(hatched.dragons.some(d => d.speciesId === 'magma-sovereign')).toBe(true)
-    })
+  it('an egg bred on the last event day still hatches after the event ends (day 6)', () => {
+    const laid = ok(applyAction(tf, breed, 0, forcing(4, 'magma-sovereign'), LAUNCH_CATALOG, FLASH_14, 4))
+    const readyAt = laid.breeders[0]!.egg!.readyAtMs
+    const day6 = 5 * 86_400_000 + 1
+    const collected = ok(applyAction(laid, { type: 'collectEgg', breeder: 0 }, Math.max(readyAt, day6), createRng(1), LAUNCH_CATALOG, FLASH_14, 6))
+    const hatchAt = collected.hatchery[0]!.readyAtMs
+    const hatched = ok(applyAction(collected, { type: 'hatch', slot: 0 }, hatchAt, createRng(1), LAUNCH_CATALOG, FLASH_14, 6))
+    expect(hatched.dragons.some(d => d.speciesId === 'magma-sovereign')).toBe(true)
+  })
 
-    it('defaults to day 1, which is inside the Magma window', () => {
-      const r = ok(applyAction(tf, breed, 0, forcing(1, 'magma-sovereign'), LAUNCH_CATALOG))
-      expect(r.breeders[0]!.egg!.speciesId).toBe('magma-sovereign')
-    })
+  it('defaults to day 1, which is inside the Magma window', () => {
+    const r = ok(applyAction(tf, breed, 0, forcing(1, 'magma-sovereign'), LAUNCH_CATALOG))
+    expect(r.breeders[0]!.egg!.speciesId).toBe('magma-sovereign')
   })
 })
 
@@ -211,7 +220,8 @@ describe('hatch', () => {
     expect(a.dragons[2]).toEqual({ id: 'd3', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h2' })
     expect(a.hatchery).toEqual([])
     expect(a.nextId).toBe(4)
-    expect(a.xp).toBe(HATCH_XP.common)
+    expect(a.level).toBe(2) // 10 classic x 12 = 120 XP from PL 1: 50 to PL 2, 70 over
+    expect(a.xp).toBe(HATCH_XP.common * 12 - 50)
   })
 
   it('waits in the hatchery when every matching habitat is full', () => {
