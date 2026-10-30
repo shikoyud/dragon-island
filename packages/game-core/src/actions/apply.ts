@@ -1,5 +1,6 @@
 import type { Catalog } from '../catalog'
 import { LAUNCH_CATALOG } from '../data/launch-catalog'
+import { DEFAULT_PRESET, type Preset } from '../data/presets'
 import type { Rng } from '../rng'
 import type { PlayerState } from '../state'
 import { pveBattle, pvpBattle, setDefenceTeam } from './battle-actions'
@@ -12,12 +13,12 @@ import { collectGold, feed, moveDragon, sellDragon } from './island-actions'
 import { failure, type Action, type ActionCtx, type ActionResult } from './types'
 import { isValidAction } from './validate'
 
-/** Single entry point: pure, deterministic given (state, action, nowMs, rng, catalog). */
+/** Single entry point: pure, deterministic given (state, action, nowMs, rng, catalog, preset). */
 export function applyAction(
-  s: PlayerState, a: Action, nowMs: number, rng: Rng, catalog: Catalog = LAUNCH_CATALOG,
+  s: PlayerState, a: Action, nowMs: number, rng: Rng, catalog: Catalog = LAUNCH_CATALOG, preset: Preset = DEFAULT_PRESET,
 ): ActionResult {
   if (!isValidAction(a)) return failure('INVALID_ACTION')
-  const ctx: ActionCtx = { nowMs, rng, catalog }
+  const ctx: ActionCtx = { nowMs, rng, catalog, preset }
   switch (a.type) {
     case 'collectGold': return collectGold(s, a, ctx)
     case 'placeBuilding': return placeBuilding(s, a, ctx)

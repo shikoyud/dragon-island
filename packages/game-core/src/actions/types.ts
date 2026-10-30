@@ -1,5 +1,6 @@
 import type { BattleOutcome, PlayerMove } from '../battle/sim'
 import type { Catalog } from '../catalog'
+import type { Preset } from '../data/presets'
 import type { Element } from '../elements'
 import type { OpponentSnapshot } from '../matchmaking'
 import type { Rng } from '../rng'
@@ -61,7 +62,7 @@ export type ActionResult =
   | { ok: true; state: PlayerState; effects: Effect[]; battle?: BattleReport }
   | { ok: false; error: ActionError }
 
-export interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog }
+export interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog; preset: Preset }
 
 export type Handler<T extends Action['type']> =
   (s: PlayerState, a: Extract<Action, { type: T }>, ctx: ActionCtx) => ActionResult
