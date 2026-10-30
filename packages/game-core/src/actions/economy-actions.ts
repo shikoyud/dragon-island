@@ -1,4 +1,6 @@
 import type { Catalog } from '../catalog'
+import { FARM_MAX_LEVEL } from '../data/farms'
+import { HABITAT_MAX_LEVEL } from '../data/habitats'
 import type { Preset } from '../data/presets'
 import { placementRuleError } from '../placement-rules'
 import type { PlayerState } from '../state'
@@ -25,14 +27,14 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
     case 'habitatL5': {
       const h = s.habitats.find(x => x.id === item.habitatId)
       if (!h) return 'NOT_FOUND'
-      if (h.element === 'aerie' || h.level >= 5) return 'MAX_LEVEL'
-      return h.level === 4 ? null : 'INVALID_ACTION'
+      if (h.element === 'aerie' || h.level >= HABITAT_MAX_LEVEL) return 'MAX_LEVEL'
+      return h.level === HABITAT_MAX_LEVEL - 1 ? null : 'INVALID_ACTION'
     }
     case 'farmL5': {
       const f = s.farms[item.index]
       if (!f) return 'NOT_FOUND'
-      if (f.level >= 5) return 'MAX_LEVEL'
-      return f.level === 4 ? null : 'INVALID_ACTION'
+      if (f.level >= FARM_MAX_LEVEL) return 'MAX_LEVEL'
+      return f.level === FARM_MAX_LEVEL - 1 ? null : 'INVALID_ACTION'
     }
     // The Aerie takes a habitat footprint, on any island.
     case 'goldenAerie':
@@ -56,14 +58,14 @@ function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, p
     case 'habitatL5': {
       // A new level changes the cap, so Gold accrued so far is collected first.
       const collected = collectHabitat(s, item.habitatId, c, nowMs, preset)
-      return { ...collected, habitats: collected.habitats.map(h => h.id === item.habitatId ? { ...h, level: 5 } : h) }
+      return { ...collected, habitats: collected.habitats.map(h => h.id === item.habitatId ? { ...h, level: HABITAT_MAX_LEVEL } : h) }
     }
     case 'farmL5':
-      return { ...s, farms: s.farms.map((f, i) => i === item.index ? { ...f, level: 5 } : f) }
+      return { ...s, farms: s.farms.map((f, i) => i === item.index ? { ...f, level: FARM_MAX_LEVEL } : f) }
     case 'goldenAerie':
       return {
         ...s,
-        habitats: [...s.habitats, { id: `h${s.nextId}`, element: 'aerie', level: 5, lastCollectedMs: nowMs, placement: item.placement }],
+        habitats: [...s.habitats, { id: `h${s.nextId}`, element: 'aerie', level: HABITAT_MAX_LEVEL, lastCollectedMs: nowMs, placement: item.placement }],
         nextId: s.nextId + 1,
       }
   }

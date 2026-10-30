@@ -48,6 +48,15 @@ export const FARM_LEVELS: readonly FarmLevelSpec[] = [
 export const FARM_UNLOCK_PL: readonly number[] = [1, 3, 4, 7, 10, 15, 20, 25]
 export const MAX_FARMS = 8
 
+/** Every crop, T1 to T6. */
+export const CROP_IDS = Object.keys(CROPS) as CropId[]
+
+/** Top farm level (§5.3): reached only through the store, instantly. */
+export const FARM_MAX_LEVEL = 5
+/** Store price of the farm L5 upgrade, micro-USD (§5.3). */
+export const FARM_L5_USD_MICRO = FARM_LEVELS[FARM_MAX_LEVEL - 1]!.upgradeUsdMicro!
+
 /** §5.3 L1: 1,000 Gold for the first farm (x3 for each additional farm), built in 1 minute. */
+export const FARM_PRICE_GROWTH = 3
 export const FIRST_FARM_GOLD = 1_000
 export const FIRST_FARM_CLASSIC_MS = 60_000

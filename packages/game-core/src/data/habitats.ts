@@ -34,6 +34,9 @@ export const HABITATS: Record<Element, HabitatSpec> = {
 /** Dragons a habitat holds; index = level - 1 (§5.2 upgrade path). */
 export const HABITAT_CAPACITY: readonly number[] = [2, 3, 4, 5, 6]
 
+/** Top habitat level (§5.2), reached only through the store; the Golden Aerie is built at it. */
+export const HABITAT_MAX_LEVEL = 5
+
 /** L5 price in micro-USD by element tier (§5.2: $1.50 / $2.50 / $4.00). */
 export const HABITAT_L5_USD_MICRO: Record<ElementTier, number> = { A: 1_500_000, B: 2_500_000, C: 4_000_000 }
 

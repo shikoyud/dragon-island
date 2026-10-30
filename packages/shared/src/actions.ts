@@ -1,14 +1,14 @@
-import { DECORATIONS, ISLAND_ORDER, type Action, type DecorationId, type IslandId } from '@wyrmhaven/game-core'
+import { CROP_IDS, DECORATIONS, ELEMENTS, ISLAND_ORDER, MAX_DRAGON_LEVEL, MAX_ROUNDS, TEAM_SIZE, type Action, type CropId, type DecorationId, type Element, type IslandId } from '@wyrmhaven/game-core'
 import { z } from 'zod'
 
 // Mirrors game-core's isValidAction: the client sends JSON, this is the wire-level shape check.
 const id = z.string().min(1)
 const index = z.number().int().min(0)
-const level = z.number().int().min(1).max(40)
-const elementSchema = z.enum(['terra', 'flame', 'sea', 'nature', 'electric', 'ice', 'metal', 'dark', 'light', 'war'])
+const level = z.number().int().min(1).max(MAX_DRAGON_LEVEL)
+const elementSchema = z.enum(ELEMENTS as unknown as [Element, ...Element[]])
 const coord = z.number().int().min(0).max(63)
 const decorationSchema = z.custom<DecorationId>(v => typeof v === 'string' && Object.hasOwn(DECORATIONS, v))
-const cropSchema = z.enum(['dragonBush', 'emberWheat', 'seaMelon', 'thunderPumpkin', 'frostBerries', 'warlordPepper'])
+const cropSchema = z.enum(CROP_IDS as [CropId, ...CropId[]])
 
 export const placementSchema = z.object({
   island: z.enum(ISLAND_ORDER as unknown as [IslandId, ...IslandId[]]),
@@ -37,7 +37,7 @@ const movableRefSchema = z.discriminatedUnion('type', [
 
 export const teamIdsSchema = z.tuple([id, id, id])
 export const playerMoveSchema = z.object({ move: index, target: index })
-const movesSchema = z.array(playerMoveSchema).max(90)
+const movesSchema = z.array(playerMoveSchema).max(MAX_ROUNDS * TEAM_SIZE)
 
 export const storeItemSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('skip'), target: z.enum(['nest', 'hatchery', 'farm', 'construction']), index }),

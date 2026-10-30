@@ -1,6 +1,6 @@
 import { ELEMENT_TIER } from './data/elements'
-import { FARM_LEVELS } from './data/farms'
-import { GOLDEN_AERIE, HABITAT_L5_USD_MICRO } from './data/habitats'
+import { FARM_L5_USD_MICRO, FARM_MAX_LEVEL } from './data/farms'
+import { GOLDEN_AERIE, HABITAT_L5_USD_MICRO, HABITAT_MAX_LEVEL } from './data/habitats'
 import { skipPriceMicroUsd } from './data/speedups'
 import type { Placement, PlayerState } from './state'
 
@@ -40,11 +40,11 @@ export function priceMicroUsd(item: StoreItem, s: PlayerState, nowMs: number): n
       return 500_000
     case 'habitatL5': {
       const h = s.habitats.find(x => x.id === item.habitatId)
-      return h && h.element !== 'aerie' && h.level === 4 ? HABITAT_L5_USD_MICRO[ELEMENT_TIER[h.element]] : null
+      return h && h.element !== 'aerie' && h.level === HABITAT_MAX_LEVEL - 1 ? HABITAT_L5_USD_MICRO[ELEMENT_TIER[h.element]] : null
     }
     case 'farmL5': {
       const f = s.farms[item.index]
-      return f && f.level === 4 ? FARM_LEVELS[4]!.upgradeUsdMicro : null
+      return f && f.level === FARM_MAX_LEVEL - 1 ? FARM_L5_USD_MICRO : null
     }
     case 'goldenAerie':
       return GOLDEN_AERIE.usdMicro

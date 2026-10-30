@@ -1,5 +1,5 @@
 import { FARM_LEVELS } from './data/farms'
-import { habitatUpgradeGold, habitatUpgradeMs } from './data/habitats'
+import { HABITAT_MAX_LEVEL, habitatUpgradeGold, habitatUpgradeMs } from './data/habitats'
 import type { Preset } from './data/presets'
 import type { BuildingRef, PlayerState } from './state'
 
@@ -35,7 +35,7 @@ export function upgradeInfo(s: PlayerState, ref: BuildingRef, preset: Preset): U
   switch (ref.type) {
     case 'habitat': {
       const h = s.habitats.find(x => x.id === ref.id)
-      if (!h || h.element === 'aerie' || h.level >= 4) return null
+      if (!h || h.element === 'aerie' || h.level >= HABITAT_MAX_LEVEL - 1) return null
       const to = (h.level + 1) as 2 | 3 | 4
       return { cost: habitatUpgradeGold(h.element, to), timerMs: habitatUpgradeMs(to, preset), minLevel: 1 }
     }

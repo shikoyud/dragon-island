@@ -1,4 +1,4 @@
-import { CROPS, FARM_LEVELS, FIRST_FARM_GOLD } from './data/farms'
+import { CROPS, FARM_LEVELS, FARM_PRICE_GROWTH, FIRST_FARM_GOLD } from './data/farms'
 import type { Preset } from './data/presets'
 import type { CropId } from './state'
 
@@ -6,7 +6,7 @@ export * from './data/farms'
 
 /** Gold for farm `n` (1-based): 1,000 x 3^(n - 1). */
 export function farmBuildGold(n: number): number {
-  return FIRST_FARM_GOLD * 3 ** (n - 1)
+  return FIRST_FARM_GOLD * FARM_PRICE_GROWTH ** (n - 1)
 }
 
 /** Grow time under `preset` (classic / cropTimerDiv, floored: R10). */

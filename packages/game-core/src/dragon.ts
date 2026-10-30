@@ -1,17 +1,10 @@
-import { ADULT_FROM_LEVEL, FEEDS_PER_LEVEL, JUVENILE_FROM_LEVEL, MAX_DRAGON_LEVEL, ROOST_LEVEL_CAPS } from './data/dragon-levels'
+import { ADULT_FROM_LEVEL, FEEDS_PER_LEVEL, FOOD_PER_FEED_XP, foodPerFeed, JUVENILE_FROM_LEVEL, MAX_DRAGON_LEVEL, ROOST_LEVEL_CAPS } from './data/dragon-levels'
 import type { Element } from './data/elements'
 import { HABITATS } from './data/habitats'
 import type { Preset } from './data/presets'
 import { GPM_RARITY_MULT_TENTHS, type Rarity } from './rarity'
 
-export { ADULT_FROM_LEVEL, BREED_MIN_LEVEL, FEEDS_PER_LEVEL, JUVENILE_FROM_LEVEL, MAX_DRAGON_LEVEL, ROOST_LEVEL_CAPS } from './data/dragon-levels'
-
-/** Food for one feed at `level`: ⌈5 × 1.2^(L−1)⌉ = ⌈5·6^(L−1) / 5^(L−1)⌉, exact in integers (R5, §4.1). */
-export function foodPerFeed(level: number): number {
-  const n = BigInt(level - 1)
-  const den = 5n ** n
-  return Number((5n * 6n ** n + den - 1n) / den)
-}
+export { ADULT_FROM_LEVEL, BREED_MIN_LEVEL, FEEDS_PER_LEVEL, foodPerFeed, JUVENILE_FROM_LEVEL, MAX_DRAGON_LEVEL, ROOST_LEVEL_CAPS } from './data/dragon-levels'
 
 /** Food to go from `level` to `level + 1` (four feeds). */
 export function foodForLevel(level: number): number {
@@ -39,7 +32,7 @@ export function stageOf(level: number): Stage {
 
 /** XP for feeding `food` (§4.3); the preset XP multiplier is applied in M3. */
 export function feedXp(food: number): number {
-  return Math.max(1, Math.floor(food / 10))
+  return Math.max(1, Math.floor(food / FOOD_PER_FEED_XP))
 }
 
 /**
