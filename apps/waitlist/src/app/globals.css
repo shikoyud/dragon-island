@@ -466,6 +466,13 @@ h3 {
   }
 }
 
+/* The hero is two columns from 960px and the scene is only about 279px wide until 970px, so ten 32px columns (380px) would clip. */
+@media (min-width: 960px) and (max-width: 969px) {
+  .hatchlings {
+    grid-template-columns: repeat(5, 32px);
+  }
+}
+
 /* Two rows of five: the 288px frame needs the scene to be wider than 960px, so this starts at 970px. */
 @media (min-width: 970px) {
   .hatchlings {
