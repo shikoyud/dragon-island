@@ -17,28 +17,22 @@ import { termsRequired } from './plugins/terms'
 import { runBurnBatch } from './jobs/burnBatch'
 import { createChainWatch } from './jobs/chainWatch'
 import { expireVouchers } from './jobs/voucherExpiry'
-import { closeSeasons } from './jobs/seasonClose'
 import { prune } from './jobs/prune'
 import { actionRoutes } from './routes/actions'
 import { adminRoutes, type JobRegistry } from './routes/admin'
 import { e2eRoutes } from './routes/e2e'
 import { authRoutes } from './routes/auth'
 import { pvpRoutes } from './routes/pvp'
-import { referralRoutes } from './routes/referral'
 import { withdrawRoutes } from './routes/withdraw'
 import type { WithdrawDeps } from './services/withdraw'
 import { requireActive } from './services/bans'
-import { withDerivedLedger } from './services/ledger'
+import { ensureGame } from './services/game'
 import { migrateState } from './services/stateMigration'
 import { sendAlert } from './services/alerts'
 import { runIndexer } from './services/indexer'
-import { ensureCurrentSeason } from './services/season'
-import { seasonRoutes } from './routes/season'
 import type { ActionDeps } from './services/actions'
 import { peekOfferOpponent, resolveOffer, settleDefence } from './services/battles'
 import { ManualPriceSource, type PriceSource } from './services/price'
-import { getSeasonInfo } from './services/season'
-import { spForAction, spRoutes } from './services/sp'
 
 const termsBody = z.object({ version: z.string().max(64) })
 
@@ -81,24 +75,19 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   const actionDeps: ActionDeps = {
     db, clock, catalog: deps.catalog, price: deps.price,
-    awardSp: (tx, args) => spForAction(tx, args, clock),
     resolveOffer, settleDefence, peekOfferOpponent,
   }
   authRoutes(app, deps)
-  seasonRoutes(app, deps)
   actionRoutes(app, deps, actionDeps)
-  spRoutes(app, deps)
   pvpRoutes(app, deps)
   withdrawRoutes(app, deps, withdrawDeps)
-  referralRoutes(app, deps)
 
   const chain = deps.chain
   const jobs: JobRegistry = {
     indexer: () => runIndexer({ db, chain, confirmations: config.CONFIRMATIONS, clock, startBlock: config.INDEXER_START_BLOCK, chunk: config.INDEXER_CHUNK }),
     voucherExpiry: () => expireVouchers({ db, clock, chain }),
     burnBatch: () => runBurnBatch({ db, chain, clock }),
-    season: () => ensureCurrentSeason(db, clock),
-    seasonClose: () => closeSeasons({ db, clock }),
+    game: () => ensureGame(db, clock),
     prune: () => prune({ db, clock }),
   }
   // Watches the real vault only; state lives in the closure for the life of the process.
@@ -129,16 +118,15 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   app.get('/me', { preHandler: requireSession(db, clock) }, async req => {
     const p = req.player!
     const [bal] = await db.select().from(balances).where(eq(balances.playerId, p.id))
-    // Same load path as /actions, so a save from before a game-core change reaches the client complete.
+    // Same load path as /actions, so a save of another version reaches the client as a fresh player (R2).
     const state = migrateState(p.state, clock())
     return {
       playerId: p.id,
       address: getAddress(p.address),
-      state: bal ? withDerivedLedger(state, bal, await deps.price!.microUsdPerToken(db), p.earningUnlocked) : state,
+      state,
       balanceWei: (bal?.tokenWei ?? 0n).toString(),
       earningUnlocked: p.earningUnlocked,
       banned: p.bannedAt !== null,
-      season: await getSeasonInfo(db, clock),
       termsRequired: termsRequired(config, p),
     }
   })

@@ -1,5 +1,5 @@
 import {
-  applyAction, createRng, utcDay, type Action, type ActionResult, type Catalog, type OpponentSnapshot, type PlayerState,
+  applyAction, createRng, utcDay, type Action, type Catalog, type OpponentSnapshot, type PlayerState,
 } from '@wyrmhaven/game-core'
 import type { ActionRequest, ActionResponse, ClientAction, ErrorResponse } from '@wyrmhaven/shared'
 import { and, eq } from 'drizzle-orm'
@@ -7,10 +7,10 @@ import type { Clock } from '../clock'
 import type { Db, Tx } from '../db/client'
 import { actionLog, players } from '../db/schema'
 import { AppError } from '../plugins/errors'
-import { charge, creditEarned, getBalance, withDerivedLedger } from './ledger'
+import { ensureGame } from './game'
+import { charge } from './ledger'
 import type { PriceSource } from './price'
 import { usdToTokenWei } from './price'
-import { ensureCurrentSeason } from './season'
 import { actionSeed, battleSeed, secretFromHex } from './seed'
 import { migrateState } from './stateMigration'
 
@@ -25,19 +25,9 @@ export interface ActionDeps {
   peekOfferOpponent?: (tx: Tx, offerId: string) => Promise<string | null>
   /** Task 6: applies a defenceResult effect to the other player. */
   settleDefence?: (tx: Tx, defenderPlayerId: string, trophyDelta: number, nowMs: number) => Promise<void>
-  /** Task 5: season points for a successful action. */
-  awardSp?: (tx: Tx, args: SpArgs) => Promise<{ awarded: number; today: number } | null>
 }
 
 export interface ResolvedOffer { opponent: OpponentSnapshot; opponentPlayerId: string | null; seed32: number; seedHex: `0x${string}` }
-export interface SpArgs {
-  player: typeof players.$inferSelect
-  seasonId: number
-  day: number
-  action: Action
-  result: Extract<ActionResult, { ok: true }>
-  opponent: { playerId: string | null; offerId: string } | null
-}
 
 export type RunResult = { status: number; body: ActionResponse | ErrorResponse }
 
@@ -64,21 +54,18 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       .where(and(eq(actionLog.playerId, playerId), eq(actionLog.idempotencyKey, request.idempotencyKey)))
     if (replay) return { status: replay.status, body: replay.response as ActionResponse | ErrorResponse }
 
-    // players.earning_unlocked (set by the chain indexer) is authoritative over the copy in state.
     const price = await deps.price.microUsdPerToken(tx)
-    const state = withDerivedLedger(migrateState(player.state, nowMs), await getBalance(tx, playerId), price, player.earningUnlocked)
-    if (price === null && request.action.type === 'sellGold') throw new AppError(503, 'PRICE_UNAVAILABLE')
+    const state = migrateState(player.state, nowMs)
 
-    const season = await ensureCurrentSeason(tx, clock)
+    const secretRow = await ensureGame(tx, clock)
     const nonce = player.actionNonce + 1n
-    const secret = secretFromHex(season.secretHex)
+    const secret = secretFromHex(secretRow.secretHex)
     let { seedHex, seed32 } = actionSeed(secret, playerId, nonce)
     let seedLabel = `${playerId}:${nonce}`
 
     // Server-only shaping: a pvpBattle names a stored offer; the server supplies the opponent.
     let action: Action
     let logged: unknown
-    let offerRef: { playerId: string | null; offerId: string } | null = null
     const client: ClientAction = request.action
     if (client.type === 'pvpBattle') {
       if (!deps.resolveOffer) throw new AppError(409, 'OFFER_NOT_FOUND')
@@ -88,7 +75,6 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       seed32 = offer.seed32
       seedHex = offer.seedHex
       seedLabel = `battle:${client.offerId}`
-      offerRef = { playerId: offer.opponentPlayerId, offerId: client.offerId }
     } else {
       action = client
       logged = client
@@ -112,10 +98,7 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       for (const effect of result.effects) {
         if (effect.type === 'charge') {
           if (price === null) throw new AppError(503, 'PRICE_UNAVAILABLE')
-          await charge(tx, clock, playerId, usdToTokenWei(BigInt(effect.microUsd), price), day, `spend:${playerId}:${nonce}`)
-        } else if (effect.type === 'payout') {
-          if (price === null) throw new AppError(503, 'PRICE_UNAVAILABLE')
-          await creditEarned(tx, playerId, usdToTokenWei(BigInt(effect.microUsd), price), 'payout')
+          await charge(tx, clock, playerId, usdToTokenWei(BigInt(effect.microUsd), price), day)
         } else if (effect.type === 'defenceResult') {
           if (deps.settleDefence) await deps.settleDefence(tx, effect.playerId, effect.trophyDelta, nowMs)
         }
@@ -124,10 +107,6 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       await tx.update(players).set({ state: next, updatedAt: new Date(nowMs) }).where(eq(players.id, playerId))
       status = 200
       body = { state: next, effects: result.effects, ...(result.battle ? { battle: result.battle } : {}) }
-      const sp = deps.awardSp
-        ? await deps.awardSp(tx, { player: { ...player, state: next }, seasonId: season.id, day, action, result, opponent: offerRef })
-        : null
-      if (sp) body = { ...body, sp }
     }
 
     // Keep the query columns mirrored from state on every action, including failures.
@@ -137,7 +116,7 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       .set({ actionNonce: nonce, trophies: mirror.trophies, defenceTeam: mirror.defenceTeam, level: mirror.level })
       .where(eq(players.id, playerId))
     await tx.insert(actionLog).values({
-      playerId, nonce, idempotencyKey: request.idempotencyKey, seasonId: season.id, seedHex, seedLabel,
+      playerId, nonce, idempotencyKey: request.idempotencyKey, seedHex, seedLabel,
       action: logged as Record<string, unknown>, status, response: body as unknown as Record<string, unknown>,
       createdAt: new Date(nowMs),
     })

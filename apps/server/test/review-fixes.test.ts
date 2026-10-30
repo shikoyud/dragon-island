@@ -2,13 +2,13 @@ import { MS_PER_DAY, type PlayerState } from '@wyrmhaven/game-core'
 import { eq, sql } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeChainClient } from '../src/chain/fake'
-import { actionLog, balances, burnAttempts, chainEvents, players, seasons, spendBatches, vouchers } from '../src/db/schema'
+import { actionLog, balances, burnAttempts, chainEvents, players, spendBatches, vouchers } from '../src/db/schema'
 import { runBurnBatch } from '../src/jobs/burnBatch'
 import { startScheduler } from '../src/jobs/scheduler'
 import { expireVouchers } from '../src/jobs/voucherExpiry'
 import { runIndexer } from '../src/services/indexer'
 import { FixedPriceSource } from '../src/services/price'
-import { ensureCurrentSeason, SEASON_MS } from '../src/services/season'
+import { ensureGame } from '../src/services/game'
 import { battleSeed, secretFromHex } from '../src/services/seed'
 import { bearer, testApp, type TestApp } from './helpers/testApp'
 import { TEST_KEYS, wallet } from './helpers/wallet'
@@ -78,38 +78,6 @@ describe('C1: a claim indexed after server-side expiry never pays twice', () => 
   })
 })
 
-describe('C2: deposits and withdrawals reach state.ledger so §14 penalties apply', () => {
-  it('pauses sell-back for a player with zero deposits who has withdrawn', async () => {
-    await t.db.update(balances).set({ withdrawnWei: 1n * E18, tokenWei: 99n * E18 }).where(eq(balances.playerId, A.playerId))
-    await t.db.update(players).set({ earningUnlocked: true }).where(eq(players.id, A.playerId))
-    const [p] = await t.db.select().from(players).where(eq(players.id, A.playerId))
-    await t.db.update(players).set({ state: { ...(p!.state as PlayerState), gold: 300_000, eligibleGold: 300_000, hoardLevel: 1 } }).where(eq(players.id, A.playerId))
-    const r = await act(A.token, { type: 'sellGold', gold: 10 })
-    expect(r.statusCode).toBe(422)
-    expect(r.json()).toEqual({ error: 'SELL_LIMIT_REACHED' })
-    // The ledger is derived from the token balances on every action; a successful one shows it.
-    const ok = await act(A.token, { type: 'collectGold', habitatId: 'h1' })
-    expect(ok.json().state.ledger.withdrawnMicroUsd).toBe(50_000) // 1 token at $0.05
-  })
-
-  it('converts deposits down and withdrawals up at the current price', async () => {
-    await t.db.update(balances).set({ depositedWei: 3n * E18 + 1n, withdrawnWei: 1n }).where(eq(balances.playerId, A.playerId))
-    const r = await act(A.token, { type: 'collectGold', habitatId: 'h1' })
-    expect(r.statusCode).toBe(200)
-    expect(r.json().state.ledger).toMatchObject({ depositedMicroUsd: 150_000, withdrawnMicroUsd: 1 })
-  })
-})
-
-describe('I1: season rollover is race-free', () => {
-  it('creates exactly one season under concurrent calls', async () => {
-    await ensureCurrentSeason(t.db, t.clock)
-    t.clock.advance(SEASON_MS)
-    const results = await Promise.all(Array.from({ length: 6 }, () => ensureCurrentSeason(t.db, t.clock)))
-    expect(new Set(results.map(s => s.id)).size).toBe(1)
-    expect(await t.db.select().from(seasons)).toHaveLength(2)
-  })
-})
-
 describe('I2: the action log records the seed a battle actually used', () => {
   it('stores the battle seed and offer id', async () => {
     const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
@@ -122,8 +90,8 @@ describe('I2: the action log records the seed a battle actually used', () => {
     const pve = await act(A.token, { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }] })
     expect(pve.statusCode).toBe(200)
     const [log] = await t.db.select().from(actionLog).where(eq(actionLog.playerId, A.playerId))
-    const season = await ensureCurrentSeason(t.db, t.clock)
-    expect(log!.seedHex).toBe(battleSeed(secretFromHex(season.secretHex), `${A.playerId}:1`).seedHex)
+    const g = await ensureGame(t.db, t.clock)
+    expect(log!.seedHex).toBe(battleSeed(secretFromHex(g.secretHex), `${A.playerId}:1`).seedHex)
     expect(log!.seedLabel).toBe(`battle:${A.playerId}:1`)
 
     const offers = (await t.app.inject({ method: 'GET', url: '/pvp/offers', headers: bearer(A.token) })).json().offers
@@ -244,7 +212,7 @@ describe('I9: hot queries have indexes', () => {
   it('has indexes on sessions, offers, vouchers and the action log', async () => {
     const rows = (await t.db.execute(sql`select indexname from pg_indexes where schemaname = 'public'`)) as unknown as { rows: { indexname: string }[] }
     const names = rows.rows.map(r => r.indexname)
-    for (const expected of ['sessions_player_idx', 'battle_offers_player_idx', 'vouchers_open_idx', 'action_log_season_player_idx']) {
+    for (const expected of ['sessions_player_idx', 'battle_offers_player_idx', 'vouchers_open_idx', 'action_log_player_key']) {
       expect(names, expected).toContain(expected)
     }
   })

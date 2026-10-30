@@ -98,7 +98,6 @@ describe('pvpBattle via offers', () => {
     const b = await row(B.playerId)
     expect(b.trophies).toBe(0)
     expect((b.state as PlayerState).trophies).toBe(0)
-    expect(body.sp).toBeUndefined() // A has not unlocked earning
   })
 
   it('rejects used, foreign and expired offers without counting an attempt', async () => {
@@ -138,7 +137,7 @@ describe('pvpBattle via offers', () => {
 })
 
 describe('pveBattle seeding', () => {
-  it('is deterministic from the season secret and the action nonce', async () => {
+  it('is deterministic from the game secret and the action nonce', async () => {
     const run = async () => {
       const r = await post(A.token, { type: 'pveBattle', stage: 1, team: TEAM, moves: SWEEP })
       expect(r.statusCode).toBe(200)

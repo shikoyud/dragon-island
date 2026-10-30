@@ -4,7 +4,7 @@ import { AppError } from './errors'
 
 /**
  * Paths a blocked country may not use: sign-in (/auth/*), play (/actions) and withdrawals (/withdraw,
- * /withdraw/*). /health, /admin/*, /me, /season* and the rest are never geo-blocked.
+ * /withdraw/*). /health, /admin/*, /me and the rest are never geo-blocked.
  */
 export function isGeoBlockedPath(url: string): boolean {
   const path = url.split('?', 1)[0]!

@@ -1,5 +1,5 @@
 import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { actionLog, balances, players, spendBatches } from '../src/db/schema'
 import { FixedPriceSource } from '../src/services/price'
@@ -85,17 +85,6 @@ describe('POST /actions', () => {
     expect(r.json()).toEqual({ error: 'PRICE_UNAVAILABLE' })
   })
 
-  it('credits gold sell-back payouts to the earned balance', async () => {
-    await setState({ gold: 300_000, eligibleGold: 300_000, hoardLevel: 1 })
-    await t.db.update(players).set({ earningUnlocked: true }).where(eq(players.id, playerId))
-    const r = await post({ type: 'sellGold', gold: 100_000 })
-    expect(r.statusCode).toBe(200)
-    expect(r.json().effects).toEqual([{ type: 'payout', microUsd: 500_000 }])
-    const [b] = await t.db.select().from(balances)
-    expect(b!.tokenWei).toBe(110n * E18)
-    expect(b!.earnedWei).toBe(10n * E18)
-  })
-
   it('maps game-core errors to 422 and still consumes the nonce', async () => {
     await post({ type: 'plant', plot: 0, crop: 'sprout' })
     const r = await post({ type: 'plant', plot: 0, crop: 'sprout' })
@@ -141,19 +130,27 @@ describe('POST /actions', () => {
     expect(await t.db.select().from(spendBatches)).toHaveLength(0)
   })
 
-  it('GET /me lays out a legacy (pre-grid) save instead of returning it raw', async () => {
+  it('GET /me resets a save of another version to a fresh player instead of returning it raw', async () => {
     const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
-    const old = { ...(p!.state as PlayerState), nests: [null] } as unknown as Record<string, unknown>
-    for (const k of ['islands', 'hatcheryLevel', 'hatcheryPlacement', 'hoardPlacement', 'decorations', 'constructions']) delete old[k]
-    old['farms'] = [{ crop: null, readyAtMs: 0 }]
-    old['habitats'] = (old['habitats'] as Record<string, unknown>[]).map(({ placement, ...h }) => { void placement; return h })
-    await t.db.update(players).set({ state: old }).where(eq(players.id, playerId))
+    await t.db.update(players).set({ state: { ...(p!.state as PlayerState), version: 1, gold: 7 } }).where(eq(players.id, playerId))
     const me = await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })
     expect(me.statusCode).toBe(200)
-    const state = me.json().state
-    expect(state.islands.unlocked).toEqual(['home'])
-    expect(state.nests[0].egg).toBeNull()
-    expect(state.habitats[0].placement.island).toBe('home')
+    expect(me.json().state.version).toBe(newPlayer(0).version)
+    expect(me.json().state.gold).toBe(newPlayer(0).gold)
+    expect(me.json()).not.toHaveProperty('season')
+  })
+
+  it('runs a startBreed action without a seasons table and logs no season_id', async () => {
+    const tables = await t.db.execute(sql`select table_name from information_schema.tables where table_schema = 'public'`)
+    expect(JSON.stringify(tables)).not.toContain('seasons')
+    await setState({ dragons: newPlayer(0).dragons.map(d => ({ ...d, level: 4 })) })
+    const r = await post({ type: 'startBreed', parentA: 'd1', parentB: 'd2' })
+    expect(r.statusCode).toBe(200)
+    const [log] = await t.db.select().from(actionLog).where(eq(actionLog.playerId, playerId))
+    expect(log!.status).toBe(200)
+    expect(log).not.toHaveProperty('seasonId')
+    const cols = await t.db.execute(sql`select column_name from information_schema.columns where table_name = 'action_log'`)
+    expect(JSON.stringify(cols)).not.toContain('season_id')
   })
 
   it('requires a stored offer for pvp battles', async () => {

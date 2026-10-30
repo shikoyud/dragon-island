@@ -27,7 +27,7 @@ const schema = z.object({
   ADMIN_TOKEN: z.string().min(32),
   /** Closed beta: only wallets in `beta_allowlist` may sign in. Existing sessions are unaffected. */
   BETA_CLOSED: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
-  /** Behind a reverse proxy, take the client IP from X-Forwarded-For (rate limits, referral checks). */
+  /** Behind a reverse proxy, take the client IP from X-Forwarded-For (rate limits, sign-in origins). */
   TRUST_PROXY: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
   /**
    * Comma list of ISO 3166-1 alpha-2 codes refused on /auth/*, /actions and /withdraw* (451). Read from

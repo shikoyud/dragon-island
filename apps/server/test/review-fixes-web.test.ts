@@ -21,21 +21,6 @@ describe('I6: E2E mode cannot run against anything real', () => {
   })
 })
 
-describe('I2: /me carries the chain-derived ledger', () => {
-  let t: TestApp
-  beforeEach(async () => { t = await testApp({ price: new FixedPriceSource(50_000n) }, 1_000) })
-  afterEach(async () => { await t.close() })
-
-  it('derives deposited/withdrawn micro-USD from balances at the current price', async () => {
-    const { token, playerId } = await t.login(wallet(TEST_KEYS.alice))
-    await t.db.update(balances).set({ depositedWei: 3n * E18, withdrawnWei: 1n }).where(eq(balances.playerId, playerId))
-    const me = await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })
-    expect((me.json().state as PlayerState).ledger).toMatchObject({ depositedMicroUsd: 150_000, withdrawnMicroUsd: 1 })
-    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
-    expect((p!.state as PlayerState).ledger).toEqual(newPlayer(0).ledger) // stored state untouched
-  })
-})
-
 describe('I5: pve battles fall back to the AI for missing moves instead of forfeiting', () => {
   let t: TestApp
   beforeEach(async () => { t = await testApp({}, 1_000) })

@@ -48,7 +48,6 @@ describe('bans', () => {
     expect(r.statusCode).toBe(403)
     expect(r.json()).toEqual({ error: 'BANNED' })
     expect((await t.app.inject({ method: 'GET', url: '/pvp/offers', headers: bearer(again.token) })).statusCode).toBe(403)
-    expect((await t.app.inject({ method: 'GET', url: '/sp', headers: bearer(again.token) })).statusCode).toBe(403)
   })
 
   it('still lets a banned player withdraw their own deposits, and no more', async () => {
@@ -89,11 +88,10 @@ describe('admin', () => {
     expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(95n * E18) // $0.50 / $0.10 = 5 tokens
   })
 
-  it('runs jobs and reveals ended seasons', async () => {
+  it('runs jobs', async () => {
     expect((await t.app.inject({ method: 'POST', url: '/admin/jobs/indexer/run', headers: admin })).statusCode).toBe(200)
     expect((await t.app.inject({ method: 'POST', url: '/admin/jobs/nope/run', headers: admin })).statusCode).toBe(404)
-    expect((await t.app.inject({ method: 'GET', url: '/season' })).statusCode).toBe(200) // creates season 1
-    expect((await t.app.inject({ method: 'POST', url: '/admin/season/1/reveal', headers: admin })).statusCode).toBe(409)
-    expect((await t.app.inject({ method: 'POST', url: '/admin/season/9/reveal', headers: admin })).statusCode).toBe(404)
+    expect((await t.app.inject({ method: 'POST', url: '/admin/jobs/game/run', headers: admin })).statusCode).toBe(200) // creates the game secret
+    expect((await t.app.inject({ method: 'POST', url: '/admin/season/1/reveal', headers: admin })).statusCode).toBe(404) // seasons are gone
   })
 })
