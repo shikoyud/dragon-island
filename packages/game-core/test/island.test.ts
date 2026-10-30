@@ -11,7 +11,7 @@ describe('island geometry', () => {
   })
   it('lists the starting occupants', () => {
     const o = occupants(newPlayer(0), 'home')
-    expect(o).toHaveLength(6)
+    expect(o).toHaveLength(5)
     expect(o.find(x => x.ref.type === 'hatchery')).toEqual({ ref: { type: 'hatchery' }, col: 0, row: 8, size: 4 })
   })
   it('rejects placements off the island, on a locked island, or over something', () => {

@@ -34,7 +34,7 @@ describe('island unlock actions', () => {
     err(run(b, { type: 'unlockIsland' }, 0), 'MAX_ISLAND')
   })
   it('clears an obstacle for gold on a timer and pays XP and food on finish', () => {
-    const a = ok(run({ ...s, level: 2, tutorial: { ...s.tutorial, buildsStarted: 2 } }, { type: 'expandIsland' }, 0))
+    const a = ok(run({ ...s, level: 2 }, { type: 'expandIsland' }, 0))
     err(run({ ...a, gold: 99 }, { type: 'clearObstacle', obstacleId: 'home-s1-bush' }, 0), 'INSUFFICIENT_GOLD')
     err(run({ ...a, gold: 100 }, { type: 'clearObstacle', obstacleId: 'nope' }, 0), 'NOT_FOUND')
     const b = ok(run({ ...a, gold: 100 }, { type: 'clearObstacle', obstacleId: 'home-s1-bush' }, 0))

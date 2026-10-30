@@ -1,6 +1,7 @@
 import { ELEMENT_TIER } from './data/elements'
 import { FARM_LEVELS } from './data/farms'
 import { GOLDEN_AERIE, HABITAT_L5_USD_MICRO } from './data/habitats'
+import { skipPriceMicroUsd } from './data/speedups'
 import type { Placement, PlayerState } from './state'
 
 export type StoreItem =
@@ -17,7 +18,6 @@ export type SkipTarget = 'nest' | 'hatchery' | 'farm' | 'construction'
 
 export const MAX_NESTS = 4
 export const FOOD_PACK = 1_000
-export const SKIP_STEP_MS = 1_800_000
 
 /** Ready time of a skip target, or `null` if the slot holds nothing. */
 export function skipTargetReadyAt(s: PlayerState, target: SkipTarget, index: number): number | null {
@@ -34,7 +34,7 @@ export function priceMicroUsd(item: StoreItem, s: PlayerState, nowMs: number): n
     case 'skip': {
       const readyAt = skipTargetReadyAt(s, item.target, item.index)
       if (readyAt === null || readyAt <= nowMs) return null
-      return 100_000 * Math.ceil((readyAt - nowMs) / SKIP_STEP_MS)
+      return skipPriceMicroUsd(readyAt - nowMs)
     }
     case 'foodPack':
       return 500_000

@@ -45,19 +45,19 @@ describe('HabitatPanel', () => {
   it('shows stored gold and upgrade cost, and collects', async () => {
     const { wrap, action } = harness(base, 600_000)
     wrap(<HabitatPanel habitatId="h1" nowMs={600_000} />)
-    expect(screen.getByText(/700 gold stored/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /upgrade to 2/i })).toHaveTextContent('20,000')
+    expect(screen.getByText(/1,800 gold stored/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /upgrade to 2/i })).toHaveTextContent('10,000')
     await userEvent.click(screen.getByRole('button', { name: /collect/i }))
     expect(action).toHaveBeenCalledWith({ type: 'collectGold', habitatId: 'h1' }, expect.any(String))
   })
 
   it('offers moves only for dragons that fit', () => {
-    const waiting: PlayerState = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'sea', level: 1, feeds: 0, habitatId: null }] }
+    const waiting: PlayerState = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }] }
     const { wrap } = harness(waiting)
     wrap(<HabitatPanel habitatId="h2" nowMs={0} />)
     const move = screen.getByRole('group', { name: /move a dragon here/i })
     expect(within(move).getByRole('button', { name: /d9/ })).toBeEnabled()
-    expect(within(move).queryByRole('button', { name: /d1/ })).toBeNull() // flame cannot live in sea
+    expect(within(move).queryByRole('button', { name: /d1/ })).toBeNull() // terra cannot live in flame
     expect(screen.queryByRole('button', { name: /build new habitat/i })).toBeNull() // the Build shop owns new habitats
   })
 })
@@ -115,7 +115,7 @@ describe('NestsPanel and FarmPanel', () => {
     const s = { ...base, nests: [{ ...base.nests[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001 } }], hatchery: [{ speciesId: 'sea', readyAtMs: 0 }] }
     const { wrap, action } = harness(s)
     wrap(<NestsPanel nowMs={0} />)
-    expect(screen.getByRole('button', { name: /skip.*\$0\.20/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /skip.*\$0\.062417/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /collect egg/i })).toBeDisabled()
     await userEvent.click(screen.getByRole('button', { name: /^hatch$/i }))
     expect(action).toHaveBeenCalledWith({ type: 'hatch', slot: 0 }, expect.any(String))
@@ -128,7 +128,7 @@ describe('NestsPanel and FarmPanel', () => {
     await userEvent.click(screen.getAllByRole('button', { name: /^plant$/i })[0]!)
     expect(action).toHaveBeenCalledWith({ type: 'plant', plot: 0, crop: 'dragonBush' }, expect.any(String))
 
-    const growing = { ...base, farms: [{ ...base.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 60_000 }, base.farms[1]!] }
+    const growing = { ...base, farms: [{ ...base.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 60_000 }] }
     const h2 = harness(growing, 30_000)
     h2.wrap(<FarmPanel nowMs={30_000} />)
     const harvest = screen.getAllByRole('button', { name: /harvest/i })[0]!

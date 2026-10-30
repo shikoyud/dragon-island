@@ -72,11 +72,11 @@ describe('UpgradeSection', () => {
     const { wrap, action, setState } = harness({ ...base, gold: 25_000 })
     const r = wrap(<UpgradeSection building={h1} nowMs={0} />)
     expect(screen.getByText('Level 1')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Upgrade to 2 · 20,000 gold · 10m/ })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /Upgrade to 2 · 10,000 gold · 10m/ })).toBeEnabled()
 
     setState({ ...base, gold: 4_000, constructions: [{ kind: 'upgrade', building: h1, readyAtMs: 600_000 }] })
     r.rerender(<UpgradeSection building={h1} nowMs={0} />)
-    expect(screen.getByRole('button', { name: /Skip · \$0\.10/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Skip · \$0\.02957/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Upgrade to/ })).toBeNull()
     expect(action).not.toHaveBeenCalled()
 
@@ -147,7 +147,7 @@ describe('Finish button and upgrades that keep working', () => {
   })
 
   it('lets dragons move into a habitat that is only being upgraded', async () => {
-    const waiting = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }], constructions: [{ kind: 'upgrade' as const, building: h1, readyAtMs: 99 }] }
+    const waiting = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'terra', level: 1, feeds: 0, habitatId: null }], constructions: [{ kind: 'upgrade' as const, building: h1, readyAtMs: 99 }] }
     harness(waiting).wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
     expect(screen.getByRole('button', { name: /d9/ })).toBeEnabled()
   })

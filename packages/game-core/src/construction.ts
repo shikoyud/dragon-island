@@ -1,10 +1,8 @@
-import { TUTORIAL_TIMER_MS } from './time'
 import type { BuildingRef, Construction, PlayerState } from './state'
 
 type NewConstruction = Construction extends infer C ? (C extends unknown ? Omit<C, 'readyAtMs'> : never) : never
 
 export const MAX_BUILDERS = 2
-export const TUTORIAL_BUILDS = 2
 
 export function sameBuilding(a: BuildingRef, b: BuildingRef): boolean {
   if (a.type !== b.type) return false
@@ -24,18 +22,12 @@ export function isUnderConstruction(s: PlayerState, ref: BuildingRef): boolean {
   return constructionFor(s, ref) !== undefined
 }
 
-/** Appends a construction; the first TUTORIAL_BUILDS a player starts take TUTORIAL_TIMER_MS. `null` when both builders are busy. */
+/** Appends a construction that takes `timerMs`. `null` when both builders are busy. */
 export function startConstruction(
   s: PlayerState, c: NewConstruction, timerMs: number, nowMs: number,
 ): PlayerState | null {
   if (s.constructions.length >= MAX_BUILDERS) return null
-  const tutorial = s.tutorial.buildsStarted < TUTORIAL_BUILDS
-  const readyAtMs = nowMs + (tutorial ? TUTORIAL_TIMER_MS : timerMs)
-  return {
-    ...s,
-    constructions: [...s.constructions, { ...c, readyAtMs } as Construction],
-    tutorial: { ...s.tutorial, buildsStarted: s.tutorial.buildsStarted + 1 },
-  }
+  return { ...s, constructions: [...s.constructions, { ...c, readyAtMs: nowMs + timerMs } as Construction] }
 }
 
 /** A new building still being built: it does nothing yet. A building under upgrade keeps working. */

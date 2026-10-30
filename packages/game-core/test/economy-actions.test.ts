@@ -3,6 +3,7 @@ import { applyAction } from '../src/actions/apply'
 import type { Action } from '../src/actions/types'
 import { createRng } from '../src/rng'
 import { newPlayer, type PlayerState } from '../src/state'
+import { skipPriceMicroUsd } from '../src/data/speedups'
 import { priceMicroUsd, type StoreItem } from '../src/store'
 import { FIXTURE_CATALOG } from './fixtures'
 import { err, ok } from './helpers'
@@ -18,20 +19,20 @@ describe('buy', () => {
   it('sells food packs', () => {
     const r = run(p0, buy({ kind: 'foodPack' }))
     expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 500_000 }])
-    expect(ok(r).food).toBe(1_100)
+    expect(ok(r).food).toBe(p0.food + 1_000)
   })
 
   it('skips timers', () => {
     const st = { ...p0, nests: [{ ...p0.nests[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001 } }] }
     const r = run(st, buy({ kind: 'skip', target: 'nest', index: 0 }))
-    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 200_000 }])
+    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: skipPriceMicroUsd(1_800_001) }])
     expect(ok(r).nests[0]!.egg!.readyAtMs).toBe(0)
     err(run(st, buy({ kind: 'skip', target: 'nest', index: 0 }), 1_800_001), 'NOTHING_TO_SKIP')
     err(run(st, buy({ kind: 'skip', target: 'nest', index: 3 })), 'NOT_FOUND')
   })
 
   it('skips hatchery and farm timers', () => {
-    const st = { ...p0, hatchery: [{ speciesId: 'flame', readyAtMs: 90_000 }], farms: [{ ...p0.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 60_000 }, p0.farms[1]!] }
+    const st = { ...p0, hatchery: [{ speciesId: 'flame', readyAtMs: 90_000 }], farms: [{ ...p0.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 60_000 }, { ...p0.farms[0]!, crop: null }] }
     expect(ok(run(st, buy({ kind: 'skip', target: 'hatchery', index: 0 }), 10)).hatchery[0]!.readyAtMs).toBe(10)
     expect(ok(run(st, buy({ kind: 'skip', target: 'farm', index: 0 }), 10)).farms[0]).toEqual({ ...p0.farms[0], crop: 'dragonBush', readyAtMs: 10 })
     err(run(st, buy({ kind: 'skip', target: 'farm', index: 1 })), 'NOTHING_TO_SKIP')
@@ -49,27 +50,27 @@ describe('buy', () => {
 
 describe('placed store items and construction skips', () => {
   it('prices and applies a construction skip, which finishes the build', () => {
-    const a = ok(run({ ...s, gold: 25_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
-    expect(priceMicroUsd({ kind: 'skip', target: 'construction', index: 0 }, a, 0)).toBe(100_000)
+    const a = ok(run({ ...s, gold: 25_000 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    expect(priceMicroUsd({ kind: 'skip', target: 'construction', index: 0 }, a, 0)).toBe(skipPriceMicroUsd(600_000))
     expect(priceMicroUsd({ kind: 'skip', target: 'construction', index: 0 }, a, 600_000)).toBeNull()
     const r = run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 1_000)
-    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 100_000 }])
+    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: skipPriceMicroUsd(599_000) }])
     expect([ok(r).habitats[0]!.level, ok(r).constructions]).toEqual([2, []])
   })
   it('a construction skip with a bad index is NOT_FOUND and charges nothing', () => {
-    const a = ok(run({ ...s, gold: 25_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    const a = ok(run({ ...s, gold: 25_000 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
     for (const index of [1, 99]) err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index } }, 0), 'NOT_FOUND')
     for (const index of [-1, 0.5]) err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index } }, 0), 'INVALID_ACTION')
     err(run(s, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 0), 'NOT_FOUND')
   })
   it('a construction skip on a ready construction is NOTHING_TO_SKIP', () => {
-    const a = ok(run({ ...s, gold: 25_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    const a = ok(run({ ...s, gold: 25_000 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
     const readyAt = a.constructions[0]!.readyAtMs
     err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, readyAt), 'NOTHING_TO_SKIP')
     err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, readyAt + 1), 'NOTHING_TO_SKIP')
   })
   it('a construction skip frees a builder', () => {
-    const t = { ...s, gold: 100_000, level: 10, tutorial: { ...s.tutorial, buildsStarted: 2 } }
+    const t = { ...s, gold: 100_000, level: 10 }
     const two = ok(run(ok(run(t, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0)), { type: 'startUpgrade', building: { type: 'habitat', id: 'h2' } }, 0))
     err(run(two, { type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 0), 'BUILDERS_BUSY')
     const freed = ok(run(two, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 0))
@@ -111,7 +112,7 @@ describe('habitat L5 and the Golden Aerie', () => {
   })
   it('collects first so accrued Gold is paid at the old level', () => {
     const r = ok(run(dark(4), buy(l5), 600_000))
-    expect(r.gold).toBe(s.gold + 700)
+    expect(r.gold).toBe(s.gold + 1_800)
   })
   it('refuses unknown, maxed and too-low habitats and charges nothing', () => {
     err(run(dark(4), buy({ kind: 'habitatL5', habitatId: 'h9' })), 'NOT_FOUND')

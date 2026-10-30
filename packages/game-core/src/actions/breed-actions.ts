@@ -7,12 +7,10 @@ import { BREED_MIN_LEVEL } from '../data/dragon-levels'
 import { HATCH_XP, START_BREED_XP } from '../data/xp'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
 import { addXp } from '../progression'
-import { TUTORIAL_TIMER_MS } from '../time'
 import { collectHabitat } from './island-actions'
 import { failure, success, type Handler } from './types'
 
 export { BREED_MIN_LEVEL }
-export { TUTORIAL_TIMER_MS }
 
 export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const pa = s.dragons.find(d => d.id === a.parentA)
@@ -24,9 +22,7 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
 
   const roll = rollOffspring(pa, pb, { pity: s.pity }, ctx.catalog, ctx.rng)
   const child = getSpecies(ctx.catalog, roll.speciesId)
-  const readyAtMs = ctx.nowMs + (s.tutorial.breedDone
-    ? nestBreedMs(breedTimerMs(child.rarity, child.elements, ctx.preset), s.nests[nest]!.level)
-    : TUTORIAL_TIMER_MS)
+  const readyAtMs = ctx.nowMs + nestBreedMs(breedTimerMs(child.rarity, child.elements, ctx.preset), s.nests[nest]!.level)
   const next = {
     ...s,
     nests: s.nests.map((n, i) => i === nest ? { ...n, egg: { speciesId: roll.speciesId, readyAtMs } } : n),
@@ -48,7 +44,7 @@ export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
   if (ctx.nowMs < egg.readyAtMs) return failure('NOT_READY')
   if (hatcheryUsed(s) >= hatcherySlots(s.hatcheryLevel)) return failure('HATCHERY_FULL')
   const species = getSpecies(ctx.catalog, egg.speciesId)
-  const readyAtMs = ctx.nowMs + (s.tutorial.hatchDone ? breedTimerMs(species.rarity, species.elements, ctx.preset) : TUTORIAL_TIMER_MS)
+  const readyAtMs = ctx.nowMs + breedTimerMs(species.rarity, species.elements, ctx.preset)
   return success({
     ...s,
     nests: s.nests.map((n, i) => i === a.nest ? { ...n, egg: null } : n),

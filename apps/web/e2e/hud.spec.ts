@@ -26,7 +26,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await expect(page.getByRole('progressbar', { name: 'Experience' })).toBeVisible()
       const res = page.getByRole('status', { name: 'Resources' })
       await expect(res.getByLabel('Gold', { exact: true })).toHaveText('5,000')
-      await expect(res.getByLabel('Food', { exact: true })).toHaveText('100')
+      await expect(res.getByLabel('Food', { exact: true })).toHaveText('50')
       for (const b of ['Dragons', 'Breed', 'Battle', 'Build', 'Store']) await expect(page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name: b, exact: true })).toBeVisible()
       await expect(page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name: 'Map', exact: true })).toBeVisible()
       for (const b of ['Hoard', 'Season', 'Ranks', 'Referral']) await expect(page.getByRole('button', { name: b, exact: true })).toHaveCount(0)
@@ -56,7 +56,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
 
     test('Build places a plot with the ghost on screen above the placement strip', async ({ page, request }) => {
       await signIn(page)
-      await resetPlayer(request, { gold: 5_000 })
+      await resetPlayer(request, { gold: 5_000, level: 3 })
       await page.reload()
       await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: B }).__bridge?.cellToScreen))
       await openPanel(page, 'Build')
@@ -76,7 +76,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await confirm.click()
       await expect(strip).toBeHidden()
       await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
-      await expect(page.getByRole('complementary', { name: 'Needs attention' })).toContainText(/Building Farm plot 3/)
+      await expect(page.getByRole('complementary', { name: 'Needs attention' })).toContainText(/Building Farm plot 2/)
     })
 
     test('a build whose timer has run out finishes by itself', async ({ page, request }) => {

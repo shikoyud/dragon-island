@@ -26,7 +26,7 @@ const script: [Action, number][] = [
 
 function replay(): { state: PlayerState; effects: Effect[] } {
   const rng = createRng(123)
-  let state: PlayerState = { ...newPlayer(0), food: 200, level: 12, gold: 300_000, tutorial: { breedDone: false, hatchDone: false, buildsStarted: 2 } }
+  let state: PlayerState = { ...newPlayer(0), food: 200, level: 12, gold: 300_000 }
   const effects: Effect[] = []
   for (const [action, t] of script) {
     const r = applyAction(state, action, t, rng, FIXTURE_CATALOG)

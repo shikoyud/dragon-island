@@ -7,6 +7,7 @@ const sp = (id: string, elements: Element[], rarity: Rarity, recipeOnly = false)
 
 export const FIXTURE_CATALOG = makeCatalog(
   [
+    sp('terra', ['terra'], 'common'),
     sp('flame', ['flame'], 'common'),
     sp('sea', ['sea'], 'common'),
     sp('ice', ['ice'], 'common'),

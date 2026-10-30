@@ -45,32 +45,32 @@ describe('habitats collect before anything changes their income', () => {
   const tenMin = 10 * 60_000
 
   it('finishing an upgrade collects at the old rate first', () => {
-    const idle = { ...s, gold: 30_000, dragons: [flame('d1', 'h1', 10), s.dragons[1]!] }
+    const idle = { ...s, gold: 30_000, dragons: [s.dragons[0]!, flame('d2', 'h2', 10)] }
     const now = 1000 * 60_000
-    const started = ok(run(idle, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    const started = ok(run(idle, { type: 'startUpgrade', building: { type: 'habitat', id: 'h2' } }, 0))
     const up = ok(run(started, { type: 'finishConstruction', index: 0 }, now))
     // 20,000 spent; 1000 minutes of a Lv 10 Flame (520/min) is clipped to the old L1 cap of 100,000 (Flash-14).
     expect(up.gold).toBe(110_000)
-    expect(ok(run(up, { type: 'collectGold', habitatId: 'h1' }, now)).gold).toBe(110_000)
+    expect(ok(run(up, { type: 'collectGold', habitatId: 'h2' }, now)).gold).toBe(110_000)
   })
 
   it('selling a resident keeps the gold it already earned', () => {
     const two = { ...s, dragons: [...s.dragons, flame('d9')] }
     const sold = ok(run(two, { type: 'sellDragon', dragonId: 'd9' }, tenMin))
-    expect(sold.gold).toBe(1_000 + 1_400 + 100)
+    expect(sold.gold).toBe(1_000 + 1_800 + 700 + 100)
     expect(sold.habitats[0]!.lastCollectedMs).toBe(tenMin)
   })
 
   it('feeding does not re-rate accrued gold', () => {
     const fed = ok(run({ ...s, food: 1000 }, { type: 'feed', dragonId: 'd1' }, tenMin))
-    expect(fed.gold).toBe(1_700)
-    expect(ok(run(fed, { type: 'collectGold', habitatId: 'h1' }, tenMin)).gold).toBe(1_700)
+    expect(fed.gold).toBe(2_800)
+    expect(ok(run(fed, { type: 'collectGold', habitatId: 'h1' }, tenMin)).gold).toBe(2_800)
   })
 
   it('hatching into a habitat collects it first', () => {
     const ready = { ...s, hatchery: [{ speciesId: 'flame', readyAtMs: 0 }] }
     const hatched = ok(run(ready, { type: 'hatch', slot: 0 }, tenMin))
     expect(hatched.gold).toBe(1_700)
-    expect(hatched.habitats[0]!.lastCollectedMs).toBe(tenMin)
+    expect(hatched.habitats[1]!.lastCollectedMs).toBe(tenMin)
   })
 })

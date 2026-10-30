@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { applyAction } from '../src/actions/apply'
 import { getSpecies, makeCatalog } from '../src/catalog'
 import { FLASH_14, FLASH_28 } from '../src/data/presets'
+import { habitatCap } from '../src/data/habitats'
 import { canLiveIn, habitatCapacity, habitatSlots, residents, storedGold } from '../src/habitat'
 import { createRng } from '../src/rng'
 import { newPlayer, type Dragon, type Habitat, type PlayerState } from '../src/state'
@@ -33,10 +34,10 @@ describe('habitat rules', () => {
   it('accrues whole minutes of gold up to the cap', () => {
     const r = residents(s, 'h1')
     expect(r.map(d => d.id)).toEqual(['d1'])
-    // Flame Common Lv 1 in Flash-14: 10 x 14 x 10 / 20 = 70 gold/min.
-    expect(storedGold(h1, r, C, 600_000, FLASH_14)).toBe(700)
-    expect(storedGold(h1, r, C, 90_000, FLASH_14)).toBe(70)
-    expect(storedGold(h1, r, C, 3_000 * 60_000, FLASH_14)).toBe(100_000)
+    // Terra Common Lv 1 in Flash-14: 180 gold/min (the start state's Terra Basic, R1).
+    expect(storedGold(h1, r, C, 600_000, FLASH_14)).toBe(1_800)
+    expect(storedGold(h1, r, C, 90_000, FLASH_14)).toBe(180)
+    expect(storedGold(h1, r, C, 3_000 * 60_000, FLASH_14)).toBe(habitatCap('terra', 1, FLASH_14))
   })
 
   it('yields nothing when the clock is behind the last collection', () => {
@@ -44,10 +45,10 @@ describe('habitat rules', () => {
   })
 
   it('lets a dragon live where any element matches, and anywhere in the Golden Aerie', () => {
-    const sea = s.habitats[1]!
-    expect(canLiveIn(getSpecies(C, 'fw-common'), sea)).toBe(true)
-    expect(canLiveIn(getSpecies(C, 'flame'), sea)).toBe(false)
-    expect(canLiveIn(getSpecies(C, 'flame'), { ...sea, element: 'aerie', level: 5 })).toBe(true)
+    const flame = s.habitats[1]!
+    expect(canLiveIn(getSpecies(C, 'fw-common'), flame)).toBe(true)
+    expect(canLiveIn(getSpecies(C, 'sea'), flame)).toBe(false)
+    expect(canLiveIn(getSpecies(C, 'sea'), { ...flame, element: 'aerie', level: 5 })).toBe(true)
   })
 
   it('holds 2..6 dragons by level; the Aerie holds 6', () => {

@@ -24,9 +24,9 @@ describe('island model', () => {
     expect(markers.dragons).toEqual(['d1', 'd2'])
     expect(markers.nests).toEqual([{ index: 0, egg: false }])
     expect(markers.hatchery).toEqual([])
-    expect(markers.farms).toHaveLength(2)
-    expect(objects.find(o => o.id === 'habitat:h1')!.key).toBe(textureKey('habitat.flame'))
-    expect(objects.find(o => o.id === 'dragon:d2')!.key).toBe(textureKey('dragon.sea'))
+    expect(markers.farms).toHaveLength(1)
+    expect(objects.find(o => o.id === 'habitat:h1')!.key).toBe(textureKey('habitat.terra'))
+    expect(objects.find(o => o.id === 'dragon:d2')!.key).toBe(textureKey('dragon.flame'))
     for (const o of objects) {
       expect(Number.isInteger(o.x) && Number.isInteger(o.y)).toBe(true)
     }
@@ -34,7 +34,7 @@ describe('island model', () => {
 
   it('shows stored gold and timers as badges', () => {
     const { objects } = model(newPlayer(0), 600_000)
-    expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('700g')
+    expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('1800g')
     const withEgg = model({ ...newPlayer(0), nests: [{ ...newPlayer(0).nests[0]!, egg: { speciesId: 'flame', readyAtMs: 15_000 } }] }, 1_000)
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.badge).toBe('14s')
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.scale).toBe(NEST_EGG_SCALE) // sits inside the 32x32 nest
@@ -75,7 +75,7 @@ describe('island model', () => {
     const s = {
       ...newPlayer(0),
       hatchery: [{ speciesId: 'sea', readyAtMs: 30_000 }],
-      farms: [{ ...newPlayer(0).farms[0]!, crop: 'dragonBush' as const, readyAtMs: 37_500 }, newPlayer(0).farms[1]!],
+      farms: [{ ...newPlayer(0).farms[0]!, crop: 'dragonBush' as const, readyAtMs: 37_500 }],
     }
     const { markers, objects } = model(s, 30_000)
     expect(objects.find(o => o.id === 'hoard')).toBeUndefined()
@@ -93,7 +93,6 @@ describe('island model', () => {
     const at = (id: string) => ids.indexOf(id)
     expect(at('habitat:h1')).toBeLessThan(at('dragon:d1'))
     expect(at('habitat:h2')).toBeLessThan(at('dragon:d2'))
-    expect(at('farm:0')).toBeLessThan(at('farm:1'))
     expect(at('hatchery')).toBeGreaterThan(at('habitat:h1'))
     expect(at('habitat:h2')).toBeLessThan(at('farm:0')) // (5,0)x5 sums to 10, (10,0)x2 to 12
   })
@@ -139,7 +138,7 @@ describe('island model', () => {
     expect(seen).toContainEqual({ kind: 'habitat', id: 'h1' })
     expect(seen).toContainEqual({ kind: 'dragon', id: 'd1' })
     expect(seen).toContainEqual({ kind: 'nest', index: 0 })
-    expect(seen).toContainEqual({ kind: 'farm', plot: 1 })
+    expect(seen).toContainEqual({ kind: 'farm', plot: 0 })
   })
 
   it('is empty without a state', () => {
@@ -150,7 +149,7 @@ describe('island model', () => {
   it('draws the home view from placements, with a sign and no other islands', () => {
     const s = { ...newPlayer(0), islands: { homeStep: 0, unlocked: ['home', 'isle2'] as ('home' | 'isle2')[], obstacles: outerObstacles('isle2') } }
     const home = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', null)
-    expect(home.objects.find(o => o.id === 'habitat:h2')).toMatchObject({ x: 40, y: 60, key: textureKey('habitat.sea') }) // bottom vertex of its 5x5 diamond
+    expect(home.objects.find(o => o.id === 'habitat:h2')).toMatchObject({ x: 40, y: 60, key: textureKey('habitat.flame') }) // bottom vertex of its 5x5 diamond
     expect(home.markers.obstacles).toEqual([])
     expect(home.markers.sign).toEqual({ cost: 1_000, minLevel: 2 })
     const isle = buildIslandModel(s, FALLBACK_ART, C, 0, 'isle2', null)

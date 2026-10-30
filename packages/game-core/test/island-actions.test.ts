@@ -21,11 +21,11 @@ describe('collectGold', () => {
     const before = s
     const a = ok(r)
     const after = a
-    // Flame Common Lv 1 in Flash-14 earns 70 gold/min: 10 minutes is 700.
-    expect([a.gold, a.habitats[0]!.lastCollectedMs]).toEqual([1700, 600_000])
+    // Terra Common Lv 1 in Flash-14 earns 180 gold/min: 10 minutes is 1,800.
+    expect([a.gold, a.habitats[0]!.lastCollectedMs]).toEqual([2800, 600_000])
     expect(after.xp).toBe(before.xp)
     const b = ok(run(a, { type: 'collectGold', habitatId: 'h1' }, 300_000))
-    expect([b.gold, b.habitats[0]!.lastCollectedMs]).toEqual([1700, 600_000])
+    expect([b.gold, b.habitats[0]!.lastCollectedMs]).toEqual([2800, 600_000])
   })
 
   it('rejects unknown habitats', () => {
@@ -46,8 +46,8 @@ describe('moveDragon', () => {
   it('collects both habitats first', () => {
     const st = withDragon(s, { ...d9, feeds: 0, habitatId: 'h1' })
     const a = ok(run(st, { type: 'moveDragon', dragonId: 'd9', habitatId: 'h2' }, 600_000))
-    // h1 now holds two Flame Commons (2 x 70 x 10 min); h2's Sea Common earns 100/min.
-    expect(a.gold).toBe(1000 + 1400 + 1000)
+    // h1 holds the Terra Basic (180/min) and the moved-from Flame hybrid (70/min); h2's Flame Basic earns 70/min.
+    expect(a.gold).toBe(1000 + 1800 + 700 + 700)
     expect(a.habitats.map(h => h.lastCollectedMs)).toEqual([600_000, 600_000])
   })
 
@@ -73,11 +73,11 @@ describe('feed', () => {
 
   it('takes four feeds per level, one feed per call', () => {
     const one = feed1(s)
-    expect([one.dragons[0]!.level, one.dragons[0]!.feeds, one.food, one.xp]).toEqual([1, 1, 95, 1])
+    expect([one.dragons[0]!.level, one.dragons[0]!.feeds, one.food, one.xp]).toEqual([1, 1, 45, 1])
     const three = feed1(feed1(one))
     expect([three.dragons[0]!.level, three.dragons[0]!.feeds]).toEqual([1, 3])
     const four = feed1(three)
-    expect([four.dragons[0]!.level, four.dragons[0]!.feeds, 100 - four.food]).toEqual([2, 0, 20])
+    expect([four.dragons[0]!.level, four.dragons[0]!.feeds, 50 - four.food]).toEqual([2, 0, 20])
   })
 
   it('spends exactly foodPerFeed and can empty the larder', () => {

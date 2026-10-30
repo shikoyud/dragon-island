@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { skipPriceMicroUsd } from '../src/data/speedups'
 import { newPlayer } from '../src/state'
 import { FOOD_PACK, MAX_NESTS, priceMicroUsd } from '../src/store'
 
@@ -6,19 +7,23 @@ const base = newPlayer(0)
 const egg = (readyAtMs: number) => ({ ...newPlayer(0), nests: [{ ...base.nests[0]!, egg: { speciesId: 'flame', readyAtMs } }] })
 
 describe('priceMicroUsd', () => {
-  it('prices timer skips per started 30 minutes', () => {
-    expect(priceMicroUsd({ kind: 'skip', target: 'nest', index: 0 }, egg(1_800_001), 0)).toBe(200_000)
-    expect(priceMicroUsd({ kind: 'skip', target: 'nest', index: 0 }, egg(1_800_000), 0)).toBe(100_000)
-    expect(priceMicroUsd({ kind: 'skip', target: 'nest', index: 0 }, egg(0), 0)).toBeNull()
-    expect(priceMicroUsd({ kind: 'skip', target: 'nest', index: 0 }, base, 0)).toBeNull()
-    expect(priceMicroUsd({ kind: 'skip', target: 'nest', index: 3 }, egg(5), 0)).toBeNull()
+  it('prices every skip by the 3.6 curve on the remaining time', () => {
+    const item = { kind: 'skip', target: 'nest', index: 0 } as const
+    expect(priceMicroUsd(item, egg(3_600_000), 0)).toBe(100_000)
+    expect(priceMicroUsd(item, egg(1_800_001), 0)).toBe(skipPriceMicroUsd(1_800_001))
+    expect(priceMicroUsd(item, egg(601_000), 1_000)).toBe(skipPriceMicroUsd(600_000))
+    expect(priceMicroUsd(item, egg(0), 0)).toBeNull()
+    expect(priceMicroUsd(item, base, 0)).toBeNull()
+    expect(priceMicroUsd({ ...item, index: 3 }, egg(5), 0)).toBeNull()
   })
 
-  it('prices hatchery and farm skips', () => {
-    const s = { ...base, hatchery: [{ speciesId: 'flame', readyAtMs: 60_000 }], farms: [{ ...base.farms[0]!, crop: 'warlordPepper' as const, readyAtMs: 43_200_000 }, base.farms[1]!] }
-    expect(priceMicroUsd({ kind: 'skip', target: 'hatchery', index: 0 }, s, 0)).toBe(100_000)
-    expect(priceMicroUsd({ kind: 'skip', target: 'farm', index: 0 }, s, 0)).toBe(2_400_000)
+  it('prices hatchery and farm skips with the same function', () => {
+    const s = { ...base, hatchery: [{ speciesId: 'flame', readyAtMs: 60_000 }], farms: [{ ...base.farms[0]!, crop: 'warlordPepper' as const, readyAtMs: 43_200_000 }] }
+    expect(priceMicroUsd({ kind: 'skip', target: 'hatchery', index: 0 }, s, 0)).toBe(skipPriceMicroUsd(60_000))
+    expect(priceMicroUsd({ kind: 'skip', target: 'farm', index: 0 }, s, 0)).toBe(skipPriceMicroUsd(43_200_000))
     expect(priceMicroUsd({ kind: 'skip', target: 'farm', index: 1 }, s, 0)).toBeNull()
+    const c = { ...base, constructions: [{ kind: 'upgrade' as const, building: { type: 'hatchery' as const }, readyAtMs: 7_200_000 }] }
+    expect(priceMicroUsd({ kind: 'skip', target: 'construction', index: 0 }, c, 0)).toBe(skipPriceMicroUsd(7_200_000))
   })
 
   it('prices the L5 upgrade by element tier, only from level 4 (§5.2)', () => {

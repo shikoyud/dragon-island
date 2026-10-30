@@ -1,4 +1,4 @@
-import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
+import { newPlayer, skipPriceMicroUsd, type PlayerState } from '@wyrmhaven/game-core'
 import { eq, sql } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { actionLog, balances, players, spendBatches } from '../src/db/schema'
@@ -34,7 +34,7 @@ describe('POST /actions', () => {
     const r = await post({ type: 'collectGold', habitatId: 'h1' }, 'k1')
     expect(r.statusCode).toBe(200)
     const body = r.json()
-    expect(body.state.gold).toBe(1700)
+    expect(body.state.gold).toBe(2800)
     expect(body.effects).toEqual([])
     const [log] = await t.db.select().from(actionLog).where(eq(actionLog.playerId, playerId))
     expect(log!.nonce).toBe(1n)
@@ -58,7 +58,7 @@ describe('POST /actions', () => {
   it('charges store purchases in tokens and records the spend batch', async () => {
     const r = await post({ type: 'buy', item: { kind: 'foodPack' } })
     expect(r.statusCode).toBe(200)
-    expect(r.json().state.food).toBe(1_100)
+    expect(r.json().state.food).toBe(1_050)
     expect(r.json().effects).toEqual([{ type: 'charge', microUsd: 500_000 }])
     const [b] = await t.db.select().from(balances)
     expect(b!.tokenWei).toBe(90n * E18)
@@ -72,7 +72,7 @@ describe('POST /actions', () => {
     expect(r.statusCode).toBe(402)
     expect(r.json()).toEqual({ error: 'INSUFFICIENT_TOKENS' })
     const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
-    expect((p!.state as PlayerState).food).toBe(100)
+    expect((p!.state as PlayerState).food).toBe(50)
     expect(await t.db.select().from(actionLog)).toHaveLength(0)
   })
 
@@ -110,7 +110,7 @@ describe('POST /actions', () => {
     expect(placed.json().state.constructions).toHaveLength(1)
     const skipped = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } })
     expect(skipped.statusCode).toBe(200)
-    expect(skipped.json().effects).toEqual([{ type: 'charge', microUsd: 100_000 }])
+    expect(skipped.json().effects).toEqual([{ type: 'charge', microUsd: skipPriceMicroUsd(100_000) }])
     expect(skipped.json().state.habitats).toHaveLength(3)
     expect(skipped.json().state.constructions).toEqual([])
     const late = await post({ type: 'finishConstruction', index: 0 })

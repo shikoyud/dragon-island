@@ -6,7 +6,7 @@ test('signs in with the test wallet and shows the starting resources', async ({ 
   await signIn(page, { fresh: true })
   const resources = page.getByRole('status', { name: /resources/i })
   await expect(resources).toContainText('1,000')
-  await expect(resources).toContainText('100')
+  await expect(resources).toContainText('50')
   await expect(page.locator('canvas')).toBeVisible()
   await page.reload()
   await expect(page.getByRole('status', { name: /resources/i })).toBeVisible() // session persisted

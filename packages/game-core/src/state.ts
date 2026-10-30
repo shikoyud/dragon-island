@@ -46,7 +46,7 @@ export interface PlayerState {
   farms: FarmPlot[]
   /** Consecutive common results per element pair key. */
   pity: Record<string, number>
-  tutorial: { breedDone: boolean; hatchDone: boolean; buildsStarted: number }
+  tutorial: { breedDone: boolean; hatchDone: boolean }
   nextId: number
   /** Saved 3-dragon team other players attack; cleared if a member is sold. */
   defenceTeam: [string, string, string] | null
@@ -64,14 +64,14 @@ const home = (col: number, row: number): Placement => ({ island: 'home', col, ro
 export function newPlayer(nowMs: number): PlayerState {
   return {
     version: STATE_VERSION,
-    gold: 1000, food: 100, xp: 0, level: 1, roostTier: 0,
+    gold: 1000, food: 50, xp: 0, level: 1, roostTier: 0,
     dragons: [
-      { id: 'd1', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h1' },
-      { id: 'd2', speciesId: 'sea', level: 1, feeds: 0, habitatId: 'h2' },
+      { id: 'd1', speciesId: 'terra', level: 1, feeds: 0, habitatId: 'h1' },
+      { id: 'd2', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h2' },
     ],
     habitats: [
-      { id: 'h1', element: 'flame', level: 1, lastCollectedMs: nowMs, placement: home(0, 0) },
-      { id: 'h2', element: 'sea', level: 1, lastCollectedMs: nowMs, placement: home(5, 0) },
+      { id: 'h1', element: 'terra', level: 1, lastCollectedMs: nowMs, placement: home(0, 0) },
+      { id: 'h2', element: 'flame', level: 1, lastCollectedMs: nowMs, placement: home(5, 0) },
     ],
     nests: [{ egg: null, level: 1, placement: home(4, 8) }],
     hatchery: [],
@@ -80,12 +80,9 @@ export function newPlayer(nowMs: number): PlayerState {
     decorations: [],
     islands: { homeStep: 0, unlocked: ['home'], obstacles: [] },
     constructions: [],
-    farms: [
-      { crop: null, readyAtMs: 0, level: 1, placement: home(10, 0) },
-      { crop: null, readyAtMs: 0, level: 1, placement: home(10, 2) },
-    ],
+    farms: [{ crop: null, readyAtMs: 0, level: 1, placement: home(10, 0) }],
     pity: {},
-    tutorial: { breedDone: false, hatchDone: false, buildsStarted: 0 },
+    tutorial: { breedDone: false, hatchDone: false },
     nextId: 3,
     defenceTeam: null,
     trophies: 0,
