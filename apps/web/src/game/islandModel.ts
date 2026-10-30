@@ -1,7 +1,7 @@
 import {
   constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
   DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
-  type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
+  type BreederKind, type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
@@ -103,7 +103,13 @@ export function dragonLook(speciesId: string, level: number, art: GameArtSet, ca
   const juvenile = stage === 'juvenile' ? art.juvenile[speciesId] : undefined
   if (juvenile) return { key: textureKey(`juvenile.${speciesId}`), sprite: juvenile }
   const adult = art.dragon[speciesId]
-  return adult ? { key: textureKey(`dragon.${speciesId}`), sprite: adult } : { key: textureKey('dragon.flame'), sprite: art.dragon['flame']! }
+  if (adult) return { key: textureKey(`dragon.${speciesId}`), sprite: adult }
+  // No art for this species (R23): the primary element's Basic, so Flame/Sea and Sea/Flame look different. Juveniles try
+  // that Basic's juvenile sheet first. Basics always have a dragon slot.
+  const primary = catalog.species.get(speciesId)?.elements[0] ?? 'flame'
+  const primaryJuvenile = stage === 'juvenile' ? art.juvenile[primary] : undefined
+  if (primaryJuvenile) return { key: textureKey(`juvenile.${primary}`), sprite: primaryJuvenile }
+  return { key: textureKey(`dragon.${primary}`), sprite: art.dragon[primary]! }
 }
 
 export const dragonKey = (speciesId: string, level: number, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): string =>
@@ -116,8 +122,25 @@ const decorationLook = (art: GameArtSet, kind: DecorationKind) => ({
   key: textureKey(`decoration.${kind}`),
   sprite: art.decoration[kind],
 })
-/** Mountain and Grove share the old nest sprite until their art lands (M2 Task 11). */
-const breederLook = (art: GameArtSet) => ({ key: textureKey('building.nest'), sprite: art.building.nest })
+/**
+ * A Mountain or Grove at `level`: its own `building.<kind>.<level>` sheet, else the nearest lower level's, else the small
+ * nest sprite (which stands on the footprint's bottom vertex like any building).
+ */
+function breederLook(art: GameArtSet, kind: BreederKind, level: number): { key: string; sprite: Sprite } {
+  for (let l = level; l >= 1; l--) {
+    const s = art.building.breeder[kind][l]
+    if (s) return { key: textureKey(`building.${kind}.${l}`), sprite: s }
+  }
+  return { key: textureKey('building.nest'), sprite: art.building.nest }
+}
+/** The Hatchery at `level`: `building.hatchery.<level>`, else a lower level's, else `building.hatchery`. The fifth slot is not a level. */
+function hatcheryLook(art: GameArtSet, level: number): { key: string; sprite: Sprite } {
+  for (let l = level; l >= 1; l--) {
+    const s = art.building.hatcheryLevel[l]
+    if (s) return { key: textureKey(`building.hatchery.${l}`), sprite: s }
+  }
+  return { key: textureKey('building.hatchery'), sprite: art.building.hatchery }
+}
 const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), sprite: art.building.nexus })
 /** The Golden Aerie: its own sprite when the manifest has one, else the Nexus sprite. */
 const aerieLook = (art: GameArtSet) => (art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art))
@@ -134,8 +157,11 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
         return { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
       }
       case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
-      case 'breeder': return breederLook(art)
-      case 'hatchery': return { key: textureKey('building.hatchery'), sprite: art.building.hatchery }
+      case 'breeder': {
+        const b = state.breeders[t.index]
+        return b ? breederLook(art, b.kind, b.level) : breederLook(art, 'mountain', 1)
+      }
+      case 'hatchery': return hatcheryLook(art, state.hatcheryLevel)
       case 'decoration': {
         const d = state.decorations.find(x => x.id === t.id)
         return d ? decorationLook(art, d.kind) : nexusLook(art)
@@ -145,7 +171,7 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
   switch (what.kind) {
     case 'habitat': return { key: textureKey(`habitat.${what.element}`), sprite: art.habitat[what.element] }
     case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
-    case 'grove': return breederLook(art)
+    case 'grove': return breederLook(art, 'grove', 1)
     case 'decoration': return decorationLook(art, what.decoration)
     case 'goldenAerie': return aerieLook(art)
   }
@@ -231,7 +257,7 @@ export function buildIslandModel(
     if (breeder.placement.island !== view) return
     const a = anchor(breeder.placement.col, breeder.placement.row, FOOTPRINT.breeder)
     const group: IslandObject[] = [{
-      id: `breeder:${index}`, ...breederLook(art), ...a,
+      id: `breeder:${index}`, ...breederLook(art, breeder.kind, breeder.level), ...a,
       target: { kind: 'breeder', index }, ...look({ type: 'breeder', index }, breeder.placement),
     }]
     if (breeder.egg) {
@@ -245,7 +271,7 @@ export function buildIslandModel(
   if (state.hatcheryPlacement.island === view) {
     const a = anchor(state.hatcheryPlacement.col, state.hatcheryPlacement.row, FOOTPRINT.hatchery)
     const group: IslandObject[] = [{
-      id: 'hatchery', key: textureKey('building.hatchery'), sprite: art.building.hatchery, ...a,
+      id: 'hatchery', ...hatcheryLook(art, state.hatcheryLevel), ...a,
       target: { kind: 'hatcheryBuilding' }, ...look({ type: 'hatchery' }, state.hatcheryPlacement),
     }]
     let spot = 0

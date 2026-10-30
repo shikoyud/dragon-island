@@ -25,6 +25,10 @@ export interface GameArtSet {
   building: {
     nest: Sprite
     hatchery: Sprite
+    /** Per-level Mountain and Grove sheets (`building.<kind>.<level>`), only for levels the manifest has; the rest fall back (lower level, then `nest`). */
+    breeder: { mountain: Record<number, Sprite>; grove: Record<number, Sprite> }
+    /** Per-level Hatchery sheets (`building.hatchery.<1..4>`), only for levels the manifest has; the rest fall back (lower level, then `hatchery`). */
+    hatcheryLevel: Record<number, Sprite>
     farmPlot: Sprite
     cropStage: Record<CropId, Sprite>
     /** Ripe-stage sway loop per crop, when the manifest has one (else the last growth frame stays still). */

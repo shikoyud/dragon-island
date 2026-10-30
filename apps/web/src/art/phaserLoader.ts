@@ -20,6 +20,9 @@ export function artEntries(art: GameArtSet): Entry[] {
   for (const [el, s] of Object.entries(art.habitat) as [Element, Sprite][]) add(`habitat.${el}`, s, 'habitat', el)
   add('building.nest', art.building.nest, 'nest')
   add('building.hatchery', art.building.hatchery, 'hatchery')
+  // Level sheets exist only when the manifest has them, so an absent key never becomes a request or a texture.
+  for (const kind of ['mountain', 'grove'] as const) for (const [l, s] of Object.entries(art.building.breeder[kind])) add(`building.${kind}.${l}`, s, 'nest')
+  for (const [l, s] of Object.entries(art.building.hatcheryLevel)) add(`building.hatchery.${l}`, s, 'hatchery')
   add('building.farmPlot', art.building.farmPlot, 'farmPlot')
   for (const [c, s] of Object.entries(art.building.cropStage)) add(`crop.${c}`, s, 'crop', 'nature')
   for (const [c, s] of Object.entries(art.building.cropSway)) if (s) add(`crop.${c}.sway`, s, 'crop', 'nature')

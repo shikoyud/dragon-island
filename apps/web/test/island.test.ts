@@ -258,6 +258,53 @@ describe('island model', () => {
     expect(good.objects.at(-1)!.id).toBe('ghost')
   })
 
+  it('falls back from a hybrid with no art to its primary Basic, and by stage (R23)', () => {
+    const e = (file: string) => ({ file, w: 48, h: 48, frames: 1, fps: 0 })
+    const none = artSetFromManifest('t', { assets: {} }, C)
+    expect(dragonKey('flame-sea', 8, none)).toBe(textureKey('dragon.flame'))
+    expect(dragonKey('sea-flame', 8, none)).toBe(textureKey('dragon.sea'))
+    const own = artSetFromManifest('t', { assets: { 'dragon.flame-sea': e('fs.png') } }, C)
+    expect(dragonKey('flame-sea', 8, own)).toBe(textureKey('dragon.flame-sea'))
+    expect(dragonKey('sea-flame', 8, own)).toBe(textureKey('dragon.sea'))
+    // Juvenile: the primary Basic's juvenile sheet when present, else its dragon sheet.
+    expect(dragonKey('sea-flame', 5, none)).toBe(textureKey('dragon.sea'))
+    const withJuv = artSetFromManifest('t', { assets: { 'juvenile.sea': e('js.png') } }, C)
+    expect(dragonKey('sea-flame', 5, withJuv)).toBe(textureKey('juvenile.sea'))
+    expect(dragonKey('flame-sea', 5, withJuv)).toBe(textureKey('dragon.flame'))
+    // A Legendary falls back the same way, by the first element of its row.
+    expect(dragonKey('glacier-warlord', 8, none)).toBe(textureKey('dragon.ice'))
+    // A baby still uses the hatchling of the primary element.
+    expect(dragonKey('flame-sea', 2, none)).toBe(textureKey('hatchling.flame'))
+  })
+
+  it('draws a Mountain by level: its own sheet, else a lower level, else the nest; no request for an absent key', () => {
+    const b = (file: string) => ({ file, w: 80, h: 80, frames: 1, fps: 0 })
+    const withLevel = (assets: Record<string, ReturnType<typeof b>>, level: number) => {
+      const art = artSetFromManifest('t', { assets }, C)
+      const s = newPlayer(0)
+      const st = { ...s, breeders: [{ ...s.breeders[0]!, level }] }
+      return { art, obj: buildIslandModel(st, art, C, 0, 'home', null).objects.find(o => o.id === 'breeder:0')! }
+    }
+    expect(withLevel({ 'building.mountain.1': b('m1.png'), 'building.mountain.2': b('m2.png') }, 2).obj.key).toBe(textureKey('building.mountain.2'))
+    expect(withLevel({ 'building.mountain.1': b('m1.png') }, 2).obj.key).toBe(textureKey('building.mountain.1'))
+    const none = withLevel({}, 2)
+    expect(none.obj.key).toBe(textureKey('building.nest'))
+    expect(artEntries(none.art).map(r => r.key).some(k => /^art:building\.(mountain|grove)/.test(k))).toBe(false)
+    expect(artEntries(withLevel({ 'building.mountain.2': b('m2.png') }, 2).art).map(r => r.key)).toContain('art:building.mountain.2')
+  })
+
+  it('draws the Hatchery by level with the same fallbacks, and the Grove ghost with its level 1 sheet', () => {
+    const b = { file: 'h.png', w: 64, h: 64, frames: 1, fps: 0 }
+    const art = artSetFromManifest('t', { assets: { 'building.hatchery.2': b, 'building.grove.1': { ...b, w: 80, h: 80 } } }, C)
+    const s = newPlayer(0)
+    const key = (level: number) => buildIslandModel({ ...s, hatcheryLevel: level, hatcheryPlacement: { ...s.hatcheryPlacement, island: 'home' } }, art, C, 0, 'home', null).objects.find(o => o.id === 'hatchery')!.key
+    expect(key(1)).toBe(textureKey('building.hatchery'))
+    expect(key(2)).toBe(textureKey('building.hatchery.2'))
+    expect(key(3)).toBe(textureKey('building.hatchery.2'))
+    const g = buildIslandModel({ ...s, islands: { ...s.islands, homeStep: 1 } }, art, C, 0, 'home', { what: { kind: 'grove' }, size: 5, col: 9, row: 7, facing: 0 })
+    expect(g.objects.find(o => o.id === 'ghost')!.key).toBe(textureKey('building.grove.1'))
+  })
+
   it('draws the Grove ghost with the nest sprite until its own art lands, on a 5x5 footprint', () => {
     const s = { ...newPlayer(0), islands: { ...newPlayer(0).islands, homeStep: 1 } }
     const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'grove' }, size: 5, col: 9, row: 7, facing: 0 })
