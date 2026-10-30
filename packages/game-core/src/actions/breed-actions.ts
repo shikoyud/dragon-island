@@ -108,5 +108,7 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
     discovered: discover(s.discovered, egg.speciesId),
     nextId: s.nextId + 1,
   }
-  return success(addXp(next, HATCH_XP[species.rarity], ctx.preset, ctx.day))
+  // R30: a species new to the Dragon Book pays double.
+  const firstTime = !s.discovered.includes(egg.speciesId)
+  return success(addXp(next, HATCH_XP[species.rarity] * (firstTime ? 2 : 1), ctx.preset, ctx.day))
 }

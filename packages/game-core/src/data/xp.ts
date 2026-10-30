@@ -9,6 +9,12 @@ export const HATCH_XP: Record<Rarity, number> = {
 /** §4.3 "Harvest a crop": crop tier x 2. */
 export const HARVEST_XP_PER_TIER = 2
 
+/** M3 Q2 (a), R31: build XP is 1 per 20 Gold spent on building, upgrading or expanding. */
+export const BUILD_XP_GOLD_PER_XP = 20
+
+/** Least build XP for any paid build (R31). */
+export const BUILD_XP_MIN = 5
+
 /** §4.3 "Start a breed". */
 export const START_BREED_XP = 5
 

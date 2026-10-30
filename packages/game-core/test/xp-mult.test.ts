@@ -47,7 +47,7 @@ describe('xpMult on every award', () => {
     expect(ok(run(st, { type: 'startBreed', parentA: 'd1', parentB: 'd2' }, 0)).xp).toBe(START_BREED_XP * 12)
     const r = ok(run({ ...maxed, hatchery: [{ speciesId: 'terra-flame', readyAtMs: 0 }] }, { type: 'hatch', slot: 0 }, 0))
     expect(HATCH_XP.rare).toBe(80)
-    expect(r.xp).toBe(960)
+    expect(r.xp).toBe(1_920) // first terra-flame in the Book: R30 doubles 960
   })
 
   it('collecting Gold awards no XP', () => {

@@ -1,5 +1,5 @@
 import type { Preset } from './data/presets'
-import { XP_TO_NEXT } from './data/xp'
+import { BUILD_XP_GOLD_PER_XP, BUILD_XP_MIN, XP_TO_NEXT } from './data/xp'
 import type { PlayerState } from './state'
 
 export const MAX_PLAYER_LEVEL = 50
@@ -25,6 +25,21 @@ export function settleLevels(s: PlayerState, _preset: Preset, _day: number): Pla
     level++
   }
   return level === s.level ? s : { ...s, level, xp }
+}
+
+/** Adds XP the preset does not scale (build XP, M3 Q2 a), then settles levels. */
+export function addRawXp(s: PlayerState, xp: number, preset: Preset, day: number): PlayerState {
+  return settleLevels({ ...s, xp: s.xp + xp }, preset, day)
+}
+
+/** Build XP for `goldSpent` (R31): 1 per 20 Gold, at least 5, never more than one level's worth. */
+export function buildXp(goldSpent: number, s: PlayerState): number {
+  return Math.min(Math.max(BUILD_XP_MIN, Math.floor(goldSpent / BUILD_XP_GOLD_PER_XP)), xpToNext(s.level))
+}
+
+/** Pays build XP for Gold just spent; `before` is the state ahead of the spend (its level sets the cap). */
+export function payBuildXp(after: PlayerState, goldSpent: number, before: PlayerState, preset: Preset, day: number): PlayerState {
+  return addRawXp(after, buildXp(goldSpent, before), preset, day)
 }
 
 /** Adds classic XP times the preset's `xpMult` (§7.2, R27/R29), then settles levels; the one place XP is awarded. */

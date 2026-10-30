@@ -11,7 +11,7 @@ import { placementRuleError } from '../placement-rules'
 import type { PlayerState } from '../state'
 import { earnGold, spendGold } from '../wallet'
 import { clearReward } from '../obstacles'
-import { addXp } from '../progression'
+import { addXp, payBuildXp } from '../progression'
 import { collectHabitat } from './island-actions'
 import { failure, success, type Handler } from './types'
 
@@ -38,7 +38,8 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
     const index = s.breeders.length
     const started = startConstruction(paid, { kind: 'build', building: { type: 'breeder', index } }, Math.floor(grove.classicMs / ctx.preset.timerDiv), ctx.nowMs)
     if (!started) return failure('BUILDERS_BUSY')
-    return success({ ...started, breeders: [...started.breeders, { kind: 'grove', egg: null, level: 1, placement: a.placement }] })
+    const built = { ...started, breeders: [...started.breeders, { kind: 'grove' as const, egg: null, level: 1, placement: a.placement }] }
+    return success(payBuildXp(built, cost, s, ctx.preset, ctx.day))
   }
 
   if (b.kind === 'decoration') {
@@ -52,13 +53,15 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
     const index = s.farms.length
     const started = startConstruction(paid, { kind: 'build', building: { type: 'farm', index } }, Math.floor(FIRST_FARM_CLASSIC_MS / ctx.preset.timerDiv), ctx.nowMs)
     if (!started) return failure('BUILDERS_BUSY')
-    return success({ ...started, farms: [...started.farms, { crop: null, readyAtMs: 0, level: 1, placement: a.placement }] })
+    const built = { ...started, farms: [...started.farms, { crop: null, readyAtMs: 0, level: 1, placement: a.placement }] }
+    return success(payBuildXp(built, cost, s, ctx.preset, ctx.day))
   }
   const id = `h${s.nextId}`
   const started = startConstruction(paid, { kind: 'build', building: { type: 'habitat', id } }, habitatBuildMs(b.element, ctx.preset), ctx.nowMs)
   if (!started) return failure('BUILDERS_BUSY')
   const habitat = { id, element: b.element, level: 1, lastCollectedMs: ctx.nowMs, placement: a.placement }
-  return success({ ...started, habitats: [...started.habitats, habitat], nextId: s.nextId + 1 })
+  const built = { ...started, habitats: [...started.habitats, habitat], nextId: s.nextId + 1 }
+  return success(payBuildXp(built, cost, s, ctx.preset, ctx.day))
 }
 
 export const moveBuilding: Handler<'moveBuilding'> = (s, a) => {
@@ -96,7 +99,7 @@ export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {
   if (!paid) return failure('INSUFFICIENT_GOLD')
   const started = startConstruction(paid, { kind: 'upgrade', building: ref }, info.timerMs, ctx.nowMs)
   if (!started) return failure('BUILDERS_BUSY')
-  return success(started)
+  return success(payBuildXp(started, info.cost, s, ctx.preset, ctx.day))
 }
 
 /** Applies construction `index` (which must be ready); shared by finishConstruction and the construction skip. */
