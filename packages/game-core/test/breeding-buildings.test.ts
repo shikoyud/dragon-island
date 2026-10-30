@@ -25,9 +25,7 @@ const run = (s: PlayerState, a: Action, t = 0, rng: Rng = createRng(1)) => apply
 const breed: Action = { type: 'startBreed', parentA: 'd1', parentB: 'd2' }
 const buy = (item: StoreItem): Action => ({ type: 'buy', item })
 const mountain = (over: Partial<Breeder> = {}): Breeder => ({ ...base.breeders[0]!, ...over })
-const grove = (over: Partial<Breeder> = {}): Breeder => ({ kind: 'grove', egg: null, level: 1, placement: P(9, 7), ...over })
-/** Home island after two expansions: 14x14, with free 5x5 room at (9, 7). */
-const roomy = (s: PlayerState): PlayerState => ({ ...s, islands: { ...s.islands, homeStep: 2 } })
+const grove = (over: Partial<Breeder> = {}): Breeder => ({ kind: 'grove', egg: null, level: 1, placement: P(7, 7), ...over })
 const finished = { speciesId: 'flame', readyAtMs: 0, hatchMs: 777 }
 const counting = () => {
   const c = { calls: 0, rng: { next: () => { c.calls++; return 0 }, int: () => { c.calls++; return 0 } } as Rng }
@@ -64,8 +62,8 @@ describe('§5.4 tables', () => {
     ])
   })
 
-  it('both breeding buildings take 5x5 (R15)', () => {
-    expect(BREEDER_FOOTPRINT).toBe(5)
+  it('both breeding buildings keep 2 cells until M4 (R9)', () => {
+    expect(BREEDER_FOOTPRINT).toBe(2)
   })
 
   it('hatcherySlots adds the fifth slot on top of any level', () => {
@@ -86,15 +84,15 @@ describe('§5.4 tables', () => {
 })
 
 describe('newPlayer', () => {
-  it('starts with one Mountain L1 at (4, 7) and no fifth slot (R1, R15)', () => {
-    expect(base.breeders).toEqual([{ kind: 'mountain', egg: null, level: 1, placement: P(4, 7) }])
+  it('starts with one Mountain L1 at (4, 8) and no fifth slot (R1, R9)', () => {
+    expect(base.breeders).toEqual([{ kind: 'mountain', egg: null, level: 1, placement: P(4, 8) }])
     expect(base.hatcheryFifthSlot).toBe(false)
     expect(base).not.toHaveProperty('nests')
   })
 
   it('its placements are legal and do not overlap', () => {
     const occ = occupants(base, 'home')
-    expect(occ.find(o => o.ref.type === 'breeder')).toMatchObject({ col: 4, row: 7, size: 5 })
+    expect(occ.find(o => o.ref.type === 'breeder')).toMatchObject({ col: 4, row: 8, size: 2 })
     for (const o of occ) expect(placementError(base, { ...P(o.col, o.row) }, o.size, o.ref)).toBeNull()
     for (const [i, a] of occ.entries()) for (const b of occ.slice(i + 1)) expect(overlaps(a, b)).toBe(false)
   })
@@ -201,8 +199,8 @@ describe('Review Focus 1: a full Hatchery leaves the egg in its building', () =>
 })
 
 describe('placing the Grove', () => {
-  const place: Action = { type: 'placeBuilding', building: { kind: 'grove' }, placement: P(9, 7) }
-  const ready = (level: number, gold = 500_000) => ({ ...roomy(base), level, gold })
+  const place: Action = { type: 'placeBuilding', building: { kind: 'grove' }, placement: P(7, 7) }
+  const ready = (level: number, gold = 500_000) => ({ ...base, level, gold })
 
   it('needs PL 12', () => {
     err(run(ready(11), place), 'LEVEL_TOO_LOW')
@@ -211,7 +209,7 @@ describe('placing the Grove', () => {
   it('charges 400,000 and builds for 2,400,000 ms under Flash-14', () => {
     const a = ok(applyAction(ready(12), place, 1_000, createRng(1), LAUNCH_CATALOG, FLASH_14))
     expect(a.gold).toBe(100_000)
-    expect(a.breeders[1]).toEqual({ kind: 'grove', egg: null, level: 1, placement: P(9, 7) })
+    expect(a.breeders[1]).toEqual({ kind: 'grove', egg: null, level: 1, placement: P(7, 7) })
     expect(a.constructions).toEqual([{ kind: 'build', building: { type: 'breeder', index: 1 }, readyAtMs: 1_000 + 2_400_000 }])
   })
 
@@ -221,8 +219,7 @@ describe('placing the Grove', () => {
   })
 
   it('a second Grove fails MAX_LEVEL', () => {
-    const wide = (s: PlayerState): PlayerState => ({ ...s, islands: { ...s.islands, homeStep: 4 } })
-    const a = ok(run(wide(ready(12, 2_000_000)), place))
+    const a = ok(run(ready(12, 2_000_000), place))
     expect(placementRuleError(a, { kind: 'grove' }, P(10, 2))).toBeNull()
     err(run(a, { ...place, placement: P(10, 2) } as Action), 'MAX_LEVEL')
   })
@@ -233,20 +230,20 @@ describe('placing the Grove', () => {
     err(run(busy, place), 'BUILDERS_BUSY')
   })
 
-  it('takes a 5x5 footprint and is a valid action', () => {
-    expect(placementRuleError(base, { kind: 'grove' }, P(9, 7))).toBe('OUT_OF_BOUNDS')
-    expect(placementRuleError(roomy(base), { kind: 'grove' }, P(9, 7))).toBeNull()
-    expect(placementRuleError(roomy(base), { kind: 'grove' }, P(8, 7))).toBe('OVERLAP')
+  it('takes a 2-cell footprint and is a valid action', () => {
+    expect(placementRuleError(base, { kind: 'grove' }, P(11, 7))).toBe('OUT_OF_BOUNDS')
+    expect(placementRuleError(base, { kind: 'grove' }, P(10, 7))).toBeNull()
+    expect(placementRuleError(base, { kind: 'grove' }, P(3, 7))).toBe('OVERLAP')
     expect(isValidAction(place)).toBe(true)
   })
 })
 
 describe('moving a breeder', () => {
-  it('moves with a 5x5 footprint, ignoring itself', () => {
-    const s = roomy(base)
+  it('moves with a 2-cell footprint, ignoring itself', () => {
+    const s = base
     const a = ok(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 0 }, placement: P(5, 7) }))
     expect(a.breeders[0]!.placement).toEqual(P(5, 7))
-    err(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 0 }, placement: P(1, 7) }), 'OVERLAP')
+    err(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 0 }, placement: P(3, 8) }), 'OVERLAP')
     err(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 9 }, placement: P(5, 7) }), 'NOT_FOUND')
   })
 })

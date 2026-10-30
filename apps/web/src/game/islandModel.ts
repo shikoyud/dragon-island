@@ -123,13 +123,19 @@ const decorationLook = (art: GameArtSet, kind: DecorationKind) => ({
   sprite: art.decoration[kind],
 })
 /**
+ * Mountain and Grove sheets stay specified at 80x80, their footprint size from M4 (docs/art/gdd-m2-art-list.md). Until
+ * then they stand on a 2-cell footprint (R9), so they are drawn smaller. Change this constant, not the sheet sizes;
+ * M4 sets it back to 1. The `building.nest` fallback is 32x32 already and keeps its native scale.
+ */
+export const BREEDER_ART_SCALE = 0.6
+/**
  * A Mountain or Grove at `level`: its own `building.<kind>.<level>` sheet, else the nearest lower level's, else the small
  * nest sprite (which stands on the footprint's bottom vertex like any building).
  */
-function breederLook(art: GameArtSet, kind: BreederKind, level: number): { key: string; sprite: Sprite } {
+function breederLook(art: GameArtSet, kind: BreederKind, level: number): { key: string; sprite: Sprite; scale?: number } {
   for (let l = level; l >= 1; l--) {
     const s = art.building.breeder[kind][l]
-    if (s) return { key: textureKey(`building.${kind}.${l}`), sprite: s }
+    if (s) return { key: textureKey(`building.${kind}.${l}`), sprite: s, scale: BREEDER_ART_SCALE }
   }
   return { key: textureKey('building.nest'), sprite: art.building.nest }
 }
@@ -146,7 +152,7 @@ const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), spr
 const aerieLook = (art: GameArtSet) => (art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art))
 
 /** Sprite and texture key of a thing that can be placed, for the ghost. */
-function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): { key: string; sprite: Sprite } {
+function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): { key: string; sprite: Sprite; scale?: number } {
   if (what.kind === 'move') {
     const t: MovableRef = what.target
     switch (t.type) {

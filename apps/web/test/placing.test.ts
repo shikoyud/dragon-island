@@ -43,13 +43,13 @@ describe('placing', () => {
   })
 
   it('sends the Grove as a placeBuilding', () => {
-    const s = { ...newPlayer(0), islands: { ...newPlayer(0).islands, homeStep: 1 } }
-    expect(placingAction(s, 'home', { what: { kind: 'grove' }, size: 5, col: 9, row: 7, facing: 0 })).toEqual({ type: 'placeBuilding', building: { kind: 'grove' }, placement: { island: 'home', col: 9, row: 7, facing: 0 } })
-    expect(placingAction(newPlayer(0), 'home', { what: { kind: 'grove' }, size: 5, col: 9, row: 7, facing: 0 })).toBeNull()
+    const s = newPlayer(0)
+    expect(placingAction(s, 'home', { what: { kind: 'grove' }, size: 2, col: 9, row: 7, facing: 0 })).toEqual({ type: 'placeBuilding', building: { kind: 'grove' }, placement: { island: 'home', col: 9, row: 7, facing: 0 } })
+    expect(placingAction(s, 'home', { what: { kind: 'grove' }, size: 2, col: 11, row: 7, facing: 0 })).toBeNull()
   })
 
   it('placing the Golden Aerie buys it with the placement, on a free habitat-sized spot', () => {
-    const s = { ...newPlayer(0), islands: { ...newPlayer(0).islands, homeStep: 1 } } // the starting island has no free 5x5 spot
+    const s = newPlayer(0)
     const spot = nearestLegalCell(s, { kind: 'goldenAerie' }, 'home', { col: 4, row: 4 })!
     expect(spot).not.toBeNull()
     expect(placingAction(s, 'home', { what: { kind: 'goldenAerie' }, size: 5, ...spot, facing: 2 })).toEqual({

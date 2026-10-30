@@ -20,7 +20,7 @@ describe('M1 art keys (docs/art/gdd-m1-art-list.md)', () => {
   })
 
   it('prefers building.goldenAerie for the Aerie ghost when present, else the Nexus', () => {
-    const s = { ...newPlayer(0), islands: { ...newPlayer(0).islands, homeStep: 1 } } // the starting island has no free 5x5 spot
+    const s = newPlayer(0)
     const spot = nearestLegalCell(s, { kind: 'goldenAerie' }, 'home', { col: 4, row: 4 })!
     const placing = { what: { kind: 'goldenAerie' as const }, size: FOOTPRINT.habitat, ...spot, facing: 0 as const }
     const art = artSetFromManifest('v2', { assets: { 'building.goldenAerie': e('aerie.png', 80, 64) } }, C)

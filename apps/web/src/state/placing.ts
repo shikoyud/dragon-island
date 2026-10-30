@@ -37,16 +37,35 @@ export function placingAction(s: PlayerState, view: IslandId, p: Placing): Clien
   }
 }
 
+function islandHasLegalCell(s: PlayerState, what: Placing['what'], island: IslandId): boolean {
+  const subject = placementSubject(what)
+  const { w, h } = islandSize(s, island)
+  for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
+    if (placementRuleError(s, subject, { island, col, row, facing: 0 }) === null) return true
+  }
+  return false
+}
+
 /** True when `what` has a legal cell on some unlocked island (the Shop disables rows that would open a red ghost). */
 export function hasLegalCell(s: PlayerState, what: Placing['what']): boolean {
-  const subject = placementSubject(what)
-  return s.islands.unlocked.some(island => {
-    const { w, h } = islandSize(s, island)
-    for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
-      if (placementRuleError(s, subject, { island, col, row, facing: 0 }) === null) return true
-    }
-    return false
-  })
+  return s.islands.unlocked.some(island => islandHasLegalCell(s, what, island))
+}
+
+/**
+ * Where placement mode opens. A move stays on the building's island. A new building opens on the viewed island when that
+ * has a legal cell, else on the first unlocked island that does: the Shop's `hasLegalCell` counts them all, so a row it
+ * enables never opens a red ghost. `focus` is the viewed island's cell under the middle of the screen, when known.
+ */
+export function placementStart(
+  s: PlayerState, what: Placing['what'], size: Footprint, view: IslandId, focus: { col: number; row: number } | null | undefined, from?: Placement,
+): { island: IslandId; cell?: { col: number; row: number } } {
+  if (from) return { island: from.island }
+  const island = islandHasLegalCell(s, what, view) ? view : s.islands.unlocked.find(i => islandHasLegalCell(s, what, i)) ?? view
+  // The free spot nearest the middle of the screen (the island's middle after a switch).
+  const f = island === view ? focus : null
+  const mid = f ? { col: f.col - Math.floor((size - 1) / 2), row: f.row - Math.floor((size - 1) / 2) } : { col: 4, row: 4 }
+  const cell = nearestLegalCell(s, what, island, mid)
+  return cell ? { island, cell } : { island }
 }
 
 /** The legal top-left cell for `what` closest to `near` on an island (by straight-line distance), or null when none is. */

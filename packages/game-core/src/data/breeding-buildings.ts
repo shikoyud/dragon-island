@@ -1,4 +1,4 @@
-// GDD §5.4 (Hatchery, Breeding Mountain, Breeding Grove), §4.4 (unlocks). Rulings: R15 (5x5 footprint), R16 (timers),
+// GDD §5.4 (Hatchery, Breeding Mountain, Breeding Grove), §4.4 (unlocks). Rulings: R16 (timers),
 // M2 Q5 (a) (the fifth Hatchery slot). Timers are classic; the preset divides them by `timerDiv` (§7.2).
 import type { BreederKind } from '../state'
 
@@ -43,4 +43,5 @@ export const BREEDER_LEVELS: Record<BreederKind, readonly (BuildingLevel & { red
 const groveTop = BREEDER_LEVELS.grove[BREEDER_LEVELS.grove.length - 1]!
 export const GROVE_L3 = { level: BREEDER_LEVELS.grove.length, usdMicro: groveTop.usdMicro!, minPl: groveTop.minPl }
 
-export const BREEDER_FOOTPRINT = 5
+/** 2 cells until M4 changes every footprint together (R9; R15 is withdrawn). */
+export const BREEDER_FOOTPRINT = 2

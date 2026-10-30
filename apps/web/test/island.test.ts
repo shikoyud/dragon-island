@@ -4,7 +4,7 @@ import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
-import { badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, timerLabel } from '../src/game/islandModel'
+import { badgeY, BREEDER_ART_SCALE, buildIslandModel, dragonKey, goldBadgeThreshold, timerLabel } from '../src/game/islandModel'
 import { NEST_EGG_SCALE } from '../src/game/layout'
 import { nearestLegalCell } from '../src/state/placing'
 
@@ -45,8 +45,8 @@ describe('island model', () => {
     expect(markers.habitats).toEqual(['h1', 'h2'])
     expect(markers.dragons).toEqual(['d1', 'd2'])
     expect(markers.breeders).toEqual([{ index: 0, egg: false }])
-    // The Mountain stands on its 5x5 footprint at (4, 7), still drawn with the nest sprite until its art lands (Task 11).
-    expect(objects.find(o => o.id === 'breeder:0')).toMatchObject({ key: textureKey('building.nest'), x: -24, y: 84, target: { kind: 'breeder', index: 0 } })
+    // The Mountain stands on its 2-cell footprint at (4, 8) (R9), still drawn with the nest sprite until its art lands.
+    expect(objects.find(o => o.id === 'breeder:0')).toMatchObject({ key: textureKey('building.nest'), x: -32, y: 64, target: { kind: 'breeder', index: 0 } })
     expect(markers.hatchery).toEqual([])
     expect(markers.farms).toHaveLength(1)
     expect(objects.find(o => o.id === 'habitat:h1')!.key).toBe(textureKey('habitat.terra'))
@@ -293,6 +293,22 @@ describe('island model', () => {
     expect(artEntries(withLevel({ 'building.mountain.2': b('m2.png') }, 2).art).map(r => r.key)).toContain('art:building.mountain.2')
   })
 
+  it('draws 80x80 breeder sheets at BREEDER_ART_SCALE on the 2-cell footprint until M4; the nest keeps its native scale', () => {
+    expect(BREEDER_ART_SCALE).toBeGreaterThan(0)
+    expect(BREEDER_ART_SCALE).toBeLessThan(1)
+    const s = newPlayer(0)
+    const sheet = { file: 'b.png', w: 80, h: 80, frames: 1, fps: 0 }
+    const art = artSetFromManifest('t', { assets: { 'building.mountain.1': sheet, 'building.grove.1': sheet } }, C)
+    // The sheet stays specified at 80x80: only the drawing is scaled.
+    expect(art.building.breeder.mountain[1]).toMatchObject({ w: 80, h: 80 })
+    expect(buildIslandModel(s, art, C, 0, 'home', null).objects.find(o => o.id === 'breeder:0')!.scale).toBe(BREEDER_ART_SCALE)
+    const ghost = buildIslandModel(s, art, C, 0, 'home', { what: { kind: 'grove' }, size: 2, col: 9, row: 7, facing: 0 }).objects.find(o => o.id === 'ghost')!
+    expect(ghost.scale).toBe(BREEDER_ART_SCALE)
+    const moved = buildIslandModel(s, art, C, 0, 'home', { what: { kind: 'move', target: { type: 'breeder', index: 0 } }, size: 2, col: 9, row: 7, facing: 0 }).objects.find(o => o.id === 'ghost')!
+    expect(moved.scale).toBe(BREEDER_ART_SCALE)
+    expect(buildIslandModel(s, FALLBACK_ART, C, 0, 'home', null).objects.find(o => o.id === 'breeder:0')!.scale).toBeUndefined()
+  })
+
   it('draws the Hatchery by level with the same fallbacks, and the Grove ghost with its level 1 sheet', () => {
     const b = { file: 'h.png', w: 64, h: 64, frames: 1, fps: 0 }
     const art = artSetFromManifest('t', { assets: { 'building.hatchery.2': b, 'building.grove.1': { ...b, w: 80, h: 80 } } }, C)
@@ -301,19 +317,19 @@ describe('island model', () => {
     expect(key(1)).toBe(textureKey('building.hatchery'))
     expect(key(2)).toBe(textureKey('building.hatchery.2'))
     expect(key(3)).toBe(textureKey('building.hatchery.2'))
-    const g = buildIslandModel({ ...s, islands: { ...s.islands, homeStep: 1 } }, art, C, 0, 'home', { what: { kind: 'grove' }, size: 5, col: 9, row: 7, facing: 0 })
+    const g = buildIslandModel(s, art, C, 0, 'home', { what: { kind: 'grove' }, size: 2, col: 9, row: 7, facing: 0 })
     expect(g.objects.find(o => o.id === 'ghost')!.key).toBe(textureKey('building.grove.1'))
   })
 
-  it('draws the Grove ghost with the nest sprite until its own art lands, on a 5x5 footprint', () => {
-    const s = { ...newPlayer(0), islands: { ...newPlayer(0).islands, homeStep: 1 } }
-    const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'grove' }, size: 5, col: 9, row: 7, facing: 0 })
-    expect(m.markers.ghost).toEqual({ legal: true, col: 9, row: 7, size: 5 })
+  it('draws the Grove ghost with the nest sprite until its own art lands, on a 2-cell footprint', () => {
+    const s = newPlayer(0)
+    const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'grove' }, size: 2, col: 9, row: 7, facing: 0 })
+    expect(m.markers.ghost).toEqual({ legal: true, col: 9, row: 7, size: 2 })
     expect(m.objects.find(o => o.id === 'ghost')!.key).toBe(textureKey('building.nest'))
   })
 
   it('draws the Golden Aerie ghost with the Nexus sprite until its own art lands', () => {
-    const s = { ...newPlayer(0), islands: { ...newPlayer(0).islands, homeStep: 1 } } // the starting island has no free 5x5 spot
+    const s = newPlayer(0)
     const spot = nearestLegalCell(s, { kind: 'goldenAerie' }, 'home', { col: 4, row: 4 })!
     const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'goldenAerie' }, size: 5, ...spot, facing: 0 })
     expect(m.markers.ghost).toEqual({ legal: true, ...spot, size: 5 })

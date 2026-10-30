@@ -111,8 +111,7 @@ describe('POST /actions', () => {
   })
 
   it('runs placeBuilding and finishConstruction through /actions and charges a construction skip', async () => {
-    await setState({ islands: { ...newPlayer(0).islands, homeStep: 1 } }) // one expansion: room for a 5x5 beside the Mountain
-    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 9, row: 7, facing: 0 } })
+    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 7, row: 7, facing: 0 } })
     expect(placed.statusCode).toBe(200)
     expect(placed.json().state.constructions).toHaveLength(1)
     const skipped = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } })
@@ -126,8 +125,7 @@ describe('POST /actions', () => {
   })
 
   it('a construction skip with a bad index or on a ready construction charges nothing', async () => {
-    await setState({ islands: { ...newPlayer(0).islands, homeStep: 1 } }) // one expansion: room for a 5x5 beside the Mountain
-    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 9, row: 7, facing: 0 } })
+    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 7, row: 7, facing: 0 } })
     expect(placed.statusCode).toBe(200)
     const bad = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 5 } })
     expect([bad.statusCode, bad.json()]).toEqual([422, { error: 'NOT_FOUND' }])

@@ -30,7 +30,7 @@ Silhouettes in the Dragon Book (R22) need no art of their own.
 
 ## Breeding buildings
 
-A Mountain or Grove is a 5x5 footprint, so its sprite is 80x80 with the bottom-centre on the footprint's bottom vertex (the diamond is 80x40 wide and the art rises above it). The Hatchery is a 4x4 footprint at 64x64 (as `building.hatchery` today, with its four egg niches in the same places: `layout.ts` `HATCHERY_NICHES`). Each level should read as an upgrade of the one before: same silhouette base, more ornament. The Hatchery's fifth slot is a one-off purchase, not a level, and has no sheet. Fallbacks: a missing level uses the next lower level's sheet, then `building.nest` (breeders) or `building.hatchery` (Hatchery).
+A Mountain or Grove will have a 5x5 footprint from M4, so its sprite is 80x80 with the bottom-centre on the footprint's bottom vertex (the diamond is 80x40 wide and the art rises above it). Draw and keep them at 80x80: until M4 the buildings stand on a 2-cell footprint (R9) and the game draws the sheets smaller with `BREEDER_ART_SCALE` (`apps/web/src/game/islandModel.ts`), so nothing here needs a smaller size. The Hatchery is a 4x4 footprint at 64x64 (as `building.hatchery` today, with its four egg niches in the same places: `layout.ts` `HATCHERY_NICHES`). Each level should read as an upgrade of the one before: same silhouette base, more ornament. The Hatchery's fifth slot is a one-off purchase, not a level, and has no sheet. Fallbacks: a missing level uses the next lower level's sheet, then `building.nest` (breeders) or `building.hatchery` (Hatchery).
 
 | Key | Frame (px) | Frames | fps | Description |
 |---|---|---|---|---|

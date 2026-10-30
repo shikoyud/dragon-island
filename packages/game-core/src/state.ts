@@ -77,7 +77,7 @@ export function newPlayer(nowMs: number): PlayerState {
       { id: 'h1', element: 'terra', level: 1, lastCollectedMs: nowMs, placement: home(0, 0) },
       { id: 'h2', element: 'flame', level: 1, lastCollectedMs: nowMs, placement: home(5, 0) },
     ],
-    breeders: [{ kind: 'mountain', egg: null, level: 1, placement: home(4, 7) }],
+    breeders: [{ kind: 'mountain', egg: null, level: 1, placement: home(4, 8) }],
     hatchery: [],
     hatcheryLevel: 1,
     hatcheryFifthSlot: false,

@@ -353,7 +353,7 @@ Also recorded in `docs/superpowers/specs/2026-10-30-gdd-rulings.md`.
 
 | # | Ruling | Why |
 | --- | --- | --- |
-| R15 | **Mountain and Grove take their GDD 5×5 footprint in M2**; the Hatchery stays 4×4 (already the GDD size). Other footprints wait for M4 (R9). | Their art is new, so drawing it once at final size avoids regenerating it. |
+| R15 | **Withdrawn, see R9. A 5×5 Mountain left no free 5×5 cell at step 0, only (9,5) at steps 1–2, and nothing more until step 6 (PL 18).** Original text: Mountain and Grove take their GDD 5×5 footprint in M2; the Hatchery stays 4×4 (already the GDD size). Other footprints wait for M4 (R9). | Their art is new, so drawing it once at final size avoids regenerating it. |
 | R16 | **Hatchery, Mountain and Grove upgrade timers** (GDD silent): to L2 1 h, L3 4 h, L4 12 h, $DRIS levels instant; Grove build 4 h. Classic, ÷ `timerDiv`. | Same ladder as A5 for habitats. |
 | R17 | Withdrawn; replaced by M2 plan Q5. | The §5.4 table's L5 and L4 order is a question for shiko. |
 | R18 | **A finished egg moves to the Hatchery on a tap**, not by itself; its building stays blocked until then. | §5.4 says only that the egg waits; a tap is the genre's collect moment and already exists. |

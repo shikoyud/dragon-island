@@ -11,86 +11,85 @@ import { newPlayer, type PlayerState } from '../src/state'
 import { FIXTURE_CATALOG } from './fixtures'
 import { err, ok } from './helpers'
 
-// Two expansions in: the starting island has no free 5x5 spot beside the 5x5 Mountain (R15).
-const s: PlayerState = { ...newPlayer(0), islands: { ...newPlayer(0).islands, homeStep: 2 } }
+const s: PlayerState = newPlayer(0)
 const rng = createRng(1)
 const run = (st: PlayerState, a: Action, t: number) => applyAction(st, a, t, rng, FIXTURE_CATALOG)
 const P = (col: number, row: number) => ({ island: 'home' as const, col, row, facing: 0 as const })
 
 describe('placeBuilding', () => {
   it('places a habitat under construction and charges gold', () => {
-    const a = ok(run({ ...s, level: 5, gold: 5_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(9, 7) }, 1_000))
-    expect(a.habitats[2]).toEqual({ id: 'h3', element: 'terra', level: 1, lastCollectedMs: 1_000, placement: P(9, 7) })
+    const a = ok(run({ ...s, level: 5, gold: 5_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(7, 7) }, 1_000))
+    expect(a.habitats[2]).toEqual({ id: 'h3', element: 'terra', level: 1, lastCollectedMs: 1_000, placement: P(7, 7) })
     expect(a.gold).toBe(4_500)
     expect(a.constructions).toEqual([{ kind: 'build', building: { type: 'habitat', id: 'h3' }, readyAtMs: 1_000 + 100_000 }])
   })
   it('rejects overlap, bounds, unlock level and gold', () => {
     err(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(0, 0) }, 0), 'OVERLAP')
     err(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(10, 10) }, 0), 'OUT_OF_BOUNDS')
-    err(run({ ...s, level: 5, gold: 1e9 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'electric' }, placement: P(9, 7) }, 0), 'LEVEL_TOO_LOW')
-    err(run({ ...s, level: 5, gold: 10 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(9, 7) }, 0), 'INSUFFICIENT_GOLD')
+    err(run({ ...s, level: 5, gold: 1e9 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'electric' }, placement: P(7, 7) }, 0), 'LEVEL_TOO_LOW')
+    err(run({ ...s, level: 5, gold: 10 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(7, 7) }, 0), 'INSUFFICIENT_GOLD')
   })
   it('has no habitat count limit: land is the only cap (§5)', () => {
     // A level 1 player already owns two habitats; the old limit (2 + level / 5) refused a third.
-    const st = ok(run({ ...s, level: 1, gold: 1_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(9, 7) }, 0))
+    const st = ok(run({ ...s, level: 1, gold: 1_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(7, 7) }, 0))
     expect(st.habitats).toHaveLength(3)
     expect(st.gold).toBe(500)
   })
   it('charges the §5.2 build price at the unlock level and times it by tier (A5)', () => {
     const t = { ...s, level: 6, gold: 100_000 }
-    const a = ok(run(t, { type: 'placeBuilding', building: { kind: 'habitat', element: 'electric' }, placement: P(9, 7) }, 1_000))
+    const a = ok(run(t, { type: 'placeBuilding', building: { kind: 'habitat', element: 'electric' }, placement: P(7, 7) }, 1_000))
     expect(a.gold).toBe(75_000)
     expect(a.constructions[0]!.readyAtMs).toBe(1_000 + 600_000)
     expect(a.habitats.at(-1)).toMatchObject({ element: 'electric', level: 1 })
-    const dark = ok(run({ ...t, level: 14, gold: 1e9 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'dark' }, placement: P(9, 7) }, 0))
+    const dark = ok(run({ ...t, level: 14, gold: 1e9 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'dark' }, placement: P(7, 7) }, 0))
     expect([dark.gold, dark.constructions[0]!.readyAtMs]).toEqual([1e9 - 150_000, 2_400_000])
-    const flame = ok(run(t, { type: 'placeBuilding', building: { kind: 'habitat', element: 'flame' }, placement: P(9, 7) }, 0))
+    const flame = ok(run(t, { type: 'placeBuilding', building: { kind: 'habitat', element: 'flame' }, placement: P(7, 7) }, 0))
     expect([flame.gold, flame.constructions[0]!.readyAtMs]).toEqual([98_000, 100_000])
   })
   it('the second farm needs PL 3, costs 3,000 and takes 10 s (60 s classic / 6)', () => {
     const t = { ...s, level: 3, gold: 20_000 }
-    const a = ok(run(t, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(9, 7) }, 0))
-    expect(a.farms[1]).toEqual({ crop: null, readyAtMs: 0, level: 1, placement: P(9, 7) })
+    const a = ok(run(t, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(7, 7) }, 0))
+    expect(a.farms[1]).toEqual({ crop: null, readyAtMs: 0, level: 1, placement: P(7, 7) })
     expect([a.gold, a.constructions[0]!.readyAtMs]).toEqual([17_000, 10_000])
   })
   it('gates farms by player level (§5.3) and caps them at 8', () => {
     const t = { ...s, gold: 1e9 }
-    err(run({ ...t, level: 2 }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(9, 7) }, 0), 'LEVEL_TOO_LOW')
-    ok(run({ ...t, level: 3 }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(9, 7) }, 0))
+    err(run({ ...t, level: 2 }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(7, 7) }, 0), 'LEVEL_TOO_LOW')
+    ok(run({ ...t, level: 3 }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(7, 7) }, 0))
     const fakeFarm = (i: number) => ({ crop: null, readyAtMs: 0, level: 1, placement: P(20 + i, 0) })
     const two = { ...t, level: 3, farms: [fakeFarm(0), fakeFarm(1)] }
-    ok(run({ ...two, farms: [fakeFarm(0)] }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(9, 7) }, 0))
-    err(run(two, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(9, 7) }, 0), 'LEVEL_TOO_LOW')
-    err(run({ ...t, level: 50, farms: Array.from({ length: 8 }, (_, i) => fakeFarm(i)) }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(9, 7) }, 0), 'MAX_PLOTS')
+    ok(run({ ...two, farms: [fakeFarm(0)] }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(7, 7) }, 0))
+    err(run(two, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(7, 7) }, 0), 'LEVEL_TOO_LOW')
+    err(run({ ...t, level: 50, farms: Array.from({ length: 8 }, (_, i) => fakeFarm(i)) }, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(7, 7) }, 0), 'MAX_PLOTS')
   })
   it('unfinished habitats take no dragons', () => {
-    const a = ok(run({ ...s, level: 5, gold: 5_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(9, 7) }, 0))
+    const a = ok(run({ ...s, level: 5, gold: 5_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(7, 7) }, 0))
     err(run(a, { type: 'moveDragon', dragonId: 'd1', habitatId: 'h3' }, 0), 'UNDER_CONSTRUCTION')
     const full = { ...a, dragons: [...a.dragons, ...['d3', 'd4'].map(id => ({ id, speciesId: 'terra', level: 1, feeds: 0, habitatId: 'h1' }))], hatchery: [{ speciesId: 'terra', readyAtMs: 0 }] }
     expect(ok(run(full, { type: 'hatch', slot: 0 }, 0)).dragons.at(-1)!.habitatId).toBeNull()
   })
   it('decorations are instant, level-gated, refundable at 25%', () => {
-    err(run(s, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'hayCart' }, placement: P(9, 7) }, 0), 'LEVEL_TOO_LOW')
-    err(run({ ...s, level: 45 }, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'starPool' }, placement: P(9, 7) }, 0), 'WRONG_ISLAND')
-    const a = ok(run({ ...s, level: 6, gold: 1_000 }, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'hayCart' }, placement: P(9, 7) }, 0))
+    err(run(s, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'hayCart' }, placement: P(7, 7) }, 0), 'LEVEL_TOO_LOW')
+    err(run({ ...s, level: 45 }, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'starPool' }, placement: P(7, 7) }, 0), 'WRONG_ISLAND')
+    const a = ok(run({ ...s, level: 6, gold: 1_000 }, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'hayCart' }, placement: P(7, 7) }, 0))
     expect([a.gold, a.constructions.length, a.decorations[0]!.id]).toEqual([0, 0, 'c3'])
     const b = ok(run(a, { type: 'removeDecoration', id: 'c3' }, 0))
     expect([b.gold, b.decorations]).toEqual([250, []])
     err(run(a, { type: 'removeDecoration', id: 'c9' }, 0), 'NOT_FOUND')
   })
   it('the Nexus is gone: placeBuilding refuses it', () => {
-    expect(isValidAction({ type: 'placeBuilding', building: { kind: 'nexus' }, placement: P(9, 7) })).toBe(false)
+    expect(isValidAction({ type: 'placeBuilding', building: { kind: 'nexus' }, placement: P(7, 7) })).toBe(false)
   })
   it('builders can all be busy', () => {
     const busy = { ...s, level: 5, constructions: [0, 1].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 9 })) }
-    err(run(busy, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(9, 7) }, 0), 'BUILDERS_BUSY')
+    err(run(busy, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(7, 7) }, 0), 'BUILDERS_BUSY')
   })
 })
 
 describe('plant on unfinished plots', () => {
   it('rejects a plot under construction', () => {
     const t = { ...s, level: 3, gold: 20_000 }
-    const a = ok(run(t, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(9, 7) }, 0))
+    const a = ok(run(t, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(7, 7) }, 0))
     err(run(a, { type: 'plant', plot: 1, crop: 'dragonBush' }, 0), 'UNDER_CONSTRUCTION')
   })
 })
@@ -120,11 +119,11 @@ describe('Dawnspire-only buildings stay on Dawnspire', () => {
   it('a Golden Aerie may move to any island', () => {
     const aerie = { id: 'h3', element: 'aerie' as const, level: 5, lastCollectedMs: 0, placement: dp }
     const st = { ...base, habitats: [...base.habitats, aerie] }
-    expect(ok(run(st, { type: 'moveBuilding', target: { type: 'habitat', id: 'h3' }, placement: P(9, 7) }, 0)).habitats[2]!.placement).toEqual(P(9, 7))
+    expect(ok(run(st, { type: 'moveBuilding', target: { type: 'habitat', id: 'h3' }, placement: P(7, 7) }, 0)).habitats[2]!.placement).toEqual(P(7, 7))
   })
   it('rejects moving a Dawnspire decoration home', () => {
     const st = { ...base, decorations: [{ id: 'c3', kind: 'starPool' as const, placement: dp }] }
-    err(run(st, { type: 'moveBuilding', target: { type: 'decoration', id: 'c3' }, placement: P(9, 7) }, 0), 'WRONG_ISLAND')
+    err(run(st, { type: 'moveBuilding', target: { type: 'decoration', id: 'c3' }, placement: P(7, 7) }, 0), 'WRONG_ISLAND')
   })
   it('rejects malformed place/move payloads', () => {
     expect(isValidAction({ type: 'placeBuilding', building: { kind: 'habitat', element: 'plasma' }, placement: P(0, 0) })).toBe(false)
@@ -171,7 +170,7 @@ describe('startUpgrade / finishConstruction', () => {
     err(run(b, { type: 'finishConstruction', index: 0 }, 650_000), 'NOT_FOUND')
   })
   it('finishing a build only removes the construction', () => {
-    const a = ok(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(9, 7) }, 0))
+    const a = ok(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(7, 7) }, 0))
     const b = ok(run(a, { type: 'finishConstruction', index: 0 }, 100_000))
     expect([b.constructions, b.habitats.length, b.habitats[2]!.level]).toEqual([[], 3, 1])
   })

@@ -37,9 +37,12 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
   const me = useMe()
   const [tab, setTab] = useState<ShopTab>(initial)
   const s = me.data?.state
-  // One scan for every 5x5 row (habitats, Grove, Golden Aerie share the footprint); not tied to the clock.
-  const room = useMemo(
-    () => s ? hasLegalCell(s, { kind: 'habitat', element: 'terra' }) : false,
+  // One scan for the 5x5 rows (habitats and the Golden Aerie share the footprint) and one for the Grove's 2 cells; not tied to the clock.
+  const { room, groveRoom } = useMemo(
+    () => ({
+      room: s ? hasLegalCell(s, { kind: 'habitat', element: 'terra' }) : false,
+      groveRoom: s ? hasLegalCell(s, { kind: 'grove' }) : false,
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [s?.islands, s?.habitats, s?.breeders, s?.farms, s?.decorations, s?.hatcheryPlacement, s?.constructions],
   )
@@ -51,7 +54,7 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
         <button type="button" role="tab" className="hud-tab" aria-selected={tab === 'store'} onClick={() => setTab('store')}>Store</button>
       </div>
       <div role="tabpanel" aria-label={tab === 'build' ? 'Build' : 'Store'}>
-        {tab === 'build' ? <BuildTab s={s} onPlace={onPlace} view={view} room={room} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
+        {tab === 'build' ? <BuildTab s={s} onPlace={onPlace} view={view} room={room} groveRoom={groveRoom} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
       </div>
     </Panel>
   )
@@ -65,7 +68,7 @@ const section = (key: string, title: string, items: ReactNode) => (
 )
 
 /** Gold-and-level shop for everything that goes on the grid (spec section 8). */
-function BuildTab({ s, onPlace, view, room }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean }) {
+function BuildTab({ s, onPlace, view, room, groveRoom }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean; groveRoom: boolean }) {
   const card = (id: string, label: string, price: string, reason: string | undefined, what: Placing['what'], size: Footprint) => (
     <li key={id}>
       <ActionButton id={`shop-${id}`} disabled={Boolean(reason)} reason={reason} onClick={() => onPlace(what, size)}>
@@ -106,7 +109,7 @@ function BuildTab({ s, onPlace, view, room }: { s: PlayerState; onPlace: ShopPan
         })}
       </>)}
       {section('breeding', 'Breeding', card('grove', breederName('grove'), `${formatGold(grove.gold!)} gold`,
-        gold(grove.gold!, grove.minPl, groveBuilt ? 'Already built' : noRoom), { kind: 'grove' }, FOOTPRINT.breeder))}
+        gold(grove.gold!, grove.minPl, groveBuilt ? 'Already built' : groveRoom ? undefined : NO_ROOM), { kind: 'grove' }, FOOTPRINT.breeder))}
       {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_FARMS ? 'maximum' : `${formatGold(farmBuildGold(plots + 1))} gold`,
         plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), FARM_UNLOCK_PL[plots]!), { kind: 'farm' }, FOOTPRINT.farm))}
       {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {
