@@ -200,7 +200,8 @@ describe('DragonPanel (B11)', () => {
     const picker = screen.getByRole('group', { name: /move to/i })
     const options = within(picker).getAllByRole('button')
     expect(options).toHaveLength(1) // h1 is home, h2 flame, h4 full, h5 sea
-    expect(options[0]).toHaveTextContent(/h3/)
+    expect(options[0]).toHaveTextContent(/^Terra habitat \d · /)
+    expect(options[0]).not.toHaveTextContent(/h3/)
     await userEvent.click(options[0]!)
     expect(action).toHaveBeenCalledWith({ type: 'moveDragon', dragonId: 'd1', habitatId: 'h3' }, expect.any(String))
   })
@@ -218,7 +219,7 @@ describe('DragonPanel (B11)', () => {
     return userEvent.click(screen.getByRole('button', { name: /^move$/i })).then(() => {
       const picker = screen.getByRole('group', { name: /move to/i })
       expect(within(picker).getAllByRole('button').map(b => b.textContent)).toEqual([
-        expect.stringContaining('h2'), expect.stringContaining('h3'),
+        expect.stringContaining('Flame habitat'), expect.stringContaining('Sea habitat'),
       ])
     })
   })

@@ -38,7 +38,7 @@ function RoundButton({ icon, label, onClick, active, badge, size = 'large', show
   )
 }
 
-function Pill({ icon, label, value, sub, plusLabel, onPlus }: { icon: IconName; label: string; value: ReactNode; sub?: string; plusLabel: string; onPlus: () => void }) {
+function Pill({ icon, label, value, sub, plusLabel, onPlus }: { icon: IconName; label: string; value: ReactNode; sub?: string; plusLabel?: string; onPlus?: () => void }) {
   return (
     <div className="hud-pill" title={label}>
       <Icon name={icon} size={22} />
@@ -46,7 +46,7 @@ function Pill({ icon, label, value, sub, plusLabel, onPlus }: { icon: IconName; 
         <span className="hud-pill__value" aria-label={label}>{value}</span>
         {sub && <span className="hud-pill__sub">{sub}</span>}
       </span>
-      <button type="button" className="hud-pill__plus" aria-label={plusLabel} onClick={onPlus}>+</button>
+      {plusLabel && <button type="button" className="hud-pill__plus" aria-label={plusLabel} onClick={onPlus}>+</button>}
     </div>
   )
 }
@@ -122,7 +122,8 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
         </div>
         <div className="hud-pills" role="status" aria-label="Resources">
           <Pill icon="food" label="Food" value={formatGold(s.food)} plusLabel="Buy food" onPlus={openStore} />
-          <Pill icon="gold" label="Gold" value={formatGold(s.gold)} plusLabel="Get gold" onPlus={openStore} />
+          {/* No "+" until the Store sells Gold. */}
+          <Pill icon="gold" label="Gold" value={formatGold(s.gold)} />
           <Pill icon="dris" label="DRIS" value={`${formatWei(BigInt(data.balanceWei), 18, 2)}`} plusLabel="Add DRIS" onPlus={panel('settings')} />
         </div>
         <RoundButton icon="settings" label="Settings" size="small" showLabel={false} active={isPanel(open, 'settings')} onClick={panel('settings')} />

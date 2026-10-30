@@ -33,8 +33,7 @@ describe('HUD', () => {
     expect(within(res).getByLabelText('DRIS')).toHaveTextContent('5')
     await userEvent.click(screen.getByRole('button', { name: 'Buy food' }))
     expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'shop', tab: 'store' })
-    await userEvent.click(screen.getByRole('button', { name: 'Get gold' }))
-    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'shop', tab: 'store' })
+    expect(screen.queryByRole('button', { name: 'Get gold' })).toBeNull() // the Store sells no Gold yet
     await userEvent.click(screen.getByRole('button', { name: 'Add DRIS' }))
     expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'settings' })
   })

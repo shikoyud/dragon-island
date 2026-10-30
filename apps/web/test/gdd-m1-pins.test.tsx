@@ -1,8 +1,8 @@
-import { applyAction, createRng, foodPerFeed, LAUNCH_CATALOG, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
+import { applyAction, createRng, foodPerFeed, LAUNCH_CATALOG, newPlayer, type Habitat, type PlayerState } from '@wyrmhaven/game-core'
 import { act, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TerminalClock } from '../src/hud/TerminalClock'
-import { DragonPanel } from '../src/panels/DragonPanel'
+import { DragonPanel, habitatName } from '../src/panels/DragonPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
 import { useGameClock } from '../src/state/clock'
 import { useMe } from '../src/state/me'
@@ -59,6 +59,21 @@ describe('the client prediction follows the Gold carry-over', () => {
     early.unmount()
     harness(state).wrap(<HabitatPanel habitatId="h1" nowMs={120_000} />)
     expect(screen.getByText(/^180 \/ /)).toBeInTheDocument()
+  })
+})
+
+describe('small panel cleanups', () => {
+  it('HabitatPanel names the element with an icon', () => {
+    harness(newPlayer(0)).wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
+    expect(screen.getByRole('img', { name: 'terra' })).toBeInTheDocument()
+  })
+
+  it('a habitat reads as a name in the move picker, numbered only when there are several', () => {
+    const [terra, flame] = newPlayer(0).habitats as [Habitat, Habitat]
+    const second = { ...terra, id: 'h9' }
+    expect(habitatName([terra, flame], terra)).toBe('Terra habitat')
+    expect(habitatName([terra, flame, second], second)).toBe('Terra habitat 2')
+    expect(habitatName([{ ...terra, element: 'aerie' }], { ...terra, element: 'aerie' })).toMatch(/Golden Aerie/)
   })
 })
 

@@ -1,6 +1,6 @@
 import {
   atkAt, canLiveIn, FEEDS_PER_LEVEL, foodPerFeed, getSpecies, goldPerMinuteX20, habitatSlots, hpAt, isUnfinished, LAUNCH_CATALOG, levelCap,
-  residents, SELL_GOLD, stageOf, type Catalog,
+  residents, SELL_GOLD, stageOf, type Catalog, type Habitat,
 } from '@wyrmhaven/game-core'
 import { useState } from 'react'
 import { Icon } from '../hud/Icon'
@@ -11,6 +11,13 @@ import { formatGold, formatPerMinuteX20 } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 
 const STAGE_NAME = { baby: 'Baby', juvenile: 'Juvenile', adult: 'Adult' } as const
+
+/** "Terra habitat", numbered in build order when the player has several of that element; "Golden Aerie" likewise. */
+export function habitatName(all: readonly Habitat[], h: Habitat): string {
+  const name = h.element === 'aerie' ? 'Golden Aerie' : `${h.element[0]!.toUpperCase()}${h.element.slice(1)} habitat`
+  const same = all.filter(x => x.element === h.element)
+  return same.length > 1 ? `${name} ${same.indexOf(h) + 1}` : name
+}
 
 /** Four pips, one per feed toward the next level (§4.1). Not a tap target. */
 function FeedPips({ feeds }: { feeds: number }) {
@@ -105,7 +112,7 @@ export function DragonPanel({ dragonId, onClose, catalog = LAUNCH_CATALOG }: { d
                 disabled={pending}
                 onClick={() => { setMoving(false); void run({ type: 'moveDragon', dragonId: d.id, habitatId: h.id }) }}
               >
-                {`${h.element === 'aerie' ? 'Golden Aerie' : h.element} ${h.id} · ${residents(s, h.id).length}/${habitatSlots(h)}`}
+                {`${habitatName(s.habitats, h)} · ${residents(s, h.id).length}/${habitatSlots(h)}`}
               </ActionButton>
             ))}
           </div>

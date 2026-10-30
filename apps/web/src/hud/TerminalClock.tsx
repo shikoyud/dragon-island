@@ -1,6 +1,5 @@
 import { finalsLockAtMs, gameDay, phaseOf, PRESETS, shutdownAtMs } from '@wyrmhaven/game-core'
 import type { GameInfo } from '@wyrmhaven/shared'
-import { memo } from 'react'
 
 const pad = (n: number): string => n.toString().padStart(2, '0')
 
@@ -31,9 +30,9 @@ export function terminalLabel(game: Pick<GameInfo, 'launchAtMs' | 'preset'>, now
   }
 }
 
-/** The countdown under the pills. Small and memoised: it only re-renders when its own text can change. */
-export const TerminalClock = memo(function TerminalClock({ game, nowMs }: { game: Pick<GameInfo, 'launchAtMs' | 'preset'>; nowMs: number }) {
+/** The countdown under the pills. */
+export function TerminalClock({ game, nowMs }: { game: Pick<GameInfo, 'launchAtMs' | 'preset'>; nowMs: number }) {
   const label = terminalLabel(game, nowMs)
   if (label === null) return null
   return <div className="hud-clock outlined" role="timer" aria-label="Terminal countdown">{label}</div>
-})
+}

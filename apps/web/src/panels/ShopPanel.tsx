@@ -1,5 +1,5 @@
 import {
-  DECORATIONS, ELEMENTS, FOOTPRINT, HABITATS, FARM_UNLOCK_PL, farmBuildGold, MAX_FARMS, priceMicroUsd,
+  DECORATIONS, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, FARM_UNLOCK_PL, farmBuildGold, MAX_FARMS, priceMicroUsd,
   type DecorationId, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem,
 } from '@wyrmhaven/game-core'
 import { useState, type ReactNode } from 'react'
@@ -133,7 +133,7 @@ function StoreTab({ s, nowMs, onPlace }: { s: PlayerState; nowMs: number; onPlac
       {section('food', 'Food', (
         <li>
           <ActionButton id="buy-food-pack" disabled={pending || foodPrice === null} reason={foodPrice === null ? 'Not available right now' : undefined} onClick={() => buy({ kind: 'foodPack' })}>
-            Food pack · 1,000 food{foodPrice !== null ? ` · ${formatMicroUsd(foodPrice)}` : ''}
+            Food pack · {formatGold(FOOD_PACK)} food{foodPrice !== null ? ` · ${formatMicroUsd(foodPrice)}` : ''}
           </ActionButton>
         </li>
       ))}

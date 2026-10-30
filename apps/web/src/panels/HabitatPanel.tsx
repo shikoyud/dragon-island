@@ -1,4 +1,5 @@
 import { canLiveIn, getSpecies, goldPerMinuteX20, habitatCap, habitatSlots, isUnfinished, LAUNCH_CATALOG, residents, stageOf, storedGold } from '@wyrmhaven/game-core'
+import { Icon } from '../hud/Icon'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { usePreset } from '../state/preset'
@@ -38,7 +39,7 @@ export function HabitatPanel({ habitatId, nowMs, onClose, onOpenDragon }: {
   return (
     <Panel title={h.element === 'aerie' ? 'Golden Aerie' : `${h.element} habitat ${h.id}`} onClose={onClose}>
       <p>
-        <span className="element-chip" data-element={h.element} aria-hidden="true" style={{ marginRight: 6, textTransform: 'capitalize' }}>{h.element}</span>
+        {h.element !== 'aerie' && <span style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 6 }}><Icon name={h.element} size={16} label={h.element} /></span>}
         {`Level ${h.level} · ${live.length}/${habitatSlots(h)} dragons`}
       </p>
       <p>{`${formatPerMinuteX20(perMinuteX20)} gold/min`}</p>
