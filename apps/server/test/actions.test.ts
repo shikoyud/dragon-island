@@ -34,7 +34,7 @@ describe('POST /actions', () => {
     const r = await post({ type: 'collectGold', habitatId: 'h1' }, 'k1')
     expect(r.statusCode).toBe(200)
     const body = r.json()
-    expect(body.state.gold).toBe(1020)
+    expect(body.state.gold).toBe(1700)
     expect(body.effects).toEqual([])
     const [log] = await t.db.select().from(actionLog).where(eq(actionLog.playerId, playerId))
     expect(log!.nonce).toBe(1n)

@@ -25,21 +25,22 @@ describe('BuildShopPanel', () => {
     const hay = screen.getByRole('button', { name: /Hay cart/ })
     expect(hay).toBeDisabled()
     expect(hay).toHaveAccessibleDescription(/Level 6/)
-    expect(screen.getByRole('button', { name: /flame habitat/i })).toBeDisabled() // limit 2 at level 3
+    expect(screen.getByRole('button', { name: /flame habitat/i })).toBeDisabled() // 2,000 gold, base has 1,000
     await userEvent.click(screen.getByRole('button', { name: /Flower patch/ }))
     expect(onPlace).toHaveBeenCalledWith({ kind: 'decoration', decoration: 'flowerPatch' }, 1)
   })
 
-  it('enables habitats while under the limit', () => {
+  it('has no habitat count limit', () => {
     const { wrap } = harness({ ...base, level: 7 })
     wrap(<BuildShopPanel onPlace={vi.fn()} view="home" />)
-    expect(screen.getByRole('button', { name: /terra habitat/i })).toBeEnabled() // limit 3 at level 7
+    expect(screen.getByRole('button', { name: /terra habitat/i })).toBeEnabled()
   })
 
-  it('names the next multiple of 5 when the habitat limit is reached', () => {
-    const { wrap } = harness({ ...base, level: 3 })
+  it('locks a habitat below its unlock player level and names the level', () => {
+    const { wrap } = harness({ ...base, level: 3, gold: 1_000_000 })
     wrap(<BuildShopPanel onPlace={vi.fn()} view="home" />)
-    expect(screen.getByRole('button', { name: /flame habitat/i })).toHaveAccessibleDescription('Reach level 5 for another habitat')
+    expect(screen.getByRole('button', { name: /electric habitat/i })).toHaveAccessibleDescription('Level 6')
+    expect(screen.getByRole('button', { name: /sea habitat/i })).toBeEnabled()
   })
 
   it('starts habitats and farm plots with their footprints', async () => {
@@ -52,10 +53,10 @@ describe('BuildShopPanel', () => {
     expect(onPlace).toHaveBeenLastCalledWith({ kind: 'farm' }, 2)
   })
 
-  it('shows Dawnspire-only items and the Nexus greyed off the Dawnspire, enabled on it', () => {
+  it('shows Dawnspire-only items greyed off the Dawnspire, enabled on it', () => {
     const rich = { ...base, level: 45, gold: 5_000_000 }
     const r = harness(rich).wrap(<BuildShopPanel onPlace={vi.fn()} view="home" />)
-    for (const name of [/Star pool/, /Dawn obelisk/, /Dragon colossus/, /Nexus/]) {
+    for (const name of [/Star pool/, /Dawn obelisk/, /Dragon colossus/]) {
       const b = screen.getByRole('button', { name })
       expect(b).toBeDisabled()
       expect(b).toHaveAccessibleDescription('Dawnspire only')
@@ -63,16 +64,15 @@ describe('BuildShopPanel', () => {
     r.unmount()
     harness(rich).wrap(<BuildShopPanel onPlace={vi.fn()} view="dawnspire" />)
     expect(screen.getByRole('button', { name: /Star pool/ })).toBeEnabled()
-    expect(screen.getByRole('button', { name: /Nexus/ })).toBeEnabled()
   })
 })
 
 describe('UpgradeSection', () => {
   it('shows the next level, then the timer and skip; finishing is left to the app-level finisher', async () => {
-    const { wrap, action, setState } = harness({ ...base, gold: 5_000 })
+    const { wrap, action, setState } = harness({ ...base, gold: 25_000 })
     const r = wrap(<UpgradeSection building={h1} nowMs={0} />)
     expect(screen.getByText('Level 1')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Upgrade to 2 · 1,000 gold · 10m/ })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /Upgrade to 2 · 20,000 gold · 10m/ })).toBeEnabled()
 
     setState({ ...base, gold: 4_000, constructions: [{ kind: 'upgrade', building: h1, readyAtMs: 600_000 }] })
     r.rerender(<UpgradeSection building={h1} nowMs={0} />)
@@ -87,7 +87,7 @@ describe('UpgradeSection', () => {
   })
 
   it('starts an upgrade and a construction skip', async () => {
-    const { wrap, action } = harness({ ...base, gold: 5_000 })
+    const { wrap, action } = harness({ ...base, gold: 25_000 })
     const r = wrap(<UpgradeSection building={h1} nowMs={0} />)
     await userEvent.click(screen.getByRole('button', { name: /Upgrade to 2/ }))
     expect(action).toHaveBeenCalledWith({ type: 'startUpgrade', building: h1 }, expect.any(String))
@@ -112,7 +112,7 @@ describe('UpgradeSection', () => {
     expect(why({ ...base, gold: 99_999 }, { type: 'nest', index: 0 })).toBe('Needs player level 12')
     const c1 = { kind: 'upgrade', building: { type: 'farm', index: 0 }, readyAtMs: 9 } as const
     const c2 = { kind: 'upgrade', building: { type: 'farm', index: 1 }, readyAtMs: 9 } as const
-    expect(why({ ...base, gold: 5_000, constructions: [c1, c2] })).toBe('Both builders are busy')
+    expect(why({ ...base, gold: 25_000, constructions: [c1, c2] })).toBe('Both builders are busy')
   })
 
   it('shows Max level at the top', () => {
@@ -209,6 +209,6 @@ describe('error copy', () => {
     expect(messageFor('OUT_OF_BOUNDS')).toBe('That spot is off the island.')
     expect(messageFor('BUILDERS_BUSY')).toBe('Both builders are busy. Finish or skip a build first.')
     expect(messageFor('MAX_EXPANSION')).toBe('The home island is at its full size.')
-    for (const c of ['ISLAND_LOCKED', 'MAX_ISLAND', 'WRONG_ISLAND', 'UNDER_CONSTRUCTION', 'NO_LEGENDARY', 'NEXUS_EXISTS']) expect(messageFor(c)).not.toBe(c)
+    for (const c of ['ISLAND_LOCKED', 'MAX_ISLAND', 'WRONG_ISLAND', 'UNDER_CONSTRUCTION', 'NO_LEGENDARY']) expect(messageFor(c)).not.toBe(c)
   })
 })

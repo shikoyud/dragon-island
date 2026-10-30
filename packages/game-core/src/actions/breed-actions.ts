@@ -64,7 +64,7 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
   const species = getSpecies(ctx.catalog, egg.speciesId)
   const home = s.habitats.find(h => canLiveIn(species, h) && !isUnfinished(s, { type: 'habitat', id: h.id }) && residents(s, h.id).length < habitatSlots(h))
   const dragon = { id: `d${s.nextId}`, speciesId: egg.speciesId, level: 1, feeds: 0, habitatId: home ? home.id : null }
-  const collected = home ? collectHabitat(s, home.id, ctx.catalog, ctx.nowMs) : s
+  const collected = home ? collectHabitat(s, home.id, ctx.catalog, ctx.nowMs, ctx.preset) : s
   const next = {
     ...collected,
     hatchery: collected.hatchery.filter((_, i) => i !== a.slot),

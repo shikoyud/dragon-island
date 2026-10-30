@@ -74,7 +74,6 @@ function isPlaceable(v: unknown): boolean {
   const b = v as Record<string, unknown>
   switch (b['kind']) {
     case 'habitat': return (ELEMENTS as readonly unknown[]).includes(b['element'])
-    case 'nexus':
     case 'farm': return true
     case 'decoration': return typeof b['decoration'] === 'string' && Object.hasOwn(DECORATIONS, b['decoration'])
     default: return false
@@ -128,6 +127,10 @@ function isStoreItem(v: unknown): boolean {
       return ['nest', 'hatchery', 'farm', 'construction'].includes(item['target'] as string) && isIndex(item['index'])
     case 'foodPack':
       return true
+    case 'habitatL5':
+      return isId(item['habitatId'])
+    case 'goldenAerie':
+      return isPlacement(item['placement'])
     default:
       return false
   }

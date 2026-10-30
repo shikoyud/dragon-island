@@ -30,7 +30,7 @@ function buildingLabel(s: PlayerState, b: BuildingRef): string {
   switch (b.type) {
     case 'habitat': {
       const h = s.habitats.find(x => x.id === b.id)
-      return h?.element === 'any' ? 'Nexus habitat' : `${cap(h?.element ?? '')} habitat`.trim()
+      return h?.element === 'aerie' ? 'Golden Aerie' : `${cap(h?.element ?? '')} habitat`.trim()
     }
     case 'farm': return `Farm plot ${b.index + 1}`
     case 'nest': return `Nest ${b.index + 1}`

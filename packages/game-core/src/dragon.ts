@@ -1,4 +1,7 @@
 import { ADULT_FROM_LEVEL, FEEDS_PER_LEVEL, JUVENILE_FROM_LEVEL, MAX_DRAGON_LEVEL, ROOST_LEVEL_CAPS } from './data/dragon-levels'
+import type { Element } from './data/elements'
+import { HABITATS } from './data/habitats'
+import type { Preset } from './data/presets'
 import { GPM_RARITY_MULT_TENTHS, type Rarity } from './rarity'
 
 export { ADULT_FROM_LEVEL, BREED_MIN_LEVEL, FEEDS_PER_LEVEL, JUVENILE_FROM_LEVEL, MAX_DRAGON_LEVEL, ROOST_LEVEL_CAPS } from './data/dragon-levels'
@@ -39,10 +42,13 @@ export function feedXp(food: number): number {
   return Math.max(1, Math.floor(food / 10))
 }
 
-/** Placeholder base Gold/min per level; task B6 replaces goldPerMinute with the §5.1 habitat model. */
-const TRANSITIONAL_BASE_GOLD = 2
-
-/** Transitional: whole Gold/min = floor(2 x §5.1 rarity multiplier x level). Replaced in B6. */
-export function goldPerMinute(speciesRarity: Rarity, level: number): number {
-  return Math.floor(TRANSITIONAL_BASE_GOLD * GPM_RARITY_MULT_TENTHS[speciesRarity] * level / 10)
+/**
+ * §5.1 income in twentieths of a Gold per minute (R7; divide by 20 for Gold/min):
+ * RarityMult x [Base + Inc x min(L-1, 9) + Inc/2 x max(L-10, 0)] x goldMult, with the rarity multiplier in tenths
+ * and the bracket doubled so Inc/2 stays whole. `element` is the dragon's primary element, not its habitat's.
+ */
+export function goldPerMinuteX20(element: Element, rarity: Rarity, level: number, preset: Preset): number {
+  const { base, inc } = HABITATS[element]
+  const bracketX2 = 2 * base + 2 * inc * Math.min(level - 1, 9) + inc * Math.max(level - 10, 0)
+  return GPM_RARITY_MULT_TENTHS[rarity] * bracketX2 * preset.goldMult
 }

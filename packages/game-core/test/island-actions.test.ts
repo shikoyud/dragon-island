@@ -18,10 +18,14 @@ describe('collectGold', () => {
   it('collects gold and stamps the time', () => {
     const r = run(s, { type: 'collectGold', habitatId: 'h1' }, 600_000)
     expect(r.ok && r.effects).toEqual([])
+    const before = s
     const a = ok(r)
-    expect([a.gold, a.habitats[0]!.lastCollectedMs]).toEqual([1020, 600_000])
+    const after = a
+    // Flame Common Lv 1 in Flash-14 earns 70 gold/min: 10 minutes is 700.
+    expect([a.gold, a.habitats[0]!.lastCollectedMs]).toEqual([1700, 600_000])
+    expect(after.xp).toBe(before.xp)
     const b = ok(run(a, { type: 'collectGold', habitatId: 'h1' }, 300_000))
-    expect([b.gold, b.habitats[0]!.lastCollectedMs]).toEqual([1020, 600_000])
+    expect([b.gold, b.habitats[0]!.lastCollectedMs]).toEqual([1700, 600_000])
   })
 
   it('rejects unknown habitats', () => {
@@ -42,7 +46,8 @@ describe('moveDragon', () => {
   it('collects both habitats first', () => {
     const st = withDragon(s, { ...d9, feeds: 0, habitatId: 'h1' })
     const a = ok(run(st, { type: 'moveDragon', dragonId: 'd9', habitatId: 'h2' }, 600_000))
-    expect(a.gold).toBe(1000 + 40 + 20)
+    // h1 now holds two Flame Commons (2 x 70 x 10 min); h2's Sea Common earns 100/min.
+    expect(a.gold).toBe(1000 + 1400 + 1000)
     expect(a.habitats.map(h => h.lastCollectedMs)).toEqual([600_000, 600_000])
   })
 
@@ -53,7 +58,7 @@ describe('moveDragon', () => {
 
   it('refuses a full habitat', () => {
     let st = s
-    for (const id of ['d7', 'd8']) st = withDragon(st, { id, speciesId: 'sea', level: 1, feeds: 0, habitatId: 'h2' })
+    for (const id of ['d7']) st = withDragon(st, { id, speciesId: 'sea', level: 1, feeds: 0, habitatId: 'h2' })
     err(run(withDragon(st, d9), { type: 'moveDragon', dragonId: 'd9', habitatId: 'h2' }, 0), 'NO_HABITAT_SLOT')
   })
 

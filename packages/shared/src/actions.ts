@@ -18,7 +18,6 @@ export const placementSchema = z.object({
 })
 const placeableSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('habitat'), element: elementSchema }),
-  z.object({ kind: z.literal('nexus') }),
   z.object({ kind: z.literal('farm') }),
   z.object({ kind: z.literal('decoration'), decoration: decorationSchema }),
 ])
@@ -43,6 +42,8 @@ const movesSchema = z.array(playerMoveSchema).max(90)
 export const storeItemSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('skip'), target: z.enum(['nest', 'hatchery', 'farm', 'construction']), index }),
   z.object({ kind: z.literal('foodPack') }),
+  z.object({ kind: z.literal('habitatL5'), habitatId: id }),
+  z.object({ kind: z.literal('goldenAerie'), placement: placementSchema }),
 ])
 
 export const opponentSnapshotSchema = z.object({

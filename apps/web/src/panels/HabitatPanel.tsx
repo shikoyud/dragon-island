@@ -1,27 +1,27 @@
-import { canLiveIn, getSpecies, HABITAT_LEVELS, habitatSlots, isUnfinished, LAUNCH_CATALOG, residents, storedGold } from '@wyrmhaven/game-core'
+import { canLiveIn, getSpecies, habitatCap, habitatSlots, isUnfinished, LAUNCH_CATALOG, residents, storedGold } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
-import { useMe } from '../state/me'
+import { useMe, usePreset } from '../state/me'
 import { formatGold } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { UpgradeSection } from './UpgradeSection'
 
 export function HabitatPanel({ habitatId, nowMs, onClose }: { habitatId: string; nowMs: number; onClose?: () => void }) {
   const me = useMe()
+  const preset = usePreset()
   const { run, pending } = useAction()
   const s = me.data?.state
   const h = s?.habitats.find(x => x.id === habitatId)
   if (!s || !h) return null
   const catalog = LAUNCH_CATALOG
   const live = residents(s, h.id)
-  const gold = storedGold(h, live, catalog, nowMs)
-  const level = HABITAT_LEVELS[h.level - 1]!
+  const gold = storedGold(h, live, catalog, nowMs, preset)
   const free = habitatSlots(h) - live.length
   const building = isUnfinished(s, { type: 'habitat', id: h.id })
   const movable = s.dragons.filter(d => d.habitatId !== h.id && canLiveIn(getSpecies(catalog, d.speciesId), h))
 
   return (
-    <Panel title={h.element === 'any' ? 'Nexus habitat' : `${h.element} habitat ${h.id}`} onClose={onClose}>
-      <p>{live.length}/{level.slots} dragons · cap {formatGold(level.cap)}</p>
+    <Panel title={h.element === 'aerie' ? 'Golden Aerie' : `${h.element} habitat ${h.id}`} onClose={onClose}>
+      <p>{live.length}/{habitatSlots(h)} dragons · cap {formatGold(habitatCap(h.element, h.level, preset))}</p>
       <p>{formatGold(gold)} gold stored</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <ActionButton id={`collect-${h.id}`} primary disabled={pending || gold === 0} reason="Nothing to collect yet" onClick={() => void run({ type: 'collectGold', habitatId: h.id })}>

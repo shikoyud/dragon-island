@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { applyAction } from '../src/actions/apply'
 import type { Action } from '../src/actions/types'
-import { maxHabitats } from '../src/habitat'
-import { islandSize, outerIslandsUnlocked, placementError } from '../src/island'
+import { islandSize, placementError } from '../src/island'
 import { createRng } from '../src/rng'
 import { newPlayer, type Dragon, type IslandId, type PlayerState } from '../src/state'
 import { FIXTURE_CATALOG } from './fixtures'
@@ -33,7 +32,6 @@ describe('island unlock actions', () => {
     const b = ok(run(withLegend, { type: 'unlockIsland' }, 0))
     expect(b.islands.unlocked.at(-1)).toBe('dawnspire')
     err(run(b, { type: 'unlockIsland' }, 0), 'MAX_ISLAND')
-    expect(maxHabitats(b.level, outerIslandsUnlocked(b))).toBe(2 + 9 + 15)
   })
   it('clears an obstacle for gold on a timer and pays XP and food on finish', () => {
     const a = ok(run({ ...s, level: 2, tutorial: { ...s.tutorial, buildsStarted: 2 } }, { type: 'expandIsland' }, 0))

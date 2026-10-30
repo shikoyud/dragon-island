@@ -1,6 +1,6 @@
 import {
-  DECORATIONS, ELEMENTS, FOOTPRINT, habitatBuildCost, MAX_PLOTS, maxHabitats, NEXUS_COST,
-  outerIslandsUnlocked, plotCost, type DecorationId, type Footprint, type IslandId, type PlayerState,
+  DECORATIONS, ELEMENTS, FOOTPRINT, HABITATS, MAX_PLOTS,
+  plotCost, type DecorationId, type Footprint, type IslandId, type PlayerState,
 } from '@wyrmhaven/game-core'
 import type { ReactNode } from 'react'
 import type { Placing } from '../game/bridge'
@@ -22,11 +22,6 @@ export function BuildShopPanel({ onPlace, view, onClose }: { onPlace: (what: Pla
 }
 
 function Shop({ s, onPlace, view, onClose }: { s: PlayerState; onPlace: (what: Placing['what'], size: Footprint) => void; view: IslandId; onClose?: () => void }) {
-  const owned = s.habitats.filter(h => h.element !== 'any').length
-  const atLimit = owned >= maxHabitats(s.level, outerIslandsUnlocked(s))
-  const nextMultiple = (Math.floor(s.level / 5) + 1) * 5
-  const nexusOwned = s.habitats.some(h => h.element === 'any')
-
   const card = (id: string, label: string, price: string, reason: string | undefined, what: Placing['what'], size: Footprint) => (
     <li key={id}>
       <ActionButton id={`shop-${id}`} disabled={Boolean(reason)} reason={reason} onClick={() => onPlace(what, size)}>
@@ -48,12 +43,10 @@ function Shop({ s, onPlace, view, onClose }: { s: PlayerState; onPlace: (what: P
     <Panel title="Build" onClose={onClose}>
       {section('habitats', 'Habitats', <>
         {ELEMENTS.map(el => {
-          const cost = habitatBuildCost(s, el)
-          return card(`habitat-${el}`, `${cap(el)} habitat`, `${formatGold(cost)} gold`,
-            atLimit ? `Reach level ${nextMultiple} for another habitat` : gold(cost, 1), { kind: 'habitat', element: el }, FOOTPRINT.habitat)
+          const { buildGold, unlockPl } = HABITATS[el]
+          return card(`habitat-${el}`, `${cap(el)} habitat`, `${formatGold(buildGold)} gold`,
+            gold(buildGold, unlockPl), { kind: 'habitat', element: el }, FOOTPRINT.habitat)
         })}
-        {card('nexus', 'Nexus habitat', `${formatGold(NEXUS_COST)} gold`,
-          view !== 'dawnspire' ? DAWNSPIRE_ONLY : nexusOwned ? 'You already have the Nexus habitat.' : gold(NEXUS_COST, 1), { kind: 'nexus' }, FOOTPRINT.habitat)}
       </>)}
       {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_PLOTS ? 'maximum' : `${formatGold(plotCost(plots))} gold`,
         plots >= MAX_PLOTS ? 'Maximum plots reached' : gold(plotCost(plots), 1), { kind: 'farm' }, FOOTPRINT.farm))}

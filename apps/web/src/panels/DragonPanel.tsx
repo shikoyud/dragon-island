@@ -1,11 +1,12 @@
-import { foodPerFeed, getSpecies, goldPerMinute, LAUNCH_CATALOG, levelCap, SELL_GOLD } from '@wyrmhaven/game-core'
+import { foodPerFeed, getSpecies, goldPerMinuteX20, LAUNCH_CATALOG, levelCap, SELL_GOLD } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
-import { useMe } from '../state/me'
+import { useMe, usePreset } from '../state/me'
 import { formatGold } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 
 export function DragonPanel({ dragonId, onClose }: { dragonId: string; onClose?: () => void }) {
   const me = useMe()
+  const preset = usePreset()
   const { run, pending } = useAction()
   const s = me.data?.state
   const d = s?.dragons.find(x => x.id === dragonId)
@@ -18,7 +19,7 @@ export function DragonPanel({ dragonId, onClose }: { dragonId: string; onClose?:
 
   return (
     <Panel title={`${species.name} (${d.id})`} onClose={onClose}>
-      <p>{species.rarity} · {species.elements.join(' / ')} · level {d.level} · {goldPerMinute(species.rarity, d.level)} gold/min</p>
+      <p>{species.rarity} · {species.elements.join(' / ')} · level {d.level} · {Math.floor(goldPerMinuteX20(species.elements[0]!, species.rarity, d.level, preset) / 20)} gold/min</p>
       <p>{d.habitatId ? `Lives in ${d.habitatId}` : 'Waiting in the hatchery (no habitat has room)'}{inTeam ? ' · defence team' : ''}</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <ActionButton

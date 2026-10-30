@@ -270,7 +270,7 @@ export class IslandScene extends Phaser.Scene {
     for (const obj of this.drawn) obj.destroy()
     this.drawn = []
     this.badges = []
-    const model = buildIslandModel(state, this.art(), this.catalog, this.bridge.nowMs, view, this.bridge.placing)
+    const model = buildIslandModel(state, this.art(), this.catalog, this.bridge.nowMs, view, this.bridge.placing, this.bridge.preset)
     // Fewer eggs in the hatchery on the same island than a moment ago: one hatched (or was sold). Burst once.
     const hatched = state && view === this.hatchView && model.markers.hatchery.length < this.current.hatchery.length
     this.hatchView = view

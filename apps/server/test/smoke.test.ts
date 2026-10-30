@@ -22,7 +22,7 @@ describe('smoke', () => {
       payload: { action: { type: 'collectGold', habitatId: 'h1' }, idempotencyKey: 'smoke-1' },
     })
     expect(act.statusCode).toBe(200)
-    expect(act.json().state.gold).toBe(1020)
+    expect(act.json().state.gold).toBe(1700)
     expect((await t.app.inject({ method: 'GET', url: '/season' })).statusCode).toBe(404)
     expect((await t.app.inject({ method: 'GET', url: '/health' })).json()).toEqual({ ok: true })
     expect((await t.app.inject({ method: 'GET', url: '/nope' })).statusCode).toBe(404)

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type Phaser from 'phaser'
 import type { GameArtSet } from '../art/types'
-import { useMe } from '../state/me'
+import { presetOf, useMe } from '../state/me'
 import type { Bridge } from './bridge'
 import { createGame } from './config'
 
@@ -30,6 +30,11 @@ export function GameCanvas({ bridge, art }: { bridge: Bridge; art: GameArtSet })
       game.current = null
     }
   }, [bridge, art])
+
+  // The preset goes first so the redraw the state triggers already uses it.
+  useEffect(() => {
+    bridge.setPreset(presetOf(me.data))
+  }, [bridge, me.data?.game?.preset])
 
   useEffect(() => {
     bridge.setState(me.data?.state ?? null)

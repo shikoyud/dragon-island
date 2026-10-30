@@ -17,20 +17,18 @@ describe('placementRuleError', () => {
     expect(placementRuleError(s, { kind: 'habitat', element: 'terra' }, P(0, 0))).toBe('OVERLAP')
     expect(placementRuleError(s, { kind: 'habitat', element: 'terra' }, P(8, 8))).toBe('OUT_OF_BOUNDS')
     expect(placementRuleError(s, { kind: 'decoration', decoration: 'stonePath' }, P(11, 11))).toBeNull()
-    expect(placementRuleError(s, { kind: 'nexus' }, { ...dp })).toBe('ISLAND_LOCKED')
+    expect(placementRuleError(s, { kind: 'habitat', element: 'terra' }, { ...dp })).toBe('ISLAND_LOCKED')
   })
-  it('the Nexus and Dawnspire decorations only go on Dawnspire', () => {
-    expect(placementRuleError(both, { kind: 'nexus' }, P(6, 7))).toBe('WRONG_ISLAND')
-    expect(placementRuleError(both, { kind: 'nexus' }, dp)).toBeNull()
+  it('Dawnspire decorations only go on Dawnspire', () => {
     expect(placementRuleError(both, { kind: 'decoration', decoration: 'starPool' }, P(6, 7))).toBe('WRONG_ISLAND')
     expect(placementRuleError(both, { kind: 'decoration', decoration: 'starPool' }, dp)).toBeNull()
   })
   it('moves ignore the mover and keep the island rules', () => {
     expect(placementRuleError(s, { kind: 'move', target: { type: 'habitat', id: 'h1' } }, P(0, 1))).toBeNull()
     expect(placementRuleError(both, { kind: 'move', target: { type: 'hatchery' } }, dp)).toBe('WRONG_ISLAND')
-    const nexus = { ...both, habitats: [...both.habitats, { id: 'h3', element: 'any' as const, level: 5, lastCollectedMs: 0, placement: dp }] }
-    expect(placementRuleError(nexus, { kind: 'move', target: { type: 'habitat', id: 'h3' } }, P(6, 7))).toBe('WRONG_ISLAND')
-    expect(placementRuleError(nexus, { kind: 'move', target: { type: 'habitat', id: 'h3' } }, { ...dp, col: 1 })).toBeNull()
+    const aerie = { ...both, habitats: [...both.habitats, { id: 'h3', element: 'aerie' as const, level: 5, lastCollectedMs: 0, placement: dp }] }
+    expect(placementRuleError(aerie, { kind: 'move', target: { type: 'habitat', id: 'h3' } }, P(6, 7))).toBeNull()
+    expect(placementRuleError(aerie, { kind: 'move', target: { type: 'habitat', id: 'h3' } }, { ...dp, col: 1 })).toBeNull()
     const deco = { ...both, decorations: [{ id: 'c3', kind: 'starPool' as const, placement: dp }] }
     expect(placementRuleError(deco, { kind: 'move', target: { type: 'decoration', id: 'c3' } }, P(6, 7))).toBe('WRONG_ISLAND')
   })

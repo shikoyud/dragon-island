@@ -1,7 +1,7 @@
 import { constructionFor, MAX_BUILDERS, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
 import { timerLabel } from '../game/islandModel'
 import { useAction } from '../state/actions'
-import { useMe } from '../state/me'
+import { useMe, usePreset } from '../state/me'
 import { formatGold } from '../ui/Money'
 import { ActionButton } from '../ui/Panel'
 import { ConstructionStatus } from './ConstructionStatus'
@@ -21,6 +21,7 @@ const idOf = (b: BuildingRef): string => (b.type === 'habitat' ? b.id : b.type =
 /** Level, upgrade (or its timer, skip and manual finish), Move and Turn for one building. */
 export function UpgradeSection({ building, nowMs }: { building: BuildingRef; nowMs: number }) {
   const me = useMe()
+  const preset = usePreset()
   const { run, pending } = useAction()
   const s = me.data?.state
   const con = s ? constructionFor(s, building) : undefined
@@ -28,7 +29,7 @@ export function UpgradeSection({ building, nowMs }: { building: BuildingRef; now
   if (!s) return null
 
   const level = levelOf(s, building)
-  const info = upgradeInfo(s, building)
+  const info = upgradeInfo(s, building, preset)
   const id = idOf(building)
 
   const reason = !info ? '' : s.level < info.minLevel ? `Needs player level ${info.minLevel}`

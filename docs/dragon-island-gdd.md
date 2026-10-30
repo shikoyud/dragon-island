@@ -379,6 +379,8 @@ Fill time assumes Common occupants at Lv 5 (L1) and Lv 15 (L2).
 
 **Sprinter vs Vault:** two Lv 5 Commons in an L1 habitat earn about 136k Gold/day in Terra with hourly check-ins, against 66k in War. At 6-hour gaps Terra drops to 32k while War holds 66k. Each play style has a habitat that suits it.
 
+136k assumes about 17 check-ins a day.
+
 **Hybrid arbitrage (intended):** a hybrid earns at its primary element's rate but can live in any of its elements' habitats. A Terra/War Rare in a War Vault fills about 3x faster than War Commons. If testing shows this is too strong, cap occupants at 1.25x the habitat's native rate.
 
 ### 5.3 Farms

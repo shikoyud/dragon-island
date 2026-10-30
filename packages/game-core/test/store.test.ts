@@ -21,6 +21,20 @@ describe('priceMicroUsd', () => {
     expect(priceMicroUsd({ kind: 'skip', target: 'farm', index: 1 }, s, 0)).toBeNull()
   })
 
+  it('prices the L5 upgrade by element tier, only from level 4 (§5.2)', () => {
+    const at = (element: 'terra' | 'ice' | 'dark', level: number) =>
+      ({ ...base, habitats: [{ ...base.habitats[0]!, element, level }] })
+    const item = { kind: 'habitatL5' as const, habitatId: 'h1' }
+    expect([at('terra', 4), at('ice', 4), at('dark', 4)].map(s => priceMicroUsd(item, s, 0))).toEqual([1_500_000, 2_500_000, 4_000_000])
+    expect(priceMicroUsd(item, at('terra', 3), 0)).toBeNull()
+    expect(priceMicroUsd(item, at('terra', 5), 0)).toBeNull()
+    expect(priceMicroUsd({ kind: 'habitatL5', habitatId: 'h9' }, at('terra', 4), 0)).toBeNull()
+  })
+
+  it('prices the Golden Aerie at $5.00', () => {
+    expect(priceMicroUsd({ kind: 'goldenAerie', placement: { island: 'home', col: 6, row: 7, facing: 0 } }, base, 0)).toBe(5_000_000)
+  })
+
   it('prices flat items', () => {
     expect(FOOD_PACK).toBe(1_000)
     expect(priceMicroUsd({ kind: 'foodPack' }, base, 0)).toBe(500_000)

@@ -34,7 +34,7 @@ describe('island model', () => {
 
   it('shows stored gold and timers as badges', () => {
     const { objects } = model(newPlayer(0), 600_000)
-    expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('20g')
+    expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('700g')
     const withEgg = model({ ...newPlayer(0), nests: [{ ...newPlayer(0).nests[0]!, egg: { speciesId: 'flame', readyAtMs: 15_000 } }] }, 1_000)
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.badge).toBe('14s')
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.scale).toBe(NEST_EGG_SCALE) // sits inside the 32x32 nest

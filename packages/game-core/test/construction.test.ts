@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { newHabitatTimerMs, startConstruction } from '../src/construction'
+import { startConstruction } from '../src/construction'
 import { newPlayer } from '../src/state'
 
 describe('construction', () => {
-  it('new habitat timers double from 10 min and cap at 8 h', () => {
-    expect([2, 3, 4, 8, 9, 20].map(newHabitatTimerMs)).toEqual([600_000, 1_200_000, 2_400_000, 28_800_000, 28_800_000, 28_800_000])
-  })
   it('two builders, then null; the first two builds take 15 s', () => {
     const s = newPlayer(0)
     const a = startConstruction(s, { kind: 'upgrade', building: { type: 'habitat', id: 'h1' } }, 600_000, 1_000)!

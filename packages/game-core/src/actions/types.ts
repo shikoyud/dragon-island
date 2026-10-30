@@ -10,7 +10,7 @@ import type { StoreItem } from '../store'
 export type TeamIds = [string, string, string]
 
 export type Placeable =
-  | { kind: 'habitat'; element: Element } | { kind: 'nexus' } | { kind: 'farm' } | { kind: 'decoration'; decoration: DecorationId }
+  | { kind: 'habitat'; element: Element } | { kind: 'farm' } | { kind: 'decoration'; decoration: DecorationId }
 export type MovableRef = BuildingRef | { type: 'decoration'; id: string }
 
 export type Action =
@@ -43,11 +43,11 @@ export type Action =
 
 export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'INSUFFICIENT_GOLD' | 'INSUFFICIENT_FOOD' | 'MAX_LEVEL' | 'LEVEL_CAP'
   | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'NO_FREE_NEST' | 'NEST_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'
-  | 'NO_HABITAT_SLOT' | 'HABITAT_LIMIT' | 'ELEMENT_MISMATCH' | 'MAX_PLOTS' | 'PLOT_BUSY' | 'PLOT_EMPTY'
+  | 'NO_HABITAT_SLOT' | 'ELEMENT_MISMATCH' | 'MAX_PLOTS' | 'PLOT_BUSY' | 'PLOT_EMPTY'
   | 'LAST_DRAGONS' | 'NOT_SELLABLE' | 'NOTHING_TO_SKIP'
   | 'INVALID_TEAM' | 'NO_DEFENCE_TEAM' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'
   | 'OUT_OF_BOUNDS' | 'OVERLAP' | 'BUILDERS_BUSY' | 'ISLAND_LOCKED' | 'MAX_ISLAND' | 'WRONG_ISLAND' | 'UNDER_CONSTRUCTION'
-  | 'NO_LEGENDARY' | 'NEXUS_EXISTS' | 'MAX_EXPANSION'
+  | 'NO_LEGENDARY' | 'MAX_EXPANSION'
 
 /** Side effects the server settles after persisting the new state. */
 export type Effect =

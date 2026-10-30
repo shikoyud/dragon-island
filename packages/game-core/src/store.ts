@@ -1,8 +1,14 @@
-import type { PlayerState } from './state'
+import { ELEMENT_TIER } from './data/elements'
+import { GOLDEN_AERIE, HABITAT_L5_USD_MICRO } from './data/habitats'
+import type { Placement, PlayerState } from './state'
 
 export type StoreItem =
   | { kind: 'skip'; target: SkipTarget; index: number }
   | { kind: 'foodPack' }
+  /** Level 4 to level 5, instant (§5.2). */
+  | { kind: 'habitatL5'; habitatId: string }
+  /** A level 5 habitat that takes any element, placed where the player chooses (§5.2). */
+  | { kind: 'goldenAerie'; placement: Placement }
 
 export type SkipTarget = 'nest' | 'hatchery' | 'farm' | 'construction'
 
@@ -29,5 +35,11 @@ export function priceMicroUsd(item: StoreItem, s: PlayerState, nowMs: number): n
     }
     case 'foodPack':
       return 500_000
+    case 'habitatL5': {
+      const h = s.habitats.find(x => x.id === item.habitatId)
+      return h && h.element !== 'aerie' && h.level === 4 ? HABITAT_L5_USD_MICRO[ELEMENT_TIER[h.element]] : null
+    }
+    case 'goldenAerie':
+      return GOLDEN_AERIE.usdMicro
   }
 }

@@ -89,8 +89,8 @@ function Game() {
     void run(ghostAction).then(res => { if (res) dispatch({ type: 'cancel' }) })
   }
   const startPlacing: StartPlacing = (what, size, from) => {
-    // Show the island the thing belongs on: a move stays where it is, the Nexus is Dawnspire-only.
-    const island = from?.island ?? (what.kind === 'nexus' ? 'dawnspire' : view)
+    // Show the island the thing belongs on: a move stays where it is.
+    const island = from?.island ?? view
     // A new building opens on the free spot nearest the middle of the screen (the island's middle after a switch).
     const focus = island === view ? bridge.focusCell?.() : null
     const mid = focus ? { col: focus.col - Math.floor((size - 1) / 2), row: focus.row - Math.floor((size - 1) / 2) } : { col: 4, row: 4 }

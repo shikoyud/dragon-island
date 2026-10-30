@@ -1,43 +1,38 @@
 import { getSpecies, type Catalog, type Species } from './catalog'
-import { goldPerMinute } from './dragon'
-import type { Element } from './elements'
+import { goldPerMinuteX20 } from './dragon'
+import { HABITAT_CAPACITY, habitatCap } from './data/habitats'
+import type { Preset } from './data/presets'
 import type { Dragon, Habitat, PlayerState } from './state'
 
 export const MS_PER_MINUTE = 60_000
 
-/** Index = habitat level − 1 (spec §7). */
-export const HABITAT_LEVELS: readonly { cap: number; slots: number; upgradeCost: number | null }[] = [
-  { cap: 500, slots: 3, upgradeCost: 1_000 },
-  { cap: 2_500, slots: 4, upgradeCost: 5_000 },
-  { cap: 10_000, slots: 5, upgradeCost: 20_000 },
-  { cap: 40_000, slots: 6, upgradeCost: 80_000 },
-  { cap: 120_000, slots: 7, upgradeCost: null },
-]
-
 export function canLiveIn(sp: Species, h: Habitat): boolean {
-  return h.element === 'any' || sp.elements.includes(h.element)
+  return h.element === 'aerie' || sp.elements.includes(h.element)
 }
 
 export function residents(s: PlayerState, habitatId: string): Dragon[] {
   return s.dragons.filter(d => d.habitatId === habitatId)
 }
 
+/** Dragons a habitat of `level` holds (§5.2): 2, 3, 4, 5, 6. */
+export function habitatCapacity(level: number): number {
+  return HABITAT_CAPACITY[level - 1]!
+}
+
 export function habitatSlots(h: Habitat): number {
-  return HABITAT_LEVELS[h.level - 1]!.slots
+  return habitatCapacity(h.level)
 }
 
-/** Gold waiting in a habitat; 0 when the clock is behind `lastCollectedMs`. */
-export function storedGold(h: Habitat, residents: readonly Dragon[], c: Catalog, nowMs: number): number {
+/**
+ * Gold waiting in a habitat: whole minutes since the last collection times the residents' income (§5.1, each at its
+ * primary element, wherever it lives), in twentieths (R7), capped by the habitat. 0 when the clock is behind
+ * `lastCollectedMs`.
+ */
+export function storedGold(h: Habitat, residents: readonly Dragon[], c: Catalog, nowMs: number, preset: Preset): number {
   const minutes = Math.floor(Math.max(0, nowMs - h.lastCollectedMs) / MS_PER_MINUTE)
-  const perMinute = residents.reduce((n, d) => n + goldPerMinute(getSpecies(c, d.speciesId).rarity, d.level), 0)
-  return Math.min(HABITAT_LEVELS[h.level - 1]!.cap, minutes * perMinute)
-}
-
-export function habitatBuildCost(s: PlayerState, e: Element): number {
-  return 500 * 2 ** s.habitats.filter(h => h.element === e).length
-}
-
-/** Excludes the Nexus; each unlocked outer island adds 3. */
-export function maxHabitats(playerLevel: number, outerIslands: number): number {
-  return 2 + Math.floor(playerLevel / 5) + 3 * outerIslands
+  const perMinuteX20 = residents.reduce((n, d) => {
+    const sp = getSpecies(c, d.speciesId)
+    return n + goldPerMinuteX20(sp.elements[0]!, sp.rarity, d.level, preset)
+  }, 0)
+  return Math.min(habitatCap(h.element, h.level, preset), Math.floor(minutes * perMinuteX20 / 20))
 }

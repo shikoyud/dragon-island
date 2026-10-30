@@ -23,11 +23,28 @@ describe('placeBuilding', () => {
     expect(a.gold).toBe(4_500)
     expect(a.constructions).toEqual([{ kind: 'build', building: { type: 'habitat', id: 'h3' }, readyAtMs: 16_000 }])
   })
-  it('rejects overlap, bounds, limit and gold', () => {
+  it('rejects overlap, bounds, unlock level and gold', () => {
     err(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(0, 0) }, 0), 'OVERLAP')
     err(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(8, 8) }, 0), 'OUT_OF_BOUNDS')
-    err(run(s, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(6, 7) }, 0), 'HABITAT_LIMIT')
+    err(run({ ...s, level: 5, gold: 1e9 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'electric' }, placement: P(6, 7) }, 0), 'LEVEL_TOO_LOW')
     err(run({ ...s, level: 5, gold: 10 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(6, 7) }, 0), 'INSUFFICIENT_GOLD')
+  })
+  it('has no habitat count limit: land is the only cap (§5)', () => {
+    // A level 1 player already owns two habitats; the old limit (2 + level / 5) refused a third.
+    const st = ok(run({ ...s, level: 1, gold: 1_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(6, 7) }, 0))
+    expect(st.habitats).toHaveLength(3)
+    expect(st.gold).toBe(500)
+  })
+  it('charges the §5.2 build price at the unlock level and times it by tier (A5)', () => {
+    const t = { ...s, level: 6, gold: 100_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }
+    const a = ok(run(t, { type: 'placeBuilding', building: { kind: 'habitat', element: 'electric' }, placement: P(6, 7) }, 1_000))
+    expect(a.gold).toBe(75_000)
+    expect(a.constructions[0]!.readyAtMs).toBe(1_000 + 600_000)
+    expect(a.habitats.at(-1)).toMatchObject({ element: 'electric', level: 1 })
+    const dark = ok(run({ ...t, level: 14, gold: 1e9 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'dark' }, placement: P(6, 7) }, 0))
+    expect([dark.gold, dark.constructions[0]!.readyAtMs]).toEqual([1e9 - 150_000, 2_400_000])
+    const flame = ok(run(t, { type: 'placeBuilding', building: { kind: 'habitat', element: 'flame' }, placement: P(6, 7) }, 0))
+    expect([flame.gold, flame.constructions[0]!.readyAtMs]).toEqual([98_000, 100_000])
   })
   it('a third plot costs 500 and takes 2 min after the tutorial builds', () => {
     const t = { ...s, tutorial: { ...s.tutorial, buildsStarted: 2 } }
@@ -36,7 +53,7 @@ describe('placeBuilding', () => {
     expect([a.gold, a.constructions[0]!.readyAtMs]).toEqual([500, 120_000])
   })
   it('unfinished habitats take no dragons', () => {
-    const a = ok(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'flame' }, placement: P(6, 7) }, 0))
+    const a = ok(run({ ...s, level: 5, gold: 5_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'flame' }, placement: P(6, 7) }, 0))
     err(run(a, { type: 'moveDragon', dragonId: 'd1', habitatId: 'h3' }, 0), 'UNDER_CONSTRUCTION')
     const full = { ...a, dragons: [...a.dragons, ...['d3', 'd4'].map(id => ({ id, speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h1' }))], hatchery: [{ speciesId: 'flame', readyAtMs: 0 }] }
     expect(ok(run(full, { type: 'hatch', slot: 0 }, 0)).dragons.at(-1)!.habitatId).toBeNull()
@@ -50,14 +67,8 @@ describe('placeBuilding', () => {
     expect([b.gold, b.decorations]).toEqual([250, []])
     err(run(a, { type: 'removeDecoration', id: 'c9' }, 0), 'NOT_FOUND')
   })
-  it('the Nexus only goes on the Dawnspire, once', () => {
-    err(run({ ...s, level: 45, gold: 1e9 }, { type: 'placeBuilding', building: { kind: 'nexus' }, placement: P(6, 7) }, 0), 'WRONG_ISLAND')
-    const d = { ...s, level: 45, gold: 1e9, islands: { ...s.islands, unlocked: ['home', 'dawnspire'] as PlayerState['islands']['unlocked'] } }
-    const dp = { island: 'dawnspire' as const, col: 0, row: 0, facing: 0 as const }
-    const a = ok(run(d, { type: 'placeBuilding', building: { kind: 'nexus' }, placement: dp }, 0))
-    expect(a.habitats.at(-1)).toMatchObject({ element: 'any', level: 5 })
-    expect(a.gold).toBe(1e9 - 250_000)
-    err(run({ ...a, constructions: [] }, { type: 'placeBuilding', building: { kind: 'nexus' }, placement: { ...dp, col: 8 } }, 0), 'NEXUS_EXISTS')
+  it('the Nexus is gone: placeBuilding refuses it', () => {
+    expect(isValidAction({ type: 'placeBuilding', building: { kind: 'nexus' }, placement: P(6, 7) })).toBe(false)
   })
   it('builders can all be busy', () => {
     const busy = { ...s, level: 5, constructions: [0, 1].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 9 })) }
@@ -95,11 +106,10 @@ describe('isValidAction placements', () => {
 describe('Dawnspire-only buildings stay on Dawnspire', () => {
   const dp = { island: 'dawnspire' as const, col: 0, row: 0, facing: 0 as const }
   const base = { ...s, islands: { ...s.islands, unlocked: ['home', 'dawnspire'] as PlayerState['islands']['unlocked'] } }
-  it('rejects moving the Nexus off Dawnspire', () => {
-    const nexus = { id: 'h3', element: 'any' as const, level: 5, lastCollectedMs: 0, placement: dp }
-    const st = { ...base, habitats: [...base.habitats, nexus] }
-    err(run(st, { type: 'moveBuilding', target: { type: 'habitat', id: 'h3' }, placement: P(6, 7) }, 0), 'WRONG_ISLAND')
-    expect(ok(run(st, { type: 'moveBuilding', target: { type: 'habitat', id: 'h3' }, placement: { ...dp, col: 8 } }, 0)).habitats[2]!.placement.col).toBe(8)
+  it('a Golden Aerie may move to any island', () => {
+    const aerie = { id: 'h3', element: 'aerie' as const, level: 5, lastCollectedMs: 0, placement: dp }
+    const st = { ...base, habitats: [...base.habitats, aerie] }
+    expect(ok(run(st, { type: 'moveBuilding', target: { type: 'habitat', id: 'h3' }, placement: P(6, 7) }, 0)).habitats[2]!.placement).toEqual(P(6, 7))
   })
   it('rejects moving a Dawnspire decoration home', () => {
     const st = { ...base, decorations: [{ id: 'c3', kind: 'starPool' as const, placement: dp }] }
@@ -114,18 +124,26 @@ describe('Dawnspire-only buildings stay on Dawnspire', () => {
 
 describe('startUpgrade / finishConstruction', () => {
   it('upgrades a habitat on a timer and applies it at finish, collecting first', () => {
-    const t = { ...s, gold: 2_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }
+    // Flame L1 to L2 costs 20,000 Gold and 1 h / 6 = 600,000 ms (§5.2, A5).
+    const t = { ...s, gold: 25_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }
     const a = ok(run(t, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
-    expect([a.gold, a.habitats[0]!.level, a.constructions[0]]).toEqual([1_000, 1, { kind: 'upgrade', building: { type: 'habitat', id: 'h1' }, readyAtMs: 600_000 }])
+    expect([a.gold, a.habitats[0]!.level, a.constructions[0]]).toEqual([5_000, 1, { kind: 'upgrade', building: { type: 'habitat', id: 'h1' }, readyAtMs: 600_000 }])
     err(run(a, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'UNDER_CONSTRUCTION')
     err(run(a, { type: 'finishConstruction', index: 0 }, 599_999), 'NOT_READY')
     const b = ok(run(a, { type: 'finishConstruction', index: 0 }, 600_000))
-    expect([b.habitats[0]!.level, b.constructions, b.gold]).toEqual([2, [], 1_020])
+    expect([b.habitats[0]!.level, b.constructions, b.gold]).toEqual([2, [], 5_700])
   })
-  it('gates habitat level 3 at player level 5', () => {
-    const l2 = { ...s, gold: 10_000, habitats: s.habitats.map(h => ({ ...h, level: 2 })) }
+  it('gates habitat level 3 at player level 5 and charges L2 x 4', () => {
+    const l2 = { ...s, gold: 100_000, habitats: s.habitats.map(h => ({ ...h, level: 2 })) }
     err(run(l2, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'LEVEL_TOO_LOW')
-    expect(ok(run({ ...l2, level: 5 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0)).gold).toBe(5_000)
+    expect(ok(run({ ...l2, level: 5 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0)).gold).toBe(20_000)
+  })
+  it('charges L2 x 16 for level 4 and refuses Gold for level 5 (the store sells L5)', () => {
+    const l3 = { ...s, level: 10, gold: 400_000, tutorial: { ...s.tutorial, buildsStarted: 2 }, habitats: s.habitats.map(h => ({ ...h, level: 3 })) }
+    const a = ok(run(l3, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    expect([a.gold, a.constructions[0]!.readyAtMs]).toEqual([400_000 - 320_000, 7_200_000])
+    const l4 = { ...s, level: 50, gold: 1e12, habitats: s.habitats.map(h => ({ ...h, level: 4 })) }
+    err(run(l4, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'MAX_LEVEL')
   })
   it('reports NOT_FOUND, MAX_LEVEL, INSUFFICIENT_GOLD and BUILDERS_BUSY in order', () => {
     err(run(s, { type: 'startUpgrade', building: { type: 'habitat', id: 'h9' } }, 0), 'NOT_FOUND')
@@ -133,11 +151,11 @@ describe('startUpgrade / finishConstruction', () => {
     const max = { ...s, gold: 1e9, habitats: s.habitats.map(h => ({ ...h, level: 5 })) }
     err(run(max, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'MAX_LEVEL')
     err(run({ ...s, gold: 10 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'INSUFFICIENT_GOLD')
-    const busy = { ...s, gold: 5_000, constructions: [0, 1].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 9 })) }
+    const busy = { ...s, gold: 25_000, constructions: [0, 1].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 9 })) }
     err(run(busy, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'BUILDERS_BUSY')
   })
   it('a clock behind readyAtMs is NOT_READY and finishing is idempotent by index', () => {
-    const a = ok(run({ ...s, gold: 2_000 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 50_000))
+    const a = ok(run({ ...s, gold: 25_000 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 50_000))
     err(run(a, { type: 'finishConstruction', index: 0 }, 10_000), 'NOT_READY')
     const b = ok(run(a, { type: 'finishConstruction', index: 0 }, 65_000))
     err(run(b, { type: 'finishConstruction', index: 0 }, 65_000), 'NOT_FOUND')

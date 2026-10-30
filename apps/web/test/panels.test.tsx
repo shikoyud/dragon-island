@@ -45,8 +45,8 @@ describe('HabitatPanel', () => {
   it('shows stored gold and upgrade cost, and collects', async () => {
     const { wrap, action } = harness(base, 600_000)
     wrap(<HabitatPanel habitatId="h1" nowMs={600_000} />)
-    expect(screen.getByText(/20 gold stored/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /upgrade to 2/i })).toHaveTextContent('1,000')
+    expect(screen.getByText(/700 gold stored/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /upgrade to 2/i })).toHaveTextContent('20,000')
     await userEvent.click(screen.getByRole('button', { name: /collect/i }))
     expect(action).toHaveBeenCalledWith({ type: 'collectGold', habitatId: 'h1' }, expect.any(String))
   })

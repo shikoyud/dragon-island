@@ -35,12 +35,10 @@ export function subjectFootprint(s: PlayerState, subject: PlacementSubject): Foo
 /** The one island the subject may stand on, or null when any island will do (spec section 2). */
 export function requiredIsland(s: PlayerState, subject: PlacementSubject): IslandId | null {
   switch (subject.kind) {
-    case 'nexus': return 'dawnspire'
     case 'decoration': return DECORATIONS[subject.decoration].island ?? null
     case 'move': {
       const t = subject.target
       if (t.type === 'hatchery') return 'home'
-      if (t.type === 'habitat') return s.habitats.find(h => h.id === t.id)?.element === 'any' ? 'dawnspire' : null
       if (t.type === 'decoration') {
         const d = s.decorations.find(x => x.id === t.id)
         return d ? DECORATIONS[d.kind].island ?? null : null

@@ -17,17 +17,15 @@ const unlocked = ['home', 'dawnspire'] as PlayerState['islands']['unlocked']
 const dp: Placement = { island: 'dawnspire', col: 0, row: 0, facing: 0 }
 const home = { island: 'home' as const, col: 6, row: 7, facing: 0 as const }
 const both: PlayerState = { ...base, level: 45, gold: 5_000_000, islands: { ...base.islands, unlocked } }
-const nexus = { id: 'h3', element: 'any' as const, level: 5, lastCollectedMs: 0, placement: dp }
+const aerie = { id: 'h3', element: 'aerie' as const, level: 5, lastCollectedMs: 0, placement: dp }
 
 const ghost = (s: PlayerState, view: 'home' | 'dawnspire', p: Placing) => buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, view, p).objects.find(o => o.id === 'ghost')!.tint
 const at = (what: Placing['what'], size: Placing['size'], col: number, row: number): Placing => ({ what, size, col, row, facing: 0 })
 
 describe('client placement preview matches the server island rules', () => {
   const cases: { name: string; s: PlayerState; view: 'home' | 'dawnspire'; p: Placing; legalView: 'home' | 'dawnspire'; legalP: Placing }[] = [
-    { name: 'the Nexus off the Dawnspire', s: both, view: 'home', p: at({ kind: 'nexus' }, 5, 6, 7), legalView: 'dawnspire', legalP: at({ kind: 'nexus' }, 5, 0, 0) },
     { name: 'a Dawnspire decoration at home', s: both, view: 'home', p: at({ kind: 'decoration', decoration: 'starPool' }, 3, 6, 7), legalView: 'dawnspire', legalP: at({ kind: 'decoration', decoration: 'starPool' }, 3, 0, 0) },
     { name: 'moving the hatchery off home', s: both, view: 'dawnspire', p: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 0, 0), legalView: 'home', legalP: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 6, 7) },
-    { name: 'moving the Nexus home', s: { ...both, habitats: [...both.habitats, nexus] }, view: 'home', p: at({ kind: 'move', target: { type: 'habitat', id: 'h3' } }, 5, 6, 7), legalView: 'dawnspire', legalP: at({ kind: 'move', target: { type: 'habitat', id: 'h3' } }, 5, 1, 0) },
     { name: 'moving a Dawnspire decoration home', s: { ...both, decorations: [{ id: 'c3', kind: 'starPool', placement: dp }] }, view: 'home', p: at({ kind: 'move', target: { type: 'decoration', id: 'c3' } }, 3, 6, 7), legalView: 'dawnspire', legalP: at({ kind: 'move', target: { type: 'decoration', id: 'c3' } }, 3, 1, 0) },
   ]
   for (const c of cases) {
@@ -100,8 +98,8 @@ describe('panel minors', () => {
     expect(h.action).toHaveBeenCalledWith({ type: 'removeDecoration', id: 'c3' }, expect.any(String))
   })
 
-  it('titles the Nexus habitat by name', () => {
-    harness({ ...both, habitats: [...both.habitats, nexus] }).wrap(<HabitatPanel habitatId="h3" nowMs={0} />)
-    expect(screen.getByRole('region', { name: 'Nexus habitat' })).toBeInTheDocument()
+  it('titles the Golden Aerie by name', () => {
+    harness({ ...both, habitats: [...both.habitats, aerie] }).wrap(<HabitatPanel habitatId="h3" nowMs={0} />)
+    expect(screen.getByRole('region', { name: 'Golden Aerie' })).toBeInTheDocument()
   })
 })

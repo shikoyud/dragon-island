@@ -1,7 +1,7 @@
 import {
   constructionFor, CROPS, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
-  OBSTACLES, placementRuleError, residents, storedGold,
-  type BuildingRef, type Catalog, type IslandId, type MovableRef, type Placement, type PlayerState,
+  DEFAULT_PRESET, OBSTACLES, placementRuleError, residents, storedGold,
+  type BuildingRef, type Catalog, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
@@ -82,7 +82,7 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
     switch (t.type) {
       case 'habitat': {
         const h = state.habitats.find(x => x.id === t.id)
-        if (!h || h.element === 'any') return nexusLook(art)
+        if (!h || h.element === 'aerie') return nexusLook(art)
         return { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
       }
       case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
@@ -96,7 +96,6 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
   }
   switch (what.kind) {
     case 'habitat': return { key: textureKey(`habitat.${what.element}`), sprite: art.habitat[what.element] }
-    case 'nexus': return nexusLook(art)
     case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
     case 'decoration': return decorationLook(art, what.decoration)
   }
@@ -115,6 +114,7 @@ function signCell(homeStep: number): { col: number; row: number } {
  */
 export function buildIslandModel(
   state: PlayerState | null, art: GameArtSet, catalog: Catalog, nowMs: number, view: IslandId, placing: Placing | null,
+  preset: Preset = DEFAULT_PRESET,
 ): IslandModel {
   const objects: IslandObject[] = []
   const markers: IslandMarkers = {
@@ -156,8 +156,8 @@ export function buildIslandModel(
   for (const h of state.habitats) {
     if (h.placement.island !== view) continue
     const a = anchor(h.placement.col, h.placement.row, FOOTPRINT.habitat)
-    const gold = storedGold(h, residents(state, h.id), catalog, nowMs)
-    const base = h.element === 'any'
+    const gold = storedGold(h, residents(state, h.id), catalog, nowMs, preset)
+    const base = h.element === 'aerie'
       ? nexusLook(art)
       : { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
     const group: IslandObject[] = [{

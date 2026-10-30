@@ -14,7 +14,6 @@ export const errorMessages: Record<string, string> = {
   NOT_READY: 'Not ready yet.',
   HATCHERY_FULL: 'The hatchery is full. Hatch or place a dragon first.',
   NO_HABITAT_SLOT: 'That habitat has no free slot.',
-  HABITAT_LIMIT: 'You cannot build more habitats at your level.',
   ELEMENT_MISMATCH: 'That dragon cannot live in a habitat of that element.',
   MAX_PLOTS: 'You already have the maximum number of farm plots.',
   PLOT_BUSY: 'Something is already growing there.',
@@ -50,7 +49,6 @@ export const errorMessages: Record<string, string> = {
   WRONG_ISLAND: 'That can only go on its own island.',
   UNDER_CONSTRUCTION: 'That building is still being built.',
   NO_LEGENDARY: 'Own a legendary dragon to unlock Dawnspire.',
-  NEXUS_EXISTS: 'You already have the Nexus habitat.',
   MAX_EXPANSION: 'The home island is at its full size.',
   WITHDRAWALS_DISABLED: 'Withdrawals are not enabled on this server.',
 }

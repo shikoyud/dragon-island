@@ -1,4 +1,4 @@
-import type { BattlePreview, Facing, Footprint, IslandId, MovableRef, Placeable, PlayerState } from '@wyrmhaven/game-core'
+import { DEFAULT_PRESET, type BattlePreview, type Facing, type Footprint, type IslandId, type MovableRef, type Placeable, type PlayerState, type Preset } from '@wyrmhaven/game-core'
 import type { GameArtSet } from '../art/types'
 
 /** Something the player can click in a scene. */
@@ -48,6 +48,8 @@ export function createBridge() {
     state: null as PlayerState | null,
     art: null as GameArtSet | null,
     nowMs: 0,
+    /** Soft-economy preset; stored Gold and caps depend on it (§7.2). */
+    preset: DEFAULT_PRESET as Preset,
     reducedMotion: false,
     battle: null as BattlePreview | null,
     selected: { kind: 'empty' } as Target,
@@ -78,6 +80,7 @@ export function createBridge() {
     },
     setArt(art: GameArtSet): void { bridge.art = art },
     setClock(nowMs: number): void { bridge.nowMs = nowMs },
+    setPreset(preset: Preset): void { bridge.preset = preset },
     setReducedMotion(v: boolean): void { bridge.reducedMotion = v },
     setView(id: IslandId): void {
       bridge.view = id
