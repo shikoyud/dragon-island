@@ -2,8 +2,8 @@ import { createContext, useContext } from 'react'
 import type { Sprite } from '../art/types'
 
 export type IconName =
-  | 'food' | 'gold' | 'dris' | 'xp' | 'timer' | 'build' | 'map' | 'season' | 'leaderboard' | 'referral' | 'settings'
-  | 'dragons' | 'breed' | 'battle' | 'hoard' | 'store' | 'admin' | 'quests'
+  | 'food' | 'gold' | 'dris' | 'xp' | 'timer' | 'build' | 'map' | 'settings'
+  | 'dragons' | 'breed' | 'battle' | 'store' | 'admin' | 'quests'
 
 /** HUD art from the manifest (`art.hud`), keyed `icon.<name>.16` / `icon.<name>.32`; provided once by the App. */
 export const HudArtContext = createContext<Record<string, Sprite>>({})
@@ -23,14 +23,10 @@ const GLYPHS: Record<IconName, string[]> = {
   timer: ['.kkkkkkkkkk.', '.kWWWWWWWWk.', '..kYYYYYYk..', '...kYYYYk...', '....kYYk....', '.....kk.....', '....kWWk....', '...kWYYWk...', '..kYYYYYYk..', '.kWWWWWWWWk.', '.kkkkkkkkkk.', '............'],
   build: ['............', '..kkkkkk....', '.kSSSSSSk...', '.kSssSSSk...', '..kkkkSSk...', '.....kNk....', '....kNk.....', '...kNk......', '..kNk.......', '.kNk........', '.kk.........', '............'],
   map: ['............', '.kkkkkkkkkk.', 'kTTkTTTTkTTk', 'kTTkTGTTkTTk', 'kTTkGGGTkTTk', 'kTTkTGRTkTTk', 'kTTkTTRTkTTk', 'kTTkTTTTkTTk', 'kTTkTTTTkTTk', '.kkkkkkkkkk.', '............', '............'],
-  season: ['.kk.........', '.kWk........', '.kWkkkkkkk..', '.kWkRRRRRRk.', '.kWkRRYRRRk.', '.kWkRYYYRRk.', '.kWkRRYRRRk.', '.kWkRRRRRRk.', '.kWkRRkkRRk.', '.kWkRk..kRk.', '.kWkk....kk.', '.kWk........'],
-  leaderboard: ['............', '.kkkkkkkkkk.', 'kYkYYYYYYkYk', 'kYkYYyYYYkYk', '.kkYYyYYYkk.', '...kYYYYk...', '....kYYk....', '.....kk.....', '....kYYk....', '...kkkkkk...', '...kNNNNk...', '...kkkkkk...'],
-  referral: ['............', '..kk....kk..', '.kKKk..kKKk.', '.kKKk..kKKk.', '..kk....kk..', '.kVVk..kGGk.', 'kVVVVkkGGGGk', 'kVVVVkkGGGGk', 'kVVVVkkGGGGk', '.kkkk..kkkk.', '............', '............'],
   settings: ['....kkkk....', '..k.kSSk.k..', '.kSkkSSkkSk.', '..kSSSSSSk..', 'kkSSSkkSSSkk', 'kSSSk..kSSSk', 'kSSSk..kSSSk', 'kkSSSkkSSSkk', '..kSSSSSSk..', '.kSkkSSkkSk.', '..k.kSSk.k..', '....kkkk....'],
   dragons: ['............', '..k.....k...', '.kGk...kGk..', '.kGGkkkGGk..', '..kGGGGGGk..', '.kGWkGGGGGkk', 'kGGkkGGGGGGk', 'kGGGGGGGkkk.', '.kRRkGGGGk..', '..kkkGGGGk..', '.....kkkk...', '............'],
   breed: ['....kk.kk...', '...kRRkRRk..', '...kRRRRRk..', '....kRRRk...', '.....kRk....', '.kkk...kkk..', 'kEEEk.kEEEk.', 'kEeEk.kEeEk.', 'kEEEk.kEEEk.', 'kEEEk.kEEEk.', '.kkk...kkk..', '............'],
   battle: ['k..........k', 'kSk......kSk', '.kSk....kSk.', '..kSk..kSk..', '...kSkkSk...', '....kSSk....', '....kSSk....', '...kNkkNk...', '..kNk..kNk..', '.kYk....kYk.', 'kYk......kYk', 'kk........kk'],
-  hoard: ['............', '..kkkkkkkk..', '.kNNNNNNNNk.', 'kNNNNNNNNNNk', 'kkkkkYYkkkkk', 'kNNNkYYkNNNk', 'kNNNNkkNNNNk', 'kNNNNNNNNNNk', 'kNNNNNNNNNNk', 'kkkkkkkkkkkk', '............', '............'],
   store: ['............', 'kkkkkkkkkkkk', 'kRRWWRRWWRRk', 'kRRWWRRWWRRk', '.kkkkkkkkkk.', '.kTTTTTTTTk.', '.kTkkTTkkTk.', '.kTkWTTkWTk.', '.kTkkTTkkTk.', '.kTTTTTTTTk.', '.kkkkkkkkkk.', '............'],
   admin: ['............', '.kkkkkkkkkk.', '.kSSSSSSSSk.', '.kSSSkkSSSk.', '.kSSkYYkSSk.', '.kSSkYYkSSk.', '..kSSkkSSk..', '..kSSSSSSk..', '...kSSSSk...', '....kSSk....', '.....kk.....', '............'],
   quests: ['............', '.kkkkkkkkk..', '.kTTTTTTTk..', '.kTkkkkkTk..', '.kTTTTTTTk..', '.kTkkkkTTk..', '.kTTTTTGGk..', '.kTkkTGGTk..', '.kTGTGGTTk..', '.kTTGGTTTk..', '.kkkkkkkkk..', '............'],

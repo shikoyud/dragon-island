@@ -23,7 +23,7 @@ function fakeApi(verifyStatus = 200) {
         ? Response.json({ token: 'tok', playerId: 'p1', address: ADDRESS })
         : Response.json({ error: 'UNAUTHORIZED' }, { status: 401 })
     }
-    if (url.endsWith('/me')) return Response.json({ playerId: 'p1', address: ADDRESS, state: {}, balanceWei: '0', earningUnlocked: false, banned: false, season: null })
+    if (url.endsWith('/me')) return Response.json({ playerId: 'p1', address: ADDRESS, state: {}, balanceWei: '0', earningUnlocked: false, banned: false })
     return Response.json({ error: 'NOT_FOUND' }, { status: 404 })
   }) as typeof fetch
   return { api: createApi({ baseUrl: '/api', getToken: () => sessionStore.get()?.token ?? null, onUnauthorized: () => sessionStore.clear(), fetchImpl: impl }), calls }

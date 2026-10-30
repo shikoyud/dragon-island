@@ -20,7 +20,8 @@ describe('BuildShopPanel', () => {
     const onPlace = vi.fn()
     const { wrap } = harness({ ...base, level: 3 })
     wrap(<BuildShopPanel onPlace={onPlace} view="home" />)
-    for (const c of ['habitats', 'farming', 'breeding', 'hoard', 'decorations']) expect(screen.getByTestId(`shop-${c}`)).toBeInTheDocument()
+    for (const c of ['habitats', 'farming', 'decorations']) expect(screen.getByTestId(`shop-${c}`)).toBeInTheDocument()
+    for (const c of ['breeding', 'hoard']) expect(screen.queryByTestId(`shop-${c}`)).toBeNull()
     const hay = screen.getByRole('button', { name: /Hay cart/ })
     expect(hay).toBeDisabled()
     expect(hay).toHaveAccessibleDescription(/Level 6/)
@@ -41,7 +42,7 @@ describe('BuildShopPanel', () => {
     expect(screen.getByRole('button', { name: /fire habitat/i })).toHaveAccessibleDescription('Reach level 5 for another habitat')
   })
 
-  it('starts habitats, farm plots, nests and the Hoard with their footprints', async () => {
+  it('starts habitats and farm plots with their footprints', async () => {
     const onPlace = vi.fn()
     const { wrap } = harness({ ...base, level: 5, gold: 100_000 })
     wrap(<BuildShopPanel onPlace={onPlace} view="home" />)
@@ -49,10 +50,6 @@ describe('BuildShopPanel', () => {
     expect(onPlace).toHaveBeenLastCalledWith({ kind: 'habitat', element: 'earth' }, 5)
     await userEvent.click(within(screen.getByTestId('shop-farming')).getByRole('button'))
     expect(onPlace).toHaveBeenLastCalledWith({ kind: 'farm' }, 2)
-    await userEvent.click(within(screen.getByTestId('shop-breeding')).getByRole('button'))
-    expect(onPlace).toHaveBeenLastCalledWith({ kind: 'nest' }, 2)
-    await userEvent.click(within(screen.getByTestId('shop-hoard')).getByRole('button'))
-    expect(onPlace).toHaveBeenLastCalledWith({ kind: 'hoard' }, 4)
   })
 
   it('shows Dawnspire-only items and the Nexus greyed off the Dawnspire, enabled on it', () => {

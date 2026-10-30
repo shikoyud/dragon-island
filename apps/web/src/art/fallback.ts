@@ -20,7 +20,7 @@ const PANEL = '#1b2140'
 const PANEL_EDGE = '#3b4680'
 
 export type FallbackSlot =
-  | 'egg' | 'hatchling' | 'dragon' | 'habitat' | 'nest' | 'hatchery' | 'farmPlot' | 'crop' | 'hoard'
+  | 'egg' | 'hatchling' | 'dragon' | 'habitat' | 'nest' | 'hatchery' | 'farmPlot' | 'crop'
   | 'icon' | 'panel' | 'button' | 'cursor' | 'island'
   | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'map' | 'fx'
 
@@ -102,13 +102,6 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
     case 'crop': {
       px(w * 0.45, h * 0.3, w * 0.1, h * 0.6, '#276a2b')
       ellipse(w * 0.5, h * 0.3, w * 0.25, h * 0.2, '#4caf50')
-      return
-    }
-    case 'hoard': {
-      ellipse(w / 2, h * 0.7, w * 0.42, h * 0.2, '#9a7f12') // gold pile
-      ellipse(w / 2, h * 0.55, w * 0.3, h * 0.16, '#f4d03f')
-      px(w * 0.3, h * 0.2, w * 0.4, h * 0.3, WOOD) // chest
-      px(w * 0.3, h * 0.2, w * 0.4, 2, OUTLINE)
       return
     }
     case 'icon': {

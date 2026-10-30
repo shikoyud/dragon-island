@@ -1,4 +1,4 @@
-import { remainingSellMicroUsd, xpToNext, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
+import { xpToNext, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import type { Target } from '../game/bridge'
 
@@ -7,11 +7,6 @@ import type { Target } from '../game/bridge'
 /** How far the player is towards the next level, 0..1. */
 export function xpFraction(s: PlayerState): number {
   return Math.min(1, Math.max(0, s.xp / xpToNext(s.level)))
-}
-
-/** Today's remaining gold sell-back in micro-USD, or null before the Hoard exists (the gold pill shows it then). */
-export function sellLeftMicroUsd(s: PlayerState, nowMs: number): number | null {
-  return s.hoardLevel > 0 ? remainingSellMicroUsd(s, nowMs) : null
 }
 
 /** Something waiting for the player, shown as a shortcut in the HUD's left column. */

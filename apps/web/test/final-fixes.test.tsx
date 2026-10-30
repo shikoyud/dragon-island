@@ -7,7 +7,6 @@ import { createBridge, type Placing } from '../src/game/bridge'
 import { buildIslandModel } from '../src/game/islandModel'
 import { DecorationPanel } from '../src/panels/DecorationPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
-import { HoardPanel } from '../src/panels/HoardPanel'
 import { useAutoFinish } from '../src/panels/useAutoFinish'
 import { placingAction } from '../src/state/placing'
 import { StartPlacingProvider } from '../src/state/startPlacing'
@@ -27,9 +26,7 @@ describe('client placement preview matches the server island rules', () => {
   const cases: { name: string; s: PlayerState; view: 'home' | 'dawnspire'; p: Placing; legalView: 'home' | 'dawnspire'; legalP: Placing }[] = [
     { name: 'the Nexus off the Dawnspire', s: both, view: 'home', p: at({ kind: 'nexus' }, 5, 6, 7), legalView: 'dawnspire', legalP: at({ kind: 'nexus' }, 5, 0, 0) },
     { name: 'a Dawnspire decoration at home', s: both, view: 'home', p: at({ kind: 'decoration', decoration: 'starPool' }, 3, 6, 7), legalView: 'dawnspire', legalP: at({ kind: 'decoration', decoration: 'starPool' }, 3, 0, 0) },
-    { name: 'the Hoard purchase off home', s: both, view: 'dawnspire', p: at({ kind: 'hoard' }, 4, 0, 0), legalView: 'home', legalP: at({ kind: 'hoard' }, 4, 6, 7) },
     { name: 'moving the hatchery off home', s: both, view: 'dawnspire', p: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 0, 0), legalView: 'home', legalP: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 6, 7) },
-    { name: 'moving the Hoard off home', s: { ...both, hoardLevel: 1, hoardPlacement: home }, view: 'dawnspire', p: at({ kind: 'move', target: { type: 'hoard' } }, 4, 0, 0), legalView: 'home', legalP: at({ kind: 'move', target: { type: 'hoard' } }, 4, 7, 7) },
     { name: 'moving the Nexus home', s: { ...both, habitats: [...both.habitats, nexus] }, view: 'home', p: at({ kind: 'move', target: { type: 'habitat', id: 'h3' } }, 5, 6, 7), legalView: 'dawnspire', legalP: at({ kind: 'move', target: { type: 'habitat', id: 'h3' } }, 5, 1, 0) },
     { name: 'moving a Dawnspire decoration home', s: { ...both, decorations: [{ id: 'c3', kind: 'starPool', placement: dp }] }, view: 'home', p: at({ kind: 'move', target: { type: 'decoration', id: 'c3' } }, 3, 6, 7), legalView: 'dawnspire', legalP: at({ kind: 'move', target: { type: 'decoration', id: 'c3' } }, 3, 1, 0) },
   ]
@@ -87,30 +84,6 @@ describe('app-level auto-finish', () => {
     const before = h.action.mock.calls.length
     r.rerender(<Finisher nowMs={40_000} />)
     await waitFor(() => expect(h.action.mock.calls.length).toBeGreaterThan(before))
-  })
-})
-
-describe('Hoard panel', () => {
-  it('Build Hoard starts home placement instead of a placement-less buy', async () => {
-    const start = vi.fn()
-    const h = harness({ ...base, level: 5 })
-    h.wrap(<StartPlacingProvider value={start}><HoardPanel nowMs={0} /></StartPlacingProvider>)
-    await userEvent.click(screen.getByRole('button', { name: /Build Hoard/ }))
-    expect(start).toHaveBeenCalledWith({ kind: 'hoard' }, 4)
-    expect(h.action).not.toHaveBeenCalled()
-  })
-
-  it('opens from the scene with Move and Turn for the Hoard', async () => {
-    const start = vi.fn()
-    const bridge = createBridge()
-    const h = harness({ ...base, level: 5, hoardLevel: 1, hoardPlacement: home })
-    h.wrap(<StartPlacingProvider value={start}><TestHost bridge={bridge} /></StartPlacingProvider>)
-    act(() => bridge.emit({ type: 'select', target: { kind: 'hoard' } }))
-    expect(await screen.findByRole('region', { name: 'Hoard' })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Move' }))
-    expect(start).toHaveBeenCalledWith({ kind: 'move', target: { type: 'hoard' } }, 4, home)
-    await userEvent.click(screen.getByRole('button', { name: 'Turn' }))
-    expect(h.action).toHaveBeenCalledWith({ type: 'moveBuilding', target: { type: 'hoard' }, placement: { ...home, facing: 1 } }, expect.any(String))
   })
 })
 

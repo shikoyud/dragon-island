@@ -12,7 +12,6 @@ export interface ActionHook {
   run(action: ClientAction): Promise<ActionResponse | null>
   pending: boolean
   error: ApiError | null
-  lastSp: { awarded: number; today: number } | null
   clearError(): void
 }
 
@@ -29,7 +28,6 @@ export function useAction(): ActionHook {
   const inFlight = useRef(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
-  const [lastSp, setLastSp] = useState<{ awarded: number; today: number } | null>(null)
 
   const run = useCallback(async (action: ClientAction): Promise<ActionResponse | null> => {
     if (inFlight.current) return null
@@ -47,9 +45,8 @@ export function useAction(): ActionHook {
         res = await api.action(action, key)
       }
       await applyStateFromResponse(qc, res.state)
-      if (res.sp && res.sp.awarded > 0) setLastSp(res.sp)
-      // Token charges and payouts change balanceWei / earningUnlocked, which only /me carries.
-      if (res.effects.some(ef => ef.type === 'charge' || ef.type === 'payout')) void qc.invalidateQueries({ queryKey: ME_KEY })
+      // Token charges change balanceWei, which only /me carries.
+      if (res.effects.some(ef => ef.type === 'charge')) void qc.invalidateQueries({ queryKey: ME_KEY })
       return res
     } catch (e) {
       if (e instanceof ApiError) {
@@ -64,5 +61,5 @@ export function useAction(): ActionHook {
     }
   }, [api, qc, toasts])
 
-  return { run, pending, error, lastSp, clearError: () => setError(null) }
+  return { run, pending, error, clearError: () => setError(null) }
 }

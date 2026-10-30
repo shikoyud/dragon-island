@@ -6,11 +6,11 @@ import { timerLabel } from '../game/islandModel'
 import { TOKEN_KEY as ADMIN_TOKEN_KEY } from '../pages/Admin'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
-import { formatGold, formatMicroUsd, formatWei } from '../ui/Money'
-import { attentionItems, sellLeftMicroUsd, xpFraction, type AttentionItem } from './hudModel'
+import { formatGold, formatWei } from '../ui/Money'
+import { attentionItems, xpFraction, type AttentionItem } from './hudModel'
 import { Icon, type IconName } from './Icon'
 
-export type PanelId = 'build' | 'map' | 'breed' | 'store' | 'hoard' | 'dragons' | 'battle' | 'season' | 'ranks' | 'referral' | 'settings' | 'quests'
+export type PanelId = 'build' | 'map' | 'breed' | 'store' | 'dragons' | 'battle' | 'settings' | 'quests'
 /** What the one dialog shows: a named panel, or the panel of something clicked on the island. */
 export type DialogKey = { kind: 'panel'; id: PanelId } | { kind: 'target'; target: Target }
 
@@ -101,8 +101,6 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
   const data = me.data
   if (!data) return null
   const s = data.state
-  const sellLeft = sellLeftMicroUsd(s, nowMs)
-  const daysLeft = data.season ? Math.max(0, Math.ceil((data.season.endsAtMs - nowMs) / 86_400_000)) : null
   const panel = (id: PanelId) => () => onOpen({ kind: 'panel', id })
 
   return (
@@ -117,7 +115,7 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
         </div>
         <div className="hud-pills" role="status" aria-label="Resources">
           <Pill icon="food" label="Food" value={formatGold(s.food)} plusLabel="Buy food" onPlus={panel('store')} />
-          <Pill icon="gold" label="Gold" value={formatGold(s.gold)} sub={sellLeft !== null ? `sell ${formatMicroUsd(sellLeft)} today` : undefined} plusLabel="Get gold" onPlus={panel('store')} />
+          <Pill icon="gold" label="Gold" value={formatGold(s.gold)} plusLabel="Get gold" onPlus={panel('store')} />
           <Pill icon="dris" label="DRIS" value={`${formatWei(BigInt(data.balanceWei), 18, 2)}`} plusLabel="Add DRIS" onPlus={panel('settings')} />
         </div>
         <RoundButton icon="settings" label="Settings" size="small" showLabel={false} active={isPanel(open, 'settings')} onClick={panel('settings')} />
@@ -125,10 +123,7 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
 
       {!battle && <>
       <nav className="hud-right" aria-label="Island menu">
-        <RoundButton icon="season" label="Season" size="small" badge={daysLeft !== null ? `${daysLeft}d` : undefined} active={isPanel(open, 'season')} onClick={panel('season')} />
-        <RoundButton icon="leaderboard" label="Ranks" size="small" active={isPanel(open, 'ranks')} onClick={panel('ranks')} />
         <RoundButton icon="map" label="Map" size="small" active={isPanel(open, 'map')} onClick={panel('map')} />
-        <RoundButton icon="referral" label="Referral" size="small" active={isPanel(open, 'referral')} onClick={panel('referral')} />
         {hasAdminToken() && <a className="hud-round hud-round--small" href="#/admin" aria-label="Admin"><span className="hud-round__plate"><Icon name="admin" size={22} /></span><span className="hud-round__label" aria-hidden="true">Admin</span></a>}
       </nav>
 
@@ -144,7 +139,6 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
             <RoundButton icon="dragons" label="Dragons" active={isPanel(open, 'dragons')} onClick={panel('dragons')} />
             <RoundButton icon="breed" label="Breed" active={isPanel(open, 'breed')} onClick={panel('breed')} />
             <RoundButton icon="battle" label="Battle" active={isPanel(open, 'battle')} onClick={panel('battle')} />
-            <RoundButton icon="hoard" label="Hoard" active={isPanel(open, 'hoard')} onClick={panel('hoard')} />
             <RoundButton icon="build" label="Build" active={placing || isPanel(open, 'build')} onClick={panel('build')} />
             <RoundButton icon="store" label="Store" active={isPanel(open, 'store')} onClick={panel('store')} />
           </nav>

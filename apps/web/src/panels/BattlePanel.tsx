@@ -60,7 +60,6 @@ export function BattlePanel({ battle, onClose }: { battle: BattleHook; onClose?:
       {battle.result && (
         <p role="status">
           Result: {battle.report ? (battle.report.winner === 'attacker' ? 'victory' : 'defeat') : 'forfeit'} · trophies {battle.result.state.trophies}
-          {battle.result.sp ? ` · +${battle.result.sp.awarded} SP` : ''}
         </p>
       )}
     </Panel>

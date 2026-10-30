@@ -14,12 +14,9 @@ import { DragonsPanel } from './DragonsPanel'
 import { ExpandSignPanel } from './ExpandSignPanel'
 import { FarmPanel } from './FarmPanel'
 import { HabitatPanel } from './HabitatPanel'
-import { HoardPanel } from './HoardPanel'
 import { IslandMapPanel } from './IslandMapPanel'
 import { NestsPanel } from './NestsPanel'
 import { ObstaclePanel } from './ObstaclePanel'
-import { ReferralPanel } from './ReferralPanel'
-import { SeasonPanel } from './SeasonPanel'
 import { StorePanel } from './StorePanel'
 import { WalletPanel } from './WalletPanel'
 
@@ -37,11 +34,10 @@ export interface PanelHostProps {
   onOpen: (k: DialogKey | null) => void
   onPve?: (stage: number, team: TeamIds) => void
   onPvp?: (offer: Offer, team: TeamIds) => void
-  onVerify?: (seasonId: number) => void
 }
 
 /** The panel for the open dialog (a named HUD panel or a clicked island object), or null. */
-export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onPvp = () => {}, onVerify }: PanelHostProps): ReactElement | null {
+export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onPvp = () => {} }: PanelHostProps): ReactElement | null {
   const startPlacing = useStartPlacing()
   const close = () => onOpen(null)
   if (!dialog) return null
@@ -51,13 +47,9 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
       case 'map': return <IslandMapPanel view={bridge.view} onView={id => { bridge.setView(id); close() }} onClose={close} art={bridge.art} />
       case 'breed': return <BreedPanel onClose={close} />
       case 'store': return <StorePanel nowMs={nowMs} onClose={close} />
-      case 'hoard': return <HoardPanel nowMs={nowMs} onClose={close} />
       case 'dragons': return <DragonsPanel onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
       case 'battle': return <BattleHub nowMs={nowMs} onPve={onPve} onPvp={onPvp} onClose={close} />
-      case 'season':
-      case 'ranks':
-      case 'quests': return <SeasonPanel nowMs={nowMs} onClose={close} onVerify={onVerify} />
-      case 'referral': return <ReferralPanel onClose={close} />
+      case 'quests': return null // the quests panel returns with the GDD goals (Season panel is gone)
       case 'settings': return <div className="settings-dialog"><WalletPanel onClose={close} /><div className="settings-dialog__account"><SignIn /></div></div>
     }
   }
@@ -72,7 +64,6 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
     case 'farm': return <FarmPanel nowMs={nowMs} onClose={close} />
     case 'obstacle': return <ObstaclePanel obstacleId={t.id} nowMs={nowMs} onClose={close} />
     case 'expandSign': return <ExpandSignPanel onClose={close} />
-    case 'hoard': return <HoardPanel nowMs={nowMs} onClose={close} />
     default: return null
   }
 }

@@ -14,7 +14,7 @@ import { ToastProvider, useToasts } from '../src/ui/Toast'
 
 function Providers({ children, api }: { children: ReactNode; api?: Partial<Api> }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  qc.setQueryData(ME_KEY, { playerId: 'p1', address: '0xabc', state: newPlayer(0), balanceWei: 0n, earningUnlocked: false, banned: false, season: null })
+  qc.setQueryData(ME_KEY, { playerId: 'p1', address: '0xabc', state: newPlayer(0), balanceWei: 0n, earningUnlocked: false, banned: false })
   sessionStore.set({ token: 't', playerId: 'p1', address: '0xabc' })
   return <QueryClientProvider client={qc}><ApiProvider api={(api ?? {}) as Api}><ToastProvider>{children}</ToastProvider></ApiProvider></QueryClientProvider>
 }

@@ -33,7 +33,6 @@ export interface IslandMarkers {
   nests: { index: number; egg: boolean }[]
   hatchery: { slot: number }[]
   farms: { plot: number; crop: string | null }[]
-  hoard: boolean
   obstacles: string[]
   decorations: string[]
   /** Constructions running anywhere (the builder count). */
@@ -89,7 +88,6 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
       case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
       case 'nest': return { key: textureKey('building.nest'), sprite: art.building.nest }
       case 'hatchery': return { key: textureKey('building.hatchery'), sprite: art.building.hatchery }
-      case 'hoard': return { key: textureKey('building.hoard'), sprite: art.building.hoard }
       case 'decoration': {
         const d = state.decorations.find(x => x.id === t.id)
         return d ? decorationLook(art, d.kind) : nexusLook(art)
@@ -100,8 +98,6 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
     case 'habitat': return { key: textureKey(`habitat.${what.element}`), sprite: art.habitat[what.element] }
     case 'nexus': return nexusLook(art)
     case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
-    case 'nest': return { key: textureKey('building.nest'), sprite: art.building.nest }
-    case 'hoard': return { key: textureKey('building.hoard'), sprite: art.building.hoard }
     case 'decoration': return decorationLook(art, what.decoration)
   }
 }
@@ -122,7 +118,7 @@ export function buildIslandModel(
 ): IslandModel {
   const objects: IslandObject[] = []
   const markers: IslandMarkers = {
-    habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [], hoard: false,
+    habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [],
     obstacles: [], decorations: [], constructions: 0, ghost: null, sign: null,
   }
   if (!state) return { objects, markers }
@@ -245,12 +241,6 @@ export function buildIslandModel(
     add(plot.placement, FOOTPRINT.farm, group)
     markers.farms.push({ plot: i, crop: plot.crop })
   })
-
-  if (state.hoardLevel > 0 && state.hoardPlacement && state.hoardPlacement.island === view) {
-    const a = anchor(state.hoardPlacement.col, state.hoardPlacement.row, FOOTPRINT.hoard)
-    add(state.hoardPlacement, FOOTPRINT.hoard, [{ id: 'hoard', key: textureKey('building.hoard'), sprite: art.building.hoard, ...a, target: { kind: 'hoard' }, badge: `Hoard ${state.hoardLevel}`, ...flip(state.hoardPlacement.facing) }])
-    markers.hoard = true
-  }
 
   if (view === 'home' && state.islands.homeStep < HOME_MAX_STEP) {
     const next = HOME_EXPANSION[state.islands.homeStep]!

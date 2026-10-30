@@ -27,7 +27,6 @@ export interface GameArtSet {
     cropStage: Record<CropId, Sprite>
     /** Ripe-stage sway loop per crop, when the manifest has one (else the last growth frame stays still). */
     cropSway: Partial<Record<CropId, Sprite>>
-    hoard: Sprite
     /** The all-element habitat on Dawnspire. */
     nexus: Sprite
   }
@@ -58,7 +57,6 @@ export const SLOT_SIZES = {
   hatchery: { w: 64, h: 64 },
   farmPlot: { w: 32, h: 32 },
   crop: { w: 16, h: 16 },
-  hoard: { w: 64, h: 64 },
   icon: { w: 16, h: 16 },
   panel: { w: 24, h: 24 },
   button: { w: 24, h: 16 },

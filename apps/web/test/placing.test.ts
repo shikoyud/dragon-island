@@ -39,8 +39,6 @@ describe('placing', () => {
     expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, col: 6, row: 8, facing: 1 })).toEqual({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { island: 'home', col: 6, row: 8, facing: 1 } })
     expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, col: 0, row: 0, facing: 0 })).toBeNull()
     expect(placingAction(s, 'home', { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 5, col: 0, row: 1, facing: 0 })).toEqual({ type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: { island: 'home', col: 0, row: 1, facing: 0 } })
-    expect(placingAction(s, 'home', { what: { kind: 'nest' }, size: 2, col: 6, row: 8, facing: 0 })).toEqual({ type: 'buy', item: { kind: 'nest', placement: { island: 'home', col: 6, row: 8, facing: 0 } } })
-    expect(placingAction(s, 'home', { what: { kind: 'hoard' }, size: 4, col: 6, row: 8, facing: 0 })).toEqual({ type: 'buy', item: { kind: 'hoard', placement: { island: 'home', col: 6, row: 8, facing: 0 } } })
     expect(placingAction(s, 'isle2', { what: { kind: 'farm' }, size: 2, col: 1, row: 1, facing: 0 })).toBeNull()
   })
 })

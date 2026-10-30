@@ -1,6 +1,6 @@
 import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
-import { attentionItems, MAX_ATTENTION, sellLeftMicroUsd, xpFraction } from '../src/hud/hudModel'
+import { attentionItems, MAX_ATTENTION, xpFraction } from '../src/hud/hudModel'
 
 const base = (): PlayerState => newPlayer(0)
 
@@ -9,11 +9,6 @@ describe('HUD model', () => {
     expect(xpFraction({ ...base(), level: 1, xp: 0 })).toBe(0)
     expect(xpFraction({ ...base(), level: 1, xp: 25 })).toBe(0.5) // 50 xp to level 2
     expect(xpFraction({ ...base(), level: 2, xp: 999 })).toBe(1)
-  })
-
-  it('shows the remaining sell limit only once the Hoard exists', () => {
-    expect(sellLeftMicroUsd(base(), 0)).toBeNull()
-    expect(sellLeftMicroUsd({ ...base(), hoardLevel: 1 }, 0)).toBeGreaterThan(0)
   })
 
   it('lists daily quests even when nothing else needs attention', () => {

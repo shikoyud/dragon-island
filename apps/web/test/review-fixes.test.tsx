@@ -22,7 +22,7 @@ const OTHER = '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC' as const
 
 function harness(state: PlayerState, api: Record<string, unknown>, wallet?: WalletAdapter, vault?: VaultAdapter) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  qc.setQueryData(ME_KEY, { playerId: 'p1', address: ADDRESS, state, balanceWei: 20n * E18, earningUnlocked: false, banned: false, season: null })
+  qc.setQueryData(ME_KEY, { playerId: 'p1', address: ADDRESS, state, balanceWei: 20n * E18, earningUnlocked: false, banned: false })
   sessionStore.set({ token: 't', playerId: 'p1', address: ADDRESS })
   const w: WalletAdapter = wallet ?? { address: ADDRESS, chainId: 46630, isConnected: true, connect: vi.fn(async () => {}), switchChain: vi.fn(async () => {}), signMessage: vi.fn(async () => '0x' as const) }
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -60,7 +60,7 @@ describe('C1: action errors surface as toasts from any panel', () => {
 
 describe('I2/I8: money effects refresh /me and in-flight refetches cannot clobber newer state', () => {
   it('invalidates /me after a charge or payout effect', async () => {
-    const me = vi.fn(async () => ({ playerId: 'p1', address: ADDRESS, state: { ...newPlayer(0), food: 1_100 }, balanceWei: '10000000000000000000', earningUnlocked: false, banned: false, season: null }))
+    const me = vi.fn(async () => ({ playerId: 'p1', address: ADDRESS, state: { ...newPlayer(0), food: 1_100 }, balanceWei: '10000000000000000000', earningUnlocked: false, banned: false }))
     const api = { action: vi.fn(async () => ({ state: { ...newPlayer(0), food: 1_100 }, effects: [{ type: 'charge', microUsd: 500_000 }] })), me }
     const h = harness(newPlayer(0), api)
     const { result } = renderHook(() => ({ action: useAction(), me: useMe() }), { wrapper: h.wrapper }) // a mounted /me observer, as in the app
@@ -76,7 +76,7 @@ describe('I2/I8: money effects refresh /me and in-flight refetches cannot clobbe
     void h.qc.fetchQuery({ queryKey: ME_KEY, queryFn: () => (api.me as () => Promise<unknown>)() }).catch(() => {})
     const { result } = renderHook(() => useAction(), { wrapper: h.wrapper })
     await act(async () => { await result.current.run({ type: 'collectGold', habitatId: 'h1' }) })
-    resolveMe({ playerId: 'p1', address: ADDRESS, state: newPlayer(0), balanceWei: 0n, earningUnlocked: false, banned: false, season: null })
+    resolveMe({ playerId: 'p1', address: ADDRESS, state: newPlayer(0), balanceWei: 0n, earningUnlocked: false, banned: false })
     await new Promise(r => setTimeout(r, 10))
     expect((h.qc.getQueryData(ME_KEY) as { state: PlayerState }).state.gold).toBe(1_020)
   })

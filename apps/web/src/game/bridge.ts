@@ -8,7 +8,6 @@ export type Target =
   | { kind: 'nest'; index: number }
   | { kind: 'hatchery'; slot: number }
   | { kind: 'farm'; plot: number }
-  | { kind: 'hoard' }
   | { kind: 'hatcheryBuilding' }
   | { kind: 'decoration'; id: string }
   | { kind: 'obstacle'; id: string }
@@ -18,7 +17,7 @@ export type Target =
 
 /** A building being placed or moved: the ghost the island scene draws under the pointer. */
 export interface Placing {
-  what: Placeable | { kind: 'move'; target: MovableRef } | { kind: 'nest' } | { kind: 'hoard' }
+  what: Placeable | { kind: 'move'; target: MovableRef }
   size: Footprint
   col: number
   row: number

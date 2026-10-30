@@ -30,11 +30,11 @@ describe('Money formatting', () => {
 })
 
 describe('ResourcesBar', () => {
-  it('shows gold with the eligible share, food, level/xp, trophies and tokens', () => {
-    const { wrap } = harness({ ...base, gold: 1500, eligibleGold: 500, trophies: 42, xp: 10, level: 2 })
+  it('shows gold, food, level/xp, trophies and tokens', () => {
+    const { wrap } = harness({ ...base, gold: 1500, trophies: 42, xp: 10, level: 2 })
     wrap(<ResourcesBar />)
     expect(screen.getByText('1,500')).toBeInTheDocument()
-    expect(screen.getByText(/500 eligible/)).toBeInTheDocument()
+    expect(screen.queryByText(/eligible/)).toBeNull()
     expect(screen.getByText(/10 \/ 200 xp/i)).toBeInTheDocument()
     expect(screen.getByText('42')).toBeInTheDocument()
     expect(screen.getByText(/5 DRIS/)).toBeInTheDocument()
@@ -85,16 +85,16 @@ describe('DragonPanel', () => {
 })
 
 describe('BreedPanel', () => {
-  it('shows exact odds for the chosen pair, notes boosts, and breeds', async () => {
+  it('shows exact odds for the chosen pair, with no boost or pity copy, and breeds', async () => {
     const s4 = level(level(base, 'd1', 4), 'd2', 4)
-    const { wrap, action } = harness({ ...s4, oddsBoosts: 1 })
+    const { wrap, action } = harness(s4)
     wrap(<BreedPanel />)
     await userEvent.selectOptions(screen.getByLabelText(/first parent/i), 'd1')
     await userEvent.selectOptions(screen.getByLabelText(/second parent/i), 'd2')
     const table = screen.getByRole('table', { name: /odds/i })
     expect(within(table).getAllByText('50.00%')).toHaveLength(2)
     expect(within(table).getAllByRole('row')).toHaveLength(3) // header + fire + water
-    expect(screen.getByText(/odds boost active/i)).toBeInTheDocument()
+    expect(screen.queryByText(/odds boost|pity/i)).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: /^breed$/i }))
     expect(action).toHaveBeenCalledWith({ type: 'startBreed', parentA: 'd1', parentB: 'd2' }, expect.any(String))
   })
@@ -142,20 +142,11 @@ describe('StorePanel', () => {
     const { wrap, action } = harness(base)
     wrap(<StorePanel nowMs={0} />)
     expect(screen.getByRole('button', { name: /food pack/i })).toHaveTextContent('$0.50')
-    expect(screen.getByRole('button', { name: /extra nest/i })).toHaveTextContent('$2.00')
-    expect(screen.getByRole('button', { name: /hoard/i })).toBeDisabled() // player level 1 < 5
-    await userEvent.click(screen.getByRole('button', { name: /odds boost/i }))
-    expect(action).toHaveBeenCalledWith({ type: 'buy', item: { kind: 'oddsBoost' } }, expect.any(String))
+    expect(screen.getAllByRole('button')).toHaveLength(1) // the food pack is the only store item
+    expect(screen.queryByRole('button', { name: /nest|hoard|boost/i })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: /food pack/i }))
+    expect(action).toHaveBeenCalledWith({ type: 'buy', item: { kind: 'foodPack' } }, expect.any(String))
   })
 
-  it('starts placing a nest or the Hoard instead of buying directly', async () => {
-    const start = vi.fn()
-    const { wrap, action } = harness({ ...base, level: 5 })
-    wrap(<StartPlacingProvider value={start}><StorePanel nowMs={0} /></StartPlacingProvider>)
-    await userEvent.click(screen.getByRole('button', { name: /extra nest/i }))
-    expect(start).toHaveBeenCalledWith({ kind: 'nest' }, 2)
-    await userEvent.click(screen.getByRole('button', { name: /build the hoard/i }))
-    expect(start).toHaveBeenCalledWith({ kind: 'hoard' }, 4)
-    expect(action).not.toHaveBeenCalled()
-  })
+
 })

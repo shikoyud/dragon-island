@@ -25,7 +25,6 @@ describe('island model', () => {
     expect(markers.nests).toEqual([{ index: 0, egg: false }])
     expect(markers.hatchery).toEqual([])
     expect(markers.farms).toHaveLength(2)
-    expect(markers.hoard).toBe(false)
     expect(objects.find(o => o.id === 'habitat:h1')!.key).toBe(textureKey('habitat.fire'))
     expect(objects.find(o => o.id === 'dragon:d2')!.key).toBe(textureKey('dragon.water'))
     for (const o of objects) {
@@ -72,15 +71,14 @@ describe('island model', () => {
     expect(model(newPlayer(0)).objects.find(o => o.id === 'hatchery')!.badge).toBeUndefined()
   })
 
-  it('shows the hoard, hatchery eggs and crops with growth', () => {
+  it('shows hatchery eggs and crops with growth', () => {
     const s = {
-      ...newPlayer(0), hoardLevel: 2, hoardPlacement: { island: 'home' as const, col: 8, row: 8, facing: 0 as const },
+      ...newPlayer(0),
       hatchery: [{ speciesId: 'water', readyAtMs: 30_000 }],
       farms: [{ ...newPlayer(0).farms[0]!, crop: 'sprout' as const, readyAtMs: 60_000 }, newPlayer(0).farms[1]!],
     }
     const { markers, objects } = model(s, 30_000)
-    expect(markers.hoard).toBe(true)
-    expect(objects.find(o => o.id === 'hoard')!.badge).toBe('Hoard 2')
+    expect(objects.find(o => o.id === 'hoard')).toBeUndefined()
     expect(markers.hatchery).toEqual([{ slot: 0 }])
     expect(objects.find(o => o.id === 'hatchery:0')!.badge).toBeUndefined()
     expect(objects.find(o => o.id === 'hatchery')!.badge).toBe('ready')

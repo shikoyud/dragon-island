@@ -32,8 +32,6 @@ export function placingAction(s: PlayerState, view: IslandId, p: Placing): Clien
   if (placementRuleError(s, w, placement) !== null) return null
   switch (w.kind) {
     case 'move': return { type: 'moveBuilding', target: w.target, placement }
-    case 'nest': return { type: 'buy', item: { kind: 'nest', placement } }
-    case 'hoard': return { type: 'buy', item: { kind: 'hoard', placement } }
     default: return { type: 'placeBuilding', building: w, placement }
   }
 }

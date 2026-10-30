@@ -7,7 +7,6 @@ export function placementOf(s: PlayerState, t: MovableRef): Placement | null {
     case 'farm': return s.farms[t.index]?.placement ?? null
     case 'nest': return s.nests[t.index]?.placement ?? null
     case 'hatchery': return s.hatcheryPlacement
-    case 'hoard': return s.hoardLevel > 0 ? s.hoardPlacement : null
     case 'decoration': return s.decorations.find(d => d.id === t.id)?.placement ?? null
   }
 }

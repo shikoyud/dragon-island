@@ -20,7 +20,7 @@ const GROUND = {
   grass: [0x5f9e3f, 0x579538], fog: [0xb9c4cf, 0xaab6c3], cliffLeft: 0x6b4a2b, cliffRight: 0x8b6136, lip: 0x3d6e2c, strata: 0x58391f,
 }
 const EMPTY: IslandMarkers = {
-  habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [], hoard: false,
+  habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [],
   obstacles: [], decorations: [], constructions: 0, ghost: null, sign: null,
 }
 /** On-screen height of badge text in CSS pixels (the font is 8 px in world space). */

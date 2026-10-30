@@ -36,30 +36,27 @@ describe('HUD', () => {
     expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'settings' })
   })
 
-  it('adds the remaining daily sell limit to the gold pill once the Hoard exists', () => {
-    renderHud(base())
+  it('gold pill has no sell-back sub-label, even with a lot of gold', () => {
+    renderHud({ ...base(), gold: 9_999_999 })
+    expect(screen.queryByText(/sell .* today/)).toBeNull()
     expect(screen.queryByText(/today/)).toBeNull()
-  })
-
-  it('shows the sell limit with a Hoard', () => {
-    renderHud({ ...base(), hoardLevel: 1 })
-    expect(screen.getByText(/sell \$[\d.,]+ today/)).toBeInTheDocument()
   })
 
   it('has the main menu at the bottom and highlights Build while placing', async () => {
     const { onOpen } = renderHud(base(), { placing: true })
     const bar = screen.getByRole('navigation', { name: 'Main menu' })
-    for (const label of ['Dragons', 'Breed', 'Battle', 'Hoard', 'Build', 'Store']) expect(within(bar).getByRole('button', { name: label })).toBeInTheDocument()
+    for (const label of ['Dragons', 'Breed', 'Battle', 'Build', 'Store']) expect(within(bar).getByRole('button', { name: label })).toBeInTheDocument()
     expect(within(bar).getByRole('button', { name: 'Build' })).toHaveAttribute('aria-pressed', 'true')
     expect(within(bar).getByRole('button', { name: 'Dragons' })).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(within(bar).getByRole('button', { name: 'Battle' }))
     expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'battle' })
   })
 
-  it('has the island menu on the right; Admin only with an operator token in this tab', () => {
+  it('has the island menu on the right (Map; Settings sits in the top bar); Admin only with an operator token in this tab', () => {
     renderHud(base())
     const right = screen.getByRole('navigation', { name: 'Island menu' })
-    for (const label of ['Season', 'Ranks', 'Map', 'Referral']) expect(within(right).getByRole('button', { name: label })).toBeInTheDocument()
+    expect(within(right).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Map'])
+    for (const label of ['Hoard', 'Season', 'Ranks', 'Referral']) expect(screen.queryByRole('button', { name: label })).toBeNull()
     expect(within(right).queryByRole('link', { name: 'Admin' })).toBeNull()
   })
 

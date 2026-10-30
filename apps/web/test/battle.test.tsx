@@ -24,7 +24,7 @@ const offer: Offer = { offerId: 'offer-1', opponent: bot, seedHex: SEED_HEX }
 
 function harness(state: PlayerState) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  qc.setQueryData(ME_KEY, { playerId: 'p1', address: '0xabc', state, balanceWei: 0n, earningUnlocked: false, banned: false, season: null })
+  qc.setQueryData(ME_KEY, { playerId: 'p1', address: '0xabc', state, balanceWei: 0n, earningUnlocked: false, banned: false })
   sessionStore.set({ token: 't', playerId: 'p1', address: '0xabc' })
   const action = vi.fn(async () => ({ state, effects: [], battle: undefined }))
   const api = { action, offers: vi.fn(async () => ({ offers: [offer] })) } as unknown as Api

@@ -6,7 +6,7 @@ import { formatGold } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { MoveTurn } from './MoveTurn'
 
-/** A placed decoration: move it, turn it, or remove it (two steps) for 25% of its price back as ineligible gold. */
+/** A placed decoration: move it, turn it, or remove it (two steps) for 25% of its price back in gold. */
 export function DecorationPanel({ decorationId, onClose }: { decorationId: string; onClose?: () => void }) {
   const me = useMe()
   const { run, pending } = useAction()

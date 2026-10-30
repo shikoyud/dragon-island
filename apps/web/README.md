@@ -31,15 +31,13 @@ The e2e server (`E2E=1`) runs on an in-memory PGlite with a fake chain, a fixed 
 | `src/state` | TanStack Query state (`useMe`), the single action hook (`useAction`), battle builder (`useBattle`) |
 | `src/game` | Phaser: `createGame`, `layout` (480×270 base, integer zoom), `islandModel` (pure), scenes, `bridge` to React |
 | `src/art` | art slots: manifest → `GameArtSet`, programmatic pixel fallbacks, Phaser loader |
-| `src/panels` | React panels (habitat, dragon, breed, nests, farm, store, wallet, hoard, arena, campaign, season) |
-| `src/pages/Verify.tsx` | spec §17 re-verification of a season's action log |
-| `src/pages/Admin.tsx` | operator console at `#/admin` (token kept in sessionStorage): player lookup and bans, season summary / close / reveal, buyback entry, price, jobs |
+| `src/panels` | React panels (habitat, dragon, breed, nests, farm, store, wallet, arena, campaign) |
+| `src/pages/Admin.tsx` | operator console at `#/admin` (token kept in sessionStorage): player lookup and bans, price, beta allowlist, jobs |
 
-The Season panel shows the leaderboard (top 10, your rank), the prize pool so far and last season's prize; the Referral panel shows your code and lets you enter someone else's once, before your first purchase. Every request carries a random per-browser `x-device-id` so the server can refuse self-referrals.
 
 ## Art slots
 
-Art is chosen only through `src/art/slots.ts`. `public/art/<version>/manifest.json` lists sprite sheets as `{ "egg.fire": { file, w, h, frames, fps }, ... }` with keys `egg.<element>`, `hatchling.<element>`, `dragon.<speciesId>`, `habitat.<element>`, `building.nest|hatchery|farmPlot|hoard|nexus`, `decoration.<id>`, `obstacle.<kind>`, `map.<islandId>`, `island.locked|sign`, `crop.<cropId>`, `icon.<element>`, `ui.panel|button|cursor`, `island.base`, `island.layer.<n>`. Missing keys get a deterministic pixel fallback, so the game runs with no assets. To ship PixelLab art: add `public/art/v1/`, write its manifest, set `ART_VERSION` in `slots.ts`, record prompts in `art/prompts.md` (our own designs only).
+Art is chosen only through `src/art/slots.ts`. `public/art/<version>/manifest.json` lists sprite sheets as `{ "egg.fire": { file, w, h, frames, fps }, ... }` with keys `egg.<element>`, `hatchling.<element>`, `dragon.<speciesId>`, `habitat.<element>`, `building.nest|hatchery|farmPlot|nexus`, `decoration.<id>`, `obstacle.<kind>`, `map.<islandId>`, `island.locked|sign`, `crop.<cropId>`, `icon.<element>`, `ui.panel|button|cursor`, `island.base`, `island.layer.<n>`. Missing keys get a deterministic pixel fallback, so the game runs with no assets. To ship PixelLab art: add `public/art/v1/`, write its manifest, set `ART_VERSION` in `slots.ts`, record prompts in `art/prompts.md` (our own designs only).
 
 Base-building slots fall back to coloured boxes sized by footprint (16 px per cell; habitat and Nexus 80x64). The full generation list is `docs/art/base-building-art-list.md`. Facings 0/2 draw the sprite, 1/3 mirror it.
 

@@ -1,11 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { createAdminApi, type AdminApi, type AdminPlayer, type AdminSeasonSummary, type AdminStats } from '../api/admin'
+import { createAdminApi, type AdminApi, type AdminPlayer, type AdminStats } from '../api/admin'
 import { ApiError } from '../api/client'
 import { formatWei } from '../ui/Money'
 
 export const TOKEN_KEY = 'dris.admin'
-const JOBS = ['indexer', 'voucherExpiry', 'burnBatch', 'season', 'seasonClose']
-const TABS = ['Player', 'Season', 'Inflows', 'Price', 'Beta', 'Jobs'] as const
+const JOBS = ['indexer', 'voucherExpiry', 'burnBatch', 'game', 'prune']
+const TABS = ['Player', 'Price', 'Beta', 'Jobs'] as const
 type Tab = (typeof TABS)[number]
 
 const readToken = (): string => { try { return sessionStorage.getItem(TOKEN_KEY) ?? '' } catch { return '' } }
@@ -46,8 +46,6 @@ function Console({ api, onLock }: { api: AdminApi; onLock: () => void }) {
       </div>
       <div role="tabpanel">
         {tab === 'Player' && <PlayerTab api={api} />}
-        {tab === 'Season' && <SeasonTab api={api} />}
-        {tab === 'Inflows' && <InflowsTab api={api} />}
         {tab === 'Price' && <PriceTab api={api} />}
         {tab === 'Beta' && <BetaTab api={api} />}
         {tab === 'Jobs' && <JobsTab api={api} />}
@@ -84,13 +82,12 @@ function PlayerTab({ api }: { api: AdminApi }) {
       {p && (
         <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '2px 12px', marginTop: 8 }}>
           <Row k="Id" v={p.player.id} /><Row k="Address" v={p.player.address} /><Row k="Level / trophies" v={`${p.player.level} / ${p.player.trophies}`} />
-          <Row k="Earning unlocked" v={String(p.player.earningUnlocked)} /><Row k="Referrer" v={p.player.referrerId ?? '—'} />
+          <Row k="Earning unlocked" v={String(p.player.earningUnlocked)} />
           <Row k="Banned" v={p.player.bannedAt ? `${new Date(p.player.bannedAt).toISOString()} (${p.player.banReason ?? ''})` : 'no'} />
           {p.balance && <>
             <Row k="Balance" v={`${formatWei(BigInt(p.balance.tokenWei))} DRIS`} /><Row k="Deposited / withdrawn" v={`${formatWei(BigInt(p.balance.depositedWei))} / ${formatWei(BigInt(p.balance.withdrawnWei))} DRIS`} />
             <Row k="Spent" v={`${formatWei(BigInt(p.balance.spentWei))} DRIS`} /><Row k="Earned" v={`${formatWei(BigInt(p.balance.earnedWei))} DRIS`} />
           </>}
-          <Row k="SP" v={`${p.sp.total} total · ${p.sp.today} today`} />
         </dl>
       )}
       {p && (
@@ -107,61 +104,6 @@ function PlayerTab({ api }: { api: AdminApi }) {
 
 function Row({ k, v }: { k: string; v: ReactNode }) {
   return <><dt><small>{k}</small></dt><dd style={{ margin: 0, wordBreak: 'break-all' }}>{v}</dd></>
-}
-
-function SeasonTab({ api }: { api: AdminApi }) {
-  const [id, setId] = useState('')
-  const [s, setS] = useState<AdminSeasonSummary | null>(null)
-  const [confirm, setConfirm] = useState(false)
-  const r = useResult()
-  const n = Number(id)
-  const load = () => r.run(async () => { const res = await api.seasonSummary(n); setS(res); return { loaded: res.season.id } })
-  /** Runs close/reveal, then refreshes the summary; the reply from the action stays visible. */
-  const act = (fn: () => Promise<unknown>) => r.run(async () => { const reply = await fn(); setS(await api.seasonSummary(s!.season.id)); return reply })
-  return (
-    <section>
-      <label>Season id <input value={id} onChange={e => setId(e.target.value)} inputMode="numeric" /></label>
-      <button type="button" className="btn btn--primary" disabled={!Number.isInteger(n) || n <= 0 || r.busy} onClick={() => void load()}>Load</button>
-      {s && (
-        <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '2px 12px', marginTop: 8 }}>
-          <Row k="Window" v={`${new Date(s.season.startsAtMs).toISOString()} → ${new Date(s.season.endsAtMs).toISOString()}`} />
-          <Row k="Closed" v={s.closedAt ? new Date(s.closedAt).toISOString() : 'no'} />
-          <Row k="Inflows" v={`${formatWei(BigInt(s.inflows.totalWei))} DRIS (${Object.entries(s.inflows.bySource).map(([k, v]) => `${k} ${formatWei(BigInt(v))}`).join(', ')})`} />
-          <Row k="Prize pool" v={`${formatWei(BigInt(s.poolWei))} DRIS`} />
-          <Row k="Players ranked" v={s.standingsCount} /><Row k="Prizes paid" v={`${formatWei(BigInt(s.prizesPaidWei))} DRIS`} />
-          <Row k="Secret" v={s.season.revealedSecret ?? 'not revealed'} />
-        </dl>
-      )}
-      {s && (
-        <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {!confirm
-            ? <button type="button" className="btn btn--danger" disabled={r.busy || s.closedAt !== null} onClick={() => setConfirm(true)}>Close now</button>
-            : <>
-                <span>Credit prizes, reset trophies and reveal the secret for season {s.season.id}?</span>
-                <button type="button" className="btn btn--danger" onClick={() => { setConfirm(false); void act(() => api.closeSeason(s.season.id)) }}>Yes, close</button>
-                <button type="button" className="btn" onClick={() => setConfirm(false)}>Cancel</button>
-              </>}
-          <button type="button" className="btn" disabled={r.busy || s.season.revealedSecret !== null} onClick={() => void act(() => api.revealSeason(s.season.id))}>Reveal</button>
-        </div>
-      )}
-      {r.view}
-    </section>
-  )
-}
-
-function InflowsTab({ api }: { api: AdminApi }) {
-  const [wei, setWei] = useState('')
-  const [ref, setRef] = useState('')
-  const r = useResult()
-  return (
-    <section>
-      <p><small>Record a buyback the treasury made (wei of DRIS that entered the vault). Other inflows are recorded automatically.</small></p>
-      <label>Amount (wei) <input value={wei} onChange={e => setWei(e.target.value)} inputMode="numeric" /></label>
-      <label>Reference (tx hash or date) <input value={ref} onChange={e => setRef(e.target.value)} /></label>
-      <button type="button" className="btn btn--primary" disabled={!/^[0-9]+$/.test(wei) || !ref.trim() || r.busy} onClick={() => void r.run(() => api.recordInflow('buyback', wei, ref.trim()))}>Record buyback</button>
-      {r.view}
-    </section>
-  )
 }
 
 function PriceTab({ api }: { api: AdminApi }) {

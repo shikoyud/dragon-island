@@ -33,7 +33,7 @@ describe('art v1 manifest', () => {
       ] as [string, { src: string }][]),
       ...Object.entries(art.dragon).map(([id, s]) => [`dragon.${id}`, s] as [string, { src: string }]),
       ['nest', art.building.nest], ['hatchery', art.building.hatchery], ['farmPlot', art.building.farmPlot],
-      ['hoard', art.building.hoard], ...Object.entries(art.building.cropStage).map(([c, s]) => [`crop.${c}`, s] as [string, { src: string }]),
+      ...Object.entries(art.building.cropStage).map(([c, s]) => [`crop.${c}`, s] as [string, { src: string }]),
       ['ui.panel', art.ui.panel], ['ui.button', art.ui.button], ['ui.cursor', art.ui.cursor], ['island.base', art.island.base],
     ]
     for (const [key, s] of sprites) expect(s.src, key).not.toBe('')
@@ -49,7 +49,6 @@ describe('art v1 manifest', () => {
     for (const e of ELEMENTS) fit(`habitat.${e}`, art.habitat[e], 80, 64)
     fit('building.nexus', art.building.nexus, 80, 64)
     fit('building.hatchery', art.building.hatchery, 64, 64)
-    fit('building.hoard', art.building.hoard, 64, 64)
     fit('building.farmPlot', art.building.farmPlot, 32, 32)
     fit('building.nest', art.building.nest, 32, 32)
     for (const id of Object.keys(DECORATIONS) as DecorationId[]) fit(id, art.decoration[id], DECORATIONS[id].size * 16, DECORATIONS[id].size * 16)
@@ -95,7 +94,7 @@ describe('artSetFromManifest', () => {
   it('carries a manifest top inset onto the sprite only when present', () => {
     const a = artSetFromManifest('v1', { assets: { 'building.hatchery': { file: 'hatchery.png', w: 64, h: 64, frames: 1, fps: 0, top: 17 } } }, LAUNCH_CATALOG)
     expect(a.building.hatchery.top).toBe(17)
-    expect(a.building.hoard.top).toBeUndefined()
+    expect(a.building.nest.top).toBeUndefined()
   })
 
   it('maps present keys to versioned urls with frame data', () => {
@@ -197,7 +196,7 @@ describe('drawFallback', () => {
   })
 
   it('draws every slot without touching pixels outside the canvas', () => {
-    for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'nest', 'hatchery', 'farmPlot', 'crop', 'hoard', 'icon', 'panel', 'button', 'island', 'nexus', 'decoration', 'obstacle', 'locked', 'sign', 'map', 'fx'] as const) {
+    for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'nest', 'hatchery', 'farmPlot', 'crop', 'icon', 'panel', 'button', 'island', 'nexus', 'decoration', 'obstacle', 'locked', 'sign', 'map', 'fx'] as const) {
       const g = gridContext(48, 48)
       expect(() => drawFallback(g.ctx, slot, 'water', 48, 48)).not.toThrow()
       expect(g.px.some(p => p !== null)).toBe(true)
