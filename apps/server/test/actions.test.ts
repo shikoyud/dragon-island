@@ -177,17 +177,16 @@ describe('POST /actions', () => {
   })
 
   it('serialises concurrent actions through the row lock', async () => {
-    await setState({ food: 1_000 })
+    await setState({ food: 50 })
     const results = await Promise.all(Array.from({ length: 10 }, () => post({ type: 'feed', dragonId: 'd1' })))
     const codes = results.map(r => r.statusCode).sort()
-    // Sequentially: d1 L1→L2 (4), →3 (16), →4 (36), →5 (64), →6 (100), →7 (144), →8 (196), →9 (256)
-    // costs 816 food total, leaving 184 < 324 for L9→10, so exactly 8 succeed.
+    // Feeds cost 5 x4 (Lv 1) then 6 x4 (Lv 2) = 44 food; the 9th feed costs 8 > 6 left, so exactly 8 succeed.
     expect(codes.filter(c => c === 200)).toHaveLength(8)
     expect(codes.filter(c => c === 422)).toHaveLength(2)
     const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
     const s = p!.state as PlayerState
-    expect(s.dragons[0]!.level).toBe(9)
-    expect(s.food).toBe(184)
+    expect([s.dragons[0]!.level, s.dragons[0]!.feeds]).toEqual([3, 0])
+    expect(s.food).toBe(6)
     expect(p!.actionNonce).toBe(10n)
   })
 

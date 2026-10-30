@@ -3,6 +3,7 @@ import { hatcherySlots, nestBreedMs } from '../buildings'
 import { getSpecies } from '../catalog'
 import { isUnfinished } from '../construction'
 import { breedTimerMs } from '../data/breeding-timers'
+import { BREED_MIN_LEVEL } from '../data/dragon-levels'
 import { HATCH_XP, START_BREED_XP } from '../data/xp'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
 import { addXp } from '../progression'
@@ -10,7 +11,7 @@ import { TUTORIAL_TIMER_MS } from '../time'
 import { collectHabitat } from './island-actions'
 import { failure, success, type Handler } from './types'
 
-export const BREED_MIN_LEVEL = 4
+export { BREED_MIN_LEVEL }
 export { TUTORIAL_TIMER_MS }
 
 export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
@@ -62,7 +63,7 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
   if (ctx.nowMs < egg.readyAtMs) return failure('NOT_READY')
   const species = getSpecies(ctx.catalog, egg.speciesId)
   const home = s.habitats.find(h => canLiveIn(species, h) && !isUnfinished(s, { type: 'habitat', id: h.id }) && residents(s, h.id).length < habitatSlots(h))
-  const dragon = { id: `d${s.nextId}`, speciesId: egg.speciesId, level: 1, habitatId: home ? home.id : null }
+  const dragon = { id: `d${s.nextId}`, speciesId: egg.speciesId, level: 1, feeds: 0, habitatId: home ? home.id : null }
   const collected = home ? collectHabitat(s, home.id, ctx.catalog, ctx.nowMs) : s
   const next = {
     ...collected,

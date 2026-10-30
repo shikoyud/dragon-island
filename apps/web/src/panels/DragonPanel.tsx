@@ -1,4 +1,4 @@
-import { foodToNextLevel, getSpecies, goldPerMinute, LAUNCH_CATALOG, MAX_DRAGON_LEVEL, SELL_GOLD } from '@wyrmhaven/game-core'
+import { foodPerFeed, getSpecies, goldPerMinute, LAUNCH_CATALOG, levelCap, SELL_GOLD } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatGold } from '../ui/Money'
@@ -11,8 +11,8 @@ export function DragonPanel({ dragonId, onClose }: { dragonId: string; onClose?:
   const d = s?.dragons.find(x => x.id === dragonId)
   if (!s || !d) return null
   const species = getSpecies(LAUNCH_CATALOG, d.speciesId)
-  const maxed = d.level >= MAX_DRAGON_LEVEL
-  const foodCost = maxed ? 0 : foodToNextLevel(d.level)
+  const maxed = d.level >= levelCap(s.roostTier)
+  const foodCost = maxed ? 0 : foodPerFeed(d.level)
   const sellGold = SELL_GOLD[species.rarity]
   const inTeam = s.defenceTeam?.includes(d.id) ?? false
 
@@ -25,7 +25,7 @@ export function DragonPanel({ dragonId, onClose }: { dragonId: string; onClose?:
           id={`feed-${d.id}`}
           primary
           disabled={pending || maxed || s.food < foodCost}
-          reason={maxed ? 'Already at level 30' : 'Not enough food'}
+          reason={maxed ? 'Upgrade your Roost to level up further' : 'Not enough food'}
           onClick={() => void run({ type: 'feed', dragonId: d.id })}
         >
           Feed{maxed ? '' : ` · ${formatGold(foodCost)} food`}

@@ -17,7 +17,7 @@ const AI: PlayerMove[] = [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move
 const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
 const bot: OpponentSnapshot = { playerId: null, trophies: 0, level: 8, team: three('nature', 1) }
 const human: OpponentSnapshot = { ...bot, playerId: 'p2' }
-const flameTeam = (level: number, speciesId = 'flame'): Dragon[] => TEAM.map(id => ({ id, speciesId, level, habitatId: 'h1' }))
+const flameTeam = (level: number, speciesId = 'flame'): Dragon[] => TEAM.map(id => ({ id, speciesId, level, feeds: 0, habitatId: 'h1' }))
 const s0 = newPlayer(0)
 const s8: PlayerState = { ...s0, level: 8, dragons: flameTeam(20), defenceTeam: TEAM }
 const weak: PlayerState = { ...s8, dragons: flameTeam(1) }
@@ -45,7 +45,7 @@ describe('setDefenceTeam', () => {
   it('is cleared when a member is sold', () => {
     const saved = ok(run(s8, { type: 'setDefenceTeam', dragonIds: TEAM }))
     expect(ok(run(saved, { type: 'sellDragon', dragonId: 'd3' })).defenceTeam).toBeNull()
-    expect(ok(run({ ...saved, dragons: [...saved.dragons, { id: 'd4', speciesId: 'flame', level: 1, habitatId: null }] },
+    expect(ok(run({ ...saved, dragons: [...saved.dragons, { id: 'd4', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }] },
       { type: 'sellDragon', dragonId: 'd4' })).defenceTeam).toEqual(TEAM)
   })
 })

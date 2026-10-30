@@ -4,7 +4,7 @@ import { z } from 'zod'
 // Mirrors game-core's isValidAction: the client sends JSON, this is the wire-level shape check.
 const id = z.string().min(1)
 const index = z.number().int().min(0)
-const level = z.number().int().min(1).max(30)
+const level = z.number().int().min(1).max(40)
 const elementSchema = z.enum(['terra', 'flame', 'sea', 'nature', 'electric', 'ice', 'metal', 'dark', 'light', 'war'])
 const coord = z.number().int().min(0).max(63)
 const decorationSchema = z.custom<DecorationId>(v => typeof v === 'string' && Object.hasOwn(DECORATIONS, v))

@@ -35,7 +35,7 @@ function harness(state: PlayerState) {
 }
 
 // Flame is ×2 against nature, so a flame L20 team one-shots the nature L1 bots (sea would be ×0.5).
-const flameTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'flame', level, habitatId: 'h1' }))
+const flameTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))
 const s8: PlayerState = { ...newPlayer(0), level: 8, dragons: flameTeam(20), defenceTeam: TEAM }
 
 describe('useBattle', () => {

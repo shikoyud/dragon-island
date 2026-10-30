@@ -46,8 +46,8 @@ describe('island model', () => {
 
   it('places a waiting hatchling in the hatchery, badges the hatchery no room and never overlaps dragons', () => {
     const base = newPlayer(0)
-    const waiting: Dragon = { id: 'd9', speciesId: 'flame', level: 1, habitatId: null }
-    const three: Dragon[] = ['d3', 'd4', 'd5'].map(id => ({ id, speciesId: 'flame', level: 1, habitatId: 'h1' }))
+    const waiting: Dragon = { id: 'd9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }
+    const three: Dragon[] = ['d3', 'd4', 'd5'].map(id => ({ id, speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h1' }))
     const { markers, objects } = model({ ...base, dragons: [...base.dragons, ...three, waiting] })
     expect(markers.dragons).toHaveLength(6)
     expect(markers.waiting).toEqual([{ id: 'd9', noRoom: true }])

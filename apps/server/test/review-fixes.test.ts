@@ -84,7 +84,7 @@ describe('I2: the action log records the seed a battle actually used', () => {
     const [p] = await t.db.select().from(players).where(eq(players.id, A.playerId))
     const base = p!.state as PlayerState
     await t.db.update(players).set({
-      state: { ...base, level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'sea', level: 20, habitatId: 'h2' })) },
+      state: { ...base, level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'sea', level: 20, feeds: 0, habitatId: 'h2' })) },
       level: 8, defenceTeam: TEAM,
     }).where(eq(players.id, A.playerId))
     const pve = await act(A.token, { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }] })
@@ -197,7 +197,7 @@ describe('I8: a new offer set invalidates the previous one', () => {
     const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
     const [p] = await t.db.select().from(players).where(eq(players.id, A.playerId))
     await t.db.update(players).set({
-      state: { ...(p!.state as PlayerState), level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'sea', level: 20, habitatId: 'h2' })) },
+      state: { ...(p!.state as PlayerState), level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'sea', level: 20, feeds: 0, habitatId: 'h2' })) },
       level: 8, defenceTeam: TEAM,
     }).where(eq(players.id, A.playerId))
     const first = (await t.app.inject({ method: 'GET', url: '/pvp/offers', headers: bearer(A.token) })).json().offers

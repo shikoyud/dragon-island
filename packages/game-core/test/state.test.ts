@@ -5,8 +5,8 @@ describe('newPlayer', () => {
   it('matches the spec §9 starting state', () => {
     expect(HATCHERY_SLOTS).toBe(3)
     expect(newPlayer(0)).toEqual({
-      gold: 1000, food: 100, xp: 0, level: 1,
-      dragons: [{ id: 'd1', speciesId: 'flame', level: 1, habitatId: 'h1' }, { id: 'd2', speciesId: 'sea', level: 1, habitatId: 'h2' }],
+      gold: 1000, food: 100, xp: 0, level: 1, roostTier: 0,
+      dragons: [{ id: 'd1', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h1' }, { id: 'd2', speciesId: 'sea', level: 1, feeds: 0, habitatId: 'h2' }],
       habitats: [{ id: 'h1', element: 'flame', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 0, row: 0, facing: 0 } }, { id: 'h2', element: 'sea', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 5, row: 0, facing: 0 } }],
       nests: [{ egg: null, level: 1, placement: { island: 'home', col: 4, row: 8, facing: 0 } }], hatchery: [],
       hatcheryLevel: 1, hatcheryPlacement: { island: 'home', col: 0, row: 8, facing: 0 },

@@ -147,7 +147,7 @@ describe('Finish button and upgrades that keep working', () => {
   })
 
   it('lets dragons move into a habitat that is only being upgraded', async () => {
-    const waiting = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'flame', level: 1, habitatId: null }], constructions: [{ kind: 'upgrade' as const, building: h1, readyAtMs: 99 }] }
+    const waiting = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }], constructions: [{ kind: 'upgrade' as const, building: h1, readyAtMs: 99 }] }
     harness(waiting).wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
     expect(screen.getByRole('button', { name: /d9/ })).toBeEnabled()
   })

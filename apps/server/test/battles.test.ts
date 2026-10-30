@@ -21,7 +21,7 @@ async function setup(playerId: string, patch: Partial<PlayerState>, columns: Par
   const base = newPlayer(0)
   const state: PlayerState = {
     ...base,
-    dragons: [...base.dragons, { id: 'd3', speciesId: 'flame', level: 1, habitatId: 'h1' }],
+    dragons: [...base.dragons, { id: 'd3', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h1' }],
     ...patch,
   }
   await t.db.update(players).set({
@@ -50,8 +50,8 @@ const offers = async (tok: string) => {
 }
 const post = (tok: string, action: unknown) =>
   t.app.inject({ method: 'POST', url: '/actions', headers: bearer(tok), payload: { action, idempotencyKey: crypto.randomUUID() } })
-const seaTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'sea', level, habitatId: 'h2' }))
-const flameTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'flame', level, habitatId: 'h1' }))
+const seaTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'sea', level, feeds: 0, habitatId: 'h2' }))
+const flameTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))
 const row = async (id: string) => (await t.db.select().from(players).where(eq(players.id, id)))[0]!
 
 describe('GET /pvp/offers', () => {

@@ -89,7 +89,7 @@ describe('actionSchema', () => {
     expect(actionSchema.safeParse(full).success).toBe(true)
     expect(isValidAction(full)).toBe(true)
     expect(actionSchema.safeParse({ ...full, opponent: { ...bot, team: bot.team.slice(0, 2) } }).success).toBe(false)
-    expect(actionSchema.safeParse({ ...full, opponent: { ...bot, team: bot.team.map(d => ({ ...d, level: 31 })) } }).success).toBe(false)
+    expect(actionSchema.safeParse({ ...full, opponent: { ...bot, team: bot.team.map(d => ({ ...d, level: 41 })) } }).success).toBe(false)
   })
 })
 

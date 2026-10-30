@@ -13,7 +13,7 @@ describe('generateBotTeam', () => {
     const team = generateBotTeam(40, C, createRng(1))
     expect(team).toHaveLength(3)
     for (const d of team) {
-      expect(d.level).toBe(30)
+      expect(d.level).toBe(40)
       const sp = getSpecies(C, d.speciesId)
       expect(sp.recipeOnly).toBe(false)
       expect(['common', 'rare']).toContain(sp.rarity)

@@ -29,7 +29,7 @@ describe('island unlock actions', () => {
     expect(placementError(a, { island: 'isle2', col: a.islands.obstacles[0]!.col, row: a.islands.obstacles[0]!.row, facing: 0 }, 1)).toBe('OVERLAP')
     const five = { ...s, level: 45, gold: 3_000_000, islands: { homeStep: 0, unlocked: ['home', 'isle2', 'isle3', 'isle4', 'isle5'] as IslandId[], obstacles: [] } }
     err(run(five, { type: 'unlockIsland' }, 0), 'NO_LEGENDARY')
-    const withLegend = withDragon(five, { id: 'd9', speciesId: 'wall', level: 1, habitatId: null })
+    const withLegend = withDragon(five, { id: 'd9', speciesId: 'wall', level: 1, feeds: 0, habitatId: null })
     const b = ok(run(withLegend, { type: 'unlockIsland' }, 0))
     expect(b.islands.unlocked.at(-1)).toBe('dawnspire')
     err(run(b, { type: 'unlockIsland' }, 0), 'MAX_ISLAND')

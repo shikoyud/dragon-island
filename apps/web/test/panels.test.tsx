@@ -52,7 +52,7 @@ describe('HabitatPanel', () => {
   })
 
   it('offers moves only for dragons that fit', () => {
-    const waiting: PlayerState = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'sea', level: 1, habitatId: null }] }
+    const waiting: PlayerState = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'sea', level: 1, feeds: 0, habitatId: null }] }
     const { wrap } = harness(waiting)
     wrap(<HabitatPanel habitatId="h2" nowMs={0} />)
     const move = screen.getByRole('group', { name: /move a dragon here/i })
@@ -66,14 +66,14 @@ describe('DragonPanel', () => {
   it('shows feed cost and refuses to sell below two dragons', () => {
     const { wrap } = harness(base)
     wrap(<DragonPanel dragonId="d1" />)
-    expect(screen.getByRole('button', { name: /feed/i })).toHaveTextContent('4 food')
+    expect(screen.getByRole('button', { name: /feed/i })).toHaveTextContent('5 food')
     const sell = screen.getByRole('button', { name: /sell/i })
     expect(sell).toBeDisabled()
     expect(sell).toHaveAccessibleDescription(/at least two dragons/i)
   })
 
   it('feeds and marks max level', async () => {
-    const { wrap, action } = harness(level(base, 'd1', 30))
+    const { wrap, action } = harness(level(base, 'd1', 7))
     wrap(<DragonPanel dragonId="d1" />)
     expect(screen.getByRole('button', { name: /feed/i })).toBeDisabled()
     const { wrap: wrap2, action: a2 } = harness(base)

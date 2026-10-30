@@ -10,7 +10,7 @@ const s = newPlayer(0)
 const rng = createRng(1)
 const run = (st: PlayerState, a: Action, t: number) => applyAction(st, a, t, rng, FIXTURE_CATALOG)
 const withDragon = (st: PlayerState, d: Dragon): PlayerState => ({ ...st, dragons: [...st.dragons, d] })
-const d9: Dragon = { id: 'd9', speciesId: 'fw-common', level: 1, habitatId: null }
+const d9: Dragon = { id: 'd9', speciesId: 'fw-common', level: 1, feeds: 0, habitatId: null }
 const setD1 = (patch: Partial<Dragon>, extra: Partial<PlayerState> = {}): PlayerState =>
   ({ ...s, ...extra, dragons: s.dragons.map(d => d.id === 'd1' ? { ...d, ...patch } : d) })
 
@@ -40,7 +40,7 @@ describe('moveDragon', () => {
   })
 
   it('collects both habitats first', () => {
-    const st = withDragon(s, { ...d9, habitatId: 'h1' })
+    const st = withDragon(s, { ...d9, feeds: 0, habitatId: 'h1' })
     const a = ok(run(st, { type: 'moveDragon', dragonId: 'd9', habitatId: 'h2' }, 600_000))
     expect(a.gold).toBe(1000 + 40 + 20)
     expect(a.habitats.map(h => h.lastCollectedMs)).toEqual([600_000, 600_000])
@@ -53,7 +53,7 @@ describe('moveDragon', () => {
 
   it('refuses a full habitat', () => {
     let st = s
-    for (const id of ['d7', 'd8']) st = withDragon(st, { id, speciesId: 'sea', level: 1, habitatId: 'h2' })
+    for (const id of ['d7', 'd8']) st = withDragon(st, { id, speciesId: 'sea', level: 1, feeds: 0, habitatId: 'h2' })
     err(run(withDragon(st, d9), { type: 'moveDragon', dragonId: 'd9', habitatId: 'h2' }, 0), 'NO_HABITAT_SLOT')
   })
 
@@ -64,16 +64,27 @@ describe('moveDragon', () => {
 })
 
 describe('feed', () => {
-  it('raises one level for food and awards xp', () => {
-    const a = ok(run(s, { type: 'feed', dragonId: 'd1' }, 0))
-    expect([a.dragons[0]!.level, a.food]).toEqual([2, 96])
-    const b = ok(run(setD1({ level: 9 }, { food: 400 }), { type: 'feed', dragonId: 'd1' }, 0))
-    expect([b.dragons[0]!.level, b.food, b.xp]).toEqual([10, 76, 32])
+  const feed1 = (st: PlayerState) => ok(run(st, { type: 'feed', dragonId: 'd1' }, 0))
+
+  it('takes four feeds per level, one feed per call', () => {
+    const one = feed1(s)
+    expect([one.dragons[0]!.level, one.dragons[0]!.feeds, one.food, one.xp]).toEqual([1, 1, 95, 1])
+    const three = feed1(feed1(one))
+    expect([three.dragons[0]!.level, three.dragons[0]!.feeds]).toEqual([1, 3])
+    const four = feed1(three)
+    expect([four.dragons[0]!.level, four.dragons[0]!.feeds, 100 - four.food]).toEqual([2, 0, 20])
   })
 
-  it('refuses without food or at max level', () => {
-    err(run({ ...s, food: 3 }, { type: 'feed', dragonId: 'd1' }, 0), 'INSUFFICIENT_FOOD')
-    err(run(setD1({ level: 30 }, { food: 1e9 }), { type: 'feed', dragonId: 'd1' }, 0), 'MAX_LEVEL')
+  it('spends exactly foodPerFeed and can empty the larder', () => {
+    expect(feed1(setD1({}, { food: 5 })).food).toBe(0)
+    const lv9 = feed1(setD1({ level: 9 }, { food: 100, roostTier: 2 }))
+    expect([lv9.food, lv9.dragons[0]!.feeds]).toEqual([78, 1])
+  })
+
+  it('refuses without food, at the Roost level cap, or for unknown dragons', () => {
+    err(run({ ...s, food: 4 }, { type: 'feed', dragonId: 'd1' }, 0), 'INSUFFICIENT_FOOD')
+    err(run(setD1({ level: 7 }, { food: 1e9 }), { type: 'feed', dragonId: 'd1' }, 0), 'LEVEL_CAP')
+    expect(feed1(setD1({ level: 7 }, { food: 1e9, roostTier: 1 })).food).toBeLessThan(1e9)
     err(run(s, { type: 'feed', dragonId: 'd9' }, 0), 'NOT_FOUND')
   })
 })

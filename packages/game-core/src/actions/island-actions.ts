@@ -1,5 +1,5 @@
 import { getSpecies, type Catalog } from '../catalog'
-import { foodToNextLevel, MAX_DRAGON_LEVEL } from '../dragon'
+import { FEEDS_PER_LEVEL, feedXp, foodPerFeed, levelCap } from '../dragon'
 import { isUnfinished } from '../construction'
 import { canLiveIn, habitatSlots, residents, storedGold } from '../habitat'
 import { addXp } from '../progression'
@@ -46,16 +46,19 @@ export const moveDragon: Handler<'moveDragon'> = (s, a, ctx) => {
 export const feed: Handler<'feed'> = (s, a, ctx) => {
   const d = s.dragons.find(x => x.id === a.dragonId)
   if (!d) return failure('NOT_FOUND')
-  if (d.level >= MAX_DRAGON_LEVEL) return failure('MAX_LEVEL')
-  const cost = foodToNextLevel(d.level)
+  if (d.level >= levelCap(s.roostTier)) return failure('LEVEL_CAP')
+  const cost = foodPerFeed(d.level)
   if (s.food < cost) return failure('INSUFFICIENT_FOOD')
   const collected = collectDragonHome(s, d.id, ctx.catalog, ctx.nowMs)
   const fed = {
     ...collected,
     food: collected.food - cost,
-    dragons: collected.dragons.map(x => x.id === d.id ? { ...x, level: x.level + 1 } : x),
+    dragons: collected.dragons.map(x => {
+      if (x.id !== d.id) return x
+      return x.feeds + 1 >= FEEDS_PER_LEVEL ? { ...x, level: x.level + 1, feeds: 0 } : { ...x, feeds: x.feeds + 1 }
+    }),
   }
-  return success(addXp(fed, Math.floor(cost / 10)))
+  return success(addXp(fed, feedXp(cost)))
 }
 
 /** A player always keeps two dragons so they can breed. */

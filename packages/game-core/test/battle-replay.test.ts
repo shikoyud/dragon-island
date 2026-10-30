@@ -15,7 +15,7 @@ const script: Action[] = [
 
 function replay(): { state: PlayerState; effects: Effect[]; battles: unknown[] } {
   const rng = createRng(77)
-  let state: PlayerState = { ...newPlayer(0), level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'fw-legend', level: 30, habitatId: 'h1' })) }
+  let state: PlayerState = { ...newPlayer(0), level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'fw-legend', level: 30, feeds: 0, habitatId: 'h1' })) }
   const effects: Effect[] = [], battles: unknown[] = []
   for (const action of script) {
     const r: ActionResult = applyAction(state, action, 1_000, rng, FIXTURE_CATALOG)

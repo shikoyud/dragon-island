@@ -38,7 +38,7 @@ describe('placeBuilding', () => {
   it('unfinished habitats take no dragons', () => {
     const a = ok(run({ ...s, level: 5 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'flame' }, placement: P(6, 7) }, 0))
     err(run(a, { type: 'moveDragon', dragonId: 'd1', habitatId: 'h3' }, 0), 'UNDER_CONSTRUCTION')
-    const full = { ...a, dragons: [...a.dragons, ...['d3', 'd4'].map(id => ({ id, speciesId: 'flame', level: 1, habitatId: 'h1' }))], hatchery: [{ speciesId: 'flame', readyAtMs: 0 }] }
+    const full = { ...a, dragons: [...a.dragons, ...['d3', 'd4'].map(id => ({ id, speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h1' }))], hatchery: [{ speciesId: 'flame', readyAtMs: 0 }] }
     expect(ok(run(full, { type: 'hatch', slot: 0 }, 0)).dragons.at(-1)!.habitatId).toBeNull()
   })
   it('decorations are instant, level-gated, refundable at 25%', () => {
@@ -173,7 +173,7 @@ describe('upgrading buildings keep working (spec 6)', () => {
   const unfinished = (b: object): PlayerState => ({ ...s, constructions: [{ kind: 'build', building: b, readyAtMs: 999_999 } as never] })
 
   it('a habitat under upgrade takes a moved and a hatched dragon', () => {
-    const base = { ...s, dragons: [...s.dragons, { id: 'd9', speciesId: 'flame', level: 1, habitatId: null }] }
+    const base = { ...s, dragons: [...s.dragons, { id: 'd9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }] }
     const upgrading = { ...base, constructions: up({ type: 'habitat', id: 'h1' }).constructions }
     expect(ok(run(upgrading, { type: 'moveDragon', dragonId: 'd9', habitatId: 'h1' }, 0)).dragons.find(d => d.id === 'd9')!.habitatId).toBe('h1')
     const hatching = { ...upgrading, hatchery: [{ speciesId: 'flame', readyAtMs: 0 }] }
@@ -187,7 +187,7 @@ describe('upgrading buildings keep working (spec 6)', () => {
   })
 
   it('an unfinished habitat still refuses dragons', () => {
-    const st = { ...unfinished({ type: 'habitat', id: 'h1' }), dragons: [...s.dragons, { id: 'd9', speciesId: 'flame', level: 1, habitatId: null }] }
+    const st = { ...unfinished({ type: 'habitat', id: 'h1' }), dragons: [...s.dragons, { id: 'd9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }] }
     err(run(st, { type: 'moveDragon', dragonId: 'd9', habitatId: 'h1' }, 0), 'UNDER_CONSTRUCTION')
   })
 })

@@ -5,7 +5,7 @@ export type CropId = 'sprout' | 'bushel' | 'harvest' | 'bounty'
 
 export interface Egg { speciesId: string; readyAtMs: number }
 /** `habitatId: null` = hatched and waiting in the hatchery. */
-export interface Dragon { id: string; speciesId: string; level: number; habitatId: string | null }
+export interface Dragon { id: string; speciesId: string; level: number; /** Feeds toward the next level, 0..3 (§4.1). */ feeds: number; habitatId: string | null }
 
 export type IslandId = 'home' | 'isle2' | 'isle3' | 'isle4' | 'isle5' | 'dawnspire'
 export type Facing = 0 | 1 | 2 | 3
@@ -32,6 +32,8 @@ export interface PlayerState {
   food: number
   xp: number
   level: number
+  /** Roost tier 0..5; sets the dragon level cap (§4.2). */
+  roostTier: number
   dragons: Dragon[]
   habitats: Habitat[]
   nests: Nest[]
@@ -62,10 +64,10 @@ const home = (col: number, row: number): Placement => ({ island: 'home', col, ro
 export function newPlayer(nowMs: number): PlayerState {
   return {
     version: STATE_VERSION,
-    gold: 1000, food: 100, xp: 0, level: 1,
+    gold: 1000, food: 100, xp: 0, level: 1, roostTier: 0,
     dragons: [
-      { id: 'd1', speciesId: 'flame', level: 1, habitatId: 'h1' },
-      { id: 'd2', speciesId: 'sea', level: 1, habitatId: 'h2' },
+      { id: 'd1', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h1' },
+      { id: 'd2', speciesId: 'sea', level: 1, feeds: 0, habitatId: 'h2' },
     ],
     habitats: [
       { id: 'h1', element: 'flame', level: 1, lastCollectedMs: nowMs, placement: home(0, 0) },

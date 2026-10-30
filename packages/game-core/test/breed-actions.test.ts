@@ -78,7 +78,7 @@ describe('collectEgg', () => {
   })
 
   it('refuses when eggs plus waiting dragons fill the hatchery', () => {
-    const waiting: Dragon = { id: 'd9', speciesId: 'fw-common', level: 1, habitatId: null }
+    const waiting: Dragon = { id: 'd9', speciesId: 'fw-common', level: 1, feeds: 0, habitatId: null }
     const st = { ...laid, hatchery: [egg('flame', 0), egg('sea', 0)], dragons: [...laid.dragons, waiting] }
     err(run(st, { type: 'collectEgg', nest: 0 }, 15_000), 'HATCHERY_FULL')
     expect(st.nests[0]).toEqual(laid.nests[0])
@@ -90,7 +90,7 @@ describe('hatch', () => {
 
   it('creates a dragon in the first matching habitat', () => {
     const a = ok(run(ready, { type: 'hatch', slot: 0 }, 30_000))
-    expect(a.dragons[2]).toEqual({ id: 'd3', speciesId: 'fw-common', level: 1, habitatId: 'h1' })
+    expect(a.dragons[2]).toEqual({ id: 'd3', speciesId: 'fw-common', level: 1, feeds: 0, habitatId: 'h1' })
     expect(a.hatchery).toEqual([])
     expect(a.nextId).toBe(4)
     expect(a.xp).toBe(HATCH_XP.common)
@@ -98,7 +98,7 @@ describe('hatch', () => {
 
   it('waits in the hatchery when every matching habitat is full', () => {
     const extra = ['d5', 'd6', 'd7', 'd8'].map((id, i): Dragon =>
-      ({ id, speciesId: i < 2 ? 'flame' : 'sea', level: 1, habitatId: i < 2 ? 'h1' : 'h2' }))
+      ({ id, speciesId: i < 2 ? 'flame' : 'sea', level: 1, feeds: 0, habitatId: i < 2 ? 'h1' : 'h2' }))
     const full = { ...ready, dragons: [...ready.dragons, ...extra] }
     const a = ok(run(full, { type: 'hatch', slot: 0 }, 30_000))
     expect(a.dragons.find(d => d.id === 'd3')!.habitatId).toBeNull()

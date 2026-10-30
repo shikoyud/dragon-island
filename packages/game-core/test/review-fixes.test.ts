@@ -10,7 +10,7 @@ const s = newPlayer(0)
 const run = (st: PlayerState, a: Action, t = 0) => applyAction(st, a, t, createRng(1), FIXTURE_CATALOG)
 // Untyped JSON from a client: anything may arrive.
 const raw = (st: PlayerState, a: unknown, t = 0) => run(st, a as Action, t)
-const flame = (id: string, habitatId: string | null = 'h1', level = 1): Dragon => ({ id, speciesId: 'flame', level, habitatId })
+const flame = (id: string, habitatId: string | null = 'h1', level = 1): Dragon => ({ id, speciesId: 'flame', level, feeds: 0, habitatId })
 
 describe('malformed actions are rejected, never applied', () => {
   it('rejects unknown crops and action types', () => {

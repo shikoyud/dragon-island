@@ -13,7 +13,7 @@ const raw = (st: PlayerState, a: unknown, t = 0) => run(st, a as Action, t)
 const three = (id: string, level: number): BattleDragonSpec[] => [{ speciesId: id, level }, { speciesId: id, level }, { speciesId: id, level }]
 const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
 const SWEEP = [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }]
-const dragons = (level: number): Dragon[] => TEAM.map(id => ({ id, speciesId: 'flame', level, habitatId: 'h1' }))
+const dragons = (level: number): Dragon[] => TEAM.map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))
 const human: OpponentSnapshot = { playerId: 'p2', trophies: 500, level: 8, team: three('flame', 12) }
 const bot: OpponentSnapshot = { ...human, playerId: null, team: three('nature', 1) }
 const s8: PlayerState = { ...newPlayer(0), level: 8, trophies: 500, dragons: dragons(10), defenceTeam: TEAM }
@@ -50,7 +50,7 @@ describe('opponent snapshots are checked before the battle runs', () => {
   it('rejects unknown species and out-of-range levels without throwing', () => {
     err(run(s8, pvp({ ...bot, team: three('nope', 1) })), 'NOT_FOUND')
     err(raw(s8, pvp({ ...bot, team: three('nature', 0) })), 'INVALID_ACTION')
-    err(raw(s8, pvp({ ...bot, team: three('nature', 31) })), 'INVALID_ACTION')
+    err(raw(s8, pvp({ ...bot, team: three('nature', 41) })), 'INVALID_ACTION')
     err(raw(s8, pvp({ ...bot, team: three('nature', 1e308) })), 'INVALID_ACTION')
   })
 
