@@ -29,10 +29,25 @@ export function habitatSlots(h: Habitat): number {
  * `lastCollectedMs`.
  */
 export function storedGold(h: Habitat, residents: readonly Dragon[], c: Catalog, nowMs: number, preset: Preset): number {
+  return settleHabitat(h, residents, c, nowMs, preset).gold
+}
+
+/**
+ * What a collection at `nowMs` pays and the new `lastCollectedMs`. Only the whole minutes paid are consumed, so the
+ * remainder carries over; a habitat that stopped producing (capped, or empty) restarts from now, because the time
+ * since then earned nothing. Never moves the stamp back.
+ */
+export function settleHabitat(h: Habitat, residents: readonly Dragon[], c: Catalog, nowMs: number, preset: Preset): { gold: number; lastCollectedMs: number } {
   const minutes = Math.floor(Math.max(0, nowMs - h.lastCollectedMs) / MS_PER_MINUTE)
   const perMinuteX20 = residents.reduce((n, d) => {
     const sp = getSpecies(c, d.speciesId)
     return n + goldPerMinuteX20(sp.elements[0]!, sp.rarity, d.level, preset)
   }, 0)
-  return Math.min(habitatCap(h.element, h.level, preset), Math.floor(minutes * perMinuteX20 / 20))
+  const cap = habitatCap(h.element, h.level, preset)
+  const accrued = Math.floor(minutes * perMinuteX20 / 20)
+  const stopped = accrued >= cap || perMinuteX20 === 0
+  return {
+    gold: Math.min(cap, accrued),
+    lastCollectedMs: stopped ? Math.max(h.lastCollectedMs, nowMs) : h.lastCollectedMs + minutes * MS_PER_MINUTE,
+  }
 }
