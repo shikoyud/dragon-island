@@ -464,8 +464,11 @@ h3 {
   .hero-sprite-x2 {
     display: block;
   }
+}
+
+/* Two rows of five: the 288px frame needs the scene to be wider than 960px, so this starts at 970px. */
+@media (min-width: 970px) {
   .hatchlings {
-    /* Two rows of five: ten 48px cells (540px) are wider than the scene column at every desktop width. */
     grid-template-columns: repeat(5, 48px);
     gap: 4px;
     padding: 14px 12px;
