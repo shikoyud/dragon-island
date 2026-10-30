@@ -8,8 +8,8 @@ describe('dragon math', () => {
 
   it('computes gold per minute', () => {
     expect(goldPerMinute('common', 1)).toBe(2)
-    expect(goldPerMinute('rare', 12)).toBe(55)
-    expect(goldPerMinute('legendary', 30)).toBe(600)
+    expect(goldPerMinute('rare', 12)).toBe(33)
+    expect(goldPerMinute('legendary', 30)).toBe(100)
   })
 
   it('computes food to next level by band', () => {

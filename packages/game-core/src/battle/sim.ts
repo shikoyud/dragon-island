@@ -19,15 +19,15 @@ export type BattleOutcome =
 
 const other = (side: Side): Side => (side === 'attacker' ? 'defender' : 'attacker')
 
-/** Living combatants by SPD descending; ties → attacker first, then slot order. */
+/** Living combatants in slot order, attacker before defender in each slot. Dragons have no SPD until M5. */
 export function turnOrder(attackers: readonly Combatant[], defenders: readonly Combatant[]): { side: Side; slot: number }[] {
   const all = [
-    ...attackers.map((c, slot) => ({ side: 'attacker' as Side, slot, spd: c.stats.spd, hp: c.hp, rank: 0 })),
-    ...defenders.map((c, slot) => ({ side: 'defender' as Side, slot, spd: c.stats.spd, hp: c.hp, rank: 1 })),
+    ...attackers.map((c, slot) => ({ side: 'attacker' as Side, slot, hp: c.hp, rank: 0 })),
+    ...defenders.map((c, slot) => ({ side: 'defender' as Side, slot, hp: c.hp, rank: 1 })),
   ]
   return all
     .filter(x => x.hp > 0)
-    .sort((a, b) => b.spd - a.spd || a.rank - b.rank || a.slot - b.slot)
+    .sort((a, b) => a.slot - b.slot || a.rank - b.rank)
     .map(({ side, slot }) => ({ side, slot }))
 }
 

@@ -4,7 +4,8 @@ import type { Action } from '../src/actions/types'
 import { isValidAction } from '../src/index'
 import { getSpecies } from '../src/catalog'
 import { hatcherySlots, nestBreedMs } from '../src/buildings'
-import { RARITY } from '../src/rarity'
+import { breedTimerMs } from '../src/data/breeding-timers'
+import { FLASH_14 } from '../src/data/presets'
 import { createRng } from '../src/rng'
 import { newPlayer, type PlayerState } from '../src/state'
 import { FIXTURE_CATALOG } from './fixtures'
@@ -160,7 +161,8 @@ describe('startUpgrade / finishConstruction', () => {
     const n = ok(run(ok(run(t, { type: 'startUpgrade', building: { type: 'nest', index: 0 } }, 0)), { type: 'finishConstruction', index: 0 }, 7_200_000))
     const parents = n.dragons.map(d => ({ ...d, level: 4 }))
     const bred = ok(run({ ...n, dragons: parents }, { type: 'startBreed', parentA: 'd1', parentB: 'd2' }, 7_200_000))
-    expect(bred.nests[0]!.egg!.readyAtMs - 7_200_000).toBe(nestBreedMs(RARITY[getSpecies(FIXTURE_CATALOG, bred.nests[0]!.egg!.speciesId).rarity].breedMs, 2))
+    const child = getSpecies(FIXTURE_CATALOG, bred.nests[0]!.egg!.speciesId)
+    expect(bred.nests[0]!.egg!.readyAtMs - 7_200_000).toBe(nestBreedMs(breedTimerMs(child.rarity, child.elements, FLASH_14), 2))
     const h = ok(run(ok(run(t, { type: 'startUpgrade', building: { type: 'hatchery' } }, 0)), { type: 'finishConstruction', index: 0 }, 7_200_000))
     expect(hatcherySlots(h.hatcheryLevel)).toBe(4)
   })

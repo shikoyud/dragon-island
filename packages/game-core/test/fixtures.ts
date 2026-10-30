@@ -3,7 +3,7 @@ import type { Element } from '../src/elements'
 import type { Rarity } from '../src/rarity'
 
 const sp = (id: string, elements: Element[], rarity: Rarity, recipeOnly = false): Species =>
-  ({ id, name: id, elements, rarity, baseSpeed: 50, recipeOnly })
+  ({ id, name: id, elements, rarity, recipeOnly })
 
 export const FIXTURE_CATALOG = makeCatalog(
   [
@@ -12,7 +12,7 @@ export const FIXTURE_CATALOG = makeCatalog(
     sp('ice', ['ice'], 'common'),
     sp('nature', ['nature'], 'common'),
     sp('fn-rare', ['flame', 'nature'], 'rare'),
-    { id: 'wall', name: 'wall', elements: ['terra'], rarity: 'legendary', baseSpeed: 1, recipeOnly: true },
+    { id: 'wall', name: 'wall', elements: ['terra'], rarity: 'legendary', recipeOnly: true },
     sp('fw-common', ['flame', 'sea'], 'common'),
     sp('fw-rare', ['flame', 'sea'], 'rare'),
     sp('fw-epic', ['flame', 'sea'], 'epic'),

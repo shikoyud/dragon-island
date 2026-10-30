@@ -16,7 +16,7 @@ describe('battlePreview', () => {
     expect(p.next).toEqual({ side: 'attacker', slot: 0 })
     expect(p.round).toBe(1)
     expect(p.log.filter(e => e.side === 'attacker')).toHaveLength(0)
-    expect(p.attacker.every(c => c.hp === c.stats.hp)).toBe(true) // nature L1 (spd 51) acts after flame L20 (spd 75)
+    expect(p.attacker.every(c => c.hp === c.stats.hp)).toBe(true) // no SPD until M5: attackers act in slot order
   })
 
   it('reports the full outcome when every move is supplied', () => {

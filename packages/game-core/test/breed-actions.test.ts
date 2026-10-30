@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { applyAction } from '../src/actions/apply'
 import type { Action } from '../src/actions/types'
 import { getSpecies } from '../src/catalog'
-import { RARITY } from '../src/rarity'
+import { breedTimerMs } from '../src/data/breeding-timers'
+import { FLASH_14 } from '../src/data/presets'
+import { HATCH_XP, START_BREED_XP } from '../src/data/xp'
 import { createRng } from '../src/rng'
 import { newPlayer, type Dragon, type Egg, type Nest, type PlayerState } from '../src/state'
 import { FIXTURE_CATALOG } from './fixtures'
@@ -28,14 +30,15 @@ describe('startBreed', () => {
     const e = a.nests[0]!.egg!
     expect(e.readyAtMs).toBe(15_000)
     expect(a.tutorial.breedDone).toBe(true)
-    expect(a.xp).toBe(RARITY[rarityOf(e.speciesId)].xp)
+    expect(a.xp).toBe(START_BREED_XP)
     err(run(a, breed, 0), 'NO_FREE_NEST')
   })
 
   it('uses the rarity breed time after the tutorial', () => {
     const a = ok(run({ ...s4, tutorial: { ...s4.tutorial, breedDone: true, hatchDone: false } }, breed, 1_000))
     const e = a.nests[0]!.egg!
-    expect(e.readyAtMs).toBe(1_000 + RARITY[rarityOf(e.speciesId)].breedMs)
+    const child = getSpecies(FIXTURE_CATALOG, e.speciesId)
+    expect(e.readyAtMs).toBe(1_000 + breedTimerMs(child.rarity, child.elements, FLASH_14))
   })
 
   it('uses the lowest free nest', () => {
@@ -71,7 +74,7 @@ describe('collectEgg', () => {
 
   it('uses the rarity hatch time after the tutorial', () => {
     const st = { ...s, nests: [nest(egg('fw-rare', 0))], tutorial: { ...s.tutorial, breedDone: true, hatchDone: true } }
-    expect(ok(run(st, { type: 'collectEgg', nest: 0 }, 100)).hatchery[0]!.readyAtMs).toBe(100 + RARITY.rare.hatchMs)
+    expect(ok(run(st, { type: 'collectEgg', nest: 0 }, 100)).hatchery[0]!.readyAtMs).toBe(100 + breedTimerMs('rare', ['flame', 'sea'], FLASH_14))
   })
 
   it('refuses when eggs plus waiting dragons fill the hatchery', () => {
@@ -90,7 +93,7 @@ describe('hatch', () => {
     expect(a.dragons[2]).toEqual({ id: 'd3', speciesId: 'fw-common', level: 1, habitatId: 'h1' })
     expect(a.hatchery).toEqual([])
     expect(a.nextId).toBe(4)
-    expect(a.xp).toBe(RARITY.common.xp)
+    expect(a.xp).toBe(HATCH_XP.common)
   })
 
   it('waits in the hatchery when every matching habitat is full', () => {

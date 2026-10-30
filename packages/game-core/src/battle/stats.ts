@@ -1,24 +1,19 @@
 import { getSpecies, type Catalog, type Species } from '../catalog'
 import { elementMultiplier, type MoveElement, type Mult } from '../elements'
-import { RARITY } from '../rarity'
+import { atkAt, hpAt } from '../rarity'
 import type { Rng } from '../rng'
 
 export interface BattleDragonSpec { speciesId: string; level: number }
-export interface CombatStats { hp: number; atk: number; spd: number }
+export interface CombatStats { hp: number; atk: number }
 export interface BattleMove { name: string; element: MoveElement; powerPct: number }
 
 export const ELEMENT_MOVE_POWER_PCT = 100
 export const STRIKE: BattleMove = { name: 'Strike', element: 'physical', powerPct: 80 }
 
-/** Spec §10: HP = floor((100 + 20L) × mult), ATK = floor((10 + 3L) × mult), SPD = baseSpeed + L. */
+/** GDD §2.4: HP and ATK come from the rarity curve (R6). There is no SPD until M5. */
 export function combatStats(spec: BattleDragonSpec, c: Catalog): CombatStats {
   const sp = getSpecies(c, spec.speciesId)
-  const pct = RARITY[sp.rarity].statPct
-  return {
-    hp: Math.floor((100 + 20 * spec.level) * pct / 100),
-    atk: Math.floor((10 + 3 * spec.level) * pct / 100),
-    spd: sp.baseSpeed + spec.level,
-  }
+  return { hp: hpAt(sp.rarity, spec.level), atk: atkAt(sp.rarity, spec.level) }
 }
 
 /** One move per element; pure dragons also get the Physical Strike. */

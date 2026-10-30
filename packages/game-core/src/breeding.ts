@@ -1,6 +1,6 @@
 import { getSpecies, type Catalog, type Species } from './catalog'
 import { pairKey, type Element } from './elements'
-import { RARITIES, RARITY, type Rarity } from './rarity'
+import { RARITIES, type Rarity } from './rarity'
 import type { Rng } from './rng'
 
 export interface Parent { speciesId: string; level: number }
@@ -11,9 +11,16 @@ export const RECIPE_MIN_LEVEL = 15
 export const RECIPE_CHANCE = 0.03
 export const PITY_THRESHOLD = 10
 
+/**
+ * Transitional (task M2 reworks breeding odds): rarity score S for the weights below. Uncommon scores 0 and has a
+ * flat weight so the four existing tiers keep their odds.
+ */
+const RARITY_SCORE: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 1, epic: 2, legendary: 3 }
+
 export function tierWeights(scoreSum: number): Record<Rarity, number> {
   return {
     common: 70,
+    uncommon: 30,
     rare: 25 + 5 * scoreSum,
     epic: 5 + 2 * scoreSum,
     legendary: 1,
@@ -57,7 +64,7 @@ function recipeFor(a: Parent, b: Parent, c: Catalog): string | null {
 }
 
 function scoreSum(a: Species, b: Species): number {
-  return RARITY[a.rarity].score + RARITY[b.rarity].score
+  return RARITY_SCORE[a.rarity] + RARITY_SCORE[b.rarity]
 }
 
 /** Exact probabilities of each child species (non-zero entries only). */

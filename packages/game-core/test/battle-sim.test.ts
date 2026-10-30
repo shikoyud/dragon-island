@@ -19,7 +19,7 @@ const fighter = (id: string, level: number, hp?: number): Combatant => {
 const win = (o: BattleOutcome) => { if (!o.ok) throw new Error(o.error); return o }
 
 describe('turnOrder', () => {
-  it('sorts living combatants by speed, attacker first on ties', () => {
+  it('orders living combatants by slot, attacker first (no SPD until M5)', () => {
     const order = turnOrder([fighter('flame', 10), fighter('sea', 5)], [fighter('ice', 10), fighter('nature', 1)])
     expect(order).toEqual([
       { side: 'attacker', slot: 0 }, { side: 'defender', slot: 0 }, { side: 'attacker', slot: 1 }, { side: 'defender', slot: 1 },
@@ -60,8 +60,8 @@ describe('simulateBattle', () => {
     expect(atk).toHaveLength(3)
     for (const e of atk) {
       expect(e.multiplier).toBe(2)
-      expect(e.damage).toBeGreaterThanOrEqual(126)
-      expect(e.damage).toBeLessThanOrEqual(154)
+      expect(e.damage).toBeGreaterThanOrEqual(3397)
+      expect(e.damage).toBeLessThanOrEqual(4152)
       expect(e.ko).toBe(true)
     }
     expect(o.log.filter(e => e.side === 'defender')).toHaveLength(0)

@@ -3,7 +3,7 @@ import { foodToNextLevel, MAX_DRAGON_LEVEL } from '../dragon'
 import { isUnfinished } from '../construction'
 import { canLiveIn, habitatSlots, residents, storedGold } from '../habitat'
 import { addXp } from '../progression'
-import { RARITY } from '../rarity'
+import { SELL_GOLD } from '../data/sell'
 import type { PlayerState } from '../state'
 import { earnGold, spendGold } from '../wallet'
 import { failure, success, type Handler } from './types'
@@ -63,7 +63,8 @@ export const sellDragon: Handler<'sellDragon'> = (s, a, ctx) => {
   const d = s.dragons.find(x => x.id === a.dragonId)
   if (!d) return failure('NOT_FOUND')
   if (s.dragons.length <= 2) return failure('LAST_DRAGONS')
-  const gold = RARITY[getSpecies(ctx.catalog, d.speciesId).rarity].sellGold
+  const gold = SELL_GOLD[getSpecies(ctx.catalog, d.speciesId).rarity]
+  if (gold === null) return failure('NOT_SELLABLE')
   const collected = collectDragonHome(s, d.id, ctx.catalog, ctx.nowMs)
   const defenceTeam = s.defenceTeam?.includes(d.id) ? null : s.defenceTeam
   return success(earnGold({ ...collected, defenceTeam, dragons: collected.dragons.filter(x => x.id !== d.id) }, gold))

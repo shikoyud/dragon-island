@@ -14,8 +14,8 @@ function expectOdds(actual: Record<string, number>, expected: Record<string, num
 
 describe('tierWeights', () => {
   it('scales with score', () => {
-    expect(tierWeights(0)).toEqual({ common: 70, rare: 25, epic: 5, legendary: 1 })
-    expect(tierWeights(3)).toEqual({ common: 70, rare: 40, epic: 11, legendary: 1 })
+    expect(tierWeights(0)).toEqual({ common: 70, uncommon: 30, rare: 25, epic: 5, legendary: 1 })
+    expect(tierWeights(3)).toEqual({ common: 70, uncommon: 30, rare: 40, epic: 11, legendary: 1 })
   })
 })
 

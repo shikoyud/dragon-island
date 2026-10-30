@@ -5,10 +5,10 @@ import { createRng } from '../src/rng'
 import { FIXTURE_CATALOG as C } from './fixtures'
 
 describe('combatStats', () => {
-  it('applies the rarity multiplier with floor', () => {
-    expect(combatStats({ speciesId: 'flame', level: 10 }, C)).toEqual({ hp: 300, atk: 40, spd: 60 })
-    expect(combatStats({ speciesId: 'fw-legend', level: 30 }, C)).toEqual({ hp: 1400, atk: 200, spd: 80 })
-    expect(combatStats({ speciesId: 'fw-rare', level: 1 }, C)).toEqual({ hp: 144, atk: 15, spd: 51 })
+  it('takes HP and ATK from the §2.4 rarity curve', () => {
+    expect(combatStats({ speciesId: 'flame', level: 10 }, C)).toEqual({ hp: 3077, atk: 1231 })
+    expect(combatStats({ speciesId: 'fw-legend', level: 30 }, C)).toEqual({ hp: 11128, atk: 4451 })
+    expect(combatStats({ speciesId: 'fw-rare', level: 1 }, C)).toEqual({ hp: 2000, atk: 800 })
   })
 })
 

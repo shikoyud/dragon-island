@@ -88,6 +88,14 @@ describe('sellDragon', () => {
     expect([a.gold, a.dragons.length]).toEqual([1100, 2])
   })
 
+  it('pays the A9 value for the species rarity and refuses legendaries', () => {
+    const rare = ok(run(withDragon(s, { ...d9, speciesId: 'fw-rare' }), { type: 'sellDragon', dragonId: 'd9' }, 0))
+    expect(rare.gold).toBe(1000 + 2500)
+    const epic = ok(run(withDragon(s, { ...d9, speciesId: 'fw-epic' }), { type: 'sellDragon', dragonId: 'd9' }, 0))
+    expect(epic.gold).toBe(1000 + 10000)
+    err(run(withDragon(s, { ...d9, speciesId: 'fw-legend' }), { type: 'sellDragon', dragonId: 'd9' }, 0), 'NOT_SELLABLE')
+  })
+
   it('rejects unknown dragons', () => {
     err(run(withDragon(s, d9), { type: 'sellDragon', dragonId: 'd5' }, 0), 'NOT_FOUND')
   })

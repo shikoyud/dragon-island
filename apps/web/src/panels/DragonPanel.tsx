@@ -1,4 +1,4 @@
-import { foodToNextLevel, getSpecies, goldPerMinute, LAUNCH_CATALOG, MAX_DRAGON_LEVEL, RARITY } from '@wyrmhaven/game-core'
+import { foodToNextLevel, getSpecies, goldPerMinute, LAUNCH_CATALOG, MAX_DRAGON_LEVEL, SELL_GOLD } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatGold } from '../ui/Money'
@@ -13,7 +13,7 @@ export function DragonPanel({ dragonId, onClose }: { dragonId: string; onClose?:
   const species = getSpecies(LAUNCH_CATALOG, d.speciesId)
   const maxed = d.level >= MAX_DRAGON_LEVEL
   const foodCost = maxed ? 0 : foodToNextLevel(d.level)
-  const sellGold = RARITY[species.rarity].sellGold
+  const sellGold = SELL_GOLD[species.rarity]
   const inTeam = s.defenceTeam?.includes(d.id) ?? false
 
   return (
@@ -33,11 +33,11 @@ export function DragonPanel({ dragonId, onClose }: { dragonId: string; onClose?:
         <ActionButton
           id={`sell-${d.id}`}
           danger
-          disabled={pending || s.dragons.length <= 2}
-          reason="Keep at least two dragons so you can still breed"
+          disabled={pending || s.dragons.length <= 2 || sellGold === null}
+          reason={sellGold === null ? 'Legendary dragons cannot be sold' : 'Keep at least two dragons so you can still breed'}
           onClick={() => void run({ type: 'sellDragon', dragonId: d.id })}
         >
-          Sell · {formatGold(sellGold)} gold
+          {sellGold === null ? 'Cannot be sold' : `Sell · ${formatGold(sellGold)} gold`}
         </ActionButton>
       </div>
     </Panel>

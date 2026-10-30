@@ -20,6 +20,7 @@ export const errorMessages: Record<string, string> = {
   PLOT_EMPTY: 'Nothing is planted there.',
   MAX_NESTS: 'You already have the maximum number of nests.',
   LAST_DRAGONS: 'Keep at least two dragons so you can still breed.',
+  NOT_SELLABLE: 'Legendary dragons cannot be sold.',
   EARNING_LOCKED: 'Pay the one-time entry fee to unlock earning.',
   NOTHING_TO_SKIP: 'There is no timer to skip here.',
   INVALID_TEAM: 'Pick three different dragons you own.',
