@@ -78,6 +78,13 @@ describe('GET /game', () => {
 })
 
 describe('config', () => {
+  it('refuses to boot in production without LAUNCH_AT; dev keeps the row default', () => {
+    expect(() => loadConfig({ ...base, NODE_ENV: 'production' })).toThrow(/LAUNCH_AT/)
+    expect(loadConfig({ ...base, NODE_ENV: 'production', LAUNCH_AT: new Date(LAUNCH).toISOString() }).LAUNCH_AT).toBeDefined()
+    expect(loadConfig({ ...base }).LAUNCH_AT).toBeUndefined()
+    expect(loadConfig({ ...base, NODE_ENV: 'development' }).LAUNCH_AT).toBeUndefined()
+  })
+
   it('defaults PRESET to flash14 and rejects unknown presets and non-ISO LAUNCH_AT', () => {
     expect(loadConfig(base).PRESET).toBe('flash14')
     expect(() => loadConfig({ ...base, PRESET: 'flash7' })).toThrow()

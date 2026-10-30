@@ -53,7 +53,7 @@ sudo ufw status numbered
 3. After step 7 (`docker compose up -d`) Caddy obtains the certificate on its own; check `docker compose logs caddy | grep -i "certificate obtained"` and `curl -sI https://play.<domain>/`.
 4. Then switch the record to **Proxied (orange cloud)**. Caddy renews over HTTP-01 on port 80 through Cloudflare. If a renewal ever fails (Caddy logs `acme` errors), flip the record to DNS only for a few minutes while Caddy retries, or move Caddy to the Cloudflare DNS challenge.
 
-Client IPs: Cloudflare's proxied traffic hits Caddy. The Caddyfile trusts `CF-Connecting-IP` **only** from Cloudflare's published ranges (`trusted_proxies`), then overwrites `X-Forwarded-For` with that single client IP before proxying. The server runs with `TRUST_PROXY=true` and takes that value for rate limits and referral overlap checks. Anyone hitting the origin directly is identified by their socket address, so the header can't be spoofed. Keep the range list in the Caddyfile (one `cloudflare_ranges` snippet) in sync with https://www.cloudflare.com/ips/.
+Client IPs: Cloudflare's proxied traffic hits Caddy. The Caddyfile trusts `CF-Connecting-IP` **only** from Cloudflare's published ranges (`trusted_proxies`), then overwrites `X-Forwarded-For` with that single client IP before proxying. The server runs with `TRUST_PROXY=true` and takes that value for rate limits and sign-in origin records. Anyone hitting the origin directly is identified by their socket address, so the header can't be spoofed. Keep the range list in the Caddyfile (one `cloudflare_ranges` snippet) in sync with https://www.cloudflare.com/ips/.
 
 Country block: `BLOCKED_COUNTRIES` uses Cloudflare's `CF-IPCountry` header, so it **requires the Cloudflare proxy**. Caddy removes `CF-IPCountry` from any request whose socket peer (`remote_ip`) is not a Cloudflare address, and while the list is set the server refuses sign-in, actions and withdrawals (451) for a request with no country, `XX` (unknown) or `T1` (Tor). So with the block on, turning the proxy off (or a direct-to-origin request) locks every player out of those routes rather than silently disabling the block. Keep the origin firewall from step 1 in place whenever the list is set.
 
@@ -66,7 +66,7 @@ chmod 600 .env .env.server backup.env
 ```
 
 - `.env`: `PLAY_DOMAIN=play.<domain>`, `POSTGRES_PASSWORD=$(openssl rand -hex 32)`.
-- `.env.server`: put the **same** password into `DATABASE_URL`; fresh `SESSION_SECRET` and `ADMIN_TOKEN` (`openssl rand -hex 32` each); `SIWE_DOMAIN=play.<domain>`, `SIWE_URI=https://play.<domain>`; after the testnet contracts are deployed, `VAULT_ADDRESS`, `TOKEN_ADDRESS`, `SIGNER_PRIVATE_KEY`, `OPERATOR_PRIVATE_KEY`, `INDEXER_START_BLOCK` (the vault's deploy block), and your RPC provider URL; `ALERT_WEBHOOK_URL`, `SENTRY_DSN`. Leave `E2E=0`. `BETA_CLOSED=true` turns on the closed-beta allowlist (manage it in the admin console's Beta tab or `POST /admin/beta/allow`).
+- `.env.server`: put the **same** password into `DATABASE_URL`; fresh `SESSION_SECRET` and `ADMIN_TOKEN` (`openssl rand -hex 32` each); `SIWE_DOMAIN=play.<domain>`, `SIWE_URI=https://play.<domain>`; `LAUNCH_AT` and `PRESET` (step 6); after the testnet contracts are deployed, `VAULT_ADDRESS`, `TOKEN_ADDRESS`, `SIGNER_PRIVATE_KEY`, `OPERATOR_PRIVATE_KEY`, `INDEXER_START_BLOCK` (the vault's deploy block), and your RPC provider URL; `ALERT_WEBHOOK_URL`, `SENTRY_DSN`. Leave `E2E=0`. `BETA_CLOSED=true` turns on the closed-beta allowlist (manage it in the admin console's Beta tab or `POST /admin/beta/allow`).
 - **`RPC_URL` with an embedded API key** can appear in server logs and Sentry error text (viem includes the URL in request errors). Use a key restricted to this app, and rotate it if logs leak.
 
 **Web build.** `apps/web/dist` is mounted read-only into Caddy, so build it on your workstation and sync it over. `VITE_*` values are compiled into public JavaScript: never put a secret in them.
@@ -101,25 +101,17 @@ docker compose exec postgres psql -U dragon -d dragon -tAc "select count(*) from
 
 If it is not 0, list the rows (`select player_id, token_wei from balances where token_wei < 0`) and fix them deliberately (they are a ledger bug to investigate) before going on. On a database where 0004 is already applied the count is always 0.
 
+**Reused or restored database: take a backup first (`backup.sh`, step 8).** Migration 0007 is irreversible: it drops the season tables, including the season secrets and prizes, and every referral link, and there is no down migration.
+
 ```bash
 docker compose run --rm server pnpm db:migrate     # prints "migrations applied"
 ```
 
 `db:migrate` applies `apps/server/drizzle/` to `DATABASE_URL` and refuses to run without it (it never falls back to PGlite). The server also migrates on start; running it first surfaces migration errors before the game is up.
 
-## 6. Season backfill on any restored or reused database
+## 6. Confirm `LAUNCH_AT` and `PRESET` in `.env.server`
 
-**Required whenever the database is not brand new**: a restored backup, the beta database, or any database the server has been off for. Otherwise the close job would pay prizes for every old ended season on first boot. Skip it only for an empty database created in step 4.
-
-The server must still be stopped (this is before step 7). Pass a cutoff **at least 5 minutes in the past**: the backfill ignores the close job's 5-minute grace, so a season that ended within the last 5 minutes must be left to the close job.
-
-```bash
-CUTOFF="$(date -u -d '-10 minutes' +%Y-%m-%dT%H:%M:%SZ)"
-docker compose run --rm server pnpm season:backfill -- --ended-before "$CUTOFF"           # dry run: lists seasons
-docker compose run --rm server pnpm season:backfill -- --ended-before "$CUTOFF" --apply   # writes
-```
-
-The backfill marks those seasons closed without paying prizes. Note that it runs migrations first, **even on a dry run**. It exits 1 if the season-close lock is busy (a server is running against the database): stop it and retry.
+With `NODE_ENV=production` the server exits at start without `LAUNCH_AT`. It is the moment day 1 begins, and every game day, phase and countdown is measured from it, so a restored or moved server must keep the same value. `PRESET` picks the soft economy (`flash14` by default, or `flash28`) and sets the game's length, so it must not change mid-game either.
 
 ## 7. `docker compose up -d`
 
@@ -161,7 +153,7 @@ MAILTO=<your-email>
 
 Run both by hand once before trusting cron. Optional: set `BACKUP_HEARTBEAT_URL` to an UptimeRobot heartbeat monitor so a missed backup alerts you.
 
-**Restoring for real** (data loss, new VPS): stop the server (`docker compose stop server`), recreate the database (`docker compose exec postgres dropdb -U dragon dragon && docker compose exec postgres createdb -U dragon dragon`), stream the chosen dump in with `rclone cat <remote>/daily/<file> | age -d -i <identity> | docker compose exec -T postgres pg_restore -U dragon -d dragon --no-owner --exit-on-error`, then step 5 (the negative-balance pre-check and `db:migrate`), **then step 6 (season backfill)**, then step 7.
+**Restoring for real** (data loss, new VPS): stop the server (`docker compose stop server`), recreate the database (`docker compose exec postgres dropdb -U dragon dragon && docker compose exec postgres createdb -U dragon dragon`), stream the chosen dump in with `rclone cat <remote>/daily/<file> | age -d -i <identity> | docker compose exec -T postgres pg_restore -U dragon -d dragon --no-owner --exit-on-error`, then step 5 (the negative-balance pre-check and `db:migrate`), then step 6 (keep the same `LAUNCH_AT`), then step 7.
 
 ## 9. UptimeRobot on `https://play.<domain>/api/health`
 
@@ -206,4 +198,4 @@ Fill this in before launch and keep it current. Do not commit phone numbers or p
 - `docker compose logs --tail 200 server` / `caddy` / `postgres`. Logs rotate at 10 MB x 5 per container.
 - `/api/health` 503: database unreachable; `docker compose ps postgres`, disk space (`df -h`).
 - Caddy certificate errors: DNS must point at the VPS, port 80 open, and (first issuance) the record DNS only.
-- Server exits at start with a zod error: a key in `.env.server` is missing or malformed (see the comments in `.env.server.example`). `E2E=1` is refused together with `NODE_ENV=production` or a `DATABASE_URL`.
+- Server exits at start with a zod error: a key in `.env.server` is missing or malformed (see the comments in `.env.server.example`). `E2E=1` is refused together with `NODE_ENV=production` or a `DATABASE_URL`, and `NODE_ENV=production` requires `LAUNCH_AT`.

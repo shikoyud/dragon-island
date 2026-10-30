@@ -41,7 +41,7 @@ const schema = z.object({
   /** 1 = Playwright mode: in-memory PGlite, fake chain, fixed price, POST /e2e/grant. Never in production. */
   E2E: z.enum(['0', '1']).default('0'),
   CATALOG: z.enum(['launch']).default('launch'),
-  /** Game launch time, ISO 8601 (GDD §1.5). Unset = the `game` row's launch_at, which defaults to when it was created (dev). */
+  /** Game launch time, ISO 8601 (GDD §1.5). Required in production. Unset in dev = the `game` row's launch_at, which defaults to when it was created. */
   LAUNCH_AT: z.string().datetime().optional(),
   /** Soft-economy preset (GDD §7.2): Flash-14 by default, Flash-28 is a second preset, not a code path. */
   PRESET: z.enum(['flash14', 'flash28']).default('flash14'),
@@ -51,6 +51,8 @@ const schema = z.object({
   SENTRY_DSN: z.string().optional(),
   NODE_ENV: z.string().optional(),
 }).superRefine((c, ctx) => {
+  // The row's dev default would launch the game the moment a production server first boots.
+  if (c.NODE_ENV === 'production' && !c.LAUNCH_AT) ctx.addIssue({ code: 'custom', path: ['LAUNCH_AT'], message: 'LAUNCH_AT is required when NODE_ENV=production' })
   // E2E mode hands out free tokens: refuse anything that could be a real deployment.
   if (c.E2E !== '1') return
   const bad = c.NODE_ENV === 'production' ? 'NODE_ENV=production'
