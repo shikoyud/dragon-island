@@ -79,6 +79,57 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await expect(page.getByRole('dialog')).toHaveCount(0)
     })
 
+    test('Shop and Battle tab labels contrast with the tab art; the clock and disabled labels stay readable', async ({ page, request }) => {
+      await signIn(page)
+      await resetPlayer(request)
+      await page.reload()
+      const res = page.getByRole('status', { name: 'Resources' })
+      await expect(res).toBeVisible()
+      // WCAG contrast of the tab's text colour on the centre pixel of its art, both under the tab's brightness filter.
+      const contrast = (tab: ReturnType<Page['getByRole']>) => tab.evaluate(async el => {
+        const css = getComputedStyle(el)
+        const art = /url\("?([^")]+)"?\)/.exec(getComputedStyle(el.closest('.game-root')!).getPropertyValue('--ui-tab'))![1]!
+        const img = new Image()
+        img.src = art
+        await img.decode()
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0)
+        const bg = [...ctx.getImageData(img.width >> 1, img.height >> 1, 1, 1).data].slice(0, 3)
+        const fg = /rgba?\((\d+), (\d+), (\d+)/.exec(css.color)!.slice(1).map(Number)
+        const dim = Number(/brightness\(([\d.]+)\)/.exec(css.filter)?.[1] ?? 1)
+        const lum = (c: number[]) => {
+          const [r, g, b] = c.map(v => { const x = Math.min(255, v * dim) / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4 })
+          return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+        }
+        const [hi, lo] = [lum(bg), lum(fg)].sort((a, b) => b - a)
+        return (hi! + 0.05) / (lo! + 0.05)
+      })
+      const checkTabs = async (names: string[]) => {
+        for (const name of names) {
+          const tab = page.getByRole('tab', { name, exact: true })
+          await expect(tab).toBeVisible()
+          await expect(tab).toHaveText(name)
+          expect(await contrast(tab), name).toBeGreaterThanOrEqual(4.5)
+        }
+      }
+      await openPanel(page, 'Shop')
+      await checkTabs(['Build', 'Store'])
+      await page.keyboard.press('Escape')
+      await openPanel(page, 'Campaign')
+      await checkTabs(['Campaign', 'Arena'])
+      await page.keyboard.press('Escape')
+
+      const clock = page.getByRole('timer', { name: 'Terminal countdown' })
+      expect(Number.parseFloat(await clock.evaluate(el => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(12)
+      for (const name of ['Wings', 'Quests', 'Inbox']) {
+        const button = page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true })
+        expect(await button.evaluate(el => getComputedStyle(el).opacity)).toBe('1')
+      }
+    })
+
     test('Build places a plot with the ghost on screen above the placement strip', async ({ page, request }) => {
       await signIn(page)
       await resetPlayer(request, { gold: 5_000, level: 3 })

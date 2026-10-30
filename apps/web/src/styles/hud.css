@@ -87,13 +87,17 @@
 /* Seven buttons share the bar: each at least a plate wide (44 px), labels wrap under it instead of widening it. */
 .hud-bar .hud-round { flex: 1 1 0; min-width: 44px; max-width: 72px; }
 .hud-bar .hud-round__label { max-width: 100%; text-align: center; line-height: 1.1; overflow-wrap: anywhere; }
-.hud-round:disabled { cursor: not-allowed; opacity: 0.5; filter: grayscale(1); }
+/* Only the plate dims: the label stays readable and says what is coming. */
+.hud-round:disabled { cursor: not-allowed; }
+.hud-round:disabled .hud-round__plate { opacity: 0.55; filter: grayscale(1); }
+.hud-round:disabled .hud-round__label { color: #d4d7e4; }
 .hud-round:disabled:active .hud-round__plate { transform: none; }
 
 /* The Terminal countdown sits at the top centre, under the pills. */
 .hud-clock {
   grid-column: 2; grid-row: 2; justify-self: center; pointer-events: none; white-space: nowrap;
-  font: 11px var(--font-display); letter-spacing: 0.5px; color: var(--accent);
+  font: 13px var(--font-display); letter-spacing: 0.5px; color: var(--accent);
+  padding: 3px 10px; border-radius: 8px; background: var(--glass); border: 2px solid var(--ink); box-shadow: 0 2px 0 var(--ink);
 }
 .placement-bar {
   display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 8px 12px; margin-bottom: 4px; border-radius: 12px;
@@ -131,15 +135,15 @@
 @media (max-width: 699px) {
   .hud-top { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; padding-left: 8px; padding-right: 8px; }
   .hud-pills { grid-column: 1 / -1; grid-row: 2; gap: 4px; }
-  .hud-clock { grid-column: 1 / -1; grid-row: 3; font-size: 10px; }
+  .hud-clock { grid-column: 1 / -1; grid-row: 3; font-size: 12px; padding: 2px 8px; }
   .hud-pill { gap: 4px; padding-left: 5px; min-height: 30px; }
   .hud-pill__value { font-size: 11px; }
   .hud-pill__text { min-width: 0; }
   .hud-pill__plus { width: 22px; height: 22px; font-size: 14px; }
   .hud-xp { width: 104px; }
-  .hud-right { top: 122px; right: 6px; gap: 6px; }
+  .hud-right { top: 132px; right: 6px; gap: 6px; }
   /* Shortcuts shrink to icon + timer (the label stays for screen readers) so they cover little of the island. */
-  .hud-left { top: 122px; left: 6px; width: auto; }
+  .hud-left { top: 132px; left: 6px; width: auto; }
   .hud-shortcut__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .hud-shortcut__open { padding: 4px; }
   .hud-shortcut__open { font-size: 11px; }
@@ -189,9 +193,11 @@
 }
 .skin-tab .hud-tab {
   border: solid transparent; border-width: 2px 12px 0; border-radius: 0; background: none; image-rendering: pixelated;
-  border-image: var(--ui-tab) 2 6 1 6 fill / 4px 12px 2px / 2px 0 0 stretch; color: var(--text);
+  border-image: var(--ui-tab) 2 6 1 6 fill / 4px 12px 2px / 2px 0 0 stretch;
+  /* The tab art is cream, so its label is ink. The open tab is the bright one; the other is dimmed behind it. */
+  color: var(--ink); filter: brightness(0.72) saturate(0.85);
 }
-.skin-tab .hud-tab[aria-selected="true"] { filter: brightness(1.35) saturate(1.2); color: #fff; }
+.skin-tab .hud-tab[aria-selected="true"] { color: var(--ink); filter: none; }
 @media (max-width: 699px) {
   .skin-round .hud-round__plate { width: 48px; height: 48px; }
   .skin-round .hud-round--small .hud-round__plate { width: 38px; height: 38px; }
