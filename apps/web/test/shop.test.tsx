@@ -140,6 +140,13 @@ describe('ShopPanel Store tab', () => {
     expect(action).not.toHaveBeenCalled() // paid on Confirm, not here
   })
 
+  it('hides the Golden Aerie row once the player owns one, and words the error', () => {
+    const aerie = { id: 'h9', element: 'aerie' as const, level: 5, lastCollectedMs: 0, placement: { island: 'home' as const, col: 6, row: 7, facing: 0 as const } }
+    store({ ...base, habitats: [...base.habitats, aerie] })
+    expect(screen.queryByRole('button', { name: /golden aerie/i })).toBeNull()
+    expect(messageFor('AERIE_EXISTS')).toBe('You already own a Golden Aerie.')
+  })
+
   it('lists running timers with a skip price and buys the skip', async () => {
     const s = { ...base, constructions: [{ kind: 'upgrade' as const, building: h1, readyAtMs: 600_000 }] }
     const { action } = store(s)

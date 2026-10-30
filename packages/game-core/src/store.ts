@@ -19,6 +19,9 @@ export type SkipTarget = 'nest' | 'hatchery' | 'farm' | 'construction'
 export const MAX_NESTS = 4
 export const FOOD_PACK = 1_000
 
+/** One Golden Aerie per player (M1 Q2). */
+export const ownsAerie = (s: PlayerState): boolean => s.habitats.some(h => h.element === 'aerie')
+
 /** Ready time of a skip target, or `null` if the slot holds nothing. */
 export function skipTargetReadyAt(s: PlayerState, target: SkipTarget, index: number): number | null {
   if (target === 'construction') return s.constructions[index]?.readyAtMs ?? null
@@ -47,6 +50,6 @@ export function priceMicroUsd(item: StoreItem, s: PlayerState, nowMs: number): n
       return f && f.level === FARM_MAX_LEVEL - 1 ? FARM_L5_USD_MICRO : null
     }
     case 'goldenAerie':
-      return GOLDEN_AERIE.usdMicro
+      return ownsAerie(s) ? null : GOLDEN_AERIE.usdMicro
   }
 }

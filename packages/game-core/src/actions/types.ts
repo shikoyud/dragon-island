@@ -47,7 +47,7 @@ export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'I
   | 'LAST_DRAGONS' | 'NOT_SELLABLE' | 'NOTHING_TO_SKIP'
   | 'INVALID_TEAM' | 'NO_DEFENCE_TEAM' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'
   | 'OUT_OF_BOUNDS' | 'OVERLAP' | 'BUILDERS_BUSY' | 'ISLAND_LOCKED' | 'MAX_ISLAND' | 'WRONG_ISLAND' | 'UNDER_CONSTRUCTION'
-  | 'NO_LEGENDARY' | 'MAX_EXPANSION'
+  | 'NO_LEGENDARY' | 'MAX_EXPANSION' | 'AERIE_EXISTS'
 
 /** Side effects the server settles after persisting the new state. */
 export type Effect =

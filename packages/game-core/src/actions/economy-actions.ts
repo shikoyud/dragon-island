@@ -4,7 +4,7 @@ import { HABITAT_MAX_LEVEL } from '../data/habitats'
 import type { Preset } from '../data/presets'
 import { placementRuleError } from '../placement-rules'
 import type { PlayerState } from '../state'
-import { FOOD_PACK, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
+import { FOOD_PACK, ownsAerie, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
 import { completeConstruction } from './build-actions'
 import { collectHabitat } from './island-actions'
 import { failure, success, type ActionError, type Handler } from './types'
@@ -38,6 +38,7 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
     }
     // The Aerie takes a habitat footprint, on any island.
     case 'goldenAerie':
+      if (ownsAerie(s)) return 'AERIE_EXISTS'
       return placementRuleError(s, { kind: 'habitat', element: 'terra' }, item.placement)
   }
 }

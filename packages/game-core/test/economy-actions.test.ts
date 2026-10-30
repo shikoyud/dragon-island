@@ -133,6 +133,13 @@ describe('habitat L5 and the Golden Aerie', () => {
     expect(st.dragons.filter(d => d.habitatId === 'h3')).toHaveLength(6)
     err(run({ ...st, dragons: [...st.dragons, { id: 'a9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }] }, { type: 'moveDragon', dragonId: 'a9', habitatId: 'h3' }), 'NO_HABITAT_SLOT')
   })
+  it('a second Golden Aerie fails AERIE_EXISTS and charges nothing', () => {
+    const first = ok(run({ ...s, level: 1 }, buy({ kind: 'goldenAerie', placement: P(6, 7) }), 5_000))
+    const again = run(first, buy({ kind: 'goldenAerie', placement: P(12, 12) }), 6_000)
+    err(again, 'AERIE_EXISTS')
+    expect(again.ok).toBe(false)
+    expect(first.habitats.filter(h => h.element === 'aerie')).toHaveLength(1)
+  })
   it('the Golden Aerie needs a legal cell', () => {
     err(run(s, buy({ kind: 'goldenAerie', placement: P(0, 0) })), 'OVERLAP')
     err(run(s, buy({ kind: 'goldenAerie', placement: P(8, 8) })), 'OUT_OF_BOUNDS')

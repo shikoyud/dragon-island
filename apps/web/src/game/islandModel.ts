@@ -1,7 +1,7 @@
 import {
   constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
-  DEFAULT_PRESET, habitatCap, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
-  type BuildingRef, type Catalog, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
+  DEFAULT_PRESET, goldPerMinuteX20, habitatCap, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
+  type BuildingRef, type Catalog, type Dragon, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
@@ -58,6 +58,22 @@ export function timerLabel(readyAtMs: number, nowMs: number): string {
   if (s < 60) return `${s}s`
   if (s < 3600) return `${Math.ceil(s / 60)}m`
   return `${Math.ceil(s / 3600)}h`
+}
+
+/** The GOLD badge waits for this share of the habitat's cap, if that is less than a minute of its residents' income (M1 Q1). */
+export const GOLD_BADGE_CAP_PERCENT = 5
+
+/**
+ * Stored Gold at which a habitat shows its GOLD badge: min(Gold per minute of its residents, 5 % of its cap), floored.
+ * The per-minute rate is the one the habitat panel shows (sum of goldPerMinuteX20 ÷ 20). Client-only; collecting from
+ * the panel still works from 1 Gold.
+ */
+export function goldBadgeThreshold(live: readonly Dragon[], cap: number, catalog: Catalog, preset: Preset): number {
+  const perMinuteX20 = live.reduce((n, d) => {
+    const sp = getSpecies(catalog, d.speciesId)
+    return n + goldPerMinuteX20(sp.elements[0]!, sp.rarity, d.level, preset)
+  }, 0)
+  return Math.min(Math.floor(perMinuteX20 / 20), Math.floor(cap * GOLD_BADGE_CAP_PERCENT / 100))
 }
 
 /** World y of a badge's bottom edge: 2 px above the sprite's visible top (canvas top when unknown), scaled. */
@@ -179,17 +195,19 @@ export function buildIslandModel(
   for (const h of state.habitats) {
     if (h.placement.island !== view) continue
     const a = anchor(h.placement.col, h.placement.row, FOOTPRINT.habitat)
-    const gold = storedGold(h, residents(state, h.id), catalog, nowMs, preset)
+    const live = residents(state, h.id)
+    const cap = habitatCap(h.element, h.level, preset)
+    const gold = storedGold(h, live, catalog, nowMs, preset)
     const base = h.element === 'aerie'
       ? aerieLook(art)
       : { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
     const group: IslandObject[] = [{
       id: `habitat:${h.id}`, ...base, ...a, target: { kind: 'habitat', id: h.id },
-      badge: gold > 0 && gold >= habitatCap(h.element, h.level, preset) ? 'full' : gold > 0 ? 'gold' : undefined,
+      badge: gold > 0 && gold >= cap ? 'full' : gold > 0 && gold >= goldBadgeThreshold(live, cap, catalog, preset) ? 'gold' : undefined,
       ...look({ type: 'habitat', id: h.id }, h.placement),
     }]
     markers.habitats.push(h.id)
-    residents(state, h.id).forEach((d, slot) => {
+    live.forEach((d, slot) => {
       group.push({ id: `dragon:${d.id}`, ...dragonLook(d.speciesId, d.level, art, catalog), ...dragonSpot(a, slot), target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
     })

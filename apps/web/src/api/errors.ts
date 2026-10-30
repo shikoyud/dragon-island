@@ -48,6 +48,7 @@ export const errorMessages: Record<string, string> = {
   UNDER_CONSTRUCTION: 'That building is still being built.',
   NO_LEGENDARY: 'Own a legendary dragon to unlock Dawnspire.',
   MAX_EXPANSION: 'The home island is at its full size.',
+  AERIE_EXISTS: 'You already own a Golden Aerie.',
   WITHDRAWALS_DISABLED: 'Withdrawals are not enabled on this server.',
 }
 

@@ -1,4 +1,4 @@
-import { cropGrowMs, DEFAULT_PRESET, LAUNCH_CATALOG, newPlayer, outerObstacles, type Dragon } from '@wyrmhaven/game-core'
+import { cropGrowMs, DEFAULT_PRESET, getSpecies, goldPerMinuteX20, habitatCap, LAUNCH_CATALOG, newPlayer, outerObstacles, residents, storedGold, type Dragon } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
@@ -65,6 +65,40 @@ describe('island model', () => {
     expect(timerLabel(0, 5)).toBe('ready')
     expect(timerLabel(3_600_000 * 4, 0)).toBe('4h')
     expect(timerLabel(90_000, 0)).toBe('2m')
+  })
+
+  describe('GOLD badge threshold: min(one minute of the residents, 5 % of the cap), floored', () => {
+    const at = (state: Parameters<typeof buildIslandModel>[0], nowMs: number) => model(state, nowMs).objects.find(o => o.id === 'habitat:h1')!
+    const terra = (): ReturnType<typeof newPlayer> => {
+      const s = newPlayer(0)
+      return { ...s, dragons: s.dragons.map(d => (d.id === 'd1' ? { ...d, level: 5 } : d.id === 'd2' ? { ...d, speciesId: 'terra', level: 5, habitatId: 'h1' } : d)) }
+    }
+    it('Terra L1 with two Lv 5 Commons (1,320 gold/min, cap 80,000): no badge at 1,319, gold at 1,320', () => {
+      const s = terra()
+      expect(habitatCap('terra', 1, DEFAULT_PRESET)).toBe(80_000)
+      expect(residents(s, 'h1')).toHaveLength(2)
+      expect(at(s, 59_999).badge).toBeUndefined() // 1,319 Gold stored
+      expect(storedGold(s.habitats[0]!, residents(s, 'h1'), C, 59_999, DEFAULT_PRESET)).toBe(1_319)
+      expect(at(s, 60_000).badge).toBe('gold') // 1,320
+      expect(at(s, 59_999).target).toEqual({ kind: 'habitat', id: 'h1' })
+    })
+    it('uses 5 % of the cap when that is smaller than a minute of income', () => {
+      // The launch catalog has no Legendary yet: use its richest species at Lv 40, housed in its own element.
+      const rate40 = (sp: ReturnType<typeof getSpecies>) => goldPerMinuteX20(sp.elements[0]!, sp.rarity, 40, DEFAULT_PRESET)
+      const legend = [...C.species.values()].sort((a, b) => rate40(b) - rate40(a))[0]!
+      const el = legend.elements[0]!
+      const s = newPlayer(0)
+      const strong = { ...s, habitats: s.habitats.map(h => (h.id === 'h1' ? { ...h, element: el } : h)), dragons: s.dragons.map(d => (d.id === 'd1' || d.id === 'd2' ? { ...d, speciesId: legend!.id, level: 40, habitatId: 'h1' } : d)) }
+      const live = residents(strong, 'h1')
+      expect(live).toHaveLength(2)
+      const x20 = live.reduce((n, d) => n + goldPerMinuteX20(el, legend.rarity, d.level, DEFAULT_PRESET), 0)
+      const threshold = Math.floor(habitatCap(el, 1, DEFAULT_PRESET) * 5 / 100)
+      expect(Math.floor(x20 / 20)).toBeGreaterThan(threshold) // a minute of income is more than 5 % of the cap
+      const msFor = (gold: number) => Math.ceil(gold * 20 * 60_000 / x20)
+      expect(storedGold(strong.habitats[0]!, live, C, msFor(threshold) - 1, DEFAULT_PRESET)).toBe(threshold - 1)
+      expect(at(strong, msFor(threshold) - 1).badge).toBeUndefined()
+      expect(at(strong, msFor(threshold)).badge).toBe('gold')
+    })
   })
 
   it('badges a habitat full once its stored gold reaches the cap', () => {

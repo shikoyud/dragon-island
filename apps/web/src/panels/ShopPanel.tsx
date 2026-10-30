@@ -161,12 +161,12 @@ function StoreTab({ s, nowMs, onPlace }: { s: PlayerState; nowMs: number; onPlac
             )
           })}
         </>)}
-      {section('aerie', 'Golden Aerie', (
+      {aeriePrice !== null && section('aerie', 'Golden Aerie', (
         <li>
-          <ActionButton id="buy-golden-aerie" disabled={aeriePrice === null} reason="Not available right now" onClick={() => onPlace({ kind: 'goldenAerie' }, FOOTPRINT.habitat)}>
-            Golden Aerie{aeriePrice !== null ? ` · ${formatMicroUsd(aeriePrice)}` : ''}
+          <ActionButton id="buy-golden-aerie" reason="Not available right now" onClick={() => onPlace({ kind: 'goldenAerie' }, FOOTPRINT.habitat)}>
+            Golden Aerie · {formatMicroUsd(aeriePrice)}
           </ActionButton>
-          <small style={{ display: 'block', color: 'var(--text-muted)' }}>A level 5 habitat for any element. You pick the spot, then confirm.</small>
+          <small style={{ display: 'block', color: 'var(--text-muted)' }}>A level 5 habitat for any element. You pick the spot, then confirm. One per player.</small>
         </li>
       ))}
     </>

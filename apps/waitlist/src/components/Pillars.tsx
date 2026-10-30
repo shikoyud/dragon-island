@@ -24,8 +24,8 @@ const PILLARS: { title: string; text: string; element: Element; sprite: SpriteDa
     sprite: ACTIVE_ART.elementIcon.electric,
   },
   {
-    title: 'Seasons',
-    text: 'Seasons last 14 days. Win battles for Season Points and trophies, climb the table, then start the next season fresh.',
+    title: 'Ranked',
+    text: 'The game runs once, for 14 or 28 days, and then shuts down. Win ranked battles and climb the ladder. $DRIS, the planned tradable token, is tied to ranked play and depends on legal review.',
     element: 'light',
     sprite: ACTIVE_ART.elementIcon.light,
   },
