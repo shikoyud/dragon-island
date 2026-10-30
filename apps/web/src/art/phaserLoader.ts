@@ -75,10 +75,23 @@ export function loadArt(scene: Phaser.Scene, art: GameArtSet): void {
 /** Animation key for a sprite sheet texture. */
 export const animKey = (key: string): string => `${key}:idle`
 
-/** Plays the sheet's idle loop, or shows frame 0 when the sprite is static or motion is reduced. */
+/**
+ * True when the texture really has frames 0..frames-1. A sheet that failed to load has no texture and a drawn fallback
+ * has no numbered frames; an animation made from either has no frames, and Phaser throws when it is played.
+ */
+function hasFrames(scene: Phaser.Scene, key: string, frames: number): boolean {
+  if (!scene.textures.exists(key)) return false
+  const texture = scene.textures.get(key)
+  return Array.from({ length: frames }, (_, i) => i).every(i => texture.has(i as unknown as string))
+}
+
+/**
+ * Plays the sheet's idle loop, or shows frame 0 when the sprite is static, motion is reduced or the sheet's frames
+ * are missing. Never throws: one bad sheet costs that sprite its animation, not the island.
+ */
 export function playOrStill(sprite: Phaser.GameObjects.Sprite, key: string, frames: number, fps: number, reducedMotion: boolean): void {
   sprite.setTexture(key, 0)
-  if (frames <= 1 || fps <= 0 || reducedMotion) {
+  if (frames <= 1 || fps <= 0 || reducedMotion || !hasFrames(sprite.scene, key, frames)) {
     sprite.anims.stop()
     return
   }
@@ -94,10 +107,10 @@ export const isSheet = (sprite: Sprite): boolean => sprite.frames > 1 && sprite.
 
 /**
  * Plays the sheet once on `spr` and destroys it at the end, on its own animation because the idle one loops.
- * A still does nothing and returns false, so the caller can use a tween instead.
+ * A still, or a sheet whose frames are missing, does nothing and returns false, so the caller can use a tween instead.
  */
 export function playOneShot(spr: Phaser.GameObjects.Sprite, key: string, sprite: Sprite): boolean {
-  if (!isSheet(sprite)) return false
+  if (!isSheet(sprite) || !hasFrames(spr.scene, key, sprite.frames)) return false
   const anims = spr.scene.anims
   const anim = `${key}:once`
   if (!anims.exists(anim)) anims.create({ key: anim, frames: anims.generateFrameNumbers(key, { start: 0, end: sprite.frames - 1 }), frameRate: sprite.fps, repeat: 0 })

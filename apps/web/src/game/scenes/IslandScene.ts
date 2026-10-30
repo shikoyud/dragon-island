@@ -116,9 +116,15 @@ export class IslandScene extends Phaser.Scene {
     return this.bridge.art ?? FALLBACK_ART
   }
 
-  /** True while this scene can still own display objects. */
+  /**
+   * True while this scene can still own display objects. `game.destroy` only marks the game until its next step, and
+   * the art swap puts the new art on the bridge at once: until then this game's textures do not match `bridge.art`.
+   * The replacement game draws the latest state when its own island scene starts, so nothing is lost by skipping.
+   * `pendingDestroy` is missing from Phaser's types; test/artSwapCrash.test.ts pins it against the real game.
+   */
   private alive(): boolean {
-    return Boolean(this.sys?.displayList) && this.sys.settings.status !== Phaser.Scenes.DESTROYED && this.sys.settings.status !== Phaser.Scenes.SHUTDOWN
+    const dying = (this.game as (Phaser.Game & { pendingDestroy?: boolean }) | undefined)?.pendingDestroy
+    return !dying && Boolean(this.sys?.displayList) && this.sys.settings.status !== Phaser.Scenes.DESTROYED && this.sys.settings.status !== Phaser.Scenes.SHUTDOWN
   }
 
   // ---- camera ------------------------------------------------------------------------------------------------
