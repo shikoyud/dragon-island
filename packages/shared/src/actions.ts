@@ -75,6 +75,7 @@ const common = [
   z.object({ type: z.literal('startBreed'), parentA: id, parentB: id }),
   z.object({ type: z.literal('collectEgg'), breeder: index }),
   z.object({ type: z.literal('hatch'), slot: index }),
+  z.object({ type: z.literal('buyBasic'), element: elementSchema }),
   z.object({ type: z.literal('buy'), item: storeItemSchema }),
   z.object({ type: z.literal('setDefenceTeam'), dragonIds: teamIdsSchema }),
   z.object({ type: z.literal('pveBattle'), stage: z.number().int(), team: teamIdsSchema, moves: movesSchema }),

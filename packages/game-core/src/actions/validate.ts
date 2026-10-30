@@ -47,6 +47,8 @@ export function isValidAction(a: unknown): a is Action {
       return isIndex(x['breeder'])
     case 'hatch':
       return isIndex(x['slot'])
+    case 'buyBasic':
+      return typeof x['element'] === 'string' && (ELEMENTS as readonly string[]).includes(x['element'])
     case 'buy':
       return isStoreItem(x['item'])
     case 'setDefenceTeam':

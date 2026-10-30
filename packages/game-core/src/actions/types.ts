@@ -31,6 +31,7 @@ export type Action =
   | { type: 'startBreed'; parentA: string; parentB: string }
   | { type: 'collectEgg'; breeder: number }
   | { type: 'hatch'; slot: number }
+  | { type: 'buyBasic'; element: Element }
   | { type: 'buy'; item: StoreItem }
   | { type: 'setDefenceTeam'; dragonIds: TeamIds }
   /**

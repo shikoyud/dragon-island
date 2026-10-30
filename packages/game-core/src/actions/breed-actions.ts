@@ -1,15 +1,19 @@
 import { activeLegendaries, breedValidity, rollOffspring } from '../breeding'
 import { breederBreedMs, hatcherySlots } from '../buildings'
-import { getSpecies } from '../catalog'
+import { getSpecies, type Catalog } from '../catalog'
 import { isUnfinished } from '../construction'
 import { BREEDER_LEVELS } from '../data/breeding-buildings'
 import { breedTimerMs } from '../data/breeding-timers'
-import { FIRST_HYBRID_MS } from '../data/breeding'
+import { FIRST_HYBRID_MS, basicPriceGold } from '../data/breeding'
+import { HABITATS } from '../data/habitats'
 import { BREED_MIN_LEVEL } from '../data/dragon-levels'
 import { HATCH_XP, START_BREED_XP } from '../data/xp'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
 import { addXp } from '../progression'
+import { spendGold } from '../wallet'
 import { collectHabitat } from './island-actions'
+import type { Element } from '../elements'
+import type { Habitat, PlayerState } from '../state'
 import { failure, success, type Handler } from './types'
 
 export { BREED_MIN_LEVEL }
@@ -59,6 +63,27 @@ export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
     // The hatch timer starts now, when the egg reaches its slot (§5.4).
     hatchery: [...s.hatchery, { speciesId: egg.speciesId, readyAtMs: ctx.nowMs + egg.hatchMs }],
     tutorial: { ...s.tutorial, hatchDone: true },
+  })
+}
+
+/** The first finished habitat a new `element` Basic can live in with room (R26), or undefined. */
+export function basicHome(s: PlayerState, catalog: Catalog, element: Element): Habitat | undefined {
+  const species = getSpecies(catalog, element)
+  return s.habitats.find(h => canLiveIn(species, h) && !isUnfinished(s, { type: 'habitat', id: h.id }) && residents(s, h.id).length < habitatSlots(h))
+}
+
+/** M2 Q3, R26: buy a Basic with Gold; it moves into the first finished habitat it can live in with room, at Lv 1. */
+export const buyBasic: Handler<'buyBasic'> = (s, a, ctx) => {
+  if (s.level < HABITATS[a.element].unlockPl) return failure('LEVEL_TOO_LOW')
+  const home = basicHome(s, ctx.catalog, a.element)
+  if (!home) return failure('NO_HABITAT_SLOT')
+  const paid = spendGold(s, basicPriceGold(a.element))
+  if (!paid) return failure('INSUFFICIENT_GOLD')
+  const collected = collectHabitat(paid, home.id, ctx.catalog, ctx.nowMs, ctx.preset)
+  return success({
+    ...collected,
+    dragons: [...collected.dragons, { id: `d${s.nextId}`, speciesId: a.element, level: 1, feeds: 0, habitatId: home.id }],
+    nextId: s.nextId + 1,
   })
 }
 

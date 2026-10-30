@@ -4,7 +4,7 @@ import { DEFAULT_PRESET, type Preset } from '../data/presets'
 import type { Rng } from '../rng'
 import type { PlayerState } from '../state'
 import { pveBattle, pvpBattle, setDefenceTeam } from './battle-actions'
-import { collectEgg, hatch, startBreed } from './breed-actions'
+import { buyBasic, collectEgg, hatch, startBreed } from './breed-actions'
 import { buy } from './economy-actions'
 import { harvest, plant } from './farm-actions'
 import { finishConstruction, moveBuilding, placeBuilding, removeDecoration, startUpgrade } from './build-actions'
@@ -35,6 +35,7 @@ export function applyAction(
     case 'plant': return plant(s, a, ctx)
     case 'harvest': return harvest(s, a, ctx)
     case 'startBreed': return startBreed(s, a, ctx)
+    case 'buyBasic': return buyBasic(s, a, ctx)
     case 'collectEgg': return collectEgg(s, a, ctx)
     case 'hatch': return hatch(s, a, ctx)
     case 'buy': return buy(s, a, ctx)

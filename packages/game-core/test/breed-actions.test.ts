@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { applyAction } from '../src/actions/apply'
 import type { Action } from '../src/actions/types'
 import { getSpecies } from '../src/catalog'
+import { basicPriceGold } from '../src/data/breeding'
 import { breedTimerMs } from '../src/data/breeding-timers'
 import { breedingPool, activeLegendaries } from '../src/breeding'
 import { LAUNCH_CATALOG } from '../src/data/launch-catalog'
@@ -224,6 +225,49 @@ describe('hatch', () => {
   it('rejects bad or unready slots', () => {
     err(run(ready, { type: 'hatch', slot: 5 }, 30_000), 'NOT_FOUND')
     err(run(ready, { type: 'hatch', slot: 0 }, 29_999), 'NOT_READY')
+  })
+})
+
+describe('buyBasic', () => {
+  const seaHab = { id: 'h3', element: 'sea' as const, level: 1, lastCollectedMs: 0, placement: { island: 'home' as const, col: 9, row: 0, facing: 0 as const } }
+  const rich: PlayerState = { ...s, level: 3, gold: 5_000, habitats: [...s.habitats, seaHab] }
+  const buy: Action = { type: 'buyBasic', element: 'sea' }
+
+  it('prices a Basic at its habitat build Gold', () => {
+    expect(basicPriceGold('sea')).toBe(5_000)
+    expect(basicPriceGold('terra')).toBe(500)
+  })
+
+  it('puts a Lv 1 Basic in a finished habitat of its element with room and takes the Gold', () => {
+    const a = ok(run(rich, buy, 1_000))
+    expect(a.gold).toBe(0)
+    expect(a.dragons.at(-1)).toEqual({ id: 'd3', speciesId: 'sea', level: 1, feeds: 0, habitatId: 'h3' })
+    expect(a.nextId).toBe(s.nextId + 1)
+  })
+
+  it('collects the habitat before the newcomer changes its income', () => {
+    const a = ok(run(rich, buy, 60_000))
+    expect(a.habitats.find(h => h.id === 'h3')!.lastCollectedMs).toBe(60_000)
+  })
+
+  it('is gated by Player Level, then Gold', () => {
+    err(run({ ...rich, level: 2 }, buy, 0), 'LEVEL_TOO_LOW')
+    err(run({ ...rich, gold: 4_999 }, buy, 0), 'INSUFFICIENT_GOLD')
+  })
+
+  it('needs a finished habitat of the element with a free slot (R26)', () => {
+    err(run({ ...rich, habitats: s.habitats }, buy, 0), 'NO_HABITAT_SLOT')
+    const fill = (id: string): Dragon => ({ id, speciesId: 'sea', level: 1, feeds: 0, habitatId: 'h3' })
+    err(run({ ...rich, dragons: [...rich.dragons, fill('d8'), fill('d9')] }, buy, 0), 'NO_HABITAT_SLOT')
+    const building = { ...rich, constructions: [{ kind: 'build' as const, building: { type: 'habitat' as const, id: 'h3' }, readyAtMs: 9_999 }] }
+    err(run(building, buy, 0), 'NO_HABITAT_SLOT')
+  })
+
+  it('never mutates the input and never uses the hatchery', () => {
+    const before = JSON.parse(JSON.stringify(rich))
+    const a = ok(run(rich, buy, 0))
+    expect(rich).toEqual(before)
+    expect(a.hatchery).toEqual([])
   })
 })
 
