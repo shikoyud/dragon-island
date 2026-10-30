@@ -274,3 +274,21 @@ describe('buyBasic', () => {
 it('never mutates the input state', () => {
   expect(s).toEqual(newPlayer(0))
 })
+
+describe('buyBasic into a Golden Aerie (§5.2 accepts any element)', () => {
+  const at = (col: number) => ({ island: 'home' as const, col, row: 0, facing: 0 as const })
+  const aerie = { id: 'h4', element: 'aerie' as const, level: 5, lastCollectedMs: 0, placement: at(14) }
+  const sea = { id: 'h3', element: 'sea' as const, level: 1, lastCollectedMs: 0, placement: at(9) }
+  const base: PlayerState = { ...s, level: 3, gold: 5_000 }
+  const buy: Action = { type: 'buyBasic', element: 'sea' }
+
+  it('uses the Aerie when no Sea habitat exists', () => {
+    const a = ok(run({ ...base, habitats: [...s.habitats, aerie] }, buy, 0))
+    expect(a.dragons.at(-1)!.habitatId).toBe('h4')
+  })
+
+  it('prefers a Sea habitat listed before the Aerie', () => {
+    const a = ok(run({ ...base, habitats: [...s.habitats, sea, aerie] }, buy, 0))
+    expect(a.dragons.at(-1)!.habitatId).toBe('h3')
+  })
+})

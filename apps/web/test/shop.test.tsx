@@ -10,6 +10,7 @@ import { NestsPanel } from '../src/panels/NestsPanel'
 import { ShopPanel } from '../src/panels/ShopPanel'
 import { UpgradeSection } from '../src/panels/UpgradeSection'
 import { StartPlacingProvider } from '../src/state/startPlacing'
+import * as placing from '../src/state/placing'
 import { harness, TestHost } from './harness'
 
 const base = newPlayer(0)
@@ -133,6 +134,33 @@ describe('ShopPanel Dragons section (buy a Basic)', () => {
     building.unmount()
     show({ ...base, level: 3, gold: 4_999, habitats: [...base.habitats, seaHab] })
     expect(sea()).toHaveAccessibleDescription('Not enough gold')
+  })
+})
+
+describe('the Shop checks for room once', () => {
+  it('agrees with nearestLegalCell at step 0 and after a real expansion', () => {
+    const rich = { ...base, level: 7, gold: 1_000_000 }
+    const what = { kind: 'habitat', element: 'terra' } as const
+    expect(placing.hasLegalCell(rich, what)).toBe(false)
+    const grown = applyAction(rich, { type: 'expandIsland' }, 0, createRng(1), LAUNCH_CATALOG)
+    if (!grown.ok) throw new Error(grown.error)
+    expect(placing.hasLegalCell(grown.state, what)).toBe(true)
+    for (const st of [rich, grown.state]) {
+      expect(placing.hasLegalCell(st, what)).toBe(placing.nearestLegalCell(st, what, 'home', { col: 0, row: 0 }) !== null)
+    }
+  })
+
+  it('scans once for all 5x5 rows and not again on a clock tick', () => {
+    const spy = vi.spyOn(placing, 'hasLegalCell')
+    const st = { ...base, level: 7, gold: 1_000_000 }
+    const h = harness(st)
+    const ui = (nowMs: number) => <ShopPanel onPlace={vi.fn()} view="home" nowMs={nowMs} />
+    const r = h.wrap(ui(0))
+    expect(spy).toHaveBeenCalledTimes(1)
+    r.rerender(ui(1_000))
+    r.rerender(ui(2_000))
+    expect(spy).toHaveBeenCalledTimes(1)
+    spy.mockRestore()
   })
 })
 

@@ -39,7 +39,14 @@ export function placingAction(s: PlayerState, view: IslandId, p: Placing): Clien
 
 /** True when `what` has a legal cell on some unlocked island (the Shop disables rows that would open a red ghost). */
 export function hasLegalCell(s: PlayerState, what: Placing['what']): boolean {
-  return s.islands.unlocked.some(island => nearestLegalCell(s, what, island, { col: 0, row: 0 }) !== null)
+  const subject = placementSubject(what)
+  return s.islands.unlocked.some(island => {
+    const { w, h } = islandSize(s, island)
+    for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
+      if (placementRuleError(s, subject, { island, col, row, facing: 0 }) === null) return true
+    }
+    return false
+  })
 }
 
 /** The legal top-left cell for `what` closest to `near` on an island (by straight-line distance), or null when none is. */

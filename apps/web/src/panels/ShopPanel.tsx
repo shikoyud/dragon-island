@@ -2,7 +2,7 @@ import {
   BREEDER_LEVELS, DECORATIONS, basicHome, basicPriceGold, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, FARM_UNLOCK_PL, farmBuildGold, MAX_FARMS, priceMicroUsd,
   type DecorationId, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem,
 } from '@wyrmhaven/game-core'
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import type { Placing } from '../game/bridge'
 import { breederName } from '../hud/hudModel'
 import { hasLegalCell } from '../state/placing'
@@ -37,6 +37,12 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
   const me = useMe()
   const [tab, setTab] = useState<ShopTab>(initial)
   const s = me.data?.state
+  // One scan for every 5x5 row (habitats, Grove, Golden Aerie share the footprint); not tied to the clock.
+  const room = useMemo(
+    () => s ? hasLegalCell(s, { kind: 'habitat', element: 'terra' }) : false,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [s?.islands, s?.habitats, s?.breeders, s?.farms, s?.decorations, s?.hatcheryPlacement, s?.constructions],
+  )
   if (!s) return null
   return (
     <Panel title="Shop" onClose={onClose}>
@@ -45,7 +51,7 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
         <button type="button" role="tab" className="hud-tab" aria-selected={tab === 'store'} onClick={() => setTab('store')}>Store</button>
       </div>
       <div role="tabpanel" aria-label={tab === 'build' ? 'Build' : 'Store'}>
-        {tab === 'build' ? <BuildTab s={s} onPlace={onPlace} view={view} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} />}
+        {tab === 'build' ? <BuildTab s={s} onPlace={onPlace} view={view} room={room} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
       </div>
     </Panel>
   )
@@ -59,7 +65,7 @@ const section = (key: string, title: string, items: ReactNode) => (
 )
 
 /** Gold-and-level shop for everything that goes on the grid (spec section 8). */
-function BuildTab({ s, onPlace, view }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId }) {
+function BuildTab({ s, onPlace, view, room }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean }) {
   const card = (id: string, label: string, price: string, reason: string | undefined, what: Placing['what'], size: Footprint) => (
     <li key={id}>
       <ActionButton id={`shop-${id}`} disabled={Boolean(reason)} reason={reason} onClick={() => onPlace(what, size)}>
@@ -71,7 +77,7 @@ function BuildTab({ s, onPlace, view }: { s: PlayerState; onPlace: ShopPanelProp
     s.level < minLevel ? `Level ${minLevel}` : other ?? (s.gold < cost ? 'Not enough gold' : undefined)
 
   const { run, pending } = useAction()
-  const noRoom = (what: Placing['what']) => hasLegalCell(s, what) ? undefined : NO_ROOM
+  const noRoom = room ? undefined : NO_ROOM
   const plots = s.farms.length
   const grove = BREEDER_LEVELS.grove[0]!
   const groveBuilt = s.breeders.some(b => b.kind === 'grove')
@@ -96,11 +102,11 @@ function BuildTab({ s, onPlace, view }: { s: PlayerState; onPlace: ShopPanelProp
         {ELEMENTS.map(el => {
           const { buildGold, unlockPl } = HABITATS[el]
           return card(`habitat-${el}`, `${cap(el)} habitat`, `${formatGold(buildGold)} gold`,
-            gold(buildGold, unlockPl, noRoom({ kind: 'habitat', element: el })), { kind: 'habitat', element: el }, FOOTPRINT.habitat)
+            gold(buildGold, unlockPl, noRoom), { kind: 'habitat', element: el }, FOOTPRINT.habitat)
         })}
       </>)}
       {section('breeding', 'Breeding', card('grove', breederName('grove'), `${formatGold(grove.gold!)} gold`,
-        gold(grove.gold!, grove.minPl, groveBuilt ? 'Already built' : noRoom({ kind: 'grove' })), { kind: 'grove' }, FOOTPRINT.breeder))}
+        gold(grove.gold!, grove.minPl, groveBuilt ? 'Already built' : noRoom), { kind: 'grove' }, FOOTPRINT.breeder))}
       {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_FARMS ? 'maximum' : `${formatGold(farmBuildGold(plots + 1))} gold`,
         plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), FARM_UNLOCK_PL[plots]!), { kind: 'farm' }, FOOTPRINT.farm))}
       {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {
@@ -128,12 +134,12 @@ function runningTimers(s: PlayerState): TimerRow[] {
 }
 
 /** USD-priced items. Prices come from game-core; the DRIS charge is worked out by the server at the current rate. */
-function StoreTab({ s, nowMs, onPlace }: { s: PlayerState; nowMs: number; onPlace: ShopPanelProps['onPlace'] }) {
+function StoreTab({ s, nowMs, onPlace, room }: { s: PlayerState; nowMs: number; onPlace: ShopPanelProps['onPlace']; room: boolean }) {
   const { run, pending } = useAction()
   const buy = (item: StoreItem) => void run({ type: 'buy', item })
   const price = (item: StoreItem) => priceMicroUsd(item, s, nowMs)
 
-  const aerieFull = !hasLegalCell(s, { kind: 'goldenAerie' })
+  const aerieFull = !room
   const foodPrice = price({ kind: 'foodPack' })
   const aeriePrice = price({ kind: 'goldenAerie', placement: { island: 'home', col: 0, row: 0, facing: 0 } })
   const timers = runningTimers(s).filter(t => price({ kind: 'skip', target: t.target, index: t.index }) !== null)
