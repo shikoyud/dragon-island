@@ -31,12 +31,12 @@ describe('habitat rules', () => {
   const s = newPlayer(0)
   const h1 = s.habitats[0]!
 
-  it('accrues whole minutes of gold up to the cap', () => {
+  it('accrues gold by the millisecond up to the cap', () => {
     const r = residents(s, 'h1')
     expect(r.map(d => d.id)).toEqual(['d1'])
     // Terra Common Lv 1 in Flash-14: 180 gold/min (the start state's Terra Basic, R1).
     expect(storedGold(h1, r, C, 600_000, FLASH_14)).toBe(1_800)
-    expect(storedGold(h1, r, C, 90_000, FLASH_14)).toBe(180)
+    expect(storedGold(h1, r, C, 90_000, FLASH_14)).toBe(270)
     expect(storedGold(h1, r, C, 3_000 * 60_000, FLASH_14)).toBe(habitatCap('terra', 1, FLASH_14))
   })
 

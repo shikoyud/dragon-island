@@ -2,7 +2,7 @@ import { getSpecies, type Catalog } from '../catalog'
 import type { Preset } from '../data/presets'
 import { FEEDS_PER_LEVEL, feedXp, foodPerFeed, levelCap } from '../dragon'
 import { isUnfinished } from '../construction'
-import { canLiveIn, habitatSlots, residents, settleHabitat } from '../habitat'
+import { canLiveIn, habitatSlots, residents, storedGold } from '../habitat'
 import { addXp } from '../progression'
 import { SELL_GOLD } from '../data/sell'
 import type { PlayerState } from '../state'
@@ -10,14 +10,14 @@ import { earnGold, spendGold } from '../wallet'
 import { failure, success, type Handler } from './types'
 
 /**
- * Collects a habitat's stored gold as gold, keeping the partial minute (`settleHabitat`).
+ * Collects a habitat's stored gold as gold; never moves `lastCollectedMs` back.
  * Every change to a habitat's income rate or cap (residents, levels, upgrades)
- * collects first, so accrued gold is not lost and whole minutes are not re-rated.
+ * collects first, so accrued gold is neither lost nor re-rated.
  */
 export function collectHabitat(s: PlayerState, habitatId: string, c: Catalog, nowMs: number, preset: Preset): PlayerState {
   const h = s.habitats.find(x => x.id === habitatId)!
-  const { gold, lastCollectedMs } = settleHabitat(h, residents(s, habitatId), c, nowMs, preset)
-  const habitats = s.habitats.map(x => x.id === habitatId ? { ...x, lastCollectedMs } : x)
+  const gold = storedGold(h, residents(s, habitatId), c, nowMs, preset)
+  const habitats = s.habitats.map(x => x.id === habitatId ? { ...x, lastCollectedMs: Math.max(x.lastCollectedMs, nowMs) } : x)
   return earnGold({ ...s, habitats }, gold)
 }
 

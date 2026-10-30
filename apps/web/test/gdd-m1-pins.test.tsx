@@ -49,8 +49,8 @@ describe('the client clock follows the server (A12)', () => {
   })
 })
 
-describe('the client prediction follows the Gold carry-over', () => {
-  it('a server collect at 1:59 leaves the panel showing a minute of Gold at 2:00, none at 1:59', () => {
+describe('the client prediction follows the Gold accrual', () => {
+  it('after a server collect at 1:59 the panel shows nothing at 1:59 and 3 Gold a second later', () => {
     const r = applyAction(newPlayer(0), { type: 'collectGold', habitatId: 'h1' }, 119_000, createRng(1), LAUNCH_CATALOG)
     if (!r.ok) throw new Error(r.error)
     const state: PlayerState = r.state
@@ -58,7 +58,7 @@ describe('the client prediction follows the Gold carry-over', () => {
     expect(screen.getByText(/^0 \/ /)).toBeInTheDocument()
     early.unmount()
     harness(state).wrap(<HabitatPanel habitatId="h1" nowMs={120_000} />)
-    expect(screen.getByText(/^180 \/ /)).toBeInTheDocument()
+    expect(screen.getByText(/^3 \/ /)).toBeInTheDocument()
   })
 })
 

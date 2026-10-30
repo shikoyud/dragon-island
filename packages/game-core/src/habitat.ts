@@ -24,30 +24,16 @@ export function habitatSlots(h: Habitat): number {
 }
 
 /**
- * Gold waiting in a habitat: whole minutes since the last collection times the residents' income (§5.1, each at its
- * primary element, wherever it lives), in twentieths (R7), capped by the habitat. 0 when the clock is behind
- * `lastCollectedMs`.
+ * Gold waiting in a habitat: the time since the last collection, to the millisecond, times the residents' income (§5.1,
+ * each at its primary element, wherever it lives), in twentieths (R7), capped by the habitat. 0 when the clock is behind
+ * `lastCollectedMs`. A collection floors to whole Gold, so it loses under 1 Gold and each segment pays only its residents.
  */
 export function storedGold(h: Habitat, residents: readonly Dragon[], c: Catalog, nowMs: number, preset: Preset): number {
-  return settleHabitat(h, residents, c, nowMs, preset).gold
-}
-
-/**
- * What a collection at `nowMs` pays and the new `lastCollectedMs`. Only the whole minutes paid are consumed, so the
- * remainder carries over; a habitat that stopped producing (capped, or empty) restarts from now, because the time
- * since then earned nothing. Never moves the stamp back.
- */
-export function settleHabitat(h: Habitat, residents: readonly Dragon[], c: Catalog, nowMs: number, preset: Preset): { gold: number; lastCollectedMs: number } {
-  const minutes = Math.floor(Math.max(0, nowMs - h.lastCollectedMs) / MS_PER_MINUTE)
+  const elapsedMs = Math.max(0, nowMs - h.lastCollectedMs)
   const perMinuteX20 = residents.reduce((n, d) => {
     const sp = getSpecies(c, d.speciesId)
     return n + goldPerMinuteX20(sp.elements[0]!, sp.rarity, d.level, preset)
   }, 0)
-  const cap = habitatCap(h.element, h.level, preset)
-  const accrued = Math.floor(minutes * perMinuteX20 / 20)
-  const stopped = accrued >= cap || perMinuteX20 === 0
-  return {
-    gold: Math.min(cap, accrued),
-    lastCollectedMs: stopped ? Math.max(h.lastCollectedMs, nowMs) : h.lastCollectedMs + minutes * MS_PER_MINUTE,
-  }
+  // Multiply first: at most ~1.7e15 (six Lv 40 Legendaries for a 21-day game), well under 2^53, so the product is exact.
+  return Math.min(habitatCap(h.element, h.level, preset), Math.floor(elapsedMs * perMinuteX20 / (20 * MS_PER_MINUTE)))
 }
