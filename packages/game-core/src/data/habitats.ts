@@ -43,12 +43,6 @@ export const HABITAT_BUILD_CLASSIC_MS: Record<ElementTier, number> = { A: 600_00
 /** A5 upgrade time to L2..L5, classic: 1 h / 4 h / 12 h / instant (L5 is a store item). */
 export const HABITAT_UPGRADE_CLASSIC_MS: readonly number[] = [3_600_000, 14_400_000, 43_200_000, 0]
 
-/**
- * Player level for a Gold upgrade to L2, L3, L4 (index = toLevel - 2). The GDD names no gate for upgrades;
- * these are the pre-GDD gates, kept until a ruling says otherwise.
- */
-export const HABITAT_UPGRADE_MIN_PL: readonly number[] = [1, 5, 10]
-
 /** §5.2 Premium habitat: any element, 6 dragons, 3x the Gold cap of the habitat with the largest L1 cap (R3: War). */
 export const GOLDEN_AERIE = { usdMicro: 5_000_000, capacity: 6, capMult: 3, capOf: 'war' as Element }
 

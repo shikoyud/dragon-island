@@ -1,4 +1,4 @@
-import { HABITAT_UPGRADE_MIN_PL, habitatUpgradeGold, habitatUpgradeMs } from './data/habitats'
+import { habitatUpgradeGold, habitatUpgradeMs } from './data/habitats'
 import type { Preset } from './data/presets'
 import type { BuildingRef, PlayerState } from './state'
 
@@ -48,7 +48,7 @@ export function upgradeInfo(s: PlayerState, ref: BuildingRef, preset: Preset): U
       const h = s.habitats.find(x => x.id === ref.id)
       if (!h || h.element === 'aerie' || h.level >= 4) return null
       const to = (h.level + 1) as 2 | 3 | 4
-      return { cost: habitatUpgradeGold(h.element, to), timerMs: habitatUpgradeMs(to, preset), minLevel: HABITAT_UPGRADE_MIN_PL[to - 2]! }
+      return { cost: habitatUpgradeGold(h.element, to), timerMs: habitatUpgradeMs(to, preset), minLevel: 1 }
     }
     case 'farm': {
       const f = s.farms[ref.index]

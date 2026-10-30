@@ -133,10 +133,9 @@ describe('startUpgrade / finishConstruction', () => {
     const b = ok(run(a, { type: 'finishConstruction', index: 0 }, 600_000))
     expect([b.habitats[0]!.level, b.constructions, b.gold]).toEqual([2, [], 5_700])
   })
-  it('gates habitat level 3 at player level 5 and charges L2 x 4', () => {
-    const l2 = { ...s, gold: 100_000, habitats: s.habitats.map(h => ({ ...h, level: 2 })) }
-    err(run(l2, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0), 'LEVEL_TOO_LOW')
-    expect(ok(run({ ...l2, level: 5 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0)).gold).toBe(20_000)
+  it('lets a player level 1 player with enough Gold upgrade a habitat to level 3 (L2 x 4), no player-level gate', () => {
+    const l2 = { ...s, level: 1, gold: 100_000, habitats: s.habitats.map(h => ({ ...h, level: 2 })) }
+    expect(ok(run(l2, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0)).gold).toBe(20_000)
   })
   it('charges L2 x 16 for level 4 and refuses Gold for level 5 (the store sells L5)', () => {
     const l3 = { ...s, level: 10, gold: 400_000, tutorial: { ...s.tutorial, buildsStarted: 2 }, habitats: s.habitats.map(h => ({ ...h, level: 3 })) }
