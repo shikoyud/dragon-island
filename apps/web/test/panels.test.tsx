@@ -1,5 +1,5 @@
 import { atkAt, cropFood, DEFAULT_PRESET, goldPerMinuteX20, hpAt, makeCatalog, newPlayer, SELL_GOLD, type PlayerState } from '@wyrmhaven/game-core'
-import { act, screen, within } from '@testing-library/react'
+import { act, cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { createBridge } from '../src/game/bridge'
@@ -125,7 +125,7 @@ describe('DragonPanel', () => {
   it('feeds and marks max level', async () => {
     const { wrap, action } = harness(level(base, 'd1', 7))
     wrap(<DragonPanel dragonId="d1" />)
-    expect(screen.getByRole('button', { name: /upgrade roost/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /upgrade roost/i })).toBeEnabled()
     const { wrap: wrap2, action: a2 } = harness(base)
     wrap2(<DragonPanel dragonId="d2" />)
     await userEvent.click(screen.getByRole('button', { name: /^feed/i }))
@@ -176,12 +176,15 @@ describe('DragonPanel (B11)', () => {
     expect(screen.getAllByRole('img', { name: /^(flame|sea)$/i }).map(i => i.getAttribute('aria-label'))).toEqual(['flame', 'sea'])
   })
 
-  it('shows a disabled Upgrade Roost, with its reason, at the Roost cap', () => {
+  it('shows an enabled Upgrade Roost at the Roost cap, and a disabled one only at the top tier', () => {
     const { wrap } = harness(level(base, 'd1', 7))
     wrap(<DragonPanel dragonId="d1" />)
-    const up = screen.getByRole('button', { name: /upgrade roost/i })
-    expect(up).toBeDisabled()
-    expect(up).toHaveAccessibleDescription(/Dragon Roost arrives in a later update/i)
+    expect(screen.getByRole('button', { name: /upgrade roost/i })).toBeEnabled()
+    cleanup()
+    harness({ ...level(base, 'd1', 40), roostTier: 5 }).wrap(<DragonPanel dragonId="d1" />)
+    const top = screen.getByRole('button', { name: /upgrade roost/i })
+    expect(top).toBeDisabled()
+    expect(top).toHaveAccessibleDescription(/Max level/i)
     expect(screen.queryByRole('button', { name: /^feed/i })).toBeNull()
   })
 

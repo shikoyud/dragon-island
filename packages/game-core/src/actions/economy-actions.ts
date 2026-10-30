@@ -3,6 +3,10 @@ import { GROVE_L3, HATCHERY_FIFTH_SLOT } from '../data/breeding-buildings'
 import { FARM_MAX_LEVEL } from '../data/farms'
 import { HABITAT_MAX_LEVEL } from '../data/habitats'
 import type { Preset } from '../data/presets'
+import { isUnderConstruction, MAX_BUILDERS, startConstruction } from '../construction'
+import { ASCENSION_TIER, ROOST_TIERS } from '../data/roost'
+import { payBuildXp } from '../progression'
+import { spendGold } from '../wallet'
 import { placementRuleError } from '../placement-rules'
 import type { PlayerState } from '../state'
 import { FOOD_PACK, ownsAerie, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
@@ -52,6 +56,15 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
       if (g.level !== GROVE_L3.level - 1) return 'INVALID_ACTION'
       return isUnlocked('grove:3', s.level) ? null : 'LEVEL_TOO_LOW'
     }
+    case 'ascension': {
+      if (!s.roostPlacement) return 'NOT_FOUND'
+      if (s.roostTier >= ASCENSION_TIER) return 'MAX_LEVEL'
+      if (isUnderConstruction(s, { type: 'roost' })) return 'UNDER_CONSTRUCTION'
+      if (s.roostTier !== ASCENSION_TIER - 1) return 'INVALID_ACTION'
+      if (!isUnlocked('roost:5', s.level)) return 'LEVEL_TOO_LOW'
+      if (s.gold < ROOST_TIERS[ASCENSION_TIER - 1]!.gold) return 'INSUFFICIENT_GOLD'
+      return s.constructions.length >= MAX_BUILDERS ? 'BUILDERS_BUSY' : null
+    }
   }
 }
 
@@ -83,6 +96,13 @@ function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, p
       }
     case 'hatcheryL5':
       return { ...s, hatcheryFifthSlot: true }
+    case 'ascension': {
+      // Gold, build and XP in one step; the $2.00 is the charge effect (R35). validate() has cleared every failure.
+      const t = ROOST_TIERS[ASCENSION_TIER - 1]!
+      const paid = spendGold(s, t.gold)!
+      const started = startConstruction(paid, { kind: 'upgrade', building: { type: 'roost' } }, Math.floor(t.classicMs / preset.timerDiv), nowMs)!
+      return payBuildXp(started, t.gold, s, preset, day)
+    }
     case 'groveL3':
       return { ...s, breeders: s.breeders.map((b, i) => i === item.index ? { ...b, level: GROVE_L3.level } : b) }
   }

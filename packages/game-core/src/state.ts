@@ -21,13 +21,13 @@ export type DecorationId = 'stonePath' | 'picketFence' | 'flowerPatch' | 'emberL
 export interface Decoration { id: string; kind: DecorationId; placement: Placement }
 export type ObstacleKind = 'bush' | 'rock' | 'tree' | 'boulder' | 'ruin'
 export interface Obstacle { id: string; kind: ObstacleKind; island: IslandId; col: number; row: number }
-export type BuildingRef = { type: 'habitat'; id: string } | { type: 'farm'; index: number } | { type: 'breeder'; index: number } | { type: 'hatchery' }
+export type BuildingRef = { type: 'habitat'; id: string } | { type: 'farm'; index: number } | { type: 'breeder'; index: number } | { type: 'hatchery' } | { type: 'roost' }
 export type Construction =
   | { kind: 'build' | 'upgrade'; building: BuildingRef; readyAtMs: number }
   | { kind: 'clear'; obstacleId: string; readyAtMs: number }
 
 /** Bumped when the saved shape changes; there is no save migration (R2). */
-export const STATE_VERSION = 4
+export const STATE_VERSION = 5
 
 export interface PlayerState {
   version: number
@@ -37,6 +37,8 @@ export interface PlayerState {
   level: number
   /** Roost tier 0..5; sets the dragon level cap (§4.2). */
   roostTier: number
+  /** Where the Dragon Roost stands; null until it is built (§4.2). Its tier rises when the build finishes (R33). */
+  roostPlacement: Placement | null
   dragons: Dragon[]
   habitats: Habitat[]
   breeders: Breeder[]
@@ -68,7 +70,7 @@ const home = (col: number, row: number): Placement => ({ island: 'home', col, ro
 export function newPlayer(nowMs: number): PlayerState {
   return {
     version: STATE_VERSION,
-    gold: 1000, food: 50, xp: 0, level: 1, roostTier: 0,
+    gold: 1000, food: 50, xp: 0, level: 1, roostTier: 0, roostPlacement: null,
     dragons: [
       { id: 'd1', speciesId: 'terra', level: 1, feeds: 0, habitatId: 'h1' },
       { id: 'd2', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h2' },

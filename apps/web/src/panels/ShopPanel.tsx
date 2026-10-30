@@ -1,5 +1,5 @@
 import {
-  BREEDER_LEVELS, DECORATIONS, basicHome, basicPriceGold, canLiveIn, getSpecies, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, farmBuildGold, MAX_FARMS, priceMicroUsd, unlockPl,
+  BREEDER_LEVELS, DECORATIONS, basicHome, basicPriceGold, canLiveIn, getSpecies, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, ROOST_FOOTPRINT, ROOST_TIERS, farmBuildGold, MAX_FARMS, priceMicroUsd, unlockPl,
   type DecorationId, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem, type UnlockKey,
 } from '@wyrmhaven/game-core'
 import { useMemo, useState, type ReactNode } from 'react'
@@ -38,13 +38,14 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
   const [tab, setTab] = useState<ShopTab>(initial)
   const s = me.data?.state
   // One scan for the 5x5 rows (habitats and the Golden Aerie share the footprint) and one for the Grove's 2 cells; not tied to the clock.
-  const { room, groveRoom } = useMemo(
+  const { room, groveRoom, roostRoom } = useMemo(
     () => ({
       room: s ? hasLegalCell(s, { kind: 'habitat', element: 'terra' }) : false,
       groveRoom: s ? hasLegalCell(s, { kind: 'grove' }) : false,
+      roostRoom: s ? hasLegalCell(s, { kind: 'roost' }) : false,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s?.islands, s?.habitats, s?.breeders, s?.farms, s?.decorations, s?.hatcheryPlacement, s?.constructions],
+    [s?.islands, s?.habitats, s?.breeders, s?.farms, s?.decorations, s?.hatcheryPlacement, s?.roostPlacement, s?.constructions],
   )
   if (!s) return null
   return (
@@ -54,7 +55,7 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
         <button type="button" role="tab" className="hud-tab" aria-selected={tab === 'store'} onClick={() => setTab('store')}>Store</button>
       </div>
       <div role="tabpanel" aria-label={tab === 'build' ? 'Build' : 'Store'}>
-        {tab === 'build' ? <BuildTab s={s} onPlace={onPlace} view={view} room={room} groveRoom={groveRoom} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
+        {tab === 'build' ? <BuildTab s={s} onPlace={onPlace} view={view} room={room} groveRoom={groveRoom} roostRoom={roostRoom} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
       </div>
     </Panel>
   )
@@ -68,7 +69,7 @@ const section = (key: string, title: string, items: ReactNode) => (
 )
 
 /** Gold-and-level shop for everything that goes on the grid (spec section 8). */
-function BuildTab({ s, onPlace, view, room, groveRoom }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean; groveRoom: boolean }) {
+function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean; groveRoom: boolean; roostRoom: boolean }) {
   const card = (id: string, label: string, price: string, reason: string | undefined, what: Placing['what'], size: Footprint) => (
     <li key={id}>
       <ActionButton id={`shop-${id}`} disabled={Boolean(reason)} reason={reason} onClick={() => onPlace(what, size)}>
@@ -83,6 +84,7 @@ function BuildTab({ s, onPlace, view, room, groveRoom }: { s: PlayerState; onPla
   const noRoom = room ? undefined : NO_ROOM
   const plots = s.farms.length
   const grove = BREEDER_LEVELS.grove[0]!
+  const roost = ROOST_TIERS[0]!
   const groveBuilt = s.breeders.some(b => b.kind === 'grove')
   return (
     <>
@@ -110,6 +112,8 @@ function BuildTab({ s, onPlace, view, room, groveRoom }: { s: PlayerState; onPla
       </>)}
       {section('breeding', 'Breeding', card('grove', breederName('grove'), `${formatGold(grove.gold!)} gold`,
         gold(grove.gold!, unlockPl('grove:1'), groveBuilt ? 'Already built' : groveRoom ? undefined : NO_ROOM), { kind: 'grove' }, FOOTPRINT.breeder))}
+      {section('roost', 'Roost', card('roost', 'Dragon Roost', `${formatGold(roost.gold)} gold`,
+        gold(roost.gold, unlockPl('roost:1'), s.roostPlacement ? 'Already built' : roostRoom ? undefined : NO_ROOM), { kind: 'roost' }, ROOST_FOOTPRINT))}
       {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_FARMS ? 'maximum' : `${formatGold(farmBuildGold(plots + 1))} gold`,
         plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), unlockPl(`farm:${plots + 1}` as UnlockKey)), { kind: 'farm' }, FOOTPRINT.farm))}
       {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {

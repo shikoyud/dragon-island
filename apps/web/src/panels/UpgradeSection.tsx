@@ -14,6 +14,7 @@ export function levelOf(s: PlayerState, b: BuildingRef): number {
     case 'farm': return s.farms[b.index]?.level ?? 1
     case 'breeder': return s.breeders[b.index]?.level ?? 1
     case 'hatchery': return s.hatcheryLevel
+    case 'roost': return s.roostTier
   }
 }
 
@@ -30,7 +31,7 @@ function topLevelNote(s: PlayerState, b: BuildingRef): string {
   return 'Max level'
 }
 
-const idOf = (b: BuildingRef): string => (b.type === 'habitat' ? b.id : b.type === 'hatchery' ? 'hatchery' : `${b.type}-${b.index}`)
+const idOf = (b: BuildingRef): string => (b.type === 'habitat' ? b.id : b.type === 'hatchery' || b.type === 'roost' ? b.type : `${b.type}-${b.index}`)
 
 /** Level, upgrade (or its timer, skip and manual finish), Move and Turn for one building. */
 export function UpgradeSection({ building, nowMs }: { building: BuildingRef; nowMs: number }) {

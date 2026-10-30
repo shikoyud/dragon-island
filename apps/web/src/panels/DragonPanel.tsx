@@ -1,9 +1,10 @@
 import {
-  atkAt, canLiveIn, dragonRateX20, FEEDS_PER_LEVEL, foodPerFeed, getSpecies, goldPerMinuteX20, habitatSlots, hpAt, isUnfinished, LAUNCH_CATALOG, levelCap,
+  ASCENSION_TIER, atkAt, canLiveIn, dragonRateX20, FEEDS_PER_LEVEL, foodPerFeed, getSpecies, goldPerMinuteX20, habitatSlots, hpAt, isUnfinished, LAUNCH_CATALOG, levelCap,
   residents, SELL_GOLD, stageOf, type Catalog, type Habitat,
 } from '@wyrmhaven/game-core'
 import { useState } from 'react'
 import { Icon } from '../hud/Icon'
+import type { DialogKey } from '../hud/Hud'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { usePreset } from '../state/preset'
@@ -34,7 +35,7 @@ function FeedPips({ feeds }: { feeds: number }) {
   )
 }
 
-export function DragonPanel({ dragonId, onClose, catalog = LAUNCH_CATALOG }: { dragonId: string; onClose?: () => void; catalog?: Catalog }) {
+export function DragonPanel({ dragonId, onClose, onOpen, catalog = LAUNCH_CATALOG }: { dragonId: string; onClose?: () => void; onOpen?: (k: DialogKey | null) => void; catalog?: Catalog }) {
   const me = useMe()
   const preset = usePreset()
   const { run, pending } = useAction()
@@ -69,7 +70,14 @@ export function DragonPanel({ dragonId, onClose, catalog = LAUNCH_CATALOG }: { d
       <p>{d.habitatId ? `Lives in ${d.habitatId}` : 'Waiting in the hatchery (no habitat has room)'}{inTeam ? ' · defence team' : ''}</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         {maxed ? (
-          <ActionButton id={`feed-${d.id}`} primary disabled reason="Dragon Roost arrives in a later update">
+          <ActionButton
+            id={`feed-${d.id}`}
+            primary
+            disabled={s.roostTier >= ASCENSION_TIER}
+            reason="Max level"
+            // The Roost if it stands, else the Shop's Build tab where it is bought (§4.2).
+            onClick={() => onOpen?.(s.roostPlacement ? { kind: 'target', target: { kind: 'roost' } } : { kind: 'panel', id: 'shop', tab: 'build' })}
+          >
             Upgrade Roost
           </ActionButton>
         ) : (

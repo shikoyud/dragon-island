@@ -39,6 +39,7 @@ function buildingLabel(s: PlayerState, b: BuildingRef): string {
     case 'farm': return `Farm plot ${b.index + 1}`
     case 'breeder': return breederName(s.breeders[b.index]?.kind)
     case 'hatchery': return 'Hatchery'
+    case 'roost': return 'Dragon Roost'
   }
 }
 
@@ -48,6 +49,7 @@ function buildingTarget(b: BuildingRef): Target {
     case 'farm': return { kind: 'farm', plot: b.index }
     case 'breeder': return { kind: 'breeder', index: b.index }
     case 'hatchery': return { kind: 'hatcheryBuilding' }
+    case 'roost': return { kind: 'roost' }
   }
 }
 

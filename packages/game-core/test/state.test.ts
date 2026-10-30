@@ -5,14 +5,14 @@ import { newPlayer, STATE_VERSION } from '../src/state'
 describe('newPlayer', () => {
   it('matches the spec §9 starting state', () => {
     expect(newPlayer(0)).toEqual({
-      gold: 1000, food: 50, xp: 0, level: 1, roostTier: 0,
+      gold: 1000, food: 50, xp: 0, level: 1, roostTier: 0, roostPlacement: null,
       dragons: [{ id: 'd1', speciesId: 'terra', level: 1, feeds: 0, habitatId: 'h1' }, { id: 'd2', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h2' }],
       habitats: [{ id: 'h1', element: 'terra', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 0, row: 0, facing: 0 } }, { id: 'h2', element: 'flame', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 5, row: 0, facing: 0 } }],
       breeders: [{ kind: 'mountain', egg: null, level: 1, placement: { island: 'home', col: 4, row: 8, facing: 0 } }], hatchery: [],
       hatcheryLevel: 1, hatcheryFifthSlot: false, hatcheryPlacement: { island: 'home', col: 0, row: 8, facing: 0 },
       decorations: [], islands: { homeStep: 0, unlocked: ['home'], obstacles: [] }, constructions: [],
       farms: [{ crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 10, row: 0, facing: 0 } }],
-      version: 4, firstHybridDone: false, discovered: ['terra', 'flame'],
+      version: 5, firstHybridDone: false, discovered: ['terra', 'flame'],
       tutorial: { breedDone: false, hatchDone: false }, nextId: 3,
       defenceTeam: null, trophies: 0, pvp: { day: 0, count: 0 }, pve: { cleared: 0, replays: { day: 0, count: 0 } },
     })
@@ -60,7 +60,7 @@ describe('newPlayer', () => {
   it('new players carry the state version and no removed fields', () => {
     const s = newPlayer(0)
     expect(s.version).toBe(STATE_VERSION)
-    expect(STATE_VERSION).toBe(4)
+    expect(STATE_VERSION).toBe(5)
     expect(s).not.toHaveProperty('hoardLevel')
     expect(s).not.toHaveProperty('eligibleGold')
     expect(s).not.toHaveProperty('ledger')

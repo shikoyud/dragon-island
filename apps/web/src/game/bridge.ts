@@ -9,6 +9,7 @@ export type Target =
   | { kind: 'hatchery'; slot: number }
   | { kind: 'farm'; plot: number }
   | { kind: 'hatcheryBuilding' }
+  | { kind: 'roost' }
   | { kind: 'decoration'; id: string }
   | { kind: 'obstacle'; id: string }
   | { kind: 'expandSign' }

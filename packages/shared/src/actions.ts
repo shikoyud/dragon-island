@@ -20,6 +20,7 @@ const placeableSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('habitat'), element: elementSchema }),
   z.object({ kind: z.literal('farm') }),
   z.object({ kind: z.literal('grove') }),
+  z.object({ kind: z.literal('roost') }),
   z.object({ kind: z.literal('decoration'), decoration: decorationSchema }),
 ])
 const buildingRefSchema = z.discriminatedUnion('type', [
@@ -27,12 +28,14 @@ const buildingRefSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('farm'), index }),
   z.object({ type: z.literal('breeder'), index }),
   z.object({ type: z.literal('hatchery') }),
+  z.object({ type: z.literal('roost') }),
 ])
 const movableRefSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('habitat'), id }),
   z.object({ type: z.literal('farm'), index }),
   z.object({ type: z.literal('breeder'), index }),
   z.object({ type: z.literal('hatchery') }),
+  z.object({ type: z.literal('roost') }),
   z.object({ type: z.literal('decoration'), id }),
 ])
 
@@ -48,6 +51,7 @@ export const storeItemSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('goldenAerie'), placement: placementSchema }),
   z.object({ kind: z.literal('hatcheryL5') }),
   z.object({ kind: z.literal('groveL3'), index }),
+  z.object({ kind: z.literal('ascension') }),
 ])
 
 export const opponentSnapshotSchema = z.object({

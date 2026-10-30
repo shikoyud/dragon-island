@@ -1,6 +1,7 @@
 import { BREEDER_LEVELS, HATCHERY_LEVELS, type BuildingLevel } from './data/breeding-buildings'
 import { FARM_LEVELS } from './data/farms'
 import { HABITAT_MAX_LEVEL, habitatUpgradeGold, habitatUpgradeMs } from './data/habitats'
+import { ASCENSION_TIER, ROOST_TIERS } from './data/roost'
 import { START_PL, unlockPl, type UnlockKey } from './data/unlocks'
 import type { Preset } from './data/presets'
 import type { Breeder, BuildingRef, PlayerState } from './state'
@@ -45,6 +46,13 @@ export function upgradeInfo(s: PlayerState, ref: BuildingRef, preset: Preset): U
       // As with farms, entry `level` is the next level.
       const b = s.breeders[ref.index]
       return b ? goldStep(BREEDER_LEVELS[b.kind][b.level], `${b.kind}:${b.level + 1}` as UnlockKey, preset) : null
+    }
+    case 'roost': {
+      // Tiers 2-4 are Gold upgrades; Tier 5 is Ascension, a store item (§4.2). `roostTier` is the next tier's index.
+      const next = s.roostPlacement ? ROOST_TIERS[s.roostTier] : undefined
+      return next && next.tier < ASCENSION_TIER
+        ? { cost: next.gold, timerMs: Math.floor(next.classicMs / preset.timerDiv), minLevel: unlockPl(`roost:${next.tier}` as UnlockKey) }
+        : null
     }
     case 'hatchery':
       return goldStep(HATCHERY_LEVELS[s.hatcheryLevel], `hatchery:${s.hatcheryLevel + 1}` as UnlockKey, preset)

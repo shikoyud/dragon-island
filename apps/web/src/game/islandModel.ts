@@ -150,6 +150,8 @@ function hatcheryLook(art: GameArtSet, level: number): { key: string; sprite: Sp
   }
   return { key: textureKey('building.hatchery'), sprite: art.building.hatchery }
 }
+/** The Dragon Roost: the small nest sprite stands in until its own art is delivered (M3 Task 9); it keeps the nest's native scale. */
+const roostLook = (art: GameArtSet) => ({ key: textureKey('building.nest'), sprite: art.building.nest })
 const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), sprite: art.building.nexus })
 /** The Golden Aerie: its own sprite when the manifest has one, else the Nexus sprite. */
 const aerieLook = (art: GameArtSet) => (art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art))
@@ -171,6 +173,7 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
         return b ? breederLook(art, b.kind, b.level) : breederLook(art, 'mountain', 1)
       }
       case 'hatchery': return hatcheryLook(art, state.hatcheryLevel)
+      case 'roost': return roostLook(art)
       case 'decoration': {
         const d = state.decorations.find(x => x.id === t.id)
         return d ? decorationLook(art, d.kind) : nexusLook(art)
@@ -181,6 +184,7 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
     case 'habitat': return { key: textureKey(`habitat.${what.element}`), sprite: art.habitat[what.element] }
     case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
     case 'grove': return breederLook(art, 'grove', 1)
+    case 'roost': return roostLook(art)
     case 'decoration': return decorationLook(art, what.decoration)
     case 'goldenAerie': return aerieLook(art)
   }
@@ -276,6 +280,13 @@ export function buildIslandModel(
     add(breeder.placement, FOOTPRINT.breeder, group)
     markers.breeders.push({ index, egg: breeder.egg !== null })
   })
+
+  if (state.roostPlacement && state.roostPlacement.island === view) {
+    const a = anchor(state.roostPlacement.col, state.roostPlacement.row, FOOTPRINT.roost)
+    add(state.roostPlacement, FOOTPRINT.roost, [{
+      id: 'roost', ...roostLook(art), ...a, target: { kind: 'roost' }, ...look({ type: 'roost' }, state.roostPlacement),
+    }])
+  }
 
   if (state.hatcheryPlacement.island === view) {
     const a = anchor(state.hatcheryPlacement.col, state.hatcheryPlacement.row, FOOTPRINT.hatchery)

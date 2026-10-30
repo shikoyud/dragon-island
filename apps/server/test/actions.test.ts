@@ -136,6 +136,39 @@ describe('POST /actions', () => {
     expect(await t.db.select().from(spendBatches)).toHaveLength(0)
   })
 
+  it('Ascension charges $2.00 in $DRIS and starts the Tier 5 build, all in one action (R35)', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 10_000_000 })
+    const r = await post({ type: 'buy', item: { kind: 'ascension' } })
+    expect(r.statusCode).toBe(200)
+    expect(r.json().effects).toEqual([{ type: 'charge', microUsd: 2_000_000 }])
+    expect(r.json().state.gold).toBe(0)
+    expect(r.json().state.constructions).toHaveLength(1)
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(60n * E18) // $2.00 at $0.05 is 40 tokens
+  })
+
+  it('Ascension with too little $DRIS rolls the whole action back: Gold, build and balance unchanged', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 10_000_000 })
+    await t.db.update(balances).set({ tokenWei: 39n * E18 })
+    const r = await post({ type: 'buy', item: { kind: 'ascension' } })
+    expect(r.statusCode).toBe(402)
+    expect(r.json()).toEqual({ error: 'INSUFFICIENT_TOKENS' })
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const st = p!.state as PlayerState
+    expect([st.gold, st.constructions, st.roostTier]).toEqual([10_000_000, [], 4])
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(39n * E18)
+    expect(await t.db.select().from(spendBatches)).toHaveLength(0)
+  })
+
+  it('Ascension below Tier 4 is a 422 with no charge', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 3, level: 30, gold: 10_000_000 })
+    const r = await post({ type: 'buy', item: { kind: 'ascension' } })
+    expect([r.statusCode, r.json()]).toEqual([422, { error: 'INVALID_ACTION' }])
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(100n * E18)
+  })
+
   it('GET /me resets a save of another version to a fresh player instead of returning it raw', async () => {
     const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
     await t.db.update(players).set({ state: { ...(p!.state as PlayerState), version: 1, gold: 7 } }).where(eq(players.id, playerId))

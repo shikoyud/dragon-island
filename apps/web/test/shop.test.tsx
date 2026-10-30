@@ -167,16 +167,16 @@ describe('the Shop checks for room once', () => {
     }
   })
 
-  it('scans once per footprint it sells (5x5 rows, the Grove) and not again on a clock tick', () => {
+  it('scans once per footprint it sells (5x5 rows, the Grove, the Roost) and not again on a clock tick', () => {
     const spy = vi.spyOn(placing, 'hasLegalCell')
     const st = { ...base, level: 7, gold: 1_000_000 }
     const h = harness(st)
     const ui = (nowMs: number) => <ShopPanel onPlace={vi.fn()} view="home" nowMs={nowMs} />
     const r = h.wrap(ui(0))
-    expect(spy).toHaveBeenCalledTimes(2)
+    expect(spy).toHaveBeenCalledTimes(3)
     r.rerender(ui(1_000))
     r.rerender(ui(2_000))
-    expect(spy).toHaveBeenCalledTimes(2)
+    expect(spy).toHaveBeenCalledTimes(3)
     spy.mockRestore()
   })
 })

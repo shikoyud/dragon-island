@@ -77,7 +77,8 @@ function isPlaceable(v: unknown): boolean {
   switch (b['kind']) {
     case 'habitat': return (ELEMENTS as readonly unknown[]).includes(b['element'])
     case 'farm':
-    case 'grove': return true
+    case 'grove':
+    case 'roost': return true
     case 'decoration': return typeof b['decoration'] === 'string' && Object.hasOwn(DECORATIONS, b['decoration'])
     default: return false
   }
@@ -89,7 +90,8 @@ function isBuildingRef(v: unknown): boolean {
     case 'habitat': return isId(t['id'])
     case 'farm':
     case 'breeder': return isIndex(t['index'])
-    case 'hatchery': return true
+    case 'hatchery':
+    case 'roost': return true
     default: return false
   }
 }
@@ -101,7 +103,8 @@ function isMovable(v: unknown): boolean {
     case 'decoration': return isId(t['id'])
     case 'farm':
     case 'breeder': return isIndex(t['index'])
-    case 'hatchery': return true
+    case 'hatchery':
+    case 'roost': return true
     default: return false
   }
 }
@@ -130,6 +133,7 @@ function isStoreItem(v: unknown): boolean {
       return ['breeder', 'hatchery', 'farm', 'construction'].includes(item['target'] as string) && isIndex(item['index'])
     case 'foodPack':
     case 'hatcheryL5':
+    case 'ascension':
       return true
     case 'habitatL5':
       return isId(item['habitatId'])

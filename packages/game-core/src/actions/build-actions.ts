@@ -5,6 +5,7 @@ import { isUnderConstruction, startConstruction } from '../construction'
 import { BREEDER_LEVELS } from '../data/breeding-buildings'
 import { FIRST_FARM_CLASSIC_MS, MAX_FARMS } from '../data/farms'
 import { HABITATS, habitatBuildMs } from '../data/habitats'
+import { ROOST_TIERS } from '../data/roost'
 import { isUnlocked, type UnlockKey } from '../data/unlocks'
 import { DECORATIONS, decorationRefund } from '../decorations'
 import { farmBuildGold } from '../farm'
@@ -24,16 +25,27 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
   if (b.kind === 'habitat' && !isUnlocked(`habitat:${b.element}`, s.level)) return failure('LEVEL_TOO_LOW')
   if (b.kind === 'farm' && s.farms.length >= MAX_FARMS) return failure('MAX_PLOTS')
   if (b.kind === 'farm' && !isUnlocked(`farm:${s.farms.length + 1}` as UnlockKey, s.level)) return failure('LEVEL_TOO_LOW')
+  if (b.kind === 'roost' && s.roostPlacement !== null) return failure('MAX_LEVEL')
+  if (b.kind === 'roost' && !isUnlocked('roost:1', s.level)) return failure('LEVEL_TOO_LOW')
   const grove = BREEDER_LEVELS.grove[0]!
+  const roost = ROOST_TIERS[0]!
   if (b.kind === 'grove' && s.breeders.some(x => x.kind === 'grove')) return failure('MAX_LEVEL')
   if (b.kind === 'grove' && !isUnlocked('grove:1', s.level)) return failure('LEVEL_TOO_LOW')
 
   const cost = b.kind === 'decoration' ? DECORATIONS[b.decoration].cost
     : b.kind === 'habitat' ? HABITATS[b.element].buildGold
     : b.kind === 'grove' ? grove.gold!
+    : b.kind === 'roost' ? roost.gold
     : farmBuildGold(s.farms.length + 1)
   const paid = spendGold(s, cost)
   if (!paid) return failure('INSUFFICIENT_GOLD')
+
+  if (b.kind === 'roost') {
+    // The tier rises when the build finishes (R33), so the level cap waits for it.
+    const started = startConstruction(paid, { kind: 'build', building: { type: 'roost' } }, Math.floor(roost.classicMs / ctx.preset.timerDiv), ctx.nowMs)
+    if (!started) return failure('BUILDERS_BUSY')
+    return success(payBuildXp({ ...started, roostPlacement: a.placement }, cost, s, ctx.preset, ctx.day))
+  }
 
   if (b.kind === 'grove') {
     const index = s.breeders.length
@@ -75,6 +87,7 @@ export const moveBuilding: Handler<'moveBuilding'> = (s, a) => {
     case 'farm': return success({ ...s, farms: s.farms.map((f, i) => i === t.index ? { ...f, placement: p } : f) })
     case 'breeder': return success({ ...s, breeders: s.breeders.map((b, i) => i === t.index ? { ...b, placement: p } : b) })
     case 'hatchery': return success({ ...s, hatcheryPlacement: p })
+    case 'roost': return success({ ...s, roostPlacement: p })
     default: return success({ ...s, decorations: s.decorations.map(d => d.id === t.id ? { ...d, placement: p } : d) })
   }
 }
@@ -90,6 +103,7 @@ export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {
   const exists = ref.type === 'habitat' ? s.habitats.some(h => h.id === ref.id)
     : ref.type === 'farm' ? s.farms[ref.index] !== undefined
     : ref.type === 'breeder' ? s.breeders[ref.index] !== undefined
+    : ref.type === 'roost' ? s.roostPlacement !== null
     : true
   if (!exists) return failure('NOT_FOUND')
   if (isUnderConstruction(s, ref)) return failure('UNDER_CONSTRUCTION')
@@ -107,7 +121,7 @@ export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {
 export function completeConstruction(s: PlayerState, index: number, c: Catalog, nowMs: number, preset: Preset, day: number): PlayerState {
   const con = s.constructions[index]!
   const rest = { ...s, constructions: s.constructions.filter((_, i) => i !== index) }
-  if (con.kind === 'build') return rest
+  if (con.kind === 'build') return con.building.type === 'roost' ? { ...rest, roostTier: 1 } : rest
   if (con.kind === 'clear') {
     const o = rest.islands.obstacles.find(x => x.id === con.obstacleId)
     const cleared = { ...rest, islands: { ...rest.islands, obstacles: rest.islands.obstacles.filter(x => x.id !== con.obstacleId) } }
@@ -124,6 +138,7 @@ export function completeConstruction(s: PlayerState, index: number, c: Catalog, 
     case 'farm': return { ...rest, farms: rest.farms.map((f, i) => i === ref.index ? { ...f, level: f.level + 1 } : f) }
     case 'breeder': return { ...rest, breeders: rest.breeders.map((b, i) => i === ref.index ? { ...b, level: b.level + 1 } : b) }
     case 'hatchery': return { ...rest, hatcheryLevel: rest.hatcheryLevel + 1 }
+    case 'roost': return { ...rest, roostTier: rest.roostTier + 1 }
   }
 }
 

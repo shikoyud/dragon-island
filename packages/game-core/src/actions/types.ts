@@ -10,7 +10,7 @@ import type { StoreItem } from '../store'
 export type TeamIds = [string, string, string]
 
 export type Placeable =
-  | { kind: 'habitat'; element: Element } | { kind: 'farm' } | { kind: 'grove' } | { kind: 'decoration'; decoration: DecorationId }
+  | { kind: 'habitat'; element: Element } | { kind: 'farm' } | { kind: 'grove' } | { kind: 'roost' } | { kind: 'decoration'; decoration: DecorationId }
 export type MovableRef = BuildingRef | { type: 'decoration'; id: string }
 
 export type Action =

@@ -1,4 +1,6 @@
 import { GROVE_L3, HATCHERY_FIFTH_SLOT } from './data/breeding-buildings'
+import { isUnderConstruction } from './construction'
+import { ASCENSION_TIER, ROOST_TIERS } from './data/roost'
 import { ELEMENT_TIER } from './data/elements'
 import { FARM_L5_USD_MICRO, FARM_MAX_LEVEL } from './data/farms'
 import { GOLDEN_AERIE, HABITAT_L5_USD_MICRO, HABITAT_MAX_LEVEL } from './data/habitats'
@@ -19,6 +21,8 @@ export type StoreItem =
   | { kind: 'hatcheryL5' }
   /** Grove level 2 to level 3, instant (§5.4). */
   | { kind: 'groveL3'; index: number }
+  /** Roost Tier 4 to Tier 5: 10M Gold plus $2.00, a 48 h build (§4.2, §7.4, R35). */
+  | { kind: 'ascension' }
 
 export type SkipTarget = 'breeder' | 'hatchery' | 'farm' | 'construction'
 
@@ -62,5 +66,7 @@ export function priceMicroUsd(item: StoreItem, s: PlayerState, nowMs: number): n
       const g = s.breeders[item.index]
       return g && g.kind === 'grove' && g.level === GROVE_L3.level - 1 && isUnlocked('grove:3', s.level) ? GROVE_L3.usdMicro : null
     }
+    case 'ascension':
+      return s.roostPlacement && s.roostTier === ASCENSION_TIER - 1 && !isUnderConstruction(s, { type: 'roost' }) ? ROOST_TIERS[ASCENSION_TIER - 1]!.usdMicro : null
   }
 }
