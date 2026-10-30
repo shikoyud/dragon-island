@@ -1,6 +1,6 @@
 import {
-  activeLegendaries, BREED_MIN_LEVEL, BREEDER_LEVELS, breederBreedMs, breedingPool, breedTimerMs, breedValidity, FIRST_HYBRID_MS,
-  gameDay, getSpecies, hatcherySlots, hatcheryUsed, isUnfinished, LAUNCH_CATALOG, priceMicroUsd, type Species,
+  activeLegendaries, BREED_MIN_LEVEL, breederBreedMs, breedingPool, breedTimerMs, breedValidity, FIRST_HYBRID_MS,
+  gameDay, getSpecies, hatcherySlots, hatcheryUsed, isUnfinished, LAUNCH_CATALOG, priceMicroUsd, unlockPl, type Species,
 } from '@wyrmhaven/game-core'
 import { useState } from 'react'
 import { breederName } from '../hud/hudModel'
@@ -54,7 +54,7 @@ export function BreedPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
     return timerBuilding ? breederBreedMs(base, timerBuilding) : base
   }
 
-  const minPl = BREEDER_LEVELS.mountain[0]!.minPl
+  const minPl = unlockPl('mountain:1')
   const reason = s.level < minPl ? `Unlocks at level ${minPl}`
     : !ready ? 'Pick two different dragons'
     : lowLevel ? `Both parents must be level ${BREED_MIN_LEVEL}`

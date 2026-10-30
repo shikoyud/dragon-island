@@ -1,5 +1,5 @@
 import {
-  constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
+  constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize, unlockPl,
   DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
   type BreederKind, type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
@@ -335,7 +335,7 @@ export function buildIslandModel(
     const { col, row } = signCell(state.islands.homeStep)
     const a = anchor(col, row, 2)
     add({ col, row }, 2, [{ id: 'sign', key: textureKey('island.sign'), sprite: art.island.sign, ...a, target: { kind: 'expandSign' } }])
-    markers.sign = { cost: next.cost, minLevel: next.minLevel }
+    markers.sign = { cost: next.cost, minLevel: unlockPl(`home:${state.islands.homeStep}`) }
   }
 
   // Stable sort: back to front in isometric depth, ties keep insertion order.

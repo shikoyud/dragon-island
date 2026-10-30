@@ -1,4 +1,5 @@
 import { CROPS, FARM_LEVELS, FARM_PRICE_GROWTH, FIRST_FARM_GOLD } from './data/farms'
+import { isUnlocked } from './data/unlocks'
 import type { Preset } from './data/presets'
 import type { CropId } from './state'
 
@@ -20,5 +21,5 @@ export function cropFood(crop: CropId, farmLevel: number, preset: Preset): numbe
 }
 
 export function cropUnlocked(crop: CropId, playerLevel: number): boolean {
-  return playerLevel >= CROPS[crop].unlockPl
+  return isUnlocked(`crop:${crop}`, playerLevel)
 }

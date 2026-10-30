@@ -3,6 +3,7 @@ import { ELEMENT_TIER } from './data/elements'
 import { FARM_L5_USD_MICRO, FARM_MAX_LEVEL } from './data/farms'
 import { GOLDEN_AERIE, HABITAT_L5_USD_MICRO, HABITAT_MAX_LEVEL } from './data/habitats'
 import { skipPriceMicroUsd } from './data/speedups'
+import { isUnlocked } from './data/unlocks'
 import type { Placement, PlayerState } from './state'
 
 export type StoreItem =
@@ -56,10 +57,10 @@ export function priceMicroUsd(item: StoreItem, s: PlayerState, nowMs: number): n
     case 'goldenAerie':
       return ownsAerie(s) ? null : GOLDEN_AERIE.usdMicro
     case 'hatcheryL5':
-      return !s.hatcheryFifthSlot && s.level >= HATCHERY_FIFTH_SLOT.minPl ? HATCHERY_FIFTH_SLOT.usdMicro : null
+      return !s.hatcheryFifthSlot && isUnlocked('hatcheryFifthSlot', s.level) ? HATCHERY_FIFTH_SLOT.usdMicro : null
     case 'groveL3': {
       const g = s.breeders[item.index]
-      return g && g.kind === 'grove' && g.level === GROVE_L3.level - 1 && s.level >= GROVE_L3.minPl ? GROVE_L3.usdMicro : null
+      return g && g.kind === 'grove' && g.level === GROVE_L3.level - 1 && isUnlocked('grove:3', s.level) ? GROVE_L3.usdMicro : null
     }
   }
 }

@@ -1,6 +1,6 @@
 import {
-  BREEDER_LEVELS, DECORATIONS, basicHome, basicPriceGold, canLiveIn, getSpecies, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, FARM_UNLOCK_PL, farmBuildGold, MAX_FARMS, priceMicroUsd,
-  type DecorationId, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem,
+  BREEDER_LEVELS, DECORATIONS, basicHome, basicPriceGold, canLiveIn, getSpecies, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, farmBuildGold, MAX_FARMS, priceMicroUsd, unlockPl,
+  type DecorationId, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem, type UnlockKey,
 } from '@wyrmhaven/game-core'
 import { useMemo, useState, type ReactNode } from 'react'
 import type { Placing } from '../game/bridge'
@@ -87,10 +87,10 @@ function BuildTab({ s, onPlace, view, room, groveRoom }: { s: PlayerState; onPla
   return (
     <>
       {section('dragons', 'Dragons', ELEMENTS.map(el => {
-        const { unlockPl } = HABITATS[el]
+        const basicPl = unlockPl(`basic:${el}`)
         const price = basicPriceGold(el)
         // The engine's order: Player Level, then a finished habitat with room (R26), then Gold.
-        const reason = s.level < unlockPl ? `Level ${unlockPl}`
+        const reason = s.level < basicPl ? `Level ${basicPl}`
           : !basicHome(s, LAUNCH_CATALOG, el) ? (s.habitats.some(h => canLiveIn(getSpecies(LAUNCH_CATALOG, el), h)) ? `No free ${cap(el)} habitat` : `Build a ${cap(el)} habitat first`)
           : s.gold < price ? 'Not enough gold' : undefined
         return (
@@ -103,15 +103,15 @@ function BuildTab({ s, onPlace, view, room, groveRoom }: { s: PlayerState; onPla
       }))}
       {section('habitats', 'Habitats', <>
         {ELEMENTS.map(el => {
-          const { buildGold, unlockPl } = HABITATS[el]
+          const { buildGold } = HABITATS[el]
           return card(`habitat-${el}`, `${cap(el)} habitat`, `${formatGold(buildGold)} gold`,
-            gold(buildGold, unlockPl, noRoom), { kind: 'habitat', element: el }, FOOTPRINT.habitat)
+            gold(buildGold, unlockPl(`habitat:${el}`), noRoom), { kind: 'habitat', element: el }, FOOTPRINT.habitat)
         })}
       </>)}
       {section('breeding', 'Breeding', card('grove', breederName('grove'), `${formatGold(grove.gold!)} gold`,
-        gold(grove.gold!, grove.minPl, groveBuilt ? 'Already built' : groveRoom ? undefined : NO_ROOM), { kind: 'grove' }, FOOTPRINT.breeder))}
+        gold(grove.gold!, unlockPl('grove:1'), groveBuilt ? 'Already built' : groveRoom ? undefined : NO_ROOM), { kind: 'grove' }, FOOTPRINT.breeder))}
       {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_FARMS ? 'maximum' : `${formatGold(farmBuildGold(plots + 1))} gold`,
-        plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), FARM_UNLOCK_PL[plots]!), { kind: 'farm' }, FOOTPRINT.farm))}
+        plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), unlockPl(`farm:${plots + 1}` as UnlockKey)), { kind: 'farm' }, FOOTPRINT.farm))}
       {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {
         const d = DECORATIONS[id]
         // Locked items stay visible, greyed (spec section 8): Dawnspire-only ones say so off the Dawnspire.

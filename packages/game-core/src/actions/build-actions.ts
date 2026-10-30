@@ -3,8 +3,9 @@ import type { Catalog } from '../catalog'
 import type { Preset } from '../data/presets'
 import { isUnderConstruction, startConstruction } from '../construction'
 import { BREEDER_LEVELS } from '../data/breeding-buildings'
-import { FARM_UNLOCK_PL, FIRST_FARM_CLASSIC_MS, MAX_FARMS } from '../data/farms'
+import { FIRST_FARM_CLASSIC_MS, MAX_FARMS } from '../data/farms'
 import { HABITATS, habitatBuildMs } from '../data/habitats'
+import { isUnlocked, type UnlockKey } from '../data/unlocks'
 import { DECORATIONS, decorationRefund } from '../decorations'
 import { farmBuildGold } from '../farm'
 import { placementRuleError } from '../placement-rules'
@@ -20,12 +21,12 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
   const bad = placementRuleError(s, b, a.placement)
   if (bad) return failure(bad)
   if (b.kind === 'decoration' && s.level < DECORATIONS[b.decoration].minLevel) return failure('LEVEL_TOO_LOW')
-  if (b.kind === 'habitat' && s.level < HABITATS[b.element].unlockPl) return failure('LEVEL_TOO_LOW')
+  if (b.kind === 'habitat' && !isUnlocked(`habitat:${b.element}`, s.level)) return failure('LEVEL_TOO_LOW')
   if (b.kind === 'farm' && s.farms.length >= MAX_FARMS) return failure('MAX_PLOTS')
-  if (b.kind === 'farm' && s.level < FARM_UNLOCK_PL[s.farms.length]!) return failure('LEVEL_TOO_LOW')
+  if (b.kind === 'farm' && !isUnlocked(`farm:${s.farms.length + 1}` as UnlockKey, s.level)) return failure('LEVEL_TOO_LOW')
   const grove = BREEDER_LEVELS.grove[0]!
   if (b.kind === 'grove' && s.breeders.some(x => x.kind === 'grove')) return failure('MAX_LEVEL')
-  if (b.kind === 'grove' && s.level < grove.minPl) return failure('LEVEL_TOO_LOW')
+  if (b.kind === 'grove' && !isUnlocked('grove:1', s.level)) return failure('LEVEL_TOO_LOW')
 
   const cost = b.kind === 'decoration' ? DECORATIONS[b.decoration].cost
     : b.kind === 'habitat' ? HABITATS[b.element].buildGold

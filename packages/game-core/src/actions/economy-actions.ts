@@ -8,6 +8,7 @@ import type { PlayerState } from '../state'
 import { FOOD_PACK, ownsAerie, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
 import { completeConstruction } from './build-actions'
 import { collectHabitat } from './island-actions'
+import { isUnlocked } from '../data/unlocks'
 import { failure, success, type ActionError, type Handler } from './types'
 
 function skipSlotCount(s: PlayerState, target: SkipTarget): number {
@@ -43,13 +44,13 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
       return placementRuleError(s, { kind: 'habitat', element: 'terra' }, item.placement)
     case 'hatcheryL5':
       if (s.hatcheryFifthSlot) return 'MAX_LEVEL'
-      return s.level < HATCHERY_FIFTH_SLOT.minPl ? 'LEVEL_TOO_LOW' : null
+      return isUnlocked('hatcheryFifthSlot', s.level) ? null : 'LEVEL_TOO_LOW'
     case 'groveL3': {
       const g = s.breeders[item.index]
       if (!g || g.kind !== 'grove') return 'NOT_FOUND'
       if (g.level >= GROVE_L3.level) return 'MAX_LEVEL'
       if (g.level !== GROVE_L3.level - 1) return 'INVALID_ACTION'
-      return s.level < GROVE_L3.minPl ? 'LEVEL_TOO_LOW' : null
+      return isUnlocked('grove:3', s.level) ? null : 'LEVEL_TOO_LOW'
     }
   }
 }

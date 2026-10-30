@@ -2,13 +2,14 @@ import { simulateBattle } from '../battle/sim'
 import type { BattleDragonSpec } from '../battle/stats'
 import { addXp } from '../progression'
 import {
-  PVE_MIN_PLAYER_LEVEL, PVE_REPLAYS_PER_DAY, PVE_STAGES, PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL,
+  PVE_REPLAYS_PER_DAY, PVE_STAGES, PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL,
   stageRewards, stageTeam,
 } from '../pve'
 import type { PlayerState } from '../state'
 import { dayCounterAt } from '../time'
 import { applyTrophies, pvpWinGold, TROPHY } from '../trophy'
 import { earnGold } from '../wallet'
+import { isUnlocked } from '../data/unlocks'
 import { failure, success, type BattleReport, type Handler, type TeamIds } from './types'
 
 export const PVP_WIN_XP = 20
@@ -61,7 +62,7 @@ export const pvpBattle: Handler<'pvpBattle'> = (s, a, ctx) => {
 }
 
 export const pveBattle: Handler<'pveBattle'> = (s, a, ctx) => {
-  if (s.level < PVE_MIN_PLAYER_LEVEL) return failure('LEVEL_TOO_LOW')
+  if (!isUnlocked('pve', s.level)) return failure('LEVEL_TOO_LOW')
   if (a.stage < 1 || a.stage > PVE_STAGES) return failure('NOT_FOUND')
   if (a.stage > s.pve.cleared + 1) return failure('STAGE_LOCKED')
   const team = resolveTeam(s, a.team)

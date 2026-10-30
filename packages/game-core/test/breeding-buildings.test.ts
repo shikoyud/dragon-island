@@ -35,30 +35,30 @@ const counting = () => {
 describe('§5.4 tables', () => {
   it('Hatchery levels, with R16 timers', () => {
     expect(HATCHERY_LEVELS).toEqual([
-      { slots: 1, gold: null, usdMicro: null, minPl: 1, classicMs: 0 },
-      { slots: 2, gold: 2_000, usdMicro: null, minPl: 4, classicMs: 3_600_000 },
-      { slots: 3, gold: 250_000, usdMicro: null, minPl: 13, classicMs: 14_400_000 },
-      { slots: 4, gold: 2_000_000, usdMicro: null, minPl: 21, classicMs: 43_200_000 },
+      { slots: 1, gold: null, usdMicro: null, classicMs: 0 },
+      { slots: 2, gold: 2_000, usdMicro: null, classicMs: 3_600_000 },
+      { slots: 3, gold: 250_000, usdMicro: null, classicMs: 14_400_000 },
+      { slots: 4, gold: 2_000_000, usdMicro: null, classicMs: 43_200_000 },
     ])
   })
 
   it('the fifth Hatchery slot is a purchase, not a level (Q5 a)', () => {
-    expect(HATCHERY_FIFTH_SLOT).toEqual({ usdMicro: 3_000_000, minPl: 15 })
+    expect(HATCHERY_FIFTH_SLOT).toEqual({ usdMicro: 3_000_000 })
   })
 
   it('Mountain levels', () => {
     expect(BREEDER_LEVELS.mountain).toEqual([
-      { reductionPct: 0, gold: null, usdMicro: null, minPl: 2, classicMs: 0 },
-      { reductionPct: 10, gold: 150_000, usdMicro: null, minPl: 10, classicMs: 3_600_000 },
-      { reductionPct: 20, gold: 1_500_000, usdMicro: null, minPl: 20, classicMs: 14_400_000 },
+      { reductionPct: 0, gold: null, usdMicro: null, classicMs: 0 },
+      { reductionPct: 10, gold: 150_000, usdMicro: null, classicMs: 3_600_000 },
+      { reductionPct: 20, gold: 1_500_000, usdMicro: null, classicMs: 14_400_000 },
     ])
   })
 
   it('Grove levels: L1 is the 4 h build, L3 is an instant store item', () => {
     expect(BREEDER_LEVELS.grove).toEqual([
-      { reductionPct: 0, gold: 400_000, usdMicro: null, minPl: 12, classicMs: 14_400_000 },
-      { reductionPct: 10, gold: 1_500_000, usdMicro: null, minPl: 20, classicMs: 3_600_000 },
-      { reductionPct: 20, gold: null, usdMicro: 3_500_000, minPl: 25, classicMs: 0 },
+      { reductionPct: 0, gold: 400_000, usdMicro: null, classicMs: 14_400_000 },
+      { reductionPct: 10, gold: 1_500_000, usdMicro: null, classicMs: 3_600_000 },
+      { reductionPct: 20, gold: null, usdMicro: 3_500_000, classicMs: 0 },
     ])
   })
 

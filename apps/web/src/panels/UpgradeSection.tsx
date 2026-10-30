@@ -1,4 +1,4 @@
-import { constructionFor, GROVE_L3, MAX_BUILDERS, priceMicroUsd, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
+import { constructionFor, GROVE_L3, MAX_BUILDERS, priceMicroUsd, unlockPl, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
 import { timerLabel } from '../game/islandModel'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -25,7 +25,7 @@ const pointsToStore = (s: PlayerState, b: BuildingRef): boolean =>
 function topLevelNote(s: PlayerState, b: BuildingRef): string {
   if (pointsToStore(s, b)) return 'Level 5 in the Store'
   if (b.type === 'breeder' && s.breeders[b.index]?.kind === 'grove' && levelOf(s, b) === GROVE_L3.level - 1) {
-    return s.level >= GROVE_L3.minPl ? `Level ${GROVE_L3.level} in the Store` : `Level ${GROVE_L3.level} in the Store at player level ${GROVE_L3.minPl}`
+    return s.level >= unlockPl('grove:3') ? `Level ${GROVE_L3.level} in the Store` : `Level ${GROVE_L3.level} in the Store at player level ${unlockPl('grove:3')}`
   }
   return 'Max level'
 }

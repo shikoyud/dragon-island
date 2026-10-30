@@ -1,6 +1,7 @@
 import { getSpecies } from '../catalog'
 import { startConstruction } from '../construction'
 import { homeStripObstacles, outerObstacles } from '../data/island-layouts'
+import { isUnlocked } from '../data/unlocks'
 import { HOME_EXPANSION, HOME_MAX_STEP, ISLAND_ORDER, OUTER_ISLANDS } from '../island'
 import { OBSTACLES, clearCost } from '../obstacles'
 import { payBuildXp } from '../progression'
@@ -11,7 +12,7 @@ export const expandIsland: Handler<'expandIsland'> = (s, _a, ctx) => {
   const step = s.islands.homeStep
   if (step >= HOME_MAX_STEP) return failure('MAX_EXPANSION')
   const next = HOME_EXPANSION[step]!
-  if (s.level < next.minLevel) return failure('LEVEL_TOO_LOW')
+  if (!isUnlocked(`home:${step}`, s.level)) return failure('LEVEL_TOO_LOW')
   const paid = spendGold(s, next.cost)
   if (!paid) return failure('INSUFFICIENT_GOLD')
   return success(payBuildXp({
@@ -25,7 +26,7 @@ export const unlockIsland: Handler<'unlockIsland'> = (s, _a, ctx) => {
   const island = ISLAND_ORDER[last + 1]
   if (!island || island === 'home') return failure('MAX_ISLAND')
   const req = OUTER_ISLANDS[island]
-  if (s.level < req.minLevel) return failure('LEVEL_TOO_LOW')
+  if (!isUnlocked(`island:${island}`, s.level)) return failure('LEVEL_TOO_LOW')
   if (island === 'dawnspire' && !s.dragons.some(d => getSpecies(ctx.catalog, d.speciesId).rarity === 'legendary')) return failure('NO_LEGENDARY')
   const paid = spendGold(s, req.cost)
   if (!paid) return failure('INSUFFICIENT_GOLD')

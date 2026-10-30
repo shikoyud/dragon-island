@@ -8,21 +8,21 @@ export const ISLAND_ORDER: readonly IslandId[] = ['home', 'isle2', 'isle3', 'isl
 export const OUTER_SIZE = 16
 export const HOME_MAX_STEP = 12
 
-/** Index = step - 1 (spec section 3). */
-export const HOME_EXPANSION: readonly { minLevel: number; cost: number }[] = [
-  { minLevel: 2, cost: 1_000 }, { minLevel: 4, cost: 2_500 }, { minLevel: 7, cost: 5_000 },
-  { minLevel: 10, cost: 10_000 }, { minLevel: 14, cost: 20_000 }, { minLevel: 18, cost: 40_000 },
-  { minLevel: 22, cost: 75_000 }, { minLevel: 27, cost: 125_000 }, { minLevel: 32, cost: 200_000 },
-  { minLevel: 37, cost: 325_000 }, { minLevel: 42, cost: 500_000 }, { minLevel: 47, cost: 750_000 },
+/** Index = step before the purchase; its Player Level is `home:${index}` in data/unlocks.ts (spec section 3). */
+export const HOME_EXPANSION: readonly { cost: number }[] = [
+  { cost: 1_000 }, { cost: 2_500 }, { cost: 5_000 },
+  { cost: 10_000 }, { cost: 20_000 }, { cost: 40_000 },
+  { cost: 75_000 }, { cost: 125_000 }, { cost: 200_000 },
+  { cost: 325_000 }, { cost: 500_000 }, { cost: 750_000 },
 ]
 
 /** Spec section 4; `mult` is the obstacle multiplier m. */
-export const OUTER_ISLANDS: Record<Exclude<IslandId, 'home'>, { minLevel: number; cost: number; mult: number }> = {
-  isle2: { minLevel: 12, cost: 40_000, mult: 2 },
-  isle3: { minLevel: 20, cost: 150_000, mult: 5 },
-  isle4: { minLevel: 30, cost: 500_000, mult: 12 },
-  isle5: { minLevel: 40, cost: 1_200_000, mult: 25 },
-  dawnspire: { minLevel: 45, cost: 3_000_000, mult: 40 },
+export const OUTER_ISLANDS: Record<Exclude<IslandId, 'home'>, { cost: number; mult: number }> = {
+  isle2: { cost: 40_000, mult: 2 },
+  isle3: { cost: 150_000, mult: 5 },
+  isle4: { cost: 500_000, mult: 12 },
+  isle5: { cost: 1_200_000, mult: 25 },
+  dawnspire: { cost: 3_000_000, mult: 40 },
 }
 
 export function homeSize(step: number): { w: number; h: number } {

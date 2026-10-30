@@ -1,4 +1,4 @@
-import { ISLAND_ORDER, LAUNCH_CATALOG, OUTER_ISLANDS, getSpecies, type IslandId } from '@wyrmhaven/game-core'
+import { ISLAND_ORDER, LAUNCH_CATALOG, OUTER_ISLANDS, getSpecies, unlockPl, type IslandId } from '@wyrmhaven/game-core'
 import type { GameArtSet } from '../art/types'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -38,10 +38,11 @@ export function IslandMapPanel({ view, onView, onClose, art }: { view: IslandId;
             )
           }
           const req = OUTER_ISLANDS[id as Exclude<IslandId, 'home'>]
-          if (id !== nextId) return <li key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', opacity: 0.6 }}><MapIcon art={art} id={id} />{NAMES[id]} · <span>Locked · level {req.minLevel}</span></li>
+          const gate = unlockPl(`island:${id as Exclude<IslandId, 'home'>}`)
+          if (id !== nextId) return <li key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', opacity: 0.6 }}><MapIcon art={art} id={id} />{NAMES[id]} · <span>Locked · level {gate}</span></li>
           // Same order as game-core's unlockIsland: level, then legendary (Dawnspire), then gold.
           const legendary = s.dragons.some(d => getSpecies(LAUNCH_CATALOG, d.speciesId).rarity === 'legendary')
-          const reason = s.level < req.minLevel ? `Needs player level ${req.minLevel}`
+          const reason = s.level < gate ? `Needs player level ${gate}`
             : id === 'dawnspire' && !legendary ? 'Own a legendary dragon first'
             : s.gold < req.cost ? 'Not enough gold' : ''
           return (

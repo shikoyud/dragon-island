@@ -7,7 +7,7 @@ describe('island geometry', () => {
     expect([homeSize(0), homeSize(1), homeSize(2), homeSize(12)]).toEqual([{ w: 12, h: 12 }, { w: 14, h: 12 }, { w: 14, h: 14 }, { w: 24, h: 24 }])
     expect(HOME_EXPANSION).toHaveLength(12)
     expect(HOME_EXPANSION.reduce((n, e) => n + e.cost, 0)).toBe(2_053_500)
-    expect(HOME_EXPANSION[11]).toEqual({ minLevel: 47, cost: 750_000 })
+    expect(HOME_EXPANSION[11]).toEqual({ cost: 750_000 })
   })
   it('lists the starting occupants', () => {
     const o = occupants(newPlayer(0), 'home')
@@ -24,7 +24,7 @@ describe('island geometry', () => {
     expect(placementError(s, { island: 'home', col: 5, row: 0, facing: 0 }, 5, { type: 'habitat', id: 'h2' })).toBeNull()
   })
   it('OUTER_ISLANDS matches the spec', () => {
-    expect(OUTER_ISLANDS.isle2).toEqual({ minLevel: 12, cost: 40_000, mult: 2 })
-    expect(OUTER_ISLANDS.dawnspire).toEqual({ minLevel: 45, cost: 3_000_000, mult: 40 })
+    expect(OUTER_ISLANDS.isle2).toEqual({ cost: 40_000, mult: 2 })
+    expect(OUTER_ISLANDS.dawnspire).toEqual({ cost: 3_000_000, mult: 40 })
   })
 })

@@ -9,23 +9,23 @@ import { FLASH_14, FLASH_28 } from '../src/data/presets'
 
 describe('§5.2 habitat table (classic values)', () => {
   it('pins the Terra and War rows', () => {
-    expect(HABITATS.terra).toEqual({ archetype: 'sprinter', base: 18, inc: 12, capL1: 8_000, capL2: 28_000, buildGold: 500, upgradeL2Gold: 10_000, unlockPl: 1 })
-    expect(HABITATS.war).toEqual({ archetype: 'vault', base: 7, inc: 4, capL1: 33_000, capL2: 115_000, buildGold: 250_000, upgradeL2Gold: 750_000, unlockPl: 18 })
+    expect(HABITATS.terra).toEqual({ archetype: 'sprinter', base: 18, inc: 12, capL1: 8_000, capL2: 28_000, buildGold: 500, upgradeL2Gold: 10_000 })
+    expect(HABITATS.war).toEqual({ archetype: 'vault', base: 7, inc: 4, capL1: 33_000, capL2: 115_000, buildGold: 250_000, upgradeL2Gold: 750_000 })
   })
 
-  it('pins every row: base, inc, caps, build gold, upgrade gold, unlock PL', () => {
-    const rows = ELEMENTS.map(e => [e, HABITATS[e].base, HABITATS[e].inc, HABITATS[e].capL1, HABITATS[e].capL2, HABITATS[e].buildGold, HABITATS[e].upgradeL2Gold, HABITATS[e].unlockPl])
+  it('pins every row: base, inc, caps, build gold, upgrade gold', () => {
+    const rows = ELEMENTS.map(e => [e, HABITATS[e].base, HABITATS[e].inc, HABITATS[e].capL1, HABITATS[e].capL2, HABITATS[e].buildGold, HABITATS[e].upgradeL2Gold])
     expect(rows).toEqual([
-      ['terra', 18, 12, 8_000, 28_000, 500, 10_000, 1],
-      ['flame', 7, 5, 10_000, 35_000, 2_000, 20_000, 1],
-      ['sea', 10, 7, 14_000, 49_000, 5_000, 40_000, 3],
-      ['nature', 9, 7, 18_000, 64_000, 10_000, 60_000, 3],
-      ['electric', 15, 10, 10_000, 35_000, 25_000, 100_000, 6],
-      ['ice', 8, 6, 23_000, 83_000, 40_000, 150_000, 8],
-      ['metal', 9, 6, 24_000, 84_000, 60_000, 200_000, 10],
-      ['dark', 6, 4, 32_000, 112_000, 150_000, 500_000, 14],
-      ['light', 8, 5, 27_000, 94_000, 200_000, 600_000, 16],
-      ['war', 7, 4, 33_000, 115_000, 250_000, 750_000, 18],
+      ['terra', 18, 12, 8_000, 28_000, 500, 10_000],
+      ['flame', 7, 5, 10_000, 35_000, 2_000, 20_000],
+      ['sea', 10, 7, 14_000, 49_000, 5_000, 40_000],
+      ['nature', 9, 7, 18_000, 64_000, 10_000, 60_000],
+      ['electric', 15, 10, 10_000, 35_000, 25_000, 100_000],
+      ['ice', 8, 6, 23_000, 83_000, 40_000, 150_000],
+      ['metal', 9, 6, 24_000, 84_000, 60_000, 200_000],
+      ['dark', 6, 4, 32_000, 112_000, 150_000, 500_000],
+      ['light', 8, 5, 27_000, 94_000, 200_000, 600_000],
+      ['war', 7, 4, 33_000, 115_000, 250_000, 750_000],
     ])
     expect(ELEMENTS.map(e => HABITATS[e].archetype)).toEqual(
       ['sprinter', 'standard', 'standard', 'standard', 'sprinter', 'steady', 'steady', 'vault', 'steady', 'vault'])
