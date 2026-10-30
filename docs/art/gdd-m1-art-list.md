@@ -65,3 +65,17 @@ Six crops, each a 16x16 sheet with 3 growth frames (sprout, growing, ripe) plus 
 | Key | Frame (px) | Frames | fps | Description |
 |---|---|---|---|---|
 | `fx.coins` | 32x32 | 8 | 12 | Gold coin burst: coins pop up from the centre, arc and fade; played once (one-shot). The key and a drawn fallback (a small heap of coins) are wired; the web code does not play it yet (Task B9 only tweens the gold badge) |
+
+## Delivered (2026-10-30)
+
+All keys above are in `apps/web/public/art/v1/manifest.json` (prompts and job details in `apps/web/art/prompts.md`; contact sheet `docs/art/gdd-m1-art-preview.png`). Every sheet matches the tables above, with 4 frames where a range was allowed. Additions and notes:
+
+| Key | Note |
+|---|---|
+| `icon.war` | 16x16, same image as `icon.war.16`. Not in the list, but `elementIcon` reads `icon.<element>` for every element, so without it the War icon stays on its fallback |
+| `habitat.war` | banners reach the top of the frame, so `top` is 0 and badges sit at the banner tips |
+| `building.goldenAerie` | bounding box identical to `building.nexus` (x 2-78, y 10-64) |
+| `crop.<cropId>` | 3 growth frames, as listed; the v1 stand-ins were 4, so `apps/web/test/art.test.ts` now expects 3 |
+| `fx.coins` | frame 0 already shows the coins in a low arc, so it reads alone under reduced motion. Play it one-shot, as `IslandScene` does `fx.hatch` |
+
+`CROP_ART_KEY` in `apps/web/src/art/fromManifest.ts` can go now that all six crops have art.

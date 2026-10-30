@@ -8,6 +8,14 @@
       "fps": 0,
       "top": 10
     },
+    "building.goldenAerie": {
+      "file": "golden-aerie.png",
+      "w": 80,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 10
+    },
     "building.hatchery": {
       "file": "hatchery.png",
       "w": 64,
@@ -72,6 +80,54 @@
       "fps": 4,
       "top": 1
     },
+    "crop.dragonBush": {
+      "file": "crop-dragonBush.png",
+      "w": 16,
+      "h": 16,
+      "frames": 3,
+      "fps": 0,
+      "top": 1
+    },
+    "crop.dragonBush.sway": {
+      "file": "crop-dragonBush-sway.png",
+      "w": 16,
+      "h": 16,
+      "frames": 4,
+      "fps": 4,
+      "top": 1
+    },
+    "crop.emberWheat": {
+      "file": "crop-emberWheat.png",
+      "w": 16,
+      "h": 16,
+      "frames": 3,
+      "fps": 0,
+      "top": 1
+    },
+    "crop.emberWheat.sway": {
+      "file": "crop-emberWheat-sway.png",
+      "w": 16,
+      "h": 16,
+      "frames": 4,
+      "fps": 4,
+      "top": 1
+    },
+    "crop.frostBerries": {
+      "file": "crop-frostBerries.png",
+      "w": 16,
+      "h": 16,
+      "frames": 3,
+      "fps": 0,
+      "top": 2
+    },
+    "crop.frostBerries.sway": {
+      "file": "crop-frostBerries-sway.png",
+      "w": 16,
+      "h": 16,
+      "frames": 4,
+      "fps": 4,
+      "top": 1
+    },
     "crop.harvest": {
       "file": "crop-harvest.png",
       "w": 16,
@@ -88,6 +144,22 @@
       "fps": 4,
       "top": 1
     },
+    "crop.seaMelon": {
+      "file": "crop-seaMelon.png",
+      "w": 16,
+      "h": 16,
+      "frames": 3,
+      "fps": 0,
+      "top": 2
+    },
+    "crop.seaMelon.sway": {
+      "file": "crop-seaMelon-sway.png",
+      "w": 16,
+      "h": 16,
+      "frames": 4,
+      "fps": 4,
+      "top": 0
+    },
     "crop.sprout": {
       "file": "crop-sprout.png",
       "w": 16,
@@ -103,6 +175,38 @@
       "frames": 4,
       "fps": 4,
       "top": 1
+    },
+    "crop.thunderPumpkin": {
+      "file": "crop-thunderPumpkin.png",
+      "w": 16,
+      "h": 16,
+      "frames": 3,
+      "fps": 0,
+      "top": 2
+    },
+    "crop.thunderPumpkin.sway": {
+      "file": "crop-thunderPumpkin-sway.png",
+      "w": 16,
+      "h": 16,
+      "frames": 4,
+      "fps": 4,
+      "top": 0
+    },
+    "crop.warlordPepper": {
+      "file": "crop-warlordPepper.png",
+      "w": 16,
+      "h": 16,
+      "frames": 3,
+      "fps": 0,
+      "top": 1
+    },
+    "crop.warlordPepper.sway": {
+      "file": "crop-warlordPepper-sway.png",
+      "w": 16,
+      "h": 16,
+      "frames": 4,
+      "fps": 4,
+      "top": 0
     },
     "decoration.boneArch": {
       "file": "decoration-boneArch.png",
@@ -296,6 +400,14 @@
       "fps": 6,
       "top": 4
     },
+    "dragon.war": {
+      "file": "dragon-war.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
     "egg.dark": {
       "file": "egg-dark.png",
       "w": 32,
@@ -367,6 +479,22 @@
       "frames": 4,
       "fps": 4,
       "top": 0
+    },
+    "egg.war": {
+      "file": "egg-war.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4,
+      "top": 1
+    },
+    "fx.coins": {
+      "file": "fx-coins.png",
+      "w": 32,
+      "h": 32,
+      "frames": 8,
+      "fps": 12,
+      "top": 4
     },
     "fx.construction": {
       "file": "fx-construction.png",
@@ -512,6 +640,14 @@
       "fps": 4,
       "top": 0
     },
+    "habitat.war": {
+      "file": "habitat-war.png",
+      "w": 80,
+      "h": 64,
+      "frames": 4,
+      "fps": 4,
+      "top": 0
+    },
     "hatchling.dark": {
       "file": "hatchling-dark.png",
       "w": 32,
@@ -583,6 +719,14 @@
       "frames": 4,
       "fps": 6,
       "top": 1
+    },
+    "hatchling.war": {
+      "file": "hatchling-war.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
     },
     "icon.battle.16": {
       "file": "icon-battle-16.png",
@@ -896,6 +1040,30 @@
       "fps": 0,
       "top": 7
     },
+    "icon.war": {
+      "file": "icon-war.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "icon.war.16": {
+      "file": "icon-war-16.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "icon.war.32": {
+      "file": "icon-war-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
     "icon.xp.16": {
       "file": "icon-xp-16.png",
       "w": 16,
@@ -943,6 +1111,86 @@
       "frames": 1,
       "fps": 0,
       "top": 1
+    },
+    "juvenile.dark": {
+      "file": "juvenile-dark.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.electric": {
+      "file": "juvenile-electric.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 1
+    },
+    "juvenile.flame": {
+      "file": "juvenile-flame.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 1
+    },
+    "juvenile.ice": {
+      "file": "juvenile-ice.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.light": {
+      "file": "juvenile-light.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 1
+    },
+    "juvenile.metal": {
+      "file": "juvenile-metal.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.nature": {
+      "file": "juvenile-nature.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.sea": {
+      "file": "juvenile-sea.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.terra": {
+      "file": "juvenile-terra.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 8
+    },
+    "juvenile.war": {
+      "file": "juvenile-war.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
     },
     "map.backdrop": {
       "file": "map-backdrop.png",
