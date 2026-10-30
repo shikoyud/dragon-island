@@ -9,6 +9,8 @@ import { bookHint, elementName } from './bookHints'
 import { DragonsPanel } from './DragonsPanel'
 
 const TILE = 48
+/** One width for every tile, found or not: the longest names wrap instead of widening theirs. */
+const TILE_WIDTH = 92
 const RARITY_LABEL: Record<Rarity, string> = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' }
 
 /** First frame of the species' sheet at a fixed size. Decorative: it never carries the species name (R22). */
@@ -60,9 +62,16 @@ export function DragonBookPanel({ onSelect, onClose, art }: { onSelect: (dragonI
                       const has = found.has(sp.id)
                       return (
                         <li key={sp.id}>
-                          <button type="button" className="btn" data-testid="book-tile" aria-pressed={picked === sp.id} onClick={() => setPicked(sp.id)}>
+                          <button
+                            type="button"
+                            className="btn"
+                            data-testid="book-tile"
+                            aria-pressed={picked === sp.id}
+                            style={{ width: TILE_WIDTH, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+                            onClick={() => setPicked(sp.id)}
+                          >
                             <Silhouette sp={sp} art={art} found={has} />
-                            <small>{has ? sp.name : '???'}</small>
+                            <small style={{ overflowWrap: 'anywhere' }}>{has ? sp.name : '???'}</small>
                           </button>
                         </li>
                       )

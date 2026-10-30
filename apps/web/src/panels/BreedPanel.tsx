@@ -87,7 +87,7 @@ export function BreedPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
                   </ActionButton>
                 )}
                 {egg && done && (
-                  <ActionButton id={`collect-egg-${i}`} primary disabled={pending || hatcheryFull} reason="Hatchery is full" onClick={() => void run({ type: 'collectEgg', breeder: i })}>
+                  <ActionButton id={`collect-egg-${i}`} primary disabled={pending || hatcheryFull} reason={hatcheryFull ? 'Hatchery is full' : ''} onClick={() => void run({ type: 'collectEgg', breeder: i })}>
                     Move to Hatchery
                   </ActionButton>
                 )}
@@ -101,14 +101,7 @@ export function BreedPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
         <label>First parent <select style={tap} value={a} onChange={e => setA(e.target.value)}><option value="">—</option>{options}</select></label>
         <label>Second parent <select style={tap} value={b} onChange={e => setB(e.target.value)}><option value="">—</option>{options}</select></label>
       </div>
-      {pool && (
-        <ul aria-label="Breeding outcomes" style={{ listStyle: 'none', padding: 0, marginTop: 8 }}>
-          {rows.map(e => (
-            <li key={e.species.id} style={{ padding: '4px 0' }}>{`${e.species.name} · ${cap(e.species.rarity)} · ${pct(e.weight, total)} · ${formatDuration(timeOf(e.species))}`}</li>
-          ))}
-        </ul>
-      )}
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 8 }}>
         <ActionButton
           id="breed"
           primary
@@ -119,6 +112,13 @@ export function BreedPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
           Breed
         </ActionButton>
       </div>
+      {pool && (
+        <ul aria-label="Breeding outcomes" style={{ listStyle: 'none', padding: 0, marginTop: 8 }}>
+          {rows.map(e => (
+            <li key={e.species.id} style={{ padding: '4px 0' }}>{`${e.species.name} · ${cap(e.species.rarity)} · ${pct(e.weight, total)} · ${formatDuration(timeOf(e.species))}`}</li>
+          ))}
+        </ul>
+      )}
     </Panel>
   )
 }

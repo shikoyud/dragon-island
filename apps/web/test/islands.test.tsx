@@ -70,7 +70,7 @@ describe('ObstaclePanel', () => {
   it('clears for gold and shows rewards', async () => {
     const h = harness(withRock())
     h.wrap(<ObstaclePanel obstacleId="home-s1-rock" nowMs={0} />)
-    expect(screen.getByText(/\+40 XP/)).toBeInTheDocument()
+    expect(screen.getByText(/\+480 XP/)).toBeInTheDocument() // 40 classic XP x the Flash-14 multiplier
     expect(screen.getByText(/\+0 food/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /Clear · 250 gold · 5m/ }))
     expect(h.action).toHaveBeenCalledWith({ type: 'clearObstacle', obstacleId: 'home-s1-rock' }, expect.any(String))

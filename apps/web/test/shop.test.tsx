@@ -125,11 +125,11 @@ describe('ShopPanel Dragons section (buy a Basic)', () => {
     none.unmount()
     const full = show({ ...base, level: 3, gold: 5_000, habitats: [...base.habitats, seaHab],
       dragons: [...base.dragons, ...['d8', 'd9'].map(id => ({ id, speciesId: 'sea', level: 1, feeds: 0, habitatId: 'h3' }))] })
-    expect(sea()).toHaveAccessibleDescription('Build a Sea habitat first')
+    expect(sea()).toHaveAccessibleDescription('No free Sea habitat')
     full.unmount()
     const building = show({ ...base, level: 3, gold: 5_000, habitats: [...base.habitats, seaHab],
       constructions: [{ kind: 'build', building: { type: 'habitat', id: 'h3' }, readyAtMs: 9_999 }] })
-    expect(sea()).toHaveAccessibleDescription('Build a Sea habitat first')
+    expect(sea()).toHaveAccessibleDescription('No free Sea habitat')
     building.unmount()
     show({ ...base, level: 3, gold: 4_999, habitats: [...base.habitats, seaHab] })
     expect(sea()).toHaveAccessibleDescription('Not enough gold')

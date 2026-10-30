@@ -1,5 +1,5 @@
 import {
-  BREEDER_LEVELS, DECORATIONS, basicHome, basicPriceGold, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, FARM_UNLOCK_PL, farmBuildGold, MAX_FARMS, priceMicroUsd,
+  BREEDER_LEVELS, DECORATIONS, basicHome, basicPriceGold, canLiveIn, getSpecies, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, FARM_UNLOCK_PL, farmBuildGold, MAX_FARMS, priceMicroUsd,
   type DecorationId, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem,
 } from '@wyrmhaven/game-core'
 import { useMemo, useState, type ReactNode } from 'react'
@@ -91,7 +91,7 @@ function BuildTab({ s, onPlace, view, room, groveRoom }: { s: PlayerState; onPla
         const price = basicPriceGold(el)
         // The engine's order: Player Level, then a finished habitat with room (R26), then Gold.
         const reason = s.level < unlockPl ? `Level ${unlockPl}`
-          : !basicHome(s, LAUNCH_CATALOG, el) ? `Build a ${cap(el)} habitat first`
+          : !basicHome(s, LAUNCH_CATALOG, el) ? (s.habitats.some(h => canLiveIn(getSpecies(LAUNCH_CATALOG, el), h)) ? `No free ${cap(el)} habitat` : `Build a ${cap(el)} habitat first`)
           : s.gold < price ? 'Not enough gold' : undefined
         return (
           <li key={el}>

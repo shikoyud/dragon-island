@@ -51,13 +51,16 @@ export interface IslandModel {
   markers: IslandMarkers
 }
 
+/** The client clock can lag the server by a moment, so a fresh 1-minute timer reads a little over. Up to this much over a whole unit still shows that unit. */
+const TIMER_LAG_S = 5
+
 export function timerLabel(readyAtMs: number, nowMs: number): string {
   const left = Math.max(0, readyAtMs - nowMs)
   if (left === 0) return 'ready'
   const s = Math.ceil(left / 1000)
   if (s < 60) return `${s}s`
-  if (s < 3600) return `${Math.ceil(s / 60)}m`
-  return `${Math.ceil(s / 3600)}h`
+  if (s < 3600) return `${Math.ceil((s - TIMER_LAG_S) / 60)}m`
+  return `${Math.ceil((s - TIMER_LAG_S) / 3600)}h`
 }
 
 /** True when a finished egg could move to the Hatchery now (R18). */
@@ -92,7 +95,7 @@ export function badgeY(o: Pick<IslandObject, 'y' | 'sprite' | 'scale'>): number 
 /**
  * Sheet for a dragon by stage (R11): Baby uses the hatchling of its primary element, Juvenile its `juvenile.<species>`
  * sheet when the manifest has one (else the dragon sheet), Adult the dragon sheet. A species without art falls back to
- * the flame dragon until hybrids have art.
+ * its primary Basic (R23).
  */
 export function dragonLook(speciesId: string, level: number, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): { key: string; sprite: Sprite } {
   const stage = stageOf(level)

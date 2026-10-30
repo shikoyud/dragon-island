@@ -70,7 +70,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await store.getByRole('button', { name: 'Close' }).click()
       await expect(store).toBeHidden()
       await openPanel(page, 'Dragon Book')
-      await expect(page.getByRole('dialog', { name: 'Dragon Book' })).toContainText('Level 1')
+      await expect(page.getByRole('dialog', { name: 'Dragon Book' })).toContainText('found')
       await page.keyboard.press('Escape')
       await expect(page.getByRole('dialog')).toHaveCount(0)
       await openPanel(page, 'Campaign')

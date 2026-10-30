@@ -101,6 +101,7 @@ export function DragonPanel({ dragonId, onClose, catalog = LAUNCH_CATALOG }: { d
           </ActionButton>
         )}
       </div>
+      {d.habitatId === null && sellGold === null && <p><small>Needs room: upgrade a habitat or build a new one.</small></p>}
       {moving && (
         <fieldset style={{ marginTop: 8 }}>
           <legend>Move to</legend>

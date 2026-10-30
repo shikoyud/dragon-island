@@ -52,9 +52,10 @@ export function HatcheryPanel({ nowMs, onClose, onOpenDragon }: { nowMs: number;
         {waiting.map((d, i) => {
           const slot = s.hatchery.length + i
           return (
-            <li key={d.id} data-testid={`hatchery-slot-${slot}`} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+            <li key={d.id} data-testid={`hatchery-slot-${slot}`} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 6 }}>
               <button type="button" className="btn" onClick={() => onOpenDragon?.(d.id)}>{getSpecies(catalog, d.speciesId).name}</button>
               <small>Needs a habitat</small>
+              <small>It holds this slot until it has a home.</small>
             </li>
           )
         })}
