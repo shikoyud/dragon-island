@@ -26,6 +26,21 @@ Source of truth: `docs/dragon-island-gdd.md`. Gap & Conflict Report: `/mnt/proje
 
 shiko also said the token use and reward system will be discussed again after the full gameplay is visible. **M1–M6 are built first; the M7–M9 plans are written only after that discussion.**
 
+## Answers from shiko (2026-10-30 14:17, M2 plan approved; relayed by the coordinator session)
+
+| # | Question | Answer |
+| --- | --- | --- |
+| M2 Q1 | Scripted first hybrid | (a) At PL 2 from the parents' own pool: one of the two Rares from Terra × Flame, 1-minute breed and hatch. |
+| M2 Q2 | Legendary breeding windows | (a) The §8.4 banner windows. |
+| M2 Q3 | Basic purchase price | (a) Its habitat's §5.2 build Gold; same PL unlock. |
+| M2 Q4 | Tri-hybrids | (a) Ship Flame/Ice/Sea only. |
+| M2 Q5 | Hatchery L5 | (a) A premium fifth slot: bought once at PL 15 at any Hatchery level, adding one slot on top of the level's slots. |
+| M1 Q1 | GOLD badge | Waits for a threshold: 1 minute of production or 5 % of the cap, whichever is smaller. Client-only. |
+| M1 Q2 | Golden Aerie limit | One per player. |
+| M1 Q3 | Waitlist copy | Fix the copy that promises 14-day seasons and Season Points. |
+| M1 Q4 | Waitlist War art | Goes on the M2 art list. |
+| M1 Q5 | R13, R14 | Confirmed. |
+
 ## Rulings applied by the plans (defaults, not GDD text)
 
 | # | Ruling | Why |
@@ -44,3 +59,15 @@ shiko also said the token use and reward system will be discussed again after th
 | R12 | **Interim items until M7/M8**: the Store keeps timer skips and the existing Food pack; the shop's other items are removed in M0. | Playtests need food; the GDD's Supply Crates replace the pack in M7. |
 | R13 | **Sprinter figure.** §5.2's 136k/day assumes about 17 hourly check-ins; 24 would be 190,080. The test pins 17 check-ins = 134,640. | The formula, caps and War's 66k all hold; only the 136k assumption was unstated. |
 | R14 | **Waitlist element rename.** A waitlist SQL migration maps stored fire/water/earth to flame/sea/terra; `war` is added to its element list. | Entrants have a persisted element; without it their cards would have no colour or art. |
+| R15 | **Mountain and Grove take their GDD 5×5 footprint in M2**; the Hatchery stays 4×4 (already the GDD size). Other footprints wait for M4 (R9). | Their art is new, so drawing it once at final size avoids regenerating it. |
+| R16 | **Hatchery, Mountain and Grove upgrade timers** (GDD silent): to L2 1 h, L3 4 h, L4 12 h, $DRIS levels instant; Grove build 4 h. Classic, ÷ `timerDiv`. | Same ladder as A5 for habitats. |
+| R17 | Withdrawn; replaced by M2 plan Q5. | The §5.4 table's L5 and L4 order is a question for shiko. |
+| R18 | **A finished egg moves to the Hatchery on a tap**, not by itself; its building stays blocked until then. | §5.4 says only that the egg waits; a tap is the genre's collect moment and already exists. |
+| R19 | **Species ids** join elements in order (`flame-sea`); placeholder names `Flame-Sea`. Legendaries keep the names the GDD gives them. | Ordered ids match §2.3; names per A4. |
+| R20 | **Eggs hide their species until hatching**: the player sees the timer and the primary element's egg. | §3.1: "a long timer reveals a rare result early" only means something if the egg doesn't say. |
+| R21 | **`habitatRateCap`** is a preset field in percent, `null` or 125. "Native rate" is the same rarity and level at the habitat's element. The Golden Aerie is uncapped. | A13 and §5.2; percent keeps currency math integer. |
+| R22 | **Dragon Book**: a species is discovered on hatching or purchase; starters begin discovered. Silhouettes are the species' sprite with CSS `brightness(0)`. Hint text is ours. | §1.4 gives no rules; silhouettes need no extra art. |
+| R23 | **A hybrid with no art draws its primary Basic's sprite** until its art lands. | Keeps the game playable while 91 species of art arrive. |
+| R24 | **PvE stages and bots draw from the full catalog until M5**, with today's rarity rules, so stages 11+ meet real Rares and Epics. | M5 rewrites both from §6; not worth a stopgap. |
+| R25 | **The first hybrid's 1 minute** is real time under both presets, for breed and hatch, with no building reduction. Applies whichever answer to Q1 of the M2 plan. | §3.5 states a time, not a classic value. |
+| R26 | **Buying a Basic needs room**: a finished habitat of its element with a free slot, otherwise `NO_HABITAT_SLOT`. | The Hatchery should not fill with bought dragons. |
