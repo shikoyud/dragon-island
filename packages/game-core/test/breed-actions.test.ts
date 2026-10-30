@@ -5,14 +5,14 @@ import { getSpecies } from '../src/catalog'
 import { breedTimerMs } from '../src/data/breeding-timers'
 import { breedingPool, activeLegendaries } from '../src/breeding'
 import { LAUNCH_CATALOG } from '../src/data/launch-catalog'
-import { FLASH_14 } from '../src/data/presets'
+import { FLASH_14, FLASH_28 } from '../src/data/presets'
 import { HATCH_XP, START_BREED_XP } from '../src/data/xp'
 import { createRng } from '../src/rng'
 import { newPlayer, type Breeder, type BreederEgg, type Dragon, type Egg, type PlayerState } from '../src/state'
 import { err, ok } from './helpers'
 
 const s = newPlayer(0)
-const s4: PlayerState = { ...s, level: 2, dragons: s.dragons.map(d => ({ ...d, level: 4 })) }
+const s4: PlayerState = { ...s, firstHybridDone: true, level: 2, dragons: s.dragons.map(d => ({ ...d, level: 4 })) }
 const withParents = (a: string, b: string): PlayerState =>
   ({ ...s4, dragons: [{ ...s4.dragons[0]!, speciesId: a }, { ...s4.dragons[1]!, speciesId: b }] })
 const run = (st: PlayerState, a: Action, t: number, seed = 1) => applyAction(st, a, t, createRng(seed), LAUNCH_CATALOG)
@@ -83,13 +83,64 @@ describe('startBreed', () => {
     expect([ints, nexts]).toEqual([1, 0])
   })
 
-  describe('Legendary events', () => {
+  describe('the scripted first hybrid (§3.5, R25)', () => {
+  const pending: PlayerState = { ...s4, firstHybridDone: false }
+  const tf = (st: PlayerState) => ({ ...st, dragons: [{ ...st.dragons[0]!, speciesId: 'terra' }, { ...st.dragons[1]!, speciesId: 'flame' }] })
+  const at = (target: number) => ({ next: () => 0, int: (n: number) => (target < 0 ? n - 1 : target) })
+
+  it('rolls terra-flame or flame-terra, 60 s, under both presets and any Mountain level, and marks it done', () => {
+    for (const preset of [FLASH_14, FLASH_28]) for (const level of [1, 2, 3]) for (const pick of [0, 1]) {
+      const st = { ...tf(pending), breeders: [{ ...breeder(), level }] }
+      const r = ok(applyAction(st, breed, 5_000, { next: () => 0, int: (n: number) => (pick ? n - 1 : 0) }, LAUNCH_CATALOG, preset, 1))
+      const e = r.breeders[0]!.egg!
+      expect(['terra-flame', 'flame-terra']).toContain(e.speciesId)
+      expect(e.readyAtMs).toBe(5_000 + 60_000)
+      expect(e.hatchMs).toBe(60_000)
+      expect(r.firstHybridDone).toBe(true)
+    }
+  })
+
+  it('is 50/50 between the two hybrids', () => {
+    const a = ok(applyAction(tf(pending), breed, 0, at(0), LAUNCH_CATALOG, FLASH_14, 1)).breeders[0]!.egg!.speciesId
+    const b = ok(applyAction(tf(pending), breed, 0, at(-1), LAUNCH_CATALOG, FLASH_14, 1)).breeders[0]!.egg!.speciesId
+    expect(new Set([a, b])).toEqual(new Set(['terra-flame', 'flame-terra']))
+  })
+
+  it('the next breed uses normal odds and timers', () => {
+    const first = ok(run(tf(pending), breed, 0))
+    const again = { ...first, breeders: [breeder()] }
+    const r = ok(applyAction(again, breed, 0, at(0), LAUNCH_CATALOG, FLASH_14, 1))
+    const e = r.breeders[0]!.egg!
+    const child = getSpecies(LAUNCH_CATALOG, e.speciesId)
+    expect(e.speciesId).toBe('flame') // lowest id in the full pool, weight 1000 first
+    expect(e.hatchMs).toBe(breedTimerMs(child.rarity, child.elements, FLASH_14))
+    expect(e.hatchMs).not.toBe(60_000)
+  })
+
+  it('Terra x Terra while pending gives terra and leaves the script pending', () => {
+    const st = { ...pending, dragons: pending.dragons.map(d => ({ ...d, speciesId: 'terra' })) }
+    const r = ok(run(st, breed, 0))
+    expect(r.breeders[0]!.egg!.speciesId).toBe('terra')
+    expect(r.firstHybridDone).toBe(false)
+  })
+
+  it('with Magma Sovereign featured the scripted roll cannot be it', () => {
+    for (let i = 0; i < 40; i++) {
+      const r = ok(applyAction(tf(pending), breed, 0, createRng(i), LAUNCH_CATALOG, FLASH_14, 1))
+      expect(r.breeders[0]!.egg!.speciesId).not.toBe('magma-sovereign')
+    }
+    const top = ok(applyAction(tf(pending), breed, 0, at(10_000), LAUNCH_CATALOG, FLASH_14, 1))
+    expect(top.breeders[0]!.egg!.speciesId).not.toBe('magma-sovereign')
+  })
+})
+
+describe('Legendary events', () => {
     const tf = withParents('terra', 'flame')
     /** An rng whose single int() lands on `target` in the pool of Terra x Flame on `day`. */
     const forcing = (day: number, speciesId: string) => {
       const pool = breedingPool(
         getSpecies(LAUNCH_CATALOG, 'terra'), getSpecies(LAUNCH_CATALOG, 'flame'),
-        { activeLegendaries: activeLegendaries(day, FLASH_14) }, LAUNCH_CATALOG)
+        { activeLegendaries: activeLegendaries(day, FLASH_14), firstHybridPending: false }, LAUNCH_CATALOG)
       let acc = 0
       for (const e of pool) { if (e.species.id === speciesId) return { next: () => 0, int: () => acc }; acc += e.weight }
       return { next: () => 0, int: () => 0 }

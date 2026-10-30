@@ -50,6 +50,8 @@ export interface PlayerState {
   constructions: Construction[]
   farms: FarmPlot[]
   tutorial: { breedDone: boolean; hatchDone: boolean }
+  /** True once the scripted first hybrid has been bred (§3.5). */
+  firstHybridDone: boolean
   nextId: number
   /** Saved 3-dragon team other players attack; cleared if a member is sold. */
   defenceTeam: [string, string, string] | null
@@ -83,6 +85,7 @@ export function newPlayer(nowMs: number): PlayerState {
     constructions: [],
     farms: [{ crop: null, readyAtMs: 0, level: 1, placement: home(10, 0) }],
     tutorial: { breedDone: false, hatchDone: false },
+    firstHybridDone: false,
     nextId: 3,
     defenceTeam: null,
     trophies: 0,

@@ -13,8 +13,8 @@ const sp = (id: string) => {
   if (!s) throw new Error(`no species ${id}`)
   return s
 }
-const none: BreedContext = { activeLegendaries: [] }
-const only = (...ids: string[]): BreedContext => ({ activeLegendaries: ids })
+const none: BreedContext = { activeLegendaries: [], firstHybridPending: false }
+const only = (...ids: string[]): BreedContext => ({ activeLegendaries: ids, firstHybridPending: false })
 
 /** Weight of each species in the pool, by id. */
 const weights = (a: string, b: string, ctx: BreedContext = none, c = C) =>
@@ -190,5 +190,20 @@ describe('rollOffspring', () => {
     for (let i = 0; i < 20_000; i++) if (rollOffspring(sp('terra'), sp('nature'), none, C, rng).elements.length === 2) hybrids++
     expect(hybrids / 20_000).toBeGreaterThan(0.31)
     expect(hybrids / 20_000).toBeLessThan(0.36)
+  })
+})
+
+describe('first hybrid pending (§3.5)', () => {
+  const pend = (...ids: string[]): BreedContext => ({ activeLegendaries: ids, firstHybridPending: true })
+  it('Terra x Flame is restricted to terra-flame and flame-terra at 50 % each, Legendary or not', () => {
+    for (const ctx of [pend(), pend('magma-sovereign')]) {
+      expect(breedingOdds(sp('terra'), sp('flame'), ctx, C)).toEqual({ 'flame-terra': 0.5, 'terra-flame': 0.5 })
+    }
+  })
+  it('a pool with no hybrid is untouched', () => {
+    expect(breedingPool(sp('terra'), sp('terra'), pend(), C)).toEqual(breedingPool(sp('terra'), sp('terra'), none, C))
+  })
+  it('not pending leaves Terra x Flame at its normal pool', () => {
+    expect(Object.keys(weights('terra', 'flame')).length).toBeGreaterThan(2)
   })
 })

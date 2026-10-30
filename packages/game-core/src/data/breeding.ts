@@ -11,6 +11,9 @@ export const BREED_WEIGHT: Record<Rarity, number> = {
   legendary: 40,
 }
 
+/** §3.5, R25: the scripted first hybrid takes one real minute to breed and to hatch, under both presets, with no building reduction. */
+export const FIRST_HYBRID_MS = 60_000
+
 /** Inclusive game-day windows per preset. */
 export const LEGENDARY_EVENTS: readonly { speciesId: string; days: Record<PresetId, readonly [number, number]> }[] = [
   { speciesId: 'magma-sovereign', days: { flash14: [1, 4], flash28: [1, 7] } },

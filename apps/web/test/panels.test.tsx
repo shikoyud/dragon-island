@@ -233,7 +233,7 @@ describe('DragonPanel (B11)', () => {
 
 describe('BreedPanel', () => {
   it('shows exact odds for the chosen pair, with no boost or pity copy, and breeds', async () => {
-    const s4 = level(level(base, 'd1', 4), 'd2', 4)
+    const s4 = { ...level(level(base, 'd1', 4), 'd2', 4), firstHybridDone: true }
     const { wrap, action } = harness(s4)
     wrap(<BreedPanel />)
     await userEvent.selectOptions(screen.getByLabelText(/first parent/i), 'd1')
@@ -246,6 +246,16 @@ describe('BreedPanel', () => {
     expect(screen.queryByText(/odds boost|pity/i)).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: /^breed$/i }))
     expect(action).toHaveBeenCalledWith({ type: 'startBreed', parentA: 'd1', parentB: 'd2' }, expect.any(String))
+  })
+
+  it('shows the scripted first hybrid odds (50 / 50) until the first hybrid is bred', async () => {
+    const { wrap } = harness(level(level(base, 'd1', 4), 'd2', 4))
+    wrap(<BreedPanel />)
+    await userEvent.selectOptions(screen.getByLabelText(/first parent/i), 'd1')
+    await userEvent.selectOptions(screen.getByLabelText(/second parent/i), 'd2')
+    const table = screen.getByRole('table', { name: /odds/i })
+    expect(within(table).getAllByText('50.00%')).toHaveLength(2)
+    expect(within(table).getAllByRole('row')).toHaveLength(3)
   })
 
   it('disables breeding without a free breeder or with low-level parents', async () => {

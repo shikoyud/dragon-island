@@ -12,7 +12,7 @@ describe('newPlayer', () => {
       hatcheryLevel: 1, hatcheryFifthSlot: false, hatcheryPlacement: { island: 'home', col: 0, row: 8, facing: 0 },
       decorations: [], islands: { homeStep: 0, unlocked: ['home'], obstacles: [] }, constructions: [],
       farms: [{ crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 10, row: 0, facing: 0 } }],
-      version: 3,
+      version: 3, firstHybridDone: false,
       tutorial: { breedDone: false, hatchDone: false }, nextId: 3,
       defenceTeam: null, trophies: 0, pvp: { day: 0, count: 0 }, pve: { cleared: 0, replays: { day: 0, count: 0 } },
     })

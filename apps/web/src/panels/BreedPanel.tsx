@@ -23,7 +23,7 @@ export function BreedPanel({ onClose }: { onClose?: () => void }) {
   const lowLevel = ready && (pa.level < BREED_MIN_LEVEL || pb.level < BREED_MIN_LEVEL)
   const breederFree = s.breeders.some((n, i) => n.egg === null && !isUnfinished(s, { type: 'breeder', index: i }))
   const day = gameDay(me.data?.game?.launchAtMs ?? 0, Date.now())
-  const odds = ready && !lowLevel ? breedingOdds(getSpecies(catalog, pa.speciesId), getSpecies(catalog, pb.speciesId), { activeLegendaries: activeLegendaries(day, preset) }, catalog) : null
+  const odds = ready && !lowLevel ? breedingOdds(getSpecies(catalog, pa.speciesId), getSpecies(catalog, pb.speciesId), { activeLegendaries: activeLegendaries(day, preset), firstHybridPending: !s.firstHybridDone }, catalog) : null
   const rows = odds ? Object.entries(odds).sort((x, y) => y[1] - x[1]) : []
   const reason = !ready ? 'Pick two different dragons' : lowLevel ? `Both parents must be level ${BREED_MIN_LEVEL}` : !breederFree ? 'Every breeding building is busy' : ''
 

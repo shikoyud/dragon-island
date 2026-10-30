@@ -4,6 +4,7 @@ import { getSpecies } from '../catalog'
 import { isUnfinished } from '../construction'
 import { BREEDER_LEVELS } from '../data/breeding-buildings'
 import { breedTimerMs } from '../data/breeding-timers'
+import { FIRST_HYBRID_MS } from '../data/breeding'
 import { BREED_MIN_LEVEL } from '../data/dragon-levels'
 import { HATCH_XP, START_BREED_XP } from '../data/xp'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
@@ -26,13 +27,17 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const index = s.breeders.findIndex((b, i) => b.egg === null && !isUnfinished(s, { type: 'breeder', index: i }))
   if (index < 0) return failure('NO_FREE_BREEDER')
 
-  const child = rollOffspring(sa, sb, { activeLegendaries: activeLegendaries(ctx.day, ctx.preset) }, ctx.catalog, ctx.rng)
-  const hatchMs = breedTimerMs(child.rarity, child.elements, ctx.preset)
-  const readyAtMs = ctx.nowMs + breederBreedMs(hatchMs, s.breeders[index]!)
+  const bctx = { activeLegendaries: activeLegendaries(ctx.day, ctx.preset), firstHybridPending: !s.firstHybridDone }
+  const child = rollOffspring(sa, sb, bctx, ctx.catalog, ctx.rng)
+  // R25: the scripted breed takes a flat minute, only when the restricted pool was actually used.
+  const scripted = bctx.firstHybridPending && child.elements.length >= 2
+  const hatchMs = scripted ? FIRST_HYBRID_MS : breedTimerMs(child.rarity, child.elements, ctx.preset)
+  const readyAtMs = ctx.nowMs + (scripted ? FIRST_HYBRID_MS : breederBreedMs(hatchMs, s.breeders[index]!))
   const next = {
     ...s,
     breeders: s.breeders.map((b, i) => i === index ? { ...b, egg: { speciesId: child.id, readyAtMs, hatchMs } } : b),
     tutorial: { ...s.tutorial, breedDone: true },
+    firstHybridDone: s.firstHybridDone || scripted,
   }
   return success(addXp(next, START_BREED_XP))
 }

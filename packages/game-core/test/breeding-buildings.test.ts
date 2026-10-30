@@ -18,7 +18,7 @@ import { err, ok } from './helpers'
 const P = (col: number, row: number) => ({ island: 'home' as const, col, row, facing: 0 as const })
 const base = newPlayer(0)
 const parents = (a: string, b: string, level = 2): PlayerState => ({
-  ...base, level,
+  ...base, firstHybridDone: true, level,
   dragons: [{ ...base.dragons[0]!, speciesId: a, level: 4 }, { ...base.dragons[1]!, speciesId: b, level: 4 }],
 })
 const run = (s: PlayerState, a: Action, t = 0, rng: Rng = createRng(1)) => applyAction(s, a, t, rng, LAUNCH_CATALOG)
@@ -120,7 +120,7 @@ describe('startBreed on breeders', () => {
   it('reductions shorten breeding, never hatching (§5.4)', () => {
     // A forced Terra-Flame (Rare, Tier A) under Flash-14, in a Mountain L3.
     const tf = (id: 'terra' | 'flame') => getSpecies(LAUNCH_CATALOG, id)
-    const pool = breedingPool(tf('terra'), tf('flame'), { activeLegendaries: activeLegendaries(1, FLASH_14) }, LAUNCH_CATALOG)
+    const pool = breedingPool(tf('terra'), tf('flame'), { activeLegendaries: activeLegendaries(1, FLASH_14), firstHybridPending: false }, LAUNCH_CATALOG)
     let roll = 0
     for (const e of pool) { if (e.species.id === 'terra-flame') break; roll += e.weight }
     const st = { ...parents('terra', 'flame'), breeders: [mountain({ level: 3 })] }

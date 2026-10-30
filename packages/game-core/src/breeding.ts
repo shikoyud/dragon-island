@@ -5,7 +5,11 @@ import type { Preset } from './data/presets'
 import { isOpposite, type Element } from './elements'
 import type { Rng } from './rng'
 
-export interface BreedContext { activeLegendaries: readonly string[] }
+export interface BreedContext {
+  activeLegendaries: readonly string[]
+  /** ง3.5: the player has not yet bred their first hybrid (callers pass `!firstHybridDone`). */
+  firstHybridPending: boolean
+}
 export interface PoolEntry { species: Species; weight: number }
 
 /** Legendaries whose event window contains `day` (ยง8.4). */
@@ -40,7 +44,10 @@ export function breedingPool(a: Species, b: Species, ctx: BreedContext, c: Catal
       if (basic && !picked.includes(basic)) picked.push(basic)
     }
   }
-  return picked
+  // ง3.5: while the first hybrid is pending, a pool holding a hybrid is restricted to hybrids.
+  const isHybrid = (s: Species) => s.elements.length >= 2 && s.rarity !== 'legendary'
+  const pool = ctx.firstHybridPending && picked.some(isHybrid) ? picked.filter(isHybrid) : picked
+  return pool
     .sort((x, y) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0))
     .map(species => ({ species, weight: BREED_WEIGHT[species.rarity] }))
 }
