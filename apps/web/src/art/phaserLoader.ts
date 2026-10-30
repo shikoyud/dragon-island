@@ -24,6 +24,7 @@ export function artEntries(art: GameArtSet): Entry[] {
   for (const [c, s] of Object.entries(art.building.cropStage)) add(`crop.${c}`, s, 'crop', 'nature')
   for (const [c, s] of Object.entries(art.building.cropSway)) if (s) add(`crop.${c}.sway`, s, 'crop', 'nature')
   add('building.nexus', art.building.nexus, 'nexus')
+  if (art.building.goldenAerie) add('building.goldenAerie', art.building.goldenAerie, 'nexus', 'light')
   for (const [d, s] of Object.entries(art.decoration)) add(`decoration.${d}`, s, 'decoration', DECORATIONS[d as keyof typeof DECORATIONS].island ? 'light' : 'nature')
   for (const [k, s] of Object.entries(art.obstacle)) add(`obstacle.${k}`, s, 'obstacle', OBSTACLES[k as keyof typeof OBSTACLES].size > 1 ? 'terra' : 'nature')
   for (const [i, s] of Object.entries(art.map)) add(`map.${i}`, s, 'map', 'sea')
@@ -37,6 +38,7 @@ export function artEntries(art: GameArtSet): Entry[] {
   art.island.layers.forEach((s, i) => add(`island.layer.${i}`, s, 'island', 'sea'))
   add('fx.construction', art.fx.construction, 'fx', 'terra')
   add('fx.hatch', art.fx.hatch, 'fx', 'light')
+  add('fx.coins', art.fx.coins, 'fxCoins', 'light')
   // Ground tiles load only when they exist: without them the island scene draws its own diamonds.
   const ground = art.ground
   ground.grass.forEach((s, i) => add(`ground.grass.${i}`, s, 'island', 'nature'))

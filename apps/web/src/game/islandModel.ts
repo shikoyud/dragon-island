@@ -93,6 +93,8 @@ const decorationLook = (art: GameArtSet, kind: DecorationKind) => ({
   sprite: art.decoration[kind],
 })
 const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), sprite: art.building.nexus })
+/** The Golden Aerie: its own sprite when the manifest has one, else the Nexus sprite. */
+const aerieLook = (art: GameArtSet) => (art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art))
 
 /** Sprite and texture key of a thing that can be placed, for the ghost. */
 function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): { key: string; sprite: Sprite } {
@@ -101,7 +103,8 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
     switch (t.type) {
       case 'habitat': {
         const h = state.habitats.find(x => x.id === t.id)
-        if (!h || h.element === 'aerie') return nexusLook(art)
+        if (!h) return nexusLook(art)
+        if (h.element === 'aerie') return aerieLook(art)
         return { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
       }
       case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
@@ -117,7 +120,7 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
     case 'habitat': return { key: textureKey(`habitat.${what.element}`), sprite: art.habitat[what.element] }
     case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
     case 'decoration': return decorationLook(art, what.decoration)
-    case 'goldenAerie': return nexusLook(art) // until the Aerie has its own art
+    case 'goldenAerie': return aerieLook(art)
   }
 }
 
@@ -178,7 +181,7 @@ export function buildIslandModel(
     const a = anchor(h.placement.col, h.placement.row, FOOTPRINT.habitat)
     const gold = storedGold(h, residents(state, h.id), catalog, nowMs, preset)
     const base = h.element === 'aerie'
-      ? nexusLook(art)
+      ? aerieLook(art)
       : { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
     const group: IslandObject[] = [{
       id: `habitat:${h.id}`, ...base, ...a, target: { kind: 'habitat', id: h.id },

@@ -23,7 +23,7 @@ const PANEL_EDGE = '#3b4680'
 export type FallbackSlot =
   | 'egg' | 'hatchling' | 'dragon' | 'habitat' | 'nest' | 'hatchery' | 'farmPlot' | 'crop'
   | 'icon' | 'panel' | 'button' | 'cursor' | 'island'
-  | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'map' | 'fx'
+  | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'map' | 'fx' | 'fxCoins'
 
 export const fallbackKey = (slot: FallbackSlot, element?: Element): string =>
   element ? `fallback:${slot}:${element}` : `fallback:${slot}`
@@ -173,6 +173,13 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
       px(w * 0.47, h * 0.25, w * 0.08, h * 0.45, WOOD) // handle
       px(w * 0.34, h * 0.18, w * 0.34, h * 0.12, STONE) // head
       px(w * 0.36, h * 0.2, w * 0.3, h * 0.04, p.light)
+      return
+    }
+    case 'fxCoins': {
+      // A small heap of gold coins.
+      ellipse(w * 0.36, h * 0.7, w * 0.2, h * 0.1, '#e0a516')
+      ellipse(w * 0.64, h * 0.68, w * 0.2, h * 0.1, '#f2c53d')
+      ellipse(w * 0.5, h * 0.52, w * 0.2, h * 0.1, '#f7dc6f')
       return
     }
     case 'island': {

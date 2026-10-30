@@ -31,6 +31,8 @@ export interface GameArtSet {
     cropSway: Partial<Record<CropId, Sprite>>
     /** The all-element habitat on Dawnspire. */
     nexus: Sprite
+    /** The Golden Aerie's own sprite when the manifest has one; null = it reuses the Nexus sprite. */
+    goldenAerie: Sprite | null
   }
   elementIcon: Record<Element, Sprite>
   ui: { panel: Sprite; button: Sprite; cursor: Sprite }
@@ -41,7 +43,7 @@ export interface GameArtSet {
   /** Island map icons. */
   map: Record<IslandId, Sprite>
   /** Effects: a loop over buildings under construction, a one-shot burst where an egg hatches. */
-  fx: { construction: Sprite; hatch: Sprite }
+  fx: { construction: Sprite; hatch: Sprite; /** Gold coin burst, one-shot (key and fallback only until an effect uses it). */ coins: Sprite }
   /** Isometric ground tiles; null (or empty) until the art exists, and the island scene draws placeholders. */
   ground: { grass: Sprite[]; fog: Sprite | null; water: Sprite | null; cliffSw: Sprite | null; cliffSe: Sprite | null }
   /** HUD art present in the manifest (icon.<name>.16/.32, ui.*), by manifest key; absent keys use drawn placeholders. */
@@ -69,6 +71,7 @@ export const SLOT_SIZES = {
   map: { w: 32, h: 32 },
   fxConstruction: { w: 32, h: 32 },
   fxHatch: { w: 48, h: 48 },
+  fxCoins: { w: 32, h: 32 },
 } as const
 
 export type SlotName = keyof typeof SLOT_SIZES
