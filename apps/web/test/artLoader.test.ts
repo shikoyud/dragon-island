@@ -63,7 +63,7 @@ describe('playOrStill', () => {
     const a = stubSprite(false)
     playOrStill(a.sprite, 'art:egg.flame', 6, 8, false)
     expect(a.create).toHaveBeenCalledWith(expect.objectContaining({ key: animKey('art:egg.flame'), frameRate: 8, repeat: -1 }))
-    expect(a.raw.play).toHaveBeenCalledWith(animKey('art:egg.flame'))
+    expect(a.raw.play).toHaveBeenCalledWith(expect.objectContaining({ key: animKey('art:egg.flame') }))
     const b = stubSprite(true)
     playOrStill(b.sprite, 'art:egg.flame', 6, 8, false)
     expect(b.create).not.toHaveBeenCalled()

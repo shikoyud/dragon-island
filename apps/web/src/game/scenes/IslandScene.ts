@@ -1,6 +1,6 @@
 import { FOOTPRINT, islandSize, LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
-import { isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
+import { animateWater, isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet } from '../../art/types'
 import type { Bridge, Target } from '../bridge'
@@ -344,10 +344,7 @@ export class IslandScene extends Phaser.Scene {
       const pad = 2048 // the sea also fills the screen beyond the camera bounds when zoomed out
       this.water = this.add.tileSprite(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, textureKey('ground.water'), 0).setOrigin(0, 0).setDepth(-1).setAlpha(0.4) // softened: the sea is backdrop, not the subject
       const w = tiles.water
-      if (w.frames > 1 && w.fps > 0 && !this.bridge.reducedMotion) {
-        let f = 0
-        this.time.addEvent({ delay: 1000 / w.fps, loop: true, callback: () => { if (this.water?.active) this.water.setFrame(f = (f + 1) % w.frames) } })
-      }
+      animateWater(this, this.water, textureKey('ground.water'), w.frames, w.fps, this.bridge.reducedMotion)
     }
     const left = cellTop(0, shown.h)
     const bottom = cellTop(shown.w, shown.h)
