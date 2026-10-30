@@ -1,7 +1,7 @@
 import { LAUNCH_CATALOG } from '@wyrmhaven/game-core'
 import { describe, expect, it, vi } from 'vitest'
 import { artSetFromManifest } from '../src/art/fromManifest'
-import { animKey, artEntries, playOrStill, textureKey } from '../src/art/phaserLoader'
+import { animKey, artEntries, isSheet, playOneShot, playOrStill, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 
 describe('artEntries', () => {
@@ -64,6 +64,49 @@ describe('playOrStill', () => {
     const b = stubSprite(true)
     playOrStill(b.sprite, 'art:egg.flame', 6, 8, false)
     expect(b.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('playOneShot', () => {
+  const coins = { src: '/art/v1/fx-coins.png', w: 32, h: 32, frames: 8, fps: 12 }
+  const stub = (exists = false) => {
+    const handlers: Record<string, () => void> = {}
+    const create = vi.fn()
+    const raw = {
+      scene: { anims: { exists: () => exists, create, generateFrameNumbers: (_: string, o: { start: number; end: number }) => [o.start, o.end] } },
+      play: vi.fn(() => raw),
+      once: vi.fn((e: string, h: () => void) => { handlers[e] = h; return raw }),
+      destroy: vi.fn(),
+    }
+    return { sprite: raw as unknown as Phaser.GameObjects.Sprite, raw, create, handlers }
+  }
+
+  it('plays a sheet once, on an animation apart from the looping idle one, and destroys the sprite at the end', () => {
+    const s = stub()
+    expect(playOneShot(s.sprite, 'art:fx.coins', coins)).toBe(true)
+    expect(s.create).toHaveBeenCalledWith(expect.objectContaining({ key: 'art:fx.coins:once', frameRate: 12, repeat: 0, frames: [0, 7] }))
+    expect(s.raw.play).toHaveBeenCalledWith('art:fx.coins:once')
+    expect('art:fx.coins:once').not.toBe(animKey('art:fx.coins'))
+    expect(s.raw.destroy).not.toHaveBeenCalled()
+    s.handlers.animationcomplete!()
+    expect(s.raw.destroy).toHaveBeenCalledOnce()
+  })
+
+  it('reuses the animation once created', () => {
+    const s = stub(true)
+    playOneShot(s.sprite, 'art:fx.coins', coins)
+    expect(s.create).not.toHaveBeenCalled()
+  })
+
+  it('leaves a still alone and says so, so the caller can use its tween', () => {
+    const s = stub()
+    expect(playOneShot(s.sprite, 'art:fx.coins', { ...coins, frames: 1, fps: 0 })).toBe(false)
+    expect(s.raw.play).not.toHaveBeenCalled()
+  })
+
+  it('isSheet tells a sheet from a still or the drawn fallback', () => {
+    expect(isSheet(coins)).toBe(true)
+    expect(isSheet(FALLBACK_ART.fx.coins)).toBe(false)
   })
 })
 

@@ -86,5 +86,21 @@ export function playOrStill(sprite: Phaser.GameObjects.Sprite, key: string, fram
   sprite.play(animKey(key))
 }
 
+/** A sheet with frames to play, as opposed to a still or a drawn fallback. */
+export const isSheet = (sprite: Sprite): boolean => sprite.frames > 1 && sprite.fps > 0
+
+/**
+ * Plays the sheet once on `spr` and destroys it at the end, on its own animation because the idle one loops.
+ * A still does nothing and returns false, so the caller can use a tween instead.
+ */
+export function playOneShot(spr: Phaser.GameObjects.Sprite, key: string, sprite: Sprite): boolean {
+  if (!isSheet(sprite)) return false
+  const anims = spr.scene.anims
+  const anim = `${key}:once`
+  if (!anims.exists(anim)) anims.create({ key: anim, frames: anims.generateFrameNumbers(key, { start: 0, end: sprite.frames - 1 }), frameRate: sprite.fps, repeat: 0 })
+  spr.play(anim).once('animationcomplete', () => spr.destroy())
+  return true
+}
+
 /** Fallback texture key helper kept for callers that draw ad-hoc fallbacks. */
 export { fallbackKey }

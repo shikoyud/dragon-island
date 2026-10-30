@@ -10,13 +10,13 @@ const e = (file: string, w: number, h: number, frames = 1, fps = 0) => ({ file, 
 const C = LAUNCH_CATALOG
 
 describe('M1 art keys (docs/art/gdd-m1-art-list.md)', () => {
-  it('prefers crop.<cropId> and its sway sheet over the v1 stand-in keys when present', () => {
+  it('reads each crop from crop.<cropId> and its sway sheet, and the old v1 tier keys no longer count', () => {
     const art = artSetFromManifest('v2', { assets: {
       'crop.sprout': e('old.png', 16, 16, 4), 'crop.emberWheat': e('wheat.png', 16, 16, 3), 'crop.emberWheat.sway': e('wheat-sway.png', 16, 16, 4, 4),
     } }, C)
     expect(art.building.cropStage.emberWheat.src).toBe('/art/v2/wheat.png')
     expect(art.building.cropSway.emberWheat?.src).toBe('/art/v2/wheat-sway.png')
-    expect(art.building.cropStage.dragonBush.src).toBe('/art/v2/old.png') // still the stand-in
+    expect(art.building.cropStage.dragonBush.src).toBe('') // no art of its own: the drawn fallback
   })
 
   it('prefers building.goldenAerie for the Aerie ghost when present, else the Nexus', () => {

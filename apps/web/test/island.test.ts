@@ -135,8 +135,8 @@ describe('island model', () => {
   it('swaps a ripe crop to its sway loop when the art has one', () => {
     const art = artSetFromManifest('v1', {
       assets: {
-        'crop.sprout': { file: 'crop-sprout.png', w: 16, h: 16, frames: 4, fps: 0 },
-        'crop.sprout.sway': { file: 'crop-sprout-sway.png', w: 16, h: 16, frames: 4, fps: 4 },
+        'crop.dragonBush': { file: 'crop-dragon-bush.png', w: 16, h: 16, frames: 4, fps: 0 },
+        'crop.dragonBush.sway': { file: 'crop-dragon-bush-sway.png', w: 16, h: 16, frames: 4, fps: 4 },
       },
     }, C)
     const s = (readyAtMs: number) => ({ ...newPlayer(0), farms: [{ ...newPlayer(0).farms[0]!, crop: 'dragonBush' as const, readyAtMs }] })
@@ -150,7 +150,7 @@ describe('island model', () => {
 
   it('picks the growth-stage frame when the crop sprite is a stage sheet', () => {
     const art = artSetFromManifest('v1', {
-      assets: { 'crop.sprout': { file: 'crop-sprout.png', w: 16, h: 16, frames: 4, fps: 0 } },
+      assets: { 'crop.dragonBush': { file: 'crop-dragon-bush.png', w: 16, h: 16, frames: 4, fps: 0 } },
     }, C)
     const s = (readyAtMs: number) => ({ ...newPlayer(0), farms: [{ ...newPlayer(0).farms[0]!, crop: 'dragonBush' as const, readyAtMs }] })
     const crop = (readyAtMs: number, nowMs: number) =>

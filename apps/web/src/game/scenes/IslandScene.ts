@@ -1,6 +1,6 @@
 import { FOOTPRINT, islandSize, LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
-import { playOrStill, textureKey } from '../../art/phaserLoader'
+import { isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet } from '../../art/types'
 import type { Bridge, Target } from '../bridge'
@@ -291,29 +291,28 @@ export class IslandScene extends Phaser.Scene {
   }
 
   /**
-   * Collect from a tapped gold badge: ask React to run `collectGold` and send the badge up and away
-   * (`fx.coins` has no art yet, so the badge itself is the burst; nothing moves with reduced motion).
+   * Collect from a tapped gold badge: ask React to run `collectGold`, then the coin burst in place of the badge, or
+   * without `fx.coins` art the badge itself goes up and away. Nothing moves with reduced motion.
    */
   private collect(badge: Phaser.GameObjects.Text): void {
     this.bridge.emit({ type: 'collectGold', habitatId: badge.getData('collect') as string })
     badge.disableInteractive()
     if (this.bridge.reducedMotion) return
+    if (isSheet(this.art().fx.coins)) {
+      badge.setVisible(false)
+      this.playOnce('fx.coins', { x: badge.x, y: badge.y })
+      return
+    }
     this.tweens.add({ targets: badge, y: badge.y - 12 / (this.view?.zoom ?? 1), alpha: 0, duration: 450, ease: 'Quad.easeOut' })
   }
 
   /** Plays a one-shot effect at a world point: its sheet once, or a fade for a still; nothing with reduced motion. */
-  private playOnce(path: 'fx.hatch', at: Pos): void {
+  private playOnce(path: 'fx.hatch' | 'fx.coins', at: Pos): void {
     if (this.bridge.reducedMotion) return
     const key = textureKey(path)
-    const sprite = this.art().fx.hatch
+    const sprite = path === 'fx.hatch' ? this.art().fx.hatch : this.art().fx.coins
     const spr = this.add.sprite(at.x, at.y, key).setOrigin(0.5, 1).setDepth(1)
-    if (sprite.frames > 1 && sprite.fps > 0) {
-      const anim = `${key}:once`
-      if (!this.anims.exists(anim)) this.anims.create({ key: anim, frames: this.anims.generateFrameNumbers(key, { start: 0, end: sprite.frames - 1 }), frameRate: sprite.fps, repeat: 0 })
-      spr.play(anim).once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => spr.destroy())
-    } else {
-      this.tweens.add({ targets: spr, alpha: 0, y: at.y - 8, duration: 700, onComplete: () => spr.destroy() })
-    }
+    if (!playOneShot(spr, key, sprite)) this.tweens.add({ targets: spr, alpha: 0, y: at.y - 8, duration: 700, onComplete: () => spr.destroy() })
   }
 
   /**

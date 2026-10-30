@@ -43,7 +43,7 @@ export interface GameArtSet {
   /** Island map icons. */
   map: Record<IslandId, Sprite>
   /** Effects: a loop over buildings under construction, a one-shot burst where an egg hatches. */
-  fx: { construction: Sprite; hatch: Sprite; /** Gold coin burst, one-shot (key and fallback only until an effect uses it). */ coins: Sprite }
+  fx: { construction: Sprite; hatch: Sprite; /** Gold coin burst, one-shot, on a tapped gold badge. */ coins: Sprite }
   /** Isometric ground tiles; null (or empty) until the art exists, and the island scene draws placeholders. */
   ground: { grass: Sprite[]; fog: Sprite | null; water: Sprite | null; cliffSw: Sprite | null; cliffSe: Sprite | null }
   /** HUD art present in the manifest (icon.<name>.16/.32, ui.*), by manifest key; absent keys use drawn placeholders. */
