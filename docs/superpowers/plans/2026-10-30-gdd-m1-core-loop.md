@@ -25,7 +25,7 @@
 ## Review Focus
 
 1. A habitat that is already at its Gold Cap must stop accruing: collecting after 10 hours yields exactly the cap, and the HUD shows FULL (§5.2). Pinned in Task B6.
-2. Feeding with exactly the Food cost must succeed and leave 0 Food; feeding at the level cap (7 without a Roost) must fail with `MAX_LEVEL` and the button must read "Upgrade Roost" (§4.1–4.2). Pinned in Task B5 and B11.
+2. Feeding with exactly the Food cost must succeed and leave 0 Food; feeding at the level cap (7 without a Roost) must fail with `LEVEL_CAP` and the button must read "Upgrade Roost" (§4.1–4.2). Pinned in Task B5 and B11.
 3. A state saved before this plan (no `version`) must not crash `/me`; it is replaced by a fresh player and logged (R2). Pinned in Task A4.
 4. The Flash-28 preset must divide breed/build timers by 4 and multiply crop yield by 8 without any code branch: swapping the preset in the test harness must change only numbers (§7.2). Pinned in Task B1 and B7.
 5. Collecting Gold must award 0 XP (§4.3 "prevents tap-farming"), and harvesting after the preset halves the timer must be ready at exactly `plantedAt + classicMs / 2` (§5.3). Pinned in Task B7 and B9.

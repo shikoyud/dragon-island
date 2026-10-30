@@ -43,6 +43,19 @@ describe('GET /game', () => {
     expect((await t.app.inject({ method: 'GET', url: '/game' })).json()).toMatchObject({ day: 0, phase: 'prelaunch' })
   })
 
+  it('a Flash-28 server plants a Dragon Bush that is ready in 20 s (30 s / 1.5)', async () => {
+    const config = loadConfig({ ...base, PRESET: 'flash28', LAUNCH_AT: new Date(LAUNCH).toISOString() })
+    const now = LAUNCH + DAY
+    t = await testApp({ config }, now)
+    const { token } = await t.login(player)
+    const res = await t.app.inject({
+      method: 'POST', url: '/actions', headers: bearer(token),
+      payload: { action: { type: 'plant', plot: 0, crop: 'dragonBush' }, idempotencyKey: 'flash28-plant' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().state.farms[0]).toMatchObject({ crop: 'dragonBush', readyAtMs: now + 20_000 })
+  })
+
   it('uses the flash28 preset when PRESET says so', async () => {
     const config = loadConfig({ ...base, PRESET: 'flash28', LAUNCH_AT: new Date(LAUNCH).toISOString() })
     t = await testApp({ config }, LAUNCH + 5 * DAY)
