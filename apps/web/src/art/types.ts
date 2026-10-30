@@ -19,6 +19,8 @@ export interface GameArtSet {
   hatchling: Record<Element, Sprite>
   /** Keyed by species id. */
   dragon: Record<string, Sprite>
+  /** Juvenile (Lv 4-6) sheets by species id; only species the manifest has art for appear (R11), the rest use `dragon`. */
+  juvenile: Record<string, Sprite>
   habitat: Record<Element, Sprite>
   building: {
     nest: Sprite

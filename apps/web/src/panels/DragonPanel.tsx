@@ -1,47 +1,116 @@
-import { foodPerFeed, getSpecies, goldPerMinuteX20, LAUNCH_CATALOG, levelCap, SELL_GOLD } from '@wyrmhaven/game-core'
+import {
+  atkAt, canLiveIn, FEEDS_PER_LEVEL, foodPerFeed, getSpecies, goldPerMinuteX20, habitatSlots, hpAt, isUnfinished, LAUNCH_CATALOG, levelCap,
+  residents, SELL_GOLD, stageOf, type Catalog,
+} from '@wyrmhaven/game-core'
+import { useState } from 'react'
+import { Icon } from '../hud/Icon'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { usePreset } from '../state/preset'
-import { formatGold } from '../ui/Money'
+import { formatGold, formatPerMinuteX20 } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 
-export function DragonPanel({ dragonId, onClose }: { dragonId: string; onClose?: () => void }) {
+const STAGE_NAME = { baby: 'Baby', juvenile: 'Juvenile', adult: 'Adult' } as const
+
+/** Four pips, one per feed toward the next level (§4.1). Not a tap target. */
+function FeedPips({ feeds }: { feeds: number }) {
+  return (
+    <span role="img" aria-label={`${feeds} of ${FEEDS_PER_LEVEL} feeds`} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+      {Array.from({ length: FEEDS_PER_LEVEL }, (_, i) => (
+        <span
+          key={i}
+          data-pip={i < feeds ? 'filled' : 'empty'}
+          style={{ width: 10, height: 10, border: '2px solid var(--border)', background: i < feeds ? 'var(--accent)' : 'transparent', display: 'inline-block' }}
+        />
+      ))}
+    </span>
+  )
+}
+
+export function DragonPanel({ dragonId, onClose, catalog = LAUNCH_CATALOG }: { dragonId: string; onClose?: () => void; catalog?: Catalog }) {
   const me = useMe()
   const preset = usePreset()
   const { run, pending } = useAction()
+  const [moving, setMoving] = useState(false)
   const s = me.data?.state
   const d = s?.dragons.find(x => x.id === dragonId)
   if (!s || !d) return null
-  const species = getSpecies(LAUNCH_CATALOG, d.speciesId)
+  const species = getSpecies(catalog, d.speciesId)
   const maxed = d.level >= levelCap(s.roostTier)
   const foodCost = maxed ? 0 : foodPerFeed(d.level)
   const sellGold = SELL_GOLD[species.rarity]
   const inTeam = s.defenceTeam?.includes(d.id) ?? false
+  // Hybrids live in any habitat of their elements; a full or unbuilt habitat, and the current one, are not offered.
+  const destinations = s.habitats.filter(h =>
+    h.id !== d.habitatId
+    && canLiveIn(species, h)
+    && residents(s, h.id).length < habitatSlots(h)
+    && !isUnfinished(s, { type: 'habitat', id: h.id }))
 
   return (
     <Panel title={`${species.name} (${d.id})`} onClose={onClose}>
-      <p>{species.rarity} · {species.elements.join(' / ')} · level {d.level} · {Math.floor(goldPerMinuteX20(species.elements[0]!, species.rarity, d.level, preset) / 20)} gold/min</p>
+      <p style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ display: 'inline-flex', gap: 2 }}>
+          {species.elements.map(el => <Icon key={el} name={el} size={16} label={el} />)}
+        </span>
+        <span style={{ textTransform: 'capitalize' }}>{species.rarity}</span>
+      </p>
+      <p>{`Level ${d.level} · ${STAGE_NAME[stageOf(d.level)]}`}</p>
+      <p>{`${formatPerMinuteX20(goldPerMinuteX20(species.elements[0]!, species.rarity, d.level, preset))} gold/min`}</p>
+      <p>{`HP ${hpAt(species.rarity, d.level)} · ATK ${atkAt(species.rarity, d.level)}`}</p>
       <p>{d.habitatId ? `Lives in ${d.habitatId}` : 'Waiting in the hatchery (no habitat has room)'}{inTeam ? ' · defence team' : ''}</p>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <ActionButton
-          id={`feed-${d.id}`}
-          primary
-          disabled={pending || maxed || s.food < foodCost}
-          reason={maxed ? 'Upgrade your Roost to level up further' : 'Not enough food'}
-          onClick={() => void run({ type: 'feed', dragonId: d.id })}
-        >
-          Feed{maxed ? '' : ` · ${formatGold(foodCost)} food`}
-        </ActionButton>
-        <ActionButton
-          id={`sell-${d.id}`}
-          danger
-          disabled={pending || s.dragons.length <= 2 || sellGold === null}
-          reason={sellGold === null ? 'Legendary dragons cannot be sold' : 'Keep at least two dragons so you can still breed'}
-          onClick={() => void run({ type: 'sellDragon', dragonId: d.id })}
-        >
-          {sellGold === null ? 'Cannot be sold' : `Sell · ${formatGold(sellGold)} gold`}
-        </ActionButton>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {maxed ? (
+          <ActionButton id={`feed-${d.id}`} primary disabled reason="Dragon Roost arrives in a later update">
+            Upgrade Roost
+          </ActionButton>
+        ) : (
+          <ActionButton
+            id={`feed-${d.id}`}
+            primary
+            disabled={pending || s.food < foodCost}
+            reason="Not enough food"
+            onClick={() => void run({ type: 'feed', dragonId: d.id })}
+          >
+            {`Feed · ${formatGold(foodCost)} food`}
+          </ActionButton>
+        )}
+        <FeedPips feeds={d.feeds} />
       </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+        <ActionButton id={`move-${d.id}`} onClick={() => setMoving(m => !m)}>
+          Move
+        </ActionButton>
+        {sellGold !== null && (
+          <ActionButton
+            id={`sell-${d.id}`}
+            danger
+            disabled={pending || s.dragons.length <= 2}
+            reason="Keep at least two dragons so you can still breed"
+            onClick={() => void run({ type: 'sellDragon', dragonId: d.id })}
+          >
+            {`Sell · ${formatGold(sellGold)} gold`}
+          </ActionButton>
+        )}
+      </div>
+      {moving && (
+        <fieldset style={{ marginTop: 8 }}>
+          <legend>Move to</legend>
+          {destinations.length === 0 && <p><small>No habitat of a matching element has a free slot.</small></p>}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {destinations.map(h => (
+              <ActionButton
+                key={h.id}
+                id={`move-${d.id}-${h.id}`}
+                disabled={pending}
+                onClick={() => { setMoving(false); void run({ type: 'moveDragon', dragonId: d.id, habitatId: h.id }) }}
+              >
+                {`${h.element === 'aerie' ? 'Golden Aerie' : h.element} ${h.id} · ${residents(s, h.id).length}/${habitatSlots(h)}`}
+              </ActionButton>
+            ))}
+          </div>
+        </fieldset>
+      )}
     </Panel>
   )
 }

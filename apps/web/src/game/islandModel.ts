@@ -1,6 +1,6 @@
 import {
   constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
-  DEFAULT_PRESET, habitatCap, OBSTACLES, placementRuleError, residents, storedGold,
+  DEFAULT_PRESET, habitatCap, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
   type BuildingRef, type Catalog, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
@@ -65,10 +65,25 @@ export function badgeY(o: Pick<IslandObject, 'y' | 'sprite' | 'scale'>): number 
   return o.y - Math.round((o.sprite.h - (o.sprite.top ?? 0)) * (o.scale ?? 1)) - 2
 }
 
-/** Dragon sheet for a species, falling back to the flame dragon until hybrids have art. */
-export function dragonKey(speciesId: string, art: GameArtSet): string {
-  return art.dragon[speciesId] ? textureKey(`dragon.${speciesId}`) : textureKey('dragon.flame')
+/**
+ * Sheet for a dragon by stage (R11): Baby uses the hatchling of its primary element, Juvenile its `juvenile.<species>`
+ * sheet when the manifest has one (else the dragon sheet), Adult the dragon sheet. A species without art falls back to
+ * the flame dragon until hybrids have art.
+ */
+export function dragonLook(speciesId: string, level: number, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): { key: string; sprite: Sprite } {
+  const stage = stageOf(level)
+  if (stage === 'baby') {
+    const el = catalog.species.get(speciesId)?.elements[0] ?? 'flame'
+    return { key: textureKey(`hatchling.${el}`), sprite: art.hatchling[el] }
+  }
+  const juvenile = stage === 'juvenile' ? art.juvenile[speciesId] : undefined
+  if (juvenile) return { key: textureKey(`juvenile.${speciesId}`), sprite: juvenile }
+  const adult = art.dragon[speciesId]
+  return adult ? { key: textureKey(`dragon.${speciesId}`), sprite: adult } : { key: textureKey('dragon.flame'), sprite: art.dragon['flame']! }
 }
+
+export const dragonKey = (speciesId: string, level: number, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): string =>
+  dragonLook(speciesId, level, art, catalog).key
 
 const flip = (facing: number): { flipX?: true } => (facing === 1 || facing === 3 ? { flipX: true } : {})
 
@@ -171,7 +186,7 @@ export function buildIslandModel(
     }]
     markers.habitats.push(h.id)
     residents(state, h.id).forEach((d, slot) => {
-      group.push({ id: `dragon:${d.id}`, key: dragonKey(d.speciesId, art), sprite: art.dragon[d.speciesId] ?? art.dragon['flame']!, ...dragonSpot(a, slot), target: { kind: 'dragon', id: d.id } })
+      group.push({ id: `dragon:${d.id}`, ...dragonLook(d.speciesId, d.level, art, catalog), ...dragonSpot(a, slot), target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
     })
     // Residents back to front on the platform, after the platform itself.

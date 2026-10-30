@@ -56,7 +56,7 @@ export class BattleScene extends Phaser.Scene {
       preview[side].forEach((c, slot) => {
         const x = (side === 'attacker' ? ATTACK_X : DEFEND_X)[slot]!
         const y = ROW_Y[slot]!
-        const spr = this.add.sprite(x, y, dragonKey(c.spec.speciesId, art)).setOrigin(0.5, 1)
+        const spr = this.add.sprite(x, y, dragonKey(c.spec.speciesId, c.spec.level, art)).setOrigin(0.5, 1)
         if (side === 'attacker') spr.setFlipX(true)
         spr.setAlpha(c.hp > 0 ? 1 : 0.35)
         if (side === 'defender') {

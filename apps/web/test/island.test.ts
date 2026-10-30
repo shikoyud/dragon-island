@@ -4,7 +4,7 @@ import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
-import { badgeY, buildIslandModel, timerLabel } from '../src/game/islandModel'
+import { badgeY, buildIslandModel, dragonKey, timerLabel } from '../src/game/islandModel'
 import { NEST_EGG_SCALE } from '../src/game/layout'
 
 const C = LAUNCH_CATALOG
@@ -18,6 +18,27 @@ describe('island model', () => {
     expect(badgeY({ y: 100, sprite: { ...sprite, w: 32, h: 32, top: 1 }, scale: 0.25 })).toBe(90)
   })
 
+  it('picks the sprite by stage: hatchling for babies, juvenile when present else dragon, dragon for adults (R11)', () => {
+    expect(dragonKey('terra', 2, FALLBACK_ART)).toBe(textureKey('hatchling.terra'))
+    expect(dragonKey('terra', 8, FALLBACK_ART)).toBe(textureKey('dragon.terra'))
+    expect(dragonKey('terra', 5, FALLBACK_ART)).toBe(textureKey('dragon.terra'))
+    const withJuvenile = artSetFromManifest('t', { assets: { 'juvenile.terra': { file: 'j.png', w: 48, h: 48, frames: 1, fps: 0 } } }, C)
+    expect(withJuvenile.juvenile['terra']?.src).toBe('/art/t/j.png')
+    expect(withJuvenile.juvenile['flame']).toBeUndefined()
+    expect(dragonKey('terra', 5, withJuvenile)).toBe(textureKey('juvenile.terra'))
+    expect(dragonKey('flame', 5, withJuvenile)).toBe(textureKey('dragon.flame'))
+    expect(dragonKey('terra', 8, withJuvenile)).toBe(textureKey('dragon.terra'))
+    expect(artEntries(withJuvenile).some(e => e.key === textureKey('juvenile.terra'))).toBe(true)
+  })
+
+  it('draws a Lv 8 resident with the dragon sheet and a waiting Lv 2 with the hatchling sheet', () => {
+    const s = newPlayer(0)
+    const lv8 = { ...s, dragons: s.dragons.map(d => (d.id === 'd1' ? { ...d, level: 8 } : d)) }
+    expect(model(lv8).objects.find(o => o.id === 'dragon:d1')!.key).toBe(textureKey('dragon.terra'))
+    const lv2 = { ...s, dragons: s.dragons.map(d => (d.id === 'd1' ? { ...d, level: 2 } : d)) }
+    expect(model(lv2).objects.find(o => o.id === 'dragon:d1')!.key).toBe(textureKey('hatchling.terra'))
+  })
+
   it('describes the starting island', () => {
     const { markers, objects } = model(newPlayer(0))
     expect(markers.habitats).toEqual(['h1', 'h2'])
@@ -26,7 +47,7 @@ describe('island model', () => {
     expect(markers.hatchery).toEqual([])
     expect(markers.farms).toHaveLength(1)
     expect(objects.find(o => o.id === 'habitat:h1')!.key).toBe(textureKey('habitat.terra'))
-    expect(objects.find(o => o.id === 'dragon:d2')!.key).toBe(textureKey('dragon.flame'))
+    expect(objects.find(o => o.id === 'dragon:d2')!.key).toBe(textureKey('hatchling.flame')) // Lv 1 is a baby (R11)
     for (const o of objects) {
       expect(Number.isInteger(o.x) && Number.isInteger(o.y)).toBe(true)
     }

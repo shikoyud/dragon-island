@@ -1,4 +1,4 @@
-import { cropFood, DEFAULT_PRESET, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
+import { atkAt, cropFood, DEFAULT_PRESET, goldPerMinuteX20, hpAt, makeCatalog, newPlayer, SELL_GOLD, type PlayerState } from '@wyrmhaven/game-core'
 import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -12,7 +12,7 @@ import { NestsPanel } from '../src/panels/NestsPanel'
 import { ResourcesBar } from '../src/panels/ResourcesBar'
 import { StorePanel } from '../src/panels/StorePanel'
 import { StartPlacingProvider } from '../src/state/startPlacing'
-import { formatDuration, formatGold, formatMicroUsd, formatSkipPrice, formatWei } from '../src/ui/Money'
+import { formatDuration, formatGold, formatMicroUsd, formatPerMinuteX20, formatSkipPrice, formatWei } from '../src/ui/Money'
 
 const base = newPlayer(0)
 const level = (s: PlayerState, id: string, lvl: number): PlayerState =>
@@ -125,12 +125,108 @@ describe('DragonPanel', () => {
   it('feeds and marks max level', async () => {
     const { wrap, action } = harness(level(base, 'd1', 7))
     wrap(<DragonPanel dragonId="d1" />)
-    expect(screen.getByRole('button', { name: /feed/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /upgrade roost/i })).toBeDisabled()
     const { wrap: wrap2, action: a2 } = harness(base)
     wrap2(<DragonPanel dragonId="d2" />)
-    await userEvent.click(screen.getAllByRole('button', { name: /feed/i })[1]!)
+    await userEvent.click(screen.getByRole('button', { name: /^feed/i }))
     expect(a2).toHaveBeenCalledWith({ type: 'feed', dragonId: 'd2' }, expect.any(String))
     expect(action).not.toHaveBeenCalled()
+  })
+})
+
+describe('DragonPanel (B11)', () => {
+  const withD1 = (patch: Partial<PlayerState['dragons'][number]>): PlayerState =>
+    ({ ...base, dragons: base.dragons.map(d => (d.id === 'd1' ? { ...d, ...patch } : d)) })
+  const habitat = (id: string, element: 'terra' | 'flame' | 'sea'): PlayerState['habitats'][number] =>
+    ({ ...base.habitats[0]!, id, element })
+
+  it('shows two filled pips and Feed · 5 food for a Lv 1 dragon with 2 feeds', () => {
+    const { wrap } = harness(withD1({ feeds: 2 }))
+    wrap(<DragonPanel dragonId="d1" />)
+    const pips = screen.getByRole('img', { name: /2 of 4 feeds/i })
+    expect(pips.querySelectorAll('[data-pip]')).toHaveLength(4)
+    expect(pips.querySelectorAll('[data-pip="filled"]')).toHaveLength(2)
+    expect(screen.getByRole('button', { name: /^feed/i })).toHaveTextContent('Feed · 5 food')
+  })
+
+  it('shows level, stage, rarity, Gold/min, HP and ATK', () => {
+    const { wrap } = harness(withD1({ level: 5 }))
+    wrap(<DragonPanel dragonId="d1" />)
+    expect(screen.getByText(/Level 5 · Juvenile/)).toBeInTheDocument()
+    expect(screen.getByText(/common/i)).toBeInTheDocument()
+    expect(screen.getByText('660 gold/min')).toBeInTheDocument()
+    expect(screen.getByText(`HP ${hpAt('common', 5)} · ATK ${atkAt('common', 5)}`)).toBeInTheDocument()
+  })
+
+  it('shows Baby and Adult stages and formats fractional Gold/min like the habitat panel', () => {
+    const baby = harness(withD1({ level: 1 }))
+    const { unmount } = baby.wrap(<DragonPanel dragonId="d1" />)
+    expect(screen.getByText(/Level 1 · Baby/)).toBeInTheDocument()
+    expect(screen.getByText(`${formatPerMinuteX20(goldPerMinuteX20('terra', 'common', 1, DEFAULT_PRESET))} gold/min`)).toBeInTheDocument()
+    unmount()
+    const adult = harness({ ...withD1({ level: 7 }), roostTier: 1 })
+    adult.wrap(<DragonPanel dragonId="d1" />)
+    expect(screen.getByText(/Level 7 · Adult/)).toBeInTheDocument()
+  })
+
+  it('names the element icons, primary first', () => {
+    const catalog = makeCatalog([{ id: 'steam', name: 'Steam', elements: ['flame', 'sea'], rarity: 'rare', recipeOnly: false }])
+    const { wrap } = harness(withD1({ speciesId: 'steam' }))
+    wrap(<DragonPanel dragonId="d1" catalog={catalog} />)
+    expect(screen.getAllByRole('img', { name: /^(flame|sea)$/i }).map(i => i.getAttribute('aria-label'))).toEqual(['flame', 'sea'])
+  })
+
+  it('shows a disabled Upgrade Roost, with its reason, at the Roost cap', () => {
+    const { wrap } = harness(level(base, 'd1', 7))
+    wrap(<DragonPanel dragonId="d1" />)
+    const up = screen.getByRole('button', { name: /upgrade roost/i })
+    expect(up).toBeDisabled()
+    expect(up).toHaveAccessibleDescription(/Dragon Roost arrives in a later update/i)
+    expect(screen.queryByRole('button', { name: /^feed/i })).toBeNull()
+  })
+
+  it('moves only to habitats the dragon can live in with a free slot, not its own', async () => {
+    const s: PlayerState = {
+      ...base,
+      habitats: [...base.habitats, habitat('h3', 'terra'), habitat('h4', 'terra'), habitat('h5', 'sea')],
+      dragons: [...base.dragons,
+        { id: 'd3', speciesId: 'terra', level: 1, feeds: 0, habitatId: 'h4' },
+        { id: 'd4', speciesId: 'terra', level: 1, feeds: 0, habitatId: 'h4' }],
+    }
+    const { wrap, action } = harness(s)
+    wrap(<DragonPanel dragonId="d1" />)
+    expect(screen.queryByRole('group', { name: /move to/i })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: /^move$/i }))
+    const picker = screen.getByRole('group', { name: /move to/i })
+    const options = within(picker).getAllByRole('button')
+    expect(options).toHaveLength(1) // h1 is home, h2 flame, h4 full, h5 sea
+    expect(options[0]).toHaveTextContent(/h3/)
+    await userEvent.click(options[0]!)
+    expect(action).toHaveBeenCalledWith({ type: 'moveDragon', dragonId: 'd1', habitatId: 'h3' }, expect.any(String))
+  })
+
+  it('lets a hybrid move into either of its elements, and hides Sell for a Legendary', () => {
+    const catalog = makeCatalog([{ id: 'steam', name: 'Steam', elements: ['flame', 'sea'], rarity: 'legendary', recipeOnly: true }])
+    const s: PlayerState = {
+      ...withD1({ speciesId: 'steam' }),
+      habitats: [...base.habitats, habitat('h3', 'sea'), habitat('h4', 'terra')],
+    }
+    const { wrap } = harness(s)
+    wrap(<DragonPanel dragonId="d1" catalog={catalog} />)
+    expect(screen.queryByRole('button', { name: /sell/i })).toBeNull()
+    expect(screen.queryByText(/cannot be sold/i)).toBeNull()
+    return userEvent.click(screen.getByRole('button', { name: /^move$/i })).then(() => {
+      const picker = screen.getByRole('group', { name: /move to/i })
+      expect(within(picker).getAllByRole('button').map(b => b.textContent)).toEqual([
+        expect.stringContaining('h2'), expect.stringContaining('h3'),
+      ])
+    })
+  })
+
+  it('offers Sell · n gold for a non-Legendary', () => {
+    const { wrap } = harness({ ...base, dragons: [...base.dragons, { id: 'd3', speciesId: 'terra', level: 1, feeds: 0, habitatId: 'h1' }] })
+    wrap(<DragonPanel dragonId="d1" />)
+    expect(screen.getByRole('button', { name: /^sell/i })).toHaveTextContent(`Sell · ${formatGold(SELL_GOLD.common!)} gold`)
   })
 })
 

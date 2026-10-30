@@ -1,3 +1,4 @@
+import type { Element } from '@wyrmhaven/game-core'
 import { createContext, useContext } from 'react'
 import type { Sprite } from '../art/types'
 
@@ -32,14 +33,27 @@ const GLYPHS: Record<IconName, string[]> = {
   quests: ['............', '.kkkkkkkkk..', '.kTTTTTTTk..', '.kTkkkkkTk..', '.kTTTTTTTk..', '.kTkkkkTTk..', '.kTTTTTGGk..', '.kTkkTGGTk..', '.kTGTGGTTk..', '.kTTGGTTTk..', '.kkkkkkkkk..', '............'],
 }
 
-/** A HUD icon: the manifest's `icon.<name>.32` (or .16) when it exists, else a built-in pixel glyph. */
-export function Icon({ name, size = 24 }: { name: IconName; size?: number }) {
+/**
+ * A HUD icon: the manifest's `icon.<name>.32` (or .16) when it exists, else a built-in pixel glyph.
+ * Element names (`flame`, `war`, ...) are accepted too; with no art yet they draw a diamond in the element colour.
+ * Decorative unless `label` is given, which makes it an image with that accessible name.
+ */
+export function Icon({ name, size = 24, label }: { name: IconName | Element; size?: number; label?: string }) {
   const art = useContext(HudArtContext)
   const sprite = art[`icon.${name}.${size > 16 ? 32 : 16}`] ?? art[`icon.${name}.32`] ?? art[`icon.${name}.16`]
-  if (sprite?.src) return <img className="pixel hud-icon" src={sprite.src} width={size} height={size} alt="" aria-hidden="true" />
-  const rows = GLYPHS[name]
+  const a11y = label ? { role: 'img' as const, 'aria-label': label } : { 'aria-hidden': true as const }
+  if (sprite?.src) return <img className="pixel hud-icon" src={sprite.src} width={size} height={size} alt={label ?? ''} {...(label ? {} : a11y)} />
+  const rows = (GLYPHS as Partial<Record<string, string[]>>)[name]
+  if (!rows) {
+    return (
+      <svg className="hud-icon" width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" data-icon={name} {...a11y}>
+        <path d="M6 0 L12 6 L6 12 L0 6 Z" fill="#141627" />
+        <path d="M6 2 L10 6 L6 10 L2 6 Z" fill={`var(--el-${name})`} />
+      </svg>
+    )
+  }
   return (
-    <svg className="hud-icon" width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" aria-hidden="true" data-icon={name}>
+    <svg className="hud-icon" width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" data-icon={name} {...a11y}>
       {rows.flatMap((row, y) => [...row].map((ch, x) => (C[ch] ? <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} fill={C[ch]} /> : null)))}
     </svg>
   )

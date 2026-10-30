@@ -35,6 +35,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     egg: perElement('egg', 'egg'),
     hatchling: perElement('hatchling', 'hatchling'),
     dragon: Object.fromEntries([...catalog.species.keys()].map(id => [id, get(`dragon.${id}`, 'dragon')])),
+    juvenile: Object.fromEntries([...catalog.species.keys()].flatMap(id => (manifest.assets[`juvenile.${id}`] ? [[id, get(`juvenile.${id}`, 'dragon')]] : []))),
     habitat: perElement('habitat', 'habitat'),
     building: {
       nest: get('building.nest', 'nest'),

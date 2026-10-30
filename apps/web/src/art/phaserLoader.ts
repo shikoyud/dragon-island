@@ -16,6 +16,7 @@ export function artEntries(art: GameArtSet): Entry[] {
   for (const [el, s] of Object.entries(art.egg) as [Element, Sprite][]) add(`egg.${el}`, s, 'egg', el)
   for (const [el, s] of Object.entries(art.hatchling) as [Element, Sprite][]) add(`hatchling.${el}`, s, 'hatchling', el)
   for (const [id, s] of Object.entries(art.dragon)) add(`dragon.${id}`, s, 'dragon', elementOfSpecies(id))
+  for (const [id, s] of Object.entries(art.juvenile)) add(`juvenile.${id}`, s, 'dragon', elementOfSpecies(id))
   for (const [el, s] of Object.entries(art.habitat) as [Element, Sprite][]) add(`habitat.${el}`, s, 'habitat', el)
   add('building.nest', art.building.nest, 'nest')
   add('building.hatchery', art.building.hatchery, 'hatchery')
