@@ -54,21 +54,16 @@ describe('art v1 manifest', () => {
 
   it('has every per-element key plus the hero and UI keys', () => {
     const keys = ['hero.base', 'hero.layer.0', 'ui.panel', 'ui.button']
-    for (const e of ELEMENTS) if (e !== 'war') keys.push(`egg.${e}`, `hatchling.${e}`, `icon.${e}`)
+    for (const e of ELEMENTS) keys.push(`egg.${e}`, `hatchling.${e}`, `icon.${e}`)
     for (const k of keys) expect(v1.assets[k], k).toBeDefined()
   })
 
-  it('has no War art yet: every War slot is empty and renders the colour block', () => {
-    for (const prefix of ['egg', 'hatchling', 'icon']) expect(v1.assets[`${prefix}.war`], prefix).toBeUndefined()
-    for (const sprite of [ACTIVE_ART.egg.war, ACTIVE_ART.hatchling.war, ACTIVE_ART.elementIcon.war]) {
-      expect(sprite.src).toBe('')
-      const { container } = render(<Sprite sprite={sprite} element="war" scale={1} />)
-      const el = container.firstElementChild as HTMLElement
-      expect(el.className).toContain('wh-sprite-fallback')
-      const probe = document.createElement('div')
-      probe.style.backgroundColor = ELEMENT_COLORS.war.base
-      expect(el.style.backgroundColor).toBe(probe.style.backgroundColor)
-    }
+  it('draws War from its own art, not the colour block', () => {
+    expect(ACTIVE_ART.egg.war.src).toBe('/art/v1/egg-war.png')
+    expect(ACTIVE_ART.hatchling.war.src).toBe('/art/v1/hatchling-war.png')
+    expect(ACTIVE_ART.elementIcon.war.src).toBe('/art/v1/icon-war.png')
+    const { container } = render(<Sprite sprite={ACTIVE_ART.egg.war} element="war" scale={1} />)
+    expect((container.firstElementChild as HTMLElement).className).not.toContain('wh-sprite-fallback')
   })
 
   it('points every entry at a PNG on disk whose size matches w × frames by h', () => {

@@ -279,3 +279,7 @@ Adults are 48x48 (as `dragon.<element>`), juveniles 40x40 (as `juvenile.<element
 | `dragon.final-dawn` | 48x48 | 4 to 6 | 6 | Adult Final Dawn (legendary): white and gold scales (light) with stone-plate studs and a tan pebble belly (terra); a one-of-a-kind design, more ornate than the Epics |
 | `juvenile.final-dawn` | 40x40 | 4 to 6 | 6 | Juvenile Final Dawn: same design, proportions and palette as `dragon.final-dawn`, smaller, breathing idle |
 
+
+## Delivered (2026-10-31)
+
+Everything above is delivered except `building.hatchery.1`, which stays the existing `building.hatchery` as this list allows. Sheets are 4 frames at 6 fps. 431 PixelLab generations spent, 1,133 left (resets 2026-11-29). Methods and prompts: `apps/web/art/prompts.md`, "GDD M2 set".
