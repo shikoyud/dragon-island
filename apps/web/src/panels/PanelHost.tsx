@@ -14,7 +14,7 @@ import { ExpandSignPanel } from './ExpandSignPanel'
 import { FarmPanel } from './FarmPanel'
 import { HabitatPanel } from './HabitatPanel'
 import { IslandMapPanel } from './IslandMapPanel'
-import { NestsPanel } from './NestsPanel'
+import { HatcheryPanel } from './HatcheryPanel'
 import { ObstaclePanel } from './ObstaclePanel'
 import { ShopPanel } from './ShopPanel'
 import { WalletPanel } from './WalletPanel'
@@ -44,7 +44,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
     switch (dialog.id) {
       case 'shop': return <ShopPanel key={dialog.tab ?? 'build'} tab={dialog.tab} nowMs={nowMs} view={bridge.view} onPlace={(what, size) => { onOpen(null); startPlacing(what, size) }} onClose={close} />
       case 'map': return <IslandMapPanel view={bridge.view} onView={id => { bridge.setView(id); close() }} onClose={close} art={bridge.art} />
-      case 'breed': return <BreedPanel onClose={close} />
+      case 'breed': return <BreedPanel nowMs={nowMs} onClose={close} />
       case 'book': return <DragonsPanel onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
       case 'battle': return <BattleHub nowMs={nowMs} onPve={onPve} onPvp={onPvp} onClose={close} />
       case 'wings':
@@ -58,9 +58,9 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
     case 'habitat': return <HabitatPanel habitatId={t.id} nowMs={nowMs} onClose={close} onOpenDragon={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} />
     case 'dragon': return <DragonPanel dragonId={t.id} onClose={close} />
     case 'decoration': return <DecorationPanel decorationId={t.id} onClose={close} />
-    case 'breeder':
+    case 'breeder': return <BreedPanel nowMs={nowMs} onClose={close} />
     case 'hatchery':
-    case 'hatcheryBuilding': return <NestsPanel nowMs={nowMs} onClose={close} />
+    case 'hatcheryBuilding': return <HatcheryPanel nowMs={nowMs} onClose={close} />
     case 'farm': return <FarmPanel index={t.plot} nowMs={nowMs} onClose={close} />
     case 'obstacle': return <ObstaclePanel obstacleId={t.id} nowMs={nowMs} onClose={close} />
     case 'expandSign': return <ExpandSignPanel onClose={close} />

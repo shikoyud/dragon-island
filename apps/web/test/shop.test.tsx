@@ -6,7 +6,8 @@ import { messageFor } from '../src/api/errors'
 import { createBridge } from '../src/game/bridge'
 import { FarmPanel } from '../src/panels/FarmPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
-import { NestsPanel } from '../src/panels/NestsPanel'
+import { BreedPanel } from '../src/panels/BreedPanel'
+import { HatcheryPanel } from '../src/panels/HatcheryPanel'
 import { ShopPanel } from '../src/panels/ShopPanel'
 import { UpgradeSection } from '../src/panels/UpgradeSection'
 import { StartPlacingProvider } from '../src/state/startPlacing'
@@ -393,13 +394,18 @@ describe('Finish button and upgrades that keep working', () => {
   })
 })
 
-describe('NestsPanel upgrades', () => {
-  it('has an upgrade section for the hatchery and each breeder', () => {
+describe('Hatchery and breeder upgrades', () => {
+  it('has an upgrade section for the hatchery and for each breeder', () => {
     const { wrap } = harness({ ...base, level: 12, gold: 200_000 })
-    wrap(<NestsPanel nowMs={0} />)
-    const ups = screen.getAllByRole('button', { name: /Upgrade to 2/ })
-    expect(ups.map(b => b.textContent)).toEqual([expect.stringContaining('150,000 gold · 10m'), expect.stringContaining('2,000 gold · 10m')])
-    ups.forEach(b => expect(b).toBeEnabled())
+    const hatchery = wrap(<HatcheryPanel nowMs={0} />)
+    const hup = screen.getByRole('button', { name: /Upgrade to 2/ })
+    expect(hup.textContent).toContain('2,000 gold · 10m')
+    expect(hup).toBeEnabled()
+    hatchery.unmount()
+    harness({ ...base, level: 12, gold: 200_000 }, 0, undefined, { launchAtMs: 0 }).wrap(<BreedPanel nowMs={0} />)
+    const bup = screen.getByRole('button', { name: /Upgrade to 2/ })
+    expect(bup.textContent).toContain('150,000 gold · 10m')
+    expect(bup).toBeEnabled()
   })
 })
 
@@ -418,12 +424,12 @@ describe('PanelHost targets', () => {
     expect(screen.getByRole('button', { name: 'Turn' })).toBeInTheDocument()
   })
 
-  it('opens the Nests panel for the hatchery building', async () => {
+  it('opens the Hatchery panel for the hatchery building', async () => {
     const bridge = createBridge()
     const { wrap } = harness(base)
     wrap(<TestHost bridge={bridge} />)
     bridge.emit({ type: 'select', target: { kind: 'hatcheryBuilding' } })
-    expect(await screen.findByRole('region', { name: /nests/i })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: /hatchery/i })).toBeInTheDocument()
   })
 
   it('opens the Shop as a named panel on its Build tab', () => {

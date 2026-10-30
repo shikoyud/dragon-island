@@ -8,7 +8,7 @@ import { BreedPanel } from '../src/panels/BreedPanel'
 import { DragonPanel } from '../src/panels/DragonPanel'
 import { FarmPanel } from '../src/panels/FarmPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
-import { NestsPanel } from '../src/panels/NestsPanel'
+import { HatcheryPanel } from '../src/panels/HatcheryPanel'
 import { ResourcesBar } from '../src/panels/ResourcesBar'
 import { ShopPanel } from '../src/panels/ShopPanel'
 import { StartPlacingProvider } from '../src/state/startPlacing'
@@ -231,52 +231,140 @@ describe('DragonPanel (B11)', () => {
   })
 })
 
+const GAME = { launchAtMs: 0 }
+const pl2 = (s: PlayerState): PlayerState => ({ ...level(level(s, 'd1', 4), 'd2', 4), level: 2 })
+const pick = async (a: string, b: string) => {
+  await userEvent.selectOptions(screen.getByLabelText(/first parent/i), a)
+  await userEvent.selectOptions(screen.getByLabelText(/second parent/i), b)
+}
+const outcomes = () => within(screen.getByRole('list', { name: /breeding outcomes/i })).getAllByRole('listitem').map(li => li.textContent)
+const DAY_MS = 86_400_000
+/** Game day 14: after every Legendary event window (days 1-12), so Terra x Flame has only its four §3.2 outcomes. */
+const QUIET = 13 * DAY_MS
+
 describe('BreedPanel', () => {
-  it('shows exact odds for the chosen pair, with no boost or pity copy, and breeds', async () => {
-    const s4 = { ...level(level(base, 'd1', 4), 'd2', 4), firstHybridDone: true }
-    const { wrap, action } = harness(s4)
-    wrap(<BreedPanel />)
-    await userEvent.selectOptions(screen.getByLabelText(/first parent/i), 'd1')
-    await userEvent.selectOptions(screen.getByLabelText(/second parent/i), 'd2')
-    const table = screen.getByRole('table', { name: /odds/i })
-    // Terra x Flame (§3.2): two Basics at 1000 and two Rare hybrids at 200, out of 2400.
-    expect(within(table).getAllByText('41.67%')).toHaveLength(2)
-    expect(within(table).getAllByText('8.33%')).toHaveLength(2)
-    expect(within(table).getAllByRole('row')).toHaveLength(5) // header + terra + flame + two hybrids
+  it('lists Terra x Flame outcomes by chance with rarity, odds and the building timer, then breeds', async () => {
+    const { wrap, action } = harness({ ...pl2(base), firstHybridDone: true }, QUIET, undefined, GAME)
+    wrap(<BreedPanel nowMs={QUIET} />)
+    await pick('d1', 'd2')
+    expect(outcomes()).toEqual([
+      'Terra Basic · Common · 41.67% · 5s',
+      'Flame Basic · Common · 41.67% · 5s',
+      'Terra-Flame · Rare · 8.33% · 40m',
+      'Flame-Terra · Rare · 8.33% · 40m',
+    ])
     expect(screen.queryByText(/odds boost|pity/i)).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: /^breed$/i }))
     expect(action).toHaveBeenCalledWith({ type: 'startBreed', parentA: 'd1', parentB: 'd2' }, expect.any(String))
   })
 
-  it('shows the scripted first hybrid odds (50 / 50) until the first hybrid is bred', async () => {
-    const { wrap } = harness(level(level(base, 'd1', 4), 'd2', 4))
-    wrap(<BreedPanel />)
-    await userEvent.selectOptions(screen.getByLabelText(/first parent/i), 'd1')
-    await userEvent.selectOptions(screen.getByLabelText(/second parent/i), 'd2')
-    const table = screen.getByRole('table', { name: /odds/i })
-    expect(within(table).getAllByText('50.00%')).toHaveLength(2)
-    expect(within(table).getAllByRole('row')).toHaveLength(3)
+  it("applies the free building's reduction (Mountain L2: 36m)", async () => {
+    const s = { ...pl2(base), firstHybridDone: true, breeders: [{ ...base.breeders[0]!, level: 2 }] }
+    const { wrap } = harness(s, QUIET, undefined, GAME)
+    wrap(<BreedPanel nowMs={QUIET} />)
+    await pick('d1', 'd2')
+    expect(outcomes()).toContain('Terra-Flame · Rare · 8.33% · 36m')
   })
 
-  it('disables breeding without a free breeder or with low-level parents', async () => {
-    const busy = { ...level(level(base, 'd1', 4), 'd2', 4), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 99, hatchMs: 1 } }] }
-    const { wrap } = harness(busy)
-    wrap(<BreedPanel />)
-    await userEvent.selectOptions(screen.getByLabelText(/first parent/i), 'd1')
-    await userEvent.selectOptions(screen.getByLabelText(/second parent/i), 'd2')
+  it('shows both hybrids at 50.00% and 1m until the first hybrid is bred', async () => {
+    const { wrap } = harness(pl2(base), QUIET, undefined, GAME)
+    wrap(<BreedPanel nowMs={QUIET} />)
+    await pick('d1', 'd2')
+    expect(outcomes()).toEqual(['Terra-Flame · Rare · 50.00% · 1m', 'Flame-Terra · Rare · 50.00% · 1m'])
+  })
+
+  it('refuses opposite Basics with the reason and no table', async () => {
+    const s = pl2({ ...base, dragons: [...base.dragons, { id: 'd3', speciesId: 'ice', level: 4, feeds: 0, habitatId: 'h1' }] })
+    const { wrap } = harness(s, QUIET, undefined, GAME)
+    wrap(<BreedPanel nowMs={QUIET} />)
+    await pick('d2', 'd3')
+    expect(screen.queryByRole('list', { name: /breeding outcomes/i })).toBeNull()
     expect(screen.getByRole('button', { name: /^breed$/i })).toBeDisabled()
-    expect(screen.getByText(/every breeding building is busy/i)).toBeInTheDocument()
+    expect(screen.getByText("Opposite Basics can't breed. Use a hybrid that carries one of them.")).toBeInTheDocument()
+  })
+
+  it('needs both parents at level 4', async () => {
+    const { wrap } = harness(level(pl2(base), 'd2', 3), 0, undefined, GAME)
+    wrap(<BreedPanel nowMs={QUIET} />)
+    await pick('d1', 'd2')
+    expect(screen.getByRole('button', { name: /^breed$/i })).toBeDisabled()
+    expect(screen.getByText('Both parents must be level 4')).toBeInTheDocument()
+  })
+
+  it('is locked at player level 1', async () => {
+    const { wrap } = harness({ ...level(level(base, 'd1', 4), 'd2', 4), level: 1 }, 0, undefined, GAME)
+    wrap(<BreedPanel nowMs={QUIET} />)
+    await pick('d1', 'd2')
+    expect(screen.getByRole('button', { name: /^breed$/i })).toBeDisabled()
+    expect(screen.getByText('Unlocks at level 2')).toBeInTheDocument()
+  })
+
+  it('disables breeding when every building is busy, naming no species in the egg state', async () => {
+    const busy = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: QUIET + 99_000, hatchMs: 1 } }] }
+    const { wrap } = harness(busy, 0, undefined, GAME)
+    wrap(<BreedPanel nowMs={QUIET} />)
+    await pick('d1', 'd2')
+    expect(screen.getByRole('button', { name: /^breed$/i })).toBeDisabled()
+    expect(screen.getByText('Every breeding building is busy')).toBeInTheDocument()
+    const row = screen.getByTestId('breeder-0')
+    expect(row).toHaveTextContent(/Breeding Mountain/)
+    expect(row).toHaveTextContent(/Egg · /)
+    expect(row).not.toHaveTextContent(/flame/i)
+    expect(within(row).getByRole('button', { name: /^skip · \$/i })).toBeInTheDocument()
+  })
+
+  it('shows an idle building', () => {
+    const { wrap } = harness(pl2(base), QUIET, undefined, GAME)
+    wrap(<BreedPanel nowMs={QUIET} />)
+    expect(screen.getByTestId('breeder-0')).toHaveTextContent(/Breeding Mountain.*idle/)
+  })
+
+  it('lists a Legendary only on event days', async () => {
+    const s = { ...pl2(base), firstHybridDone: true }
+    const open = harness(s, DAY_MS, undefined, GAME).wrap(<BreedPanel nowMs={DAY_MS} />)
+    await pick('d1', 'd2')
+    expect(outcomes().filter(o => o?.includes('Legendary'))).toHaveLength(1)
+    open.unmount()
+    harness(s, QUIET, undefined, GAME).wrap(<BreedPanel nowMs={QUIET} />)
+    await pick('d1', 'd2')
+    expect(outcomes().some(o => o?.includes('Legendary'))).toBe(false)
+  })
+
+  it('shows an undiscovered result by name and odds', async () => {
+    const { wrap } = harness({ ...pl2(base), firstHybridDone: true, discovered: ['terra', 'flame'] }, QUIET, undefined, GAME)
+    wrap(<BreedPanel nowMs={QUIET} />)
+    await pick('d1', 'd2')
+    expect(outcomes()).toContain('Flame-Terra · Rare · 8.33% · 40m')
+  })
+
+  it('moves a finished egg to the Hatchery on a tap', async () => {
+    const s = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 5_000 } }] }
+    const { wrap, action } = harness(s, QUIET, undefined, GAME)
+    wrap(<BreedPanel nowMs={QUIET} />)
+    const row = screen.getByTestId('breeder-0')
+    expect(row).toHaveTextContent(/Egg ready/)
+    expect(row).not.toHaveTextContent(/flame/i)
+    await userEvent.click(within(row).getByRole('button', { name: 'Move to Hatchery' }))
+    expect(action).toHaveBeenCalledWith({ type: 'collectEgg', breeder: 0 }, expect.any(String))
+  })
+
+  it('disables Move to Hatchery with a reason when the Hatchery is full', () => {
+    const s = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 5_000 } }], hatchery: [{ speciesId: 'sea', readyAtMs: 99 }] }
+    const { wrap } = harness(s, QUIET, undefined, GAME)
+    wrap(<BreedPanel nowMs={QUIET} />)
+    const row = screen.getByTestId('breeder-0')
+    expect(within(row).getByRole('button', { name: 'Move to Hatchery' })).toBeDisabled()
+    expect(within(row).getByText('Hatchery is full')).toBeInTheDocument()
   })
 })
 
-describe('NestsPanel and FarmPanel', () => {
-  it('shows breeder timers, collects ready eggs and prices skips', async () => {
-    const s = { ...base, breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001, hatchMs: 1 } }], hatchery: [{ speciesId: 'sea', readyAtMs: 0 }] }
+describe('HatcheryPanel and FarmPanel', () => {
+  it('shows hatchery timers, hatches ready eggs and prices skips', async () => {
+    const s = { ...base, hatchery: [{ speciesId: 'sea', readyAtMs: 0 }, { speciesId: 'sea', readyAtMs: 1_800_001 }] }
     const { wrap, action } = harness(s)
-    wrap(<NestsPanel nowMs={0} />)
+    wrap(<HatcheryPanel nowMs={0} />)
     expect(screen.getByRole('button', { name: /skip.*\$0\.06$/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /collect egg/i })).toBeDisabled()
-    await userEvent.click(screen.getByRole('button', { name: /^hatch$/i }))
+    await userEvent.click(screen.getAllByRole('button', { name: /^hatch$/i })[0]!)
     expect(action).toHaveBeenCalledWith({ type: 'hatch', slot: 0 }, expect.any(String))
   })
 
