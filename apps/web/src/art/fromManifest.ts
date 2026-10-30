@@ -22,7 +22,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
   /** `building.<name>.<1..max>` sheets the manifest has, by level; absent levels stay absent so nothing is requested. */
   const levelSheets = (name: string, max: number, size: number): Record<number, Sprite> =>
     Object.fromEntries(Array.from({ length: max }, (_, i) => i + 1).flatMap(l => (manifest.assets[`building.${name}.${l}`] ? [[l, get(`building.${name}.${l}`, { w: size, h: size })]] : [])))
-  const perElement =(prefix: string, slot: SlotName): Record<Element, Sprite> =>
+  const perElement = (prefix: string, slot: SlotName): Record<Element, Sprite> =>
     Object.fromEntries(ELEMENTS.map(el => [el, get(`${prefix}.${el}`, slot)])) as Record<Element, Sprite>
 
   const layerKeys = Object.keys(manifest.assets)

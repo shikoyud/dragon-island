@@ -7,7 +7,7 @@ import { Panel } from './Panel'
 const PILLARS: { title: string; text: string; element: Element; sprite: SpriteData }[] = [
   {
     title: 'Breed',
-    text: 'Raise your dragons, pair them up in nests and hatch their eggs. Every pairing is a chance at something new.',
+    text: 'Raise your dragons, pair them up for breeding and hatch their eggs. Every pairing is a chance at something new.',
     element: 'flame',
     sprite: ACTIVE_ART.egg.flame,
   },

@@ -9,7 +9,7 @@ const cand = (playerId: string, trophies: number, level: number): OpponentSnapsh
   ({ playerId, trophies, level, team: [{ speciesId: 'flame', level: 5 }, { speciesId: 'sea', level: 5 }, { speciesId: 'ice', level: 5 }] })
 
 describe('generateBotTeam', () => {
-  it('picks common or rare non-recipe species at the clamped level', () => {
+  it('picks common or rare species at the clamped level', () => {
     const team = generateBotTeam(40, C, createRng(1))
     expect(team).toHaveLength(3)
     for (const d of team) {

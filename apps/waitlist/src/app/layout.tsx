@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   ...(site ? { metadataBase: new URL(site) } : {}),
   title: 'Dragon Island — Join the waitlist',
   description:
-    'Dragon Island is an original pixel-art dragon game: breed dragons in nests, build an island of element habitats and battle 3v3 in ranked play. The game runs once, for 14 or 28 days. Join the waitlist.',
+    'Dragon Island is an original pixel-art dragon game: breed dragons, build an island of element habitats and battle 3v3 in ranked play. The game runs once, for 14 or 28 days. Join the waitlist.',
 }
 
 export const viewport: Viewport = { themeColor: '#0b0f24', width: 'device-width', initialScale: 1 }
