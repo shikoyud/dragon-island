@@ -1,7 +1,7 @@
 const faqs = (xHandle: string): { q: string; a: string }[] => [
   {
     q: 'What is Dragon Island?',
-    a: 'An original dragon game for the web, drawn in pixel art. You breed dragons in nests, build an island of element habitats and battle 3v3, turn by turn, in 14-day seasons.',
+    a: 'An original dragon game for the web, drawn in pixel art. You breed dragons, build an island of element habitats and battle 3v3, turn by turn. The game runs once, for 14 or 28 days, and then shuts down.',
   },
   {
     q: 'Which chain is it on?',

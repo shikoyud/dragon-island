@@ -33,7 +33,7 @@ export function Hero() {
         <h1 id="hero-title" className="hero-title">
           Dragon Island
         </h1>
-        <p className="hero-pitch">Breed dragons. Build your island. Battle for the season.</p>
+        <p className="hero-pitch">Breed dragons. Build your island. Battle for the ranks.</p>
         <div className="hero-cta">
           <a className="btn btn-primary btn-big" href="#join">
             Join the waitlist

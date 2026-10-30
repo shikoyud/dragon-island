@@ -1,81 +1,209 @@
 import { describe, expect, it } from 'vitest'
-import { breedingOdds, rollOffspring, tierWeights, type BreedContext, type Parent } from '../src/breeding'
+import {
+  activeLegendaries, breedingOdds, breedingPool, breedValidity, rollOffspring, type BreedContext,
+} from '../src/breeding'
+import { makeCatalog, type Species } from '../src/catalog'
+import { BREED_WEIGHT } from '../src/data/breeding'
+import { LAUNCH_CATALOG as C } from '../src/data/launch-catalog'
+import { FLASH_14, FLASH_28 } from '../src/data/presets'
 import { createRng } from '../src/rng'
-import { FIXTURE_CATALOG as C } from './fixtures'
 
-const p = (id: string, level = 4): Parent => ({ speciesId: id, level })
-const none: BreedContext = { pity: {} }
-
-function expectOdds(actual: Record<string, number>, expected: Record<string, number>) {
-  expect(Object.keys(actual).sort()).toEqual(Object.keys(expected).sort())
-  for (const [k, v] of Object.entries(expected)) expect(actual[k]).toBeCloseTo(v, 6)
-  expect(Math.abs(Object.values(actual).reduce((a, b) => a + b, 0) - 1)).toBeLessThan(1e-9)
+const sp = (id: string) => {
+  const s = C.species.get(id)
+  if (!s) throw new Error(`no species ${id}`)
+  return s
 }
+const none: BreedContext = { activeLegendaries: [], firstHybridPending: false }
+const only = (...ids: string[]): BreedContext => ({ activeLegendaries: ids, firstHybridPending: false })
 
-describe('tierWeights', () => {
-  it('scales with score', () => {
-    expect(tierWeights(0)).toEqual({ common: 70, uncommon: 30, rare: 25, epic: 5, legendary: 1 })
-    expect(tierWeights(3)).toEqual({ common: 70, uncommon: 30, rare: 40, epic: 11, legendary: 1 })
+/** Weight of each species in the pool, by id. */
+const weights = (a: string, b: string, ctx: BreedContext = none, c = C) =>
+  Object.fromEntries(breedingPool(sp2(c, a), sp2(c, b), ctx, c).map(e => [e.species.id, e.weight]))
+const sp2 = (c: typeof C, id: string) => c.species.get(id)!
+const total = (w: Record<string, number>) => Object.values(w).reduce((n, x) => n + x, 0)
+
+describe('BREED_WEIGHT (§3.2)', () => {
+  it('is 1000 / 500 / 200 / 60 / 40', () => {
+    expect(BREED_WEIGHT).toEqual({ common: 1000, uncommon: 500, rare: 200, epic: 60, legendary: 40 })
   })
 })
 
-describe('breedingOdds', () => {
-  it('uses the hybrid pool for two pure parents', () => {
-    expectOdds(breedingOdds(p('flame'), p('sea'), none, C), { 'fw-common': 0.7, 'fw-rare': 0.25, 'fw-epic': 0.05 })
+describe('breedingOdds (§3.2, §3.4)', () => {
+  it('Terra x Nature: both Basics, both neutral hybrids; hybrid total 33.3 %', () => {
+    const w = weights('terra', 'nature')
+    expect(w).toEqual({ terra: 1000, nature: 1000, 'terra-nature': 500, 'nature-terra': 500 })
+    const odds = breedingOdds(sp('terra'), sp('nature'), none, C)
+    expect(odds['terra']).toBeCloseTo(1000 / 3000, 9)
+    expect(odds['terra-nature']).toBeCloseTo(500 / 3000, 9)
+    expect(odds['terra-nature']! + odds['nature-terra']!).toBeCloseTo(1 / 3, 9)
   })
 
-  it('applies pity by dropping commons', () => {
-    expectOdds(breedingOdds(p('flame'), p('sea'), { pity: { 'flame+sea': 10 } }, C),
-      { 'fw-rare': 25 / 30, 'fw-epic': 5 / 30 })
+  it('Terra x Flame: hybrid total 400/2400 = 16.7 %', () => {
+    const w = weights('terra', 'flame')
+    expect(total(w)).toBe(2400)
+    const odds = breedingOdds(sp('terra'), sp('flame'), none, C)
+    expect(odds['terra-flame']! + odds['flame-terra']!).toBeCloseTo(400 / 2400, 9)
   })
 
-  it('falls back to the parent species when no species matches', () => {
-    expectOdds(breedingOdds(p('flame'), p('ice'), none, C), { flame: 0.5, ice: 0.5 })
-    expectOdds(breedingOdds(p('flame'), p('flame'), none, C), { flame: 1 })
+  it('Terra x Terra is always Terra', () => {
+    expect(breedingOdds(sp('terra'), sp('terra'), none, C)).toEqual({ terra: 1 })
   })
 
-  it('rolls the legendary recipe first at level 15', () => {
-    expectOdds(breedingOdds(p('fw-rare', 15), p('fw-epic', 15), none, C), {
-      'fw-legend': 0.03,
-      flame: 0.2425,
-      sea: 0.2425,
-      'fw-common': 0.97 * 0.5 * 70 / 121,
-      'fw-rare': 0.97 * 0.5 * 40 / 121,
-      'fw-epic': 0.97 * 0.5 * 11 / 121,
+  it('Flame-Terra x Ice-Sea (§3.3): 1580 total, no Basics', () => {
+    const w = weights('flame-terra', 'ice-sea')
+    expect(total(w)).toBe(1580)
+    expect(w).toMatchObject({
+      'ice-sea': 500, 'ice-terra': 500, 'flame-terra': 200, 'flame-sea': 200,
+      'flame-ice': 60, 'ice-flame': 60, 'flame-ice-sea': 60,
     })
+    expect(Object.keys(w).some(id => ['flame', 'ice', 'terra', 'sea'].includes(id))).toBe(false)
+    const odds = breedingOdds(sp('flame-terra'), sp('ice-sea'), none, C)
+    expect(odds['flame-ice']! + odds['ice-flame']!).toBeCloseTo(0.076, 3)
   })
 
-  it('skips the recipe below level 15', () => {
-    expect(breedingOdds(p('fw-rare', 14), p('fw-epic', 15), none, C)).not.toHaveProperty('fw-legend')
+  it('Flame x Ice-Sea: 2880 total with both Basics at 1000 and flame-ice at 60', () => {
+    const w = weights('flame', 'ice-sea')
+    expect(total(w)).toBe(2880)
+    expect(w['flame']).toBe(1000)
+    expect(w['ice']).toBe(1000)
+    expect(w['flame-ice']).toBe(60)
+  })
+
+  it('floor guard: a pool with no Common or Uncommon gains each parent primary Basic', () => {
+    expect(weights('flame-sea', 'flame-sea')).toEqual({ flame: 1000, 'flame-sea': 200 })
+    const w = weights('flame-ice', 'ice-flame')
+    expect(w).toMatchObject({ flame: 1000, ice: 1000, 'flame-ice': 60, 'ice-flame': 60 })
+    expect(total(w)).toBe(2120)
+    expect(breedingOdds(sp('flame-sea'), sp('flame-sea'), none, C)['flame']).toBeCloseTo(1000 / 1200, 9)
+  })
+
+  it('an Uncommon clones without a floor: Terra-Sea x Terra-Sea', () => {
+    expect(breedingOdds(sp('terra-sea'), sp('terra-sea'), none, C)).toEqual({ 'terra-sea': 1 })
+  })
+})
+
+describe('breedValidity (§3.2 rule 1)', () => {
+  it('refuses two opposite Basics in both orders', () => {
+    for (const [x, y] of [['flame', 'ice'], ['ice', 'flame'], ['nature', 'electric'], ['terra', 'dark'], ['sea', 'war']] as const) {
+      expect(breedValidity(sp(x), sp(y))).toBe('OPPOSITE_BASICS')
+    }
+  })
+  it('allows a hybrid that carries the same elements and counter pairs', () => {
+    expect(breedValidity(sp('flame'), sp('ice-sea'))).toBeNull()
+    expect(breedValidity(sp('terra'), sp('flame'))).toBeNull()
+    expect(breedValidity(sp('flame-ice'), sp('ice-flame'))).toBeNull()
+  })
+})
+
+describe('Legendary events (§3.2, §8.4)', () => {
+  it('Flash-14 windows', () => {
+    expect(activeLegendaries(4, FLASH_14)).toContain('magma-sovereign')
+    expect(activeLegendaries(5, FLASH_14)).not.toContain('magma-sovereign')
+    expect(activeLegendaries(5, FLASH_14)).toContain('glacier-warlord')
+    expect(activeLegendaries(9, FLASH_14)).toContain('radiant-aegis')
+    expect(activeLegendaries(13, FLASH_14)).toEqual([])
+    expect(activeLegendaries(0, FLASH_14)).toEqual([])
+  })
+  it('Flash-28 windows', () => {
+    expect(activeLegendaries(7, FLASH_28)).toContain('magma-sovereign')
+    expect(activeLegendaries(8, FLASH_28)).not.toContain('magma-sovereign')
+    expect(activeLegendaries(8, FLASH_28)).toContain('glacier-warlord')
+    expect(activeLegendaries(24, FLASH_28)).toContain('radiant-aegis')
+    expect(activeLegendaries(25, FLASH_28)).toEqual([])
+  })
+
+  it('every window is open on from..to and closed on from-1 and to+1, under both presets', () => {
+    const table: [string, typeof FLASH_14, number, number][] = [
+      ['magma-sovereign', FLASH_14, 1, 4], ['glacier-warlord', FLASH_14, 5, 8], ['radiant-aegis', FLASH_14, 9, 12],
+      ['magma-sovereign', FLASH_28, 1, 7], ['glacier-warlord', FLASH_28, 8, 15], ['radiant-aegis', FLASH_28, 16, 24],
+    ]
+    for (const [id, preset, from, to] of table) {
+      for (const day of [from - 1, from, to, to + 1]) {
+        const inside = day >= from && day <= to
+        expect(activeLegendaries(day, preset).includes(id), `${id} ${preset.id} day ${day}`).toBe(inside)
+      }
+    }
+  })
+
+  it('floor guard with an active Legendary: Terra-Flame x Flame-Terra with Magma', () => {
+    const w = weights('terra-flame', 'flame-terra', only('magma-sovereign'))
+    expect(w).toEqual({ terra: 1000, flame: 1000, 'terra-flame': 200, 'flame-terra': 200, 'magma-sovereign': 40 })
+    expect(total(w)).toBe(2440)
+  })
+
+  it('adds a 40 weight Legendary only while active and only when its elements fit', () => {
+    const w = weights('terra', 'flame', only('magma-sovereign'))
+    expect(w['magma-sovereign']).toBe(40)
+    expect(total(w)).toBe(2440)
+    expect(breedingOdds(sp('terra'), sp('flame'), only('magma-sovereign'), C)['magma-sovereign']).toBeCloseTo(40 / 2440, 9)
+    expect(weights('terra', 'flame')['magma-sovereign']).toBeUndefined()
+
+    const g = weights('ice', 'war', only('glacier-warlord'))
+    expect(g['glacier-warlord']).toBe(40)
+    expect(total(g)).toBe(2440)
+
+    const r = weights('light', 'metal', only('radiant-aegis'))
+    expect(r['radiant-aegis']).toBe(40)
+    expect(total(r)).toBe(3040)
+    expect(r['radiant-aegis']! / 3040).toBeCloseTo(0.013, 3)
+
+    expect(weights('terra', 'nature', only('magma-sovereign'))).not.toHaveProperty('magma-sovereign')
+  })
+
+  it('a fixture Legendary [flame, ice] on the §3.3 pool: 40/1620 = 2.5 %', () => {
+    const legend: Species = { id: 'fx-legend', name: 'fx', elements: ['flame', 'ice'], rarity: 'legendary' }
+    const cat = makeCatalog([...C.species.values(), legend])
+    const w = weights('flame-terra', 'ice-sea', only('fx-legend'), cat)
+    expect(w['fx-legend']).toBe(40)
+    expect(total(w)).toBe(1620)
+    expect(40 / 1620).toBeCloseTo(0.025, 3)
+    expect(weights('flame-terra', 'ice-sea', none, cat)).not.toHaveProperty('fx-legend')
   })
 })
 
 describe('rollOffspring', () => {
-  it('matches the epic share over many rolls', () => {
-    const rng = createRng(1)
-    let epic = 0
-    for (let i = 0; i < 20_000; i++) if (rollOffspring(p('flame'), p('sea'), none, C, rng).speciesId === 'fw-epic') epic++
-    expect(epic / 20_000).toBeGreaterThanOrEqual(0.04)
-    expect(epic / 20_000).toBeLessThanOrEqual(0.06)
-  })
-
-  it('is deterministic for a seed', () => {
-    expect(rollOffspring(p('flame'), p('sea'), none, C, createRng(9)))
-      .toEqual(rollOffspring(p('flame'), p('sea'), none, C, createRng(9)))
-  })
-
-  it('never returns a common under pity', () => {
-    const rng = createRng(3)
-    const ctx = { pity: { 'flame+sea': 10 } }
-    for (let i = 0; i < 1_000; i++) {
-      const r = rollOffspring(p('flame'), p('sea'), ctx, C, rng)
-      expect(r.speciesId).not.toBe('fw-common')
-      expect(r.pairKey).toBe('flame+sea')
-      expect(r.rarePlus).toBe(true)
+  it('takes the species at the cumulative position of one rng.int(total)', () => {
+    const a = sp('terra'), b = sp('nature')
+    const pool = breedingPool(a, b, none, C)
+    const sum = pool.reduce((n, e) => n + e.weight, 0)
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      let calls = 0
+      const probe = createRng(seed)
+      const counted = { next: () => { calls++; return probe.next() }, int: (n: number) => { calls++; return probe.int(n) } }
+      const got = rollOffspring(a, b, none, C, counted)
+      expect(calls).toBe(1)
+      const r = createRng(seed).int(sum)
+      let acc = 0, want = pool[pool.length - 1]!.species
+      for (const e of pool) { acc += e.weight; if (r < acc) { want = e.species; break } }
+      expect(got.id).toBe(want.id)
     }
   })
 
-  it('reports the picked element pair and rarity', () => {
-    expect(rollOffspring(p('flame'), p('ice'), none, C, createRng(5))).toMatchObject({ pairKey: 'flame+ice', rarePlus: false })
+  it('lists the pool in stable id order', () => {
+    const ids = breedingPool(sp('terra'), sp('nature'), none, C).map(e => e.species.id)
+    expect(ids).toEqual([...ids].sort())
+  })
+
+  it('matches the odds over many rolls', () => {
+    const rng = createRng(7)
+    let hybrids = 0
+    for (let i = 0; i < 20_000; i++) if (rollOffspring(sp('terra'), sp('nature'), none, C, rng).elements.length === 2) hybrids++
+    expect(hybrids / 20_000).toBeGreaterThan(0.31)
+    expect(hybrids / 20_000).toBeLessThan(0.36)
+  })
+})
+
+describe('first hybrid pending (§3.5)', () => {
+  const pend = (...ids: string[]): BreedContext => ({ activeLegendaries: ids, firstHybridPending: true })
+  it('Terra x Flame is restricted to terra-flame and flame-terra at 50 % each, Legendary or not', () => {
+    for (const ctx of [pend(), pend('magma-sovereign')]) {
+      expect(breedingOdds(sp('terra'), sp('flame'), ctx, C)).toEqual({ 'flame-terra': 0.5, 'terra-flame': 0.5 })
+    }
+  })
+  it('a pool with no hybrid is untouched', () => {
+    expect(breedingPool(sp('terra'), sp('terra'), pend(), C)).toEqual(breedingPool(sp('terra'), sp('terra'), none, C))
+  })
+  it('not pending leaves Terra x Flame at its normal pool', () => {
+    expect(Object.keys(weights('terra', 'flame')).length).toBeGreaterThan(2)
   })
 })

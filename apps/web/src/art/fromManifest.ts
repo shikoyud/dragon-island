@@ -19,6 +19,9 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
   }
   /** A sprite only when the manifest has the key. */
   const present = (key: string): Sprite | null => (manifest.assets[key] ? get(key, 'icon') : null)
+  /** `building.<name>.<1..max>` sheets the manifest has, by level; absent levels stay absent so nothing is requested. */
+  const levelSheets = (name: string, max: number, size: number): Record<number, Sprite> =>
+    Object.fromEntries(Array.from({ length: max }, (_, i) => i + 1).flatMap(l => (manifest.assets[`building.${name}.${l}`] ? [[l, get(`building.${name}.${l}`, { w: size, h: size })]] : [])))
   const perElement = (prefix: string, slot: SlotName): Record<Element, Sprite> =>
     Object.fromEntries(ELEMENTS.map(el => [el, get(`${prefix}.${el}`, slot)])) as Record<Element, Sprite>
 
@@ -30,12 +33,18 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     version,
     egg: perElement('egg', 'egg'),
     hatchling: perElement('hatchling', 'hatchling'),
-    dragon: Object.fromEntries([...catalog.species.keys()].map(id => [id, get(`dragon.${id}`, 'dragon')])),
+    // Basics always get a slot (drawn fallback if the art is missing); a hybrid or Legendary only when the manifest has
+    // art for it. dragonLook falls back to the primary element's Basic sheet for the rest (R23), so no empty fallback texture per hybrid.
+    dragon: Object.fromEntries([...catalog.species.values()]
+      .filter(s => s.elements.length === 1 || manifest.assets[`dragon.${s.id}`])
+      .map(s => [s.id, get(`dragon.${s.id}`, 'dragon')])),
     juvenile: Object.fromEntries([...catalog.species.keys()].flatMap(id => (manifest.assets[`juvenile.${id}`] ? [[id, get(`juvenile.${id}`, 'dragon')]] : []))),
     habitat: perElement('habitat', 'habitat'),
     building: {
       nest: get('building.nest', 'nest'),
       hatchery: get('building.hatchery', 'hatchery'),
+      breeder: { mountain: levelSheets('mountain', 3, 80), grove: levelSheets('grove', 3, 80) },
+      hatcheryLevel: levelSheets('hatchery', 4, 64),
       farmPlot: get('building.farmPlot', 'farmPlot'),
       cropStage: Object.fromEntries(CROPS.map(c => [c, get(`crop.${c}`, 'crop')])) as Record<CropId, Sprite>,
       cropSway: Object.fromEntries(CROPS.flatMap(c => { const s = present(`crop.${c}.sway`); return s ? [[c, s]] : [] })),

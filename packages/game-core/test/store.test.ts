@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { skipPriceMicroUsd } from '../src/data/speedups'
 import { newPlayer } from '../src/state'
-import { FOOD_PACK, MAX_NESTS, priceMicroUsd } from '../src/store'
+import { FOOD_PACK, priceMicroUsd } from '../src/store'
 
 const base = newPlayer(0)
-const egg = (readyAtMs: number) => ({ ...newPlayer(0), nests: [{ ...base.nests[0]!, egg: { speciesId: 'flame', readyAtMs } }] })
+const egg = (readyAtMs: number) => ({ ...newPlayer(0), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs, hatchMs: 1 } }] })
 
 describe('priceMicroUsd', () => {
   it('prices every skip by the 3.6 curve on the remaining time', () => {
-    const item = { kind: 'skip', target: 'nest', index: 0 } as const
+    const item = { kind: 'skip', target: 'breeder', index: 0 } as const
     expect(priceMicroUsd(item, egg(3_600_000), 0)).toBe(100_000)
     expect(priceMicroUsd(item, egg(1_800_001), 0)).toBe(skipPriceMicroUsd(1_800_001))
     expect(priceMicroUsd(item, egg(601_000), 1_000)).toBe(skipPriceMicroUsd(600_000))
@@ -49,9 +49,13 @@ describe('priceMicroUsd', () => {
     expect(priceMicroUsd({ kind: 'goldenAerie', placement: { island: 'home', col: 6, row: 7, facing: 0 } }, base, 0)).toBe(5_000_000)
   })
 
+  it('does not sell a second Golden Aerie (one per player)', () => {
+    const owned = { ...base, habitats: [...base.habitats, { id: 'h9', element: 'aerie' as const, level: 5, lastCollectedMs: 0, placement: { island: 'home' as const, col: 6, row: 7, facing: 0 as const } }] }
+    expect(priceMicroUsd({ kind: 'goldenAerie', placement: { island: 'home', col: 12, row: 12, facing: 0 } }, owned, 0)).toBeNull()
+  })
+
   it('prices flat items', () => {
     expect(FOOD_PACK).toBe(1_000)
     expect(priceMicroUsd({ kind: 'foodPack' }, base, 0)).toBe(500_000)
-    expect(MAX_NESTS).toBe(4)
   })
 })

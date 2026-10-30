@@ -72,13 +72,14 @@ describe('messageFor', () => {
   it('covers every game-core and server error code', () => {
     const codes = [
       'INVALID_ACTION', 'NOT_FOUND', 'INVALID_AMOUNT', 'INSUFFICIENT_GOLD', 'INSUFFICIENT_FOOD', 'MAX_LEVEL', 'LEVEL_CAP', 'LEVEL_TOO_LOW',
-      'INVALID_PARENTS', 'NO_FREE_NEST', 'NEST_EMPTY', 'NOT_READY', 'HATCHERY_FULL', 'NO_HABITAT_SLOT',
+      'INVALID_PARENTS', 'OPPOSITE_BASICS', 'NO_FREE_BREEDER', 'BREEDER_EMPTY', 'NOT_READY', 'HATCHERY_FULL', 'NO_HABITAT_SLOT',
       'ELEMENT_MISMATCH', 'MAX_PLOTS', 'PLOT_BUSY', 'PLOT_EMPTY', 'LAST_DRAGONS', 'NOT_SELLABLE',
       'NOTHING_TO_SKIP', 'INVALID_TEAM', 'NO_DEFENCE_TEAM', 'DAILY_CAP_REACHED', 'STAGE_LOCKED',
       'UNAUTHORIZED', 'INSUFFICIENT_TOKENS', 'BANNED', 'BETA_CLOSED', 'FORBIDDEN', 'OFFER_NOT_FOUND', 'OFFER_EXPIRED', 'VOUCHER_PENDING',
       'WITHDRAW_LIMIT', 'RATE_LIMITED', 'PRICE_UNAVAILABLE', 'WITHDRAWALS_DISABLED',
     ]
     for (const c of codes) expect(messageFor(c), c).not.toBe(c)
+    expect(messageFor('OPPOSITE_BASICS')).toBe("Opposite Basics can't breed. Use a hybrid that carries one of them.")
     expect(messageFor('BETA_CLOSED')).toBe('Dragon Island is in a closed beta right now. Join the waitlist to get an invite.')
   })
 })

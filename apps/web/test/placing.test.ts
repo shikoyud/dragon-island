@@ -9,8 +9,8 @@ describe('placing', () => {
     const c = nearestLegalCell(s, { kind: 'farm' }, 'home', { col: 0, row: 0 })!
     expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, ...c, facing: 0 })).not.toBeNull()
     expect(Math.hypot(c.col, c.row)).toBeLessThan(8)
-    const mid = nearestLegalCell(s, { kind: 'farm' }, 'home', { col: 6, row: 7 })!
-    expect(mid).toEqual({ col: 6, row: 7 })
+    const mid = nearestLegalCell(s, { kind: 'farm' }, 'home', { col: 9, row: 7 })!
+    expect(mid).toEqual({ col: 9, row: 7 })
     // The start event puts the ghost on that cell.
     expect(placingReducer(null, { type: 'start', what: { kind: 'farm' }, size: 2, island: 'home', cell: mid })).toMatchObject(mid)
     // Nowhere legal: a full grid gives null.
@@ -36,10 +36,16 @@ describe('placing', () => {
 
   it('placingAction builds the right action and refuses illegal spots', () => {
     const s = newPlayer(0)
-    expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, col: 6, row: 8, facing: 1 })).toEqual({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { island: 'home', col: 6, row: 8, facing: 1 } })
+    expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, col: 9, row: 8, facing: 1 })).toEqual({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { island: 'home', col: 9, row: 8, facing: 1 } })
     expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, col: 0, row: 0, facing: 0 })).toBeNull()
     expect(placingAction(s, 'home', { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 5, col: 0, row: 1, facing: 0 })).toEqual({ type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: { island: 'home', col: 0, row: 1, facing: 0 } })
     expect(placingAction(s, 'isle2', { what: { kind: 'farm' }, size: 2, col: 1, row: 1, facing: 0 })).toBeNull()
+  })
+
+  it('sends the Grove as a placeBuilding', () => {
+    const s = newPlayer(0)
+    expect(placingAction(s, 'home', { what: { kind: 'grove' }, size: 2, col: 9, row: 7, facing: 0 })).toEqual({ type: 'placeBuilding', building: { kind: 'grove' }, placement: { island: 'home', col: 9, row: 7, facing: 0 } })
+    expect(placingAction(s, 'home', { what: { kind: 'grove' }, size: 2, col: 11, row: 7, facing: 0 })).toBeNull()
   })
 
   it('placing the Golden Aerie buys it with the placement, on a free habitat-sized spot', () => {

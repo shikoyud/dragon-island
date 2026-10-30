@@ -32,11 +32,14 @@ describe('artEntries', () => {
   })
 })
 
+/** A texture manager whose every sheet has all its frames; test/artSwapCrash.test.ts covers the ones that do not. */
+const WHOLE_SHEET = { exists: () => true, get: () => ({ has: () => true }) }
+
 function stubSprite(existing = false) {
   const create = vi.fn()
   const generateFrameNumbers = vi.fn(() => [{ key: 'k', frame: 0 }])
   const sprite = {
-    scene: { anims: { exists: vi.fn(() => existing), create, generateFrameNumbers } },
+    scene: { anims: { exists: vi.fn(() => existing), create, generateFrameNumbers }, textures: WHOLE_SHEET },
     anims: { stop: vi.fn() },
     setTexture: vi.fn(),
     play: vi.fn(),
@@ -60,7 +63,7 @@ describe('playOrStill', () => {
     const a = stubSprite(false)
     playOrStill(a.sprite, 'art:egg.flame', 6, 8, false)
     expect(a.create).toHaveBeenCalledWith(expect.objectContaining({ key: animKey('art:egg.flame'), frameRate: 8, repeat: -1 }))
-    expect(a.raw.play).toHaveBeenCalledWith(animKey('art:egg.flame'))
+    expect(a.raw.play).toHaveBeenCalledWith(expect.objectContaining({ key: animKey('art:egg.flame') }))
     const b = stubSprite(true)
     playOrStill(b.sprite, 'art:egg.flame', 6, 8, false)
     expect(b.create).not.toHaveBeenCalled()
@@ -73,7 +76,7 @@ describe('playOneShot', () => {
     const handlers: Record<string, () => void> = {}
     const create = vi.fn()
     const raw = {
-      scene: { anims: { exists: () => exists, create, generateFrameNumbers: (_: string, o: { start: number; end: number }) => [o.start, o.end] } },
+      scene: { anims: { exists: () => exists, create, generateFrameNumbers: (_: string, o: { start: number; end: number }) => [o.start, o.end] }, textures: WHOLE_SHEET },
       play: vi.fn(() => raw),
       once: vi.fn((e: string, h: () => void) => { handlers[e] = h; return raw }),
       destroy: vi.fn(),

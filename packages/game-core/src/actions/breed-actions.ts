@@ -1,13 +1,19 @@
-import { rollOffspring } from '../breeding'
-import { hatcherySlots, nestBreedMs } from '../buildings'
-import { getSpecies } from '../catalog'
+import { activeLegendaries, breedValidity, rollOffspring } from '../breeding'
+import { breederBreedMs, hatcherySlots } from '../buildings'
+import { getSpecies, type Catalog } from '../catalog'
 import { isUnfinished } from '../construction'
+import { BREEDER_LEVELS } from '../data/breeding-buildings'
 import { breedTimerMs } from '../data/breeding-timers'
+import { FIRST_HYBRID_MS, basicPriceGold } from '../data/breeding'
+import { HABITATS } from '../data/habitats'
 import { BREED_MIN_LEVEL } from '../data/dragon-levels'
 import { HATCH_XP, START_BREED_XP } from '../data/xp'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
 import { addXp } from '../progression'
+import { spendGold } from '../wallet'
 import { collectHabitat } from './island-actions'
+import type { Element } from '../elements'
+import type { Habitat, PlayerState } from '../state'
 import { failure, success, type Handler } from './types'
 
 export { BREED_MIN_LEVEL }
@@ -17,19 +23,32 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const pb = s.dragons.find(d => d.id === a.parentB)
   if (!pa || !pb || pa.id === pb.id) return failure('INVALID_PARENTS')
   if (pa.level < BREED_MIN_LEVEL || pb.level < BREED_MIN_LEVEL) return failure('LEVEL_TOO_LOW')
-  const nest = s.nests.findIndex(n => n.egg === null)
-  if (nest < 0) return failure('NO_FREE_NEST')
+  if (s.level < BREEDER_LEVELS.mountain[0]!.minPl) return failure('LEVEL_TOO_LOW')
+  const sa = getSpecies(ctx.catalog, pa.speciesId), sb = getSpecies(ctx.catalog, pb.speciesId)
+  const invalid = breedValidity(sa, sb)
+  if (invalid) return failure(invalid)
+  // A finished egg waiting for a Hatchery slot keeps its building blocked (§5.4); a new building does nothing yet.
+  const index = s.breeders.findIndex((b, i) => b.egg === null && !isUnfinished(s, { type: 'breeder', index: i }))
+  if (index < 0) return failure('NO_FREE_BREEDER')
 
-  const roll = rollOffspring(pa, pb, { pity: s.pity }, ctx.catalog, ctx.rng)
-  const child = getSpecies(ctx.catalog, roll.speciesId)
-  const readyAtMs = ctx.nowMs + nestBreedMs(breedTimerMs(child.rarity, child.elements, ctx.preset), s.nests[nest]!.level)
+  const bctx = { activeLegendaries: activeLegendaries(ctx.day, ctx.preset), firstHybridPending: !s.firstHybridDone }
+  const child = rollOffspring(sa, sb, bctx, ctx.catalog, ctx.rng)
+  // R25: the scripted breed takes a flat minute, only when the restricted pool was actually used.
+  const scripted = bctx.firstHybridPending && child.elements.length >= 2 && child.rarity !== 'legendary'
+  const hatchMs = scripted ? FIRST_HYBRID_MS : breedTimerMs(child.rarity, child.elements, ctx.preset)
+  const readyAtMs = ctx.nowMs + (scripted ? FIRST_HYBRID_MS : breederBreedMs(hatchMs, s.breeders[index]!))
   const next = {
     ...s,
-    nests: s.nests.map((n, i) => i === nest ? { ...n, egg: { speciesId: roll.speciesId, readyAtMs } } : n),
-    pity: { ...s.pity, [roll.pairKey]: roll.rarePlus ? 0 : (s.pity[roll.pairKey] ?? 0) + 1 },
+    breeders: s.breeders.map((b, i) => i === index ? { ...b, egg: { speciesId: child.id, readyAtMs, hatchMs } } : b),
     tutorial: { ...s.tutorial, breedDone: true },
+    firstHybridDone: s.firstHybridDone || scripted,
   }
-  return success(addXp(next, START_BREED_XP))
+  return success(addXp(next, START_BREED_XP, ctx.preset))
+}
+
+/** The Dragon Book with `speciesId` added once (R22). */
+function discover(discovered: readonly string[], speciesId: string): string[] {
+  return discovered.includes(speciesId) ? [...discovered] : [...discovered, speciesId]
 }
 
 /** Hatchery slots hold eggs and hatched dragons that found no habitat. */
@@ -38,18 +57,39 @@ export function hatcheryUsed(s: { hatchery: readonly unknown[]; dragons: readonl
 }
 
 export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
-  if (a.nest < 0 || a.nest >= s.nests.length) return failure('NOT_FOUND')
-  const egg = s.nests[a.nest]!.egg
-  if (!egg) return failure('NEST_EMPTY')
+  if (a.breeder < 0 || a.breeder >= s.breeders.length) return failure('NOT_FOUND')
+  const egg = s.breeders[a.breeder]!.egg
+  if (!egg) return failure('BREEDER_EMPTY')
   if (ctx.nowMs < egg.readyAtMs) return failure('NOT_READY')
-  if (hatcheryUsed(s) >= hatcherySlots(s.hatcheryLevel)) return failure('HATCHERY_FULL')
-  const species = getSpecies(ctx.catalog, egg.speciesId)
-  const readyAtMs = ctx.nowMs + breedTimerMs(species.rarity, species.elements, ctx.preset)
+  if (hatcheryUsed(s) >= hatcherySlots(s.hatcheryLevel, s.hatcheryFifthSlot)) return failure('HATCHERY_FULL')
   return success({
     ...s,
-    nests: s.nests.map((n, i) => i === a.nest ? { ...n, egg: null } : n),
-    hatchery: [...s.hatchery, { speciesId: egg.speciesId, readyAtMs }],
+    breeders: s.breeders.map((b, i) => i === a.breeder ? { ...b, egg: null } : b),
+    // The hatch timer starts now, when the egg reaches its slot (§5.4).
+    hatchery: [...s.hatchery, { speciesId: egg.speciesId, readyAtMs: ctx.nowMs + egg.hatchMs }],
     tutorial: { ...s.tutorial, hatchDone: true },
+  })
+}
+
+/** The first finished habitat a new `element` Basic can live in with room (R26), or undefined. */
+export function basicHome(s: PlayerState, catalog: Catalog, element: Element): Habitat | undefined {
+  const species = getSpecies(catalog, element)
+  return s.habitats.find(h => canLiveIn(species, h) && !isUnfinished(s, { type: 'habitat', id: h.id }) && residents(s, h.id).length < habitatSlots(h))
+}
+
+/** M2 Q3, R26: buy a Basic with Gold; it moves into the first finished habitat it can live in with room, at Lv 1. */
+export const buyBasic: Handler<'buyBasic'> = (s, a, ctx) => {
+  if (s.level < HABITATS[a.element].unlockPl) return failure('LEVEL_TOO_LOW')
+  const home = basicHome(s, ctx.catalog, a.element)
+  if (!home) return failure('NO_HABITAT_SLOT')
+  const paid = spendGold(s, basicPriceGold(a.element))
+  if (!paid) return failure('INSUFFICIENT_GOLD')
+  const collected = collectHabitat(paid, home.id, ctx.catalog, ctx.nowMs, ctx.preset)
+  return success({
+    ...collected,
+    dragons: [...collected.dragons, { id: `d${s.nextId}`, speciesId: a.element, level: 1, feeds: 0, habitatId: home.id }],
+    discovered: discover(s.discovered, a.element),
+    nextId: s.nextId + 1,
   })
 }
 
@@ -65,7 +105,8 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
     ...collected,
     hatchery: collected.hatchery.filter((_, i) => i !== a.slot),
     dragons: [...collected.dragons, dragon],
+    discovered: discover(s.discovered, egg.speciesId),
     nextId: s.nextId + 1,
   }
-  return success(addXp(next, HATCH_XP[species.rarity]))
+  return success(addXp(next, HATCH_XP[species.rarity], ctx.preset))
 }

@@ -1,10 +1,10 @@
-import { cropGrowMs, DEFAULT_PRESET, LAUNCH_CATALOG, newPlayer, outerObstacles, type Dragon } from '@wyrmhaven/game-core'
+import { cropGrowMs, DEFAULT_PRESET, getSpecies, goldPerMinuteX20, habitatCap, hatcherySlots, LAUNCH_CATALOG, newPlayer, outerObstacles, residents, storedGold, type Dragon } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
-import { badgeY, buildIslandModel, dragonKey, timerLabel } from '../src/game/islandModel'
+import { badgeY, BREEDER_ART_SCALE, buildIslandModel, dragonKey, goldBadgeThreshold, timerLabel } from '../src/game/islandModel'
 import { NEST_EGG_SCALE } from '../src/game/layout'
 import { nearestLegalCell } from '../src/state/placing'
 
@@ -44,7 +44,9 @@ describe('island model', () => {
     const { markers, objects } = model(newPlayer(0))
     expect(markers.habitats).toEqual(['h1', 'h2'])
     expect(markers.dragons).toEqual(['d1', 'd2'])
-    expect(markers.nests).toEqual([{ index: 0, egg: false }])
+    expect(markers.breeders).toEqual([{ index: 0, egg: false }])
+    // The Mountain stands on its 2-cell footprint at (4, 8) (R9), still drawn with the nest sprite until its art lands.
+    expect(objects.find(o => o.id === 'breeder:0')).toMatchObject({ key: textureKey('building.nest'), x: -32, y: 64, target: { kind: 'breeder', index: 0 } })
     expect(markers.hatchery).toEqual([])
     expect(markers.farms).toHaveLength(1)
     expect(objects.find(o => o.id === 'habitat:h1')!.key).toBe(textureKey('habitat.terra'))
@@ -58,13 +60,54 @@ describe('island model', () => {
     const { objects } = model(newPlayer(0), 600_000)
     expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('gold')
     expect(model(newPlayer(0), 0).objects.find(o => o.id === 'habitat:h1')!.badge).toBeUndefined()
-    const withEgg = model({ ...newPlayer(0), nests: [{ ...newPlayer(0).nests[0]!, egg: { speciesId: 'flame', readyAtMs: 15_000 } }] }, 1_000)
+    const withEgg = model({ ...newPlayer(0), breeders: [{ ...newPlayer(0).breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 15_000, hatchMs: 1 } }] }, 1_000)
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.badge).toBe('14s')
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.scale).toBe(NEST_EGG_SCALE) // sits inside the 32x32 nest
-    expect(withEgg.markers.nests).toEqual([{ index: 0, egg: true }])
+    expect(withEgg.markers.breeders).toEqual([{ index: 0, egg: true }])
     expect(timerLabel(0, 5)).toBe('ready')
     expect(timerLabel(3_600_000 * 4, 0)).toBe('4h')
     expect(timerLabel(90_000, 0)).toBe('2m')
+  })
+
+  describe('GOLD badge threshold: min(one minute of the residents, 5 % of the cap), floored', () => {
+    const at = (state: Parameters<typeof buildIslandModel>[0], nowMs: number) => model(state, nowMs).objects.find(o => o.id === 'habitat:h1')!
+    const terra = (): ReturnType<typeof newPlayer> => {
+      const s = newPlayer(0)
+      return { ...s, dragons: s.dragons.map(d => (d.id === 'd1' ? { ...d, level: 5 } : d.id === 'd2' ? { ...d, speciesId: 'terra', level: 5, habitatId: 'h1' } : d)) }
+    }
+    it('Terra L1 with two Lv 5 Commons (1,320 gold/min, cap 80,000): no badge at 1,319, gold at 1,320', () => {
+      const s = terra()
+      expect(habitatCap('terra', 1, DEFAULT_PRESET)).toBe(80_000)
+      expect(residents(s, 'h1')).toHaveLength(2)
+      expect(at(s, 59_999).badge).toBeUndefined() // 1,319 Gold stored
+      expect(storedGold(s.habitats[0]!, residents(s, 'h1'), C, 59_999, DEFAULT_PRESET)).toBe(1_319)
+      expect(at(s, 60_000).badge).toBe('gold') // 1,320
+      expect(at(s, 59_999).target).toEqual({ kind: 'habitat', id: 'h1' })
+    })
+    it('counts the capped rate when the preset has a habitatRateCap (A13)', () => {
+      const war = { id: 'h1', element: 'war' as const, level: 1, lastCollectedMs: 0, placement: { island: 'home' as const, col: 0, row: 0, facing: 0 as const } }
+      const d: Dragon = { id: 'x', speciesId: 'terra-war', level: 5, feeds: 0, habitatId: 'h1' }
+      const capped = { ...DEFAULT_PRESET, habitatRateCap: 125 }
+      expect(goldBadgeThreshold(war, [d], 10_000_000, C, DEFAULT_PRESET)).toBe(990) // 19,800 / 20
+      expect(goldBadgeThreshold(war, [d], 10_000_000, C, capped)).toBe(431) // floor(8,625 / 20)
+    })
+    it('uses 5 % of the cap when that is smaller than a minute of income', () => {
+      // The launch catalog has no Legendary yet: use its richest species at Lv 40, housed in its own element.
+      const rate40 = (sp: ReturnType<typeof getSpecies>) => goldPerMinuteX20(sp.elements[0]!, sp.rarity, 40, DEFAULT_PRESET)
+      const legend = [...C.species.values()].sort((a, b) => rate40(b) - rate40(a))[0]!
+      const el = legend.elements[0]!
+      const s = newPlayer(0)
+      const strong = { ...s, habitats: s.habitats.map(h => (h.id === 'h1' ? { ...h, element: el } : h)), dragons: s.dragons.map(d => (d.id === 'd1' || d.id === 'd2' ? { ...d, speciesId: legend!.id, level: 40, habitatId: 'h1' } : d)) }
+      const live = residents(strong, 'h1')
+      expect(live).toHaveLength(2)
+      const x20 = live.reduce((n, d) => n + goldPerMinuteX20(el, legend.rarity, d.level, DEFAULT_PRESET), 0)
+      const threshold = Math.floor(habitatCap(el, 1, DEFAULT_PRESET) * 5 / 100)
+      expect(Math.floor(x20 / 20)).toBeGreaterThan(threshold) // a minute of income is more than 5 % of the cap
+      const msFor = (gold: number) => Math.ceil(gold * 20 * 60_000 / x20)
+      expect(storedGold(strong.habitats[0]!, live, C, msFor(threshold) - 1, DEFAULT_PRESET)).toBe(threshold - 1)
+      expect(at(strong, msFor(threshold) - 1).badge).toBeUndefined()
+      expect(at(strong, msFor(threshold)).badge).toBe('gold')
+    })
   })
 
   it('badges a habitat full once its stored gold reaches the cap', () => {
@@ -114,6 +157,18 @@ describe('island model', () => {
     const crop = objects.find(o => o.id === 'crop:0')!
     expect(crop.scale).toBeCloseTo(0.75, 5) // half grown
     expect(crop.badge).toBe('8s') // 7.5 s left of the 15 s Flash-14 grow time
+  })
+
+  it('badges a finished breeder egg "ready" with a free Hatchery slot and "hatchery full" without (R18, R20)', () => {
+    const p = newPlayer(0)
+    const done = { ...p, breeders: [{ ...p.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 1_000, hatchMs: 1 } }] }
+    const free = model(done, 2_000).objects.find(o => o.id === 'egg:0')!
+    expect(free.badge).toBe('ready')
+    expect(free.key).toBe(textureKey('egg.flame')) // the primary element's egg, never the species (R20)
+    const slots = hatcherySlots(done.hatcheryLevel, done.hatcheryFifthSlot)
+    const full = { ...done, hatchery: Array.from({ length: slots }, () => ({ speciesId: 'sea', readyAtMs: 9_000_000 })) }
+    expect(model(full, 2_000).objects.find(o => o.id === 'egg:0')!.badge).toBe('hatchery full')
+    expect(model(full, 500).objects.find(o => o.id === 'egg:0')!.badge).toBe('1s') // unfinished keeps its timer
   })
 
   it('badges a ripe crop "ripe" (not the generic "ready" of eggs)', () => {
@@ -172,7 +227,7 @@ describe('island model', () => {
     for (const o of objects) bridge.emit({ type: 'select', target: o.target })
     expect(seen).toContainEqual({ kind: 'habitat', id: 'h1' })
     expect(seen).toContainEqual({ kind: 'dragon', id: 'd1' })
-    expect(seen).toContainEqual({ kind: 'nest', index: 0 })
+    expect(seen).toContainEqual({ kind: 'breeder', index: 0 })
     expect(seen).toContainEqual({ kind: 'farm', plot: 0 })
   })
 
@@ -197,10 +252,80 @@ describe('island model', () => {
     const s = newPlayer(0)
     const bad = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 2, col: 0, row: 0, facing: 0 })
     expect(bad.markers.ghost).toEqual({ legal: false, col: 0, row: 0, size: 2 })
-    const good = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 2, col: 6, row: 8, facing: 1 })
+    const good = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 2, col: 9, row: 8, facing: 1 })
     expect(good.objects.find(o => o.id === 'ghost')).toMatchObject({ tint: 'ok', flipX: true })
-    expect(good.markers.ghost).toEqual({ legal: true, col: 6, row: 8, size: 2 })
+    expect(good.markers.ghost).toEqual({ legal: true, col: 9, row: 8, size: 2 })
     expect(good.objects.at(-1)!.id).toBe('ghost')
+  })
+
+  it('falls back from a hybrid with no art to its primary Basic, and by stage (R23)', () => {
+    const e = (file: string) => ({ file, w: 48, h: 48, frames: 1, fps: 0 })
+    const none = artSetFromManifest('t', { assets: {} }, C)
+    expect(dragonKey('flame-sea', 8, none)).toBe(textureKey('dragon.flame'))
+    expect(dragonKey('sea-flame', 8, none)).toBe(textureKey('dragon.sea'))
+    const own = artSetFromManifest('t', { assets: { 'dragon.flame-sea': e('fs.png') } }, C)
+    expect(dragonKey('flame-sea', 8, own)).toBe(textureKey('dragon.flame-sea'))
+    expect(dragonKey('sea-flame', 8, own)).toBe(textureKey('dragon.sea'))
+    // Juvenile: the primary Basic's juvenile sheet when present, else its dragon sheet.
+    expect(dragonKey('sea-flame', 5, none)).toBe(textureKey('dragon.sea'))
+    const withJuv = artSetFromManifest('t', { assets: { 'juvenile.sea': e('js.png') } }, C)
+    expect(dragonKey('sea-flame', 5, withJuv)).toBe(textureKey('juvenile.sea'))
+    expect(dragonKey('flame-sea', 5, withJuv)).toBe(textureKey('dragon.flame'))
+    // A Legendary falls back the same way, by the first element of its row.
+    expect(dragonKey('glacier-warlord', 8, none)).toBe(textureKey('dragon.ice'))
+    // A baby still uses the hatchling of the primary element.
+    expect(dragonKey('flame-sea', 2, none)).toBe(textureKey('hatchling.flame'))
+  })
+
+  it('draws a Mountain by level: its own sheet, else a lower level, else the nest; no request for an absent key', () => {
+    const b = (file: string) => ({ file, w: 80, h: 80, frames: 1, fps: 0 })
+    const withLevel = (assets: Record<string, ReturnType<typeof b>>, level: number) => {
+      const art = artSetFromManifest('t', { assets }, C)
+      const s = newPlayer(0)
+      const st = { ...s, breeders: [{ ...s.breeders[0]!, level }] }
+      return { art, obj: buildIslandModel(st, art, C, 0, 'home', null).objects.find(o => o.id === 'breeder:0')! }
+    }
+    expect(withLevel({ 'building.mountain.1': b('m1.png'), 'building.mountain.2': b('m2.png') }, 2).obj.key).toBe(textureKey('building.mountain.2'))
+    expect(withLevel({ 'building.mountain.1': b('m1.png') }, 2).obj.key).toBe(textureKey('building.mountain.1'))
+    const none = withLevel({}, 2)
+    expect(none.obj.key).toBe(textureKey('building.nest'))
+    expect(artEntries(none.art).map(r => r.key).some(k => /^art:building\.(mountain|grove)/.test(k))).toBe(false)
+    expect(artEntries(withLevel({ 'building.mountain.2': b('m2.png') }, 2).art).map(r => r.key)).toContain('art:building.mountain.2')
+  })
+
+  it('draws 80x80 breeder sheets at BREEDER_ART_SCALE on the 2-cell footprint until M4; the nest keeps its native scale', () => {
+    expect(BREEDER_ART_SCALE).toBeGreaterThan(0)
+    expect(BREEDER_ART_SCALE).toBeLessThan(1)
+    const s = newPlayer(0)
+    const sheet = { file: 'b.png', w: 80, h: 80, frames: 1, fps: 0 }
+    const art = artSetFromManifest('t', { assets: { 'building.mountain.1': sheet, 'building.grove.1': sheet } }, C)
+    // The sheet stays specified at 80x80: only the drawing is scaled.
+    expect(art.building.breeder.mountain[1]).toMatchObject({ w: 80, h: 80 })
+    expect(buildIslandModel(s, art, C, 0, 'home', null).objects.find(o => o.id === 'breeder:0')!.scale).toBe(BREEDER_ART_SCALE)
+    const ghost = buildIslandModel(s, art, C, 0, 'home', { what: { kind: 'grove' }, size: 2, col: 9, row: 7, facing: 0 }).objects.find(o => o.id === 'ghost')!
+    expect(ghost.scale).toBe(BREEDER_ART_SCALE)
+    const moved = buildIslandModel(s, art, C, 0, 'home', { what: { kind: 'move', target: { type: 'breeder', index: 0 } }, size: 2, col: 9, row: 7, facing: 0 }).objects.find(o => o.id === 'ghost')!
+    expect(moved.scale).toBe(BREEDER_ART_SCALE)
+    expect(buildIslandModel(s, FALLBACK_ART, C, 0, 'home', null).objects.find(o => o.id === 'breeder:0')!.scale).toBeUndefined()
+  })
+
+  it('draws the Hatchery by level with the same fallbacks, and the Grove ghost with its level 1 sheet', () => {
+    const b = { file: 'h.png', w: 64, h: 64, frames: 1, fps: 0 }
+    const art = artSetFromManifest('t', { assets: { 'building.hatchery.2': b, 'building.grove.1': { ...b, w: 80, h: 80 } } }, C)
+    const s = newPlayer(0)
+    const key = (level: number) => buildIslandModel({ ...s, hatcheryLevel: level, hatcheryPlacement: { ...s.hatcheryPlacement, island: 'home' } }, art, C, 0, 'home', null).objects.find(o => o.id === 'hatchery')!.key
+    expect(key(1)).toBe(textureKey('building.hatchery'))
+    expect(key(2)).toBe(textureKey('building.hatchery.2'))
+    expect(key(3)).toBe(textureKey('building.hatchery.2'))
+    const g = buildIslandModel(s, art, C, 0, 'home', { what: { kind: 'grove' }, size: 2, col: 9, row: 7, facing: 0 })
+    expect(g.objects.find(o => o.id === 'ghost')!.key).toBe(textureKey('building.grove.1'))
+  })
+
+  it('draws the Grove ghost with the nest sprite until its own art lands, on a 2-cell footprint', () => {
+    const s = newPlayer(0)
+    const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'grove' }, size: 2, col: 9, row: 7, facing: 0 })
+    expect(m.markers.ghost).toEqual({ legal: true, col: 9, row: 7, size: 2 })
+    expect(m.objects.find(o => o.id === 'ghost')!.key).toBe(textureKey('building.nest'))
   })
 
   it('draws the Golden Aerie ghost with the Nexus sprite until its own art lands', () => {

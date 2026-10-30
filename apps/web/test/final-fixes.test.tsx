@@ -15,7 +15,7 @@ import { harness, TestHost } from './harness'
 const base = newPlayer(0)
 const unlocked = ['home', 'dawnspire'] as PlayerState['islands']['unlocked']
 const dp: Placement = { island: 'dawnspire', col: 0, row: 0, facing: 0 }
-const home = { island: 'home' as const, col: 6, row: 7, facing: 0 as const }
+const home = { island: 'home' as const, col: 9, row: 7, facing: 0 as const }
 const both: PlayerState = { ...base, level: 45, gold: 5_000_000, islands: { ...base.islands, unlocked } }
 const aerie = { id: 'h3', element: 'aerie' as const, level: 5, lastCollectedMs: 0, placement: dp }
 
@@ -24,9 +24,9 @@ const at = (what: Placing['what'], size: Placing['size'], col: number, row: numb
 
 describe('client placement preview matches the server island rules', () => {
   const cases: { name: string; s: PlayerState; view: 'home' | 'dawnspire'; p: Placing; legalView: 'home' | 'dawnspire'; legalP: Placing }[] = [
-    { name: 'a Dawnspire decoration at home', s: both, view: 'home', p: at({ kind: 'decoration', decoration: 'starPool' }, 3, 6, 7), legalView: 'dawnspire', legalP: at({ kind: 'decoration', decoration: 'starPool' }, 3, 0, 0) },
-    { name: 'moving the hatchery off home', s: both, view: 'dawnspire', p: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 0, 0), legalView: 'home', legalP: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 6, 7) },
-    { name: 'moving a Dawnspire decoration home', s: { ...both, decorations: [{ id: 'c3', kind: 'starPool', placement: dp }] }, view: 'home', p: at({ kind: 'move', target: { type: 'decoration', id: 'c3' } }, 3, 6, 7), legalView: 'dawnspire', legalP: at({ kind: 'move', target: { type: 'decoration', id: 'c3' } }, 3, 1, 0) },
+    { name: 'a Dawnspire decoration at home', s: both, view: 'home', p: at({ kind: 'decoration', decoration: 'starPool' }, 3, 9, 7), legalView: 'dawnspire', legalP: at({ kind: 'decoration', decoration: 'starPool' }, 3, 0, 0) },
+    { name: 'moving the hatchery off home', s: both, view: 'dawnspire', p: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 0, 0), legalView: 'home', legalP: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 0, 5) },
+    { name: 'moving a Dawnspire decoration home', s: { ...both, decorations: [{ id: 'c3', kind: 'starPool', placement: dp }] }, view: 'home', p: at({ kind: 'move', target: { type: 'decoration', id: 'c3' } }, 3, 9, 7), legalView: 'dawnspire', legalP: at({ kind: 'move', target: { type: 'decoration', id: 'c3' } }, 3, 1, 0) },
   ]
   for (const c of cases) {
     it(`refuses ${c.name}: red ghost and no action`, () => {

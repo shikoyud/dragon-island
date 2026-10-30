@@ -95,11 +95,11 @@ docs/superpowers/reports/2026-10-30-m2-report.md
 **Interfaces:**
 - Produces: a habitat's `gold` badge shows only when stored Gold ≥ `min(gold per minute of its residents, 5 % of its cap)`, floored; below that it has no badge and no collect hit box. `full` at the cap is unchanged. The panel's Collect button still works from 1 Gold. `ActionError` gains `AERIE_EXISTS`; `priceMicroUsd({ kind:'goldenAerie' })` returns null when the player owns one.
 
-- [ ] **Step 1: Write the failing tests**: Terra L1, two Lv 5 Commons, Flash-14 (1,320 gold/min, cap 80,000): threshold 1,320, no badge at 1,319, `gold` at 1,320. War L1 with one Lv 40 Legendary where 5 % of the cap is smaller: the badge uses 5 % of the cap. A capped habitat is `full`. A second `buy goldenAerie` fails `AERIE_EXISTS` with no charge; Store hides the Aerie row when owned. Waitlist: no page contains `Season Points`, `14-day season` or `Battle for the season`.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** Waitlist wording: a game that runs once for 14 days and then shuts down, `Dragon Points` are not introduced; where a sentence only promised Season Points, describe ranked battles and $DRIS rewards per GDD §1, §6.4 and §7.5, without amounts. Keep every sentence honest about legal review (GDD sign-off). Client only for the badge threshold.
-- [ ] **Step 4: Run** `pnpm -r test && pnpm -r typecheck` — expected: PASS.
-- [ ] **Step 5: Commit** — `fix: GOLD badge threshold, one Golden Aerie per player, waitlist copy without seasons`
+- [x] **Step 1: Write the failing tests**: Terra L1, two Lv 5 Commons, Flash-14 (1,320 gold/min, cap 80,000): threshold 1,320, no badge at 1,319, `gold` at 1,320. War L1 with one Lv 40 Legendary where 5 % of the cap is smaller: the badge uses 5 % of the cap. A capped habitat is `full`. A second `buy goldenAerie` fails `AERIE_EXISTS` with no charge; Store hides the Aerie row when owned. Waitlist: no page contains `Season Points`, `14-day season` or `Battle for the season`.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** Waitlist wording: a game that runs once for 14 days and then shuts down, `Dragon Points` are not introduced; where a sentence only promised Season Points, describe ranked battles and $DRIS rewards per GDD §1, §6.4 and §7.5, without amounts. Keep every sentence honest about legal review (GDD sign-off). Client only for the badge threshold.
+- [x] **Step 4: Run** `pnpm -r test && pnpm -r typecheck` — expected: PASS.
+- [x] **Step 5: Commit** — `fix: GOLD badge threshold, one Golden Aerie per player, waitlist copy without seasons`
 
 ### Task 1: The species catalog from the §3.4 grid (§3.3, §3.4, A4)
 
@@ -122,11 +122,11 @@ export function validateCatalog(c: Catalog): string[] // codes below; [] when va
 - Tri-hybrid rows: `flame-ice-sea` only (Q4).
 - `SPECIES_ROWS` is a literal table, one row per line, written once by a throwaway script, so shiko can edit `name` without touching code.
 
-- [ ] **Step 1: Write the failing test** `species-rows.test.ts`. It holds the **literal §3.4 grid** (10 × 10 of C/U/R/E) and asserts: for each ordered pair of different elements, `LAUNCH_CATALOG` has exactly one species with those `elements` and the grid's rarity; counts are common 10, uncommon 48, rare 34, epic 8 + the tri-hybrid rows, legendary 5; every id equals `elements.join('-')` except Legendaries; every tri-hybrid is epic with 3 distinct elements; `validateCatalog(LAUNCH_CATALOG)` is `[]`; `validateCatalog` flags `BAD_ELEMENTS:x` for 0, 4 or repeated elements, `DUPLICATE_ELEMENTS:a-b` for two rows with the same ordered elements, `MISSING_BASIC:e` for an absent Basic, `HYBRID_RARITY:id` for a hybrid disagreeing with the grid rule (opposite pair = epic, counter pair = rare, else uncommon, from `OPPOSITE_PAIRS` and `STRONG_AGAINST`).
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- species-rows` — expected: FAIL.
-- [ ] **Step 3: Implement.** Delete `recipeOnly`, `Recipe`, `Catalog.recipes`, `speciesPairKey`, the `DUPLICATE_TIER` rule. `pve.ts` and `matchmaking.ts` filter `rarity !== 'legendary'` instead of `!recipeOnly`; `stageRarity` and `BOT_RARITIES` keep their values until M5, so stage and bot teams now draw hybrids (R24); re-pin those tests. `movesFor` is unchanged.
-- [ ] **Step 4: Run** `pnpm -r test && pnpm -r typecheck` — expected: PASS once callers compile. `breeding.ts` still uses `recipes`: delete `recipeFor` and its tests here so the build stays green; the old tier odds stay for Task 2 to replace.
-- [ ] **Step 5: Commit** — `feat(game-core): 100-species catalog from the §3.4 grid, with a name column (A4)`
+- [x] **Step 1: Write the failing test** `species-rows.test.ts`. It holds the **literal §3.4 grid** (10 × 10 of C/U/R/E) and asserts: for each ordered pair of different elements, `LAUNCH_CATALOG` has exactly one species with those `elements` and the grid's rarity; counts are common 10, uncommon 48, rare 34, epic 8 + the tri-hybrid rows, legendary 5; every id equals `elements.join('-')` except Legendaries; every tri-hybrid is epic with 3 distinct elements; `validateCatalog(LAUNCH_CATALOG)` is `[]`; `validateCatalog` flags `BAD_ELEMENTS:x` for 0, 4 or repeated elements, `DUPLICATE_ELEMENTS:a-b` for two rows with the same ordered elements, `MISSING_BASIC:e` for an absent Basic, `HYBRID_RARITY:id` for a hybrid disagreeing with the grid rule (opposite pair = epic, counter pair = rare, else uncommon, from `OPPOSITE_PAIRS` and `STRONG_AGAINST`).
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- species-rows` — expected: FAIL.
+- [x] **Step 3: Implement.** Delete `recipeOnly`, `Recipe`, `Catalog.recipes`, `speciesPairKey`, the `DUPLICATE_TIER` rule. `pve.ts` and `matchmaking.ts` filter `rarity !== 'legendary'` instead of `!recipeOnly`; `stageRarity` and `BOT_RARITIES` keep their values until M5, so stage and bot teams now draw hybrids (R24); re-pin those tests. `movesFor` is unchanged.
+- [x] **Step 4: Run** `pnpm -r test && pnpm -r typecheck` — expected: PASS once callers compile. `breeding.ts` still uses `recipes`: delete `recipeFor` and its tests here so the build stays green; the old tier odds stay for Task 2 to replace.
+- [x] **Step 5: Commit** — `feat(game-core): 100-species catalog from the §3.4 grid, with a name column (A4)`
 
 ### Task 2: The §3.2 breeding algorithm, Legendary events, no pity (§3.2–3.4, §8.4, A7)
 
@@ -152,7 +152,7 @@ export function breedValidity(a: Species, b: Species): 'OPPOSITE_BASICS' | null
 ```
 - Pool: U = all elements of both parents; P = both primaries. S qualifies if `S.elements[0]` ∈ P, every element ∈ U, it is a Basic only when a parent is a Basic, and it is a Legendary only when in `ctx.activeLegendaries`. If no Common or Uncommon qualifies, add each parent's primary Basic (dedupe). Weight = `BREED_WEIGHT[rarity]`.
 
-- [ ] **Step 1: Write the failing tests** in `breeding.test.ts`, on `LAUNCH_CATALOG`, `activeLegendaries: []` unless stated:
+- [x] **Step 1: Write the failing tests** in `breeding.test.ts`, on `LAUNCH_CATALOG`, `activeLegendaries: []` unless stated:
   - Terra × Nature: `terra` 1000/3000, `nature` 1000/3000, `terra-nature` 500/3000, `nature-terra` 500/3000; hybrid total 33.3 % (§3.4).
   - Terra × Flame: hybrid total 400/2400 = 16.7 % (§3.4).
   - Terra × Terra: `terra` 100 %.
@@ -165,10 +165,10 @@ export function breedValidity(a: Species, b: Species): 'OPPOSITE_BASICS' | null
   - `breed-actions.test.ts`: `startBreed` on Flame × Ice Basics fails `OPPOSITE_BASICS`; an egg bred on day 4 with Magma active hatches on day 6 (Review Focus 4); `applyAction(..., FLASH_14, 4)` can yield `magma-sovereign` with a forced RNG and `applyAction(..., FLASH_14, 5)` cannot. Timer comes from the offspring: `breedTimerMs(child.rarity, child.elements, preset)`.
   - Server: `/actions` passes `gameDay(launchAtMs, nowMs)` (a test at launch + 4 days with a forced seed, or by asserting the argument through a stub `deps`).
   - `stateMigration.test.ts` and `actions.test.ts`: a version 2 state with `nests` and `pity` becomes `newPlayer` on `/me` and `/actions`, logged once (Review Focus 5).
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** Delete `tierWeights`, `poolFor`, `RECIPE_*`, `PITY_*`, `RARITY_SCORE`, `pairKey` use, and `PlayerState.pity`. `BREED_MIN_LEVEL` stays. The web client calls `breedingOdds` with `activeLegendaries(gameDay(me.game.launchAtMs, nowMs), preset)`.
-- [ ] **Step 4: Run** `pnpm -r test && pnpm -r typecheck` — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): §3.2 breeding pool, floor guard, Legendary events; pity removed`
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** Delete `tierWeights`, `poolFor`, `RECIPE_*`, `PITY_*`, `RARITY_SCORE`, `pairKey` use, and `PlayerState.pity`. `BREED_MIN_LEVEL` stays. The web client calls `breedingOdds` with `activeLegendaries(gameDay(me.game.launchAtMs, nowMs), preset)`.
+- [x] **Step 4: Run** `pnpm -r test && pnpm -r typecheck` — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): §3.2 breeding pool, floor guard, Legendary events; pity removed`
 
 ### Task 3: Breeding Mountain, Grove and the Hatchery table (§5.4, §4.4)
 
@@ -197,7 +197,7 @@ export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'
 ```
 - Tables (§5.4; timers R16, classic, ÷`timerDiv`): Hatchery L1 1 slot free PL 1; L2 2 slots 2,000 Gold PL 4 1 h; L3 3 slots 250,000 PL 13 4 h; L4 4 slots 2,000,000 PL 21 12 h. The fifth slot is `HATCHERY_FIFTH_SLOT`, not a level (Q5 a). Mountain L1 free PL 2; L2 −10 % 150,000 PL 10 1 h; L3 −20 % 1,500,000 PL 20 4 h. Grove L1 400,000 PL 12 build 4 h; L2 −10 % 1,500,000 PL 20 1 h; L3 −20 % $3.50 PL 25 instant.
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   - Every row above, literally; `hatcherySlots(1, false) === 1`, `hatcherySlots(4, false) === 4`, `hatcherySlots(1, true) === 2`, `hatcherySlots(4, true) === 5`.
   - `breederBreedMs(2_400_000, mountain L1) === 2_400_000`, `L2 === 2_160_000`, `L3 === 1_920_000`; grove L1 no reduction.
   - Mountain L3 breeding a Rare Tier A egg under Flash-14: `readyAtMs` now + 1,920,000 and `hatchMs` 2,400,000: reductions don't apply to hatching (§5.4).
@@ -207,10 +207,10 @@ export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'
   - Review Focus 1: Hatchery L1 with one egg: a finished egg in the Mountain fails `collectEgg` with `HATCHERY_FULL`, stays there, and `startBreed` fails `NO_FREE_BREEDER`. After `hatch`, `collectEgg` succeeds and the hatch `readyAtMs` is now + `hatchMs`. The same holds with the slot held by a dragon with `habitatId: null`.
   - Store: `hatcheryL5` costs 3,000,000 from PL 15 at any Hatchery level and only once: below PL 15 and after buying, its price is null (Q5 a); `groveL3` 3,500,000 only at Grove L2 with PL ≥ 25; `upgradeInfo` returns null for Hatchery L4 and Grove L2, and its timers divide by `timerDiv`: Hatchery to L2 under Flash-14 is 600,000 ms.
   - `newPlayer` placements still pass `placementError` and don't overlap.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** Delete `NEST_LEVELS`, `nestBreedMs`, `MAX_NESTS`, `HATCHERY_SLOTS`, `FOOTPRINT.nest`, the old `HATCHERY_LEVELS`. `startBreed` picks the first breeder with no egg that is not `isUnfinished`. `collectEgg` uses `egg.hatchMs`. Web: `Target` `{kind:'nest'}` → `{kind:'breeder', index}`, art falls back to `building.nest` until Task 11. E2E helpers and specs follow; `breed.spec.ts` grants PL 2.
-- [ ] **Step 4: Run** `pnpm -r test && pnpm -r typecheck && pnpm --filter @wyrmhaven/web test:e2e` — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): Breeding Mountain, Grove and Hatchery on the §5.4 tables`
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** Delete `NEST_LEVELS`, `nestBreedMs`, `MAX_NESTS`, `HATCHERY_SLOTS`, `FOOTPRINT.nest`, the old `HATCHERY_LEVELS`. `startBreed` picks the first breeder with no egg that is not `isUnfinished`. `collectEgg` uses `egg.hatchMs`. Web: `Target` `{kind:'nest'}` → `{kind:'breeder', index}`, art falls back to `building.nest` until Task 11. E2E helpers and specs follow; `breed.spec.ts` grants PL 2.
+- [x] **Step 4: Run** `pnpm -r test && pnpm -r typecheck && pnpm --filter @wyrmhaven/web test:e2e` — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): Breeding Mountain, Grove and Hatchery on the §5.4 tables`
 
 ### Task 4: The scripted first hybrid (§3.5, §4.4, Q1)
 
@@ -221,11 +221,11 @@ export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'
 - Consumes: `BreederEgg.hatchMs`, `breedingPool`.
 - Produces: `PlayerState.firstHybridDone: boolean` (false in `newPlayer`); `BreedContext.firstHybridPending: boolean`. While pending, a pool holding a hybrid (2 or more elements, not Legendary) is restricted to those hybrids; Basics and Legendaries drop out. A pool with no hybrid is untouched and the script stays pending.
 
-- [ ] **Step 1: Write the failing tests**: Terra × Flame, pending: odds are `terra-flame` 50 %, `flame-terra` 50 %; `startBreed` sets `readyAtMs` now + 60,000 under both presets and any Mountain level, `hatchMs` 60,000, `firstHybridDone` true. The next breed uses normal odds and timers. Terra × Terra while pending gives `terra` and leaves `firstHybridDone` false. With Magma active, the scripted roll cannot be `magma-sovereign`.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** One branch in `breedingPool` plus the timer choice in `startBreed` (R25).
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): scripted first hybrid with a 1-minute timer (§3.5)`
+- [x] **Step 1: Write the failing tests**: Terra × Flame, pending: odds are `terra-flame` 50 %, `flame-terra` 50 %; `startBreed` sets `readyAtMs` now + 60,000 under both presets and any Mountain level, `hatchMs` 60,000, `firstHybridDone` true. The next breed uses normal odds and timers. Terra × Terra while pending gives `terra` and leaves `firstHybridDone` false. With Magma active, the scripted roll cannot be `magma-sovereign`.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** One branch in `breedingPool` plus the timer choice in `startBreed` (R25).
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): scripted first hybrid with a 1-minute timer (§3.5)`
 
 ### Task 5: Buying Basics (§4.4, §5.7, Q3)
 
@@ -235,11 +235,15 @@ export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'
 **Interfaces:**
 - Produces: `Action { type:'buyBasic'; element: Element }`; `basicPriceGold(e: Element): number` = `HABITATS[e].buildGold`. Unlock = `HABITATS[e].unlockPl` (§4.4 lists the same PLs). The dragon goes to the first finished habitat it can live in with room, at Lv 1, `feeds: 0`, after `collectHabitat`.
 
-- [ ] **Step 1: Write the failing tests**: at PL 3 with 5,000 Gold and a Sea habitat with room, `buyBasic sea` leaves 0 Gold and a Lv 1 `sea` dragon in it; at PL 2 → `LEVEL_TOO_LOW`; with 4,999 Gold → `INSUFFICIENT_GOLD`; with no Sea habitat or a full one → `NO_HABITAT_SLOT` (R26); an unfinished habitat doesn't count; schema parity for a valid and an invalid element. Shop's Build tab lists `Sea Basic · 5,000 gold`, disabled with reason `Level 3` at PL 1 and `Build a Sea habitat first` with no room.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement**; add a `Dragons` section to the Build tab above Habitats.
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat: buy Basics for Gold, gated by Player Level (§4.4, §5.7)`
+- [x] **Step 1: Write the failing tests**: at PL 3 with 5,000 Gold and a Sea habitat with room, `buyBasic sea` leaves 0 Gold and a Lv 1 `sea` dragon in it; at PL 2 → `LEVEL_TOO_LOW`; with 4,999 Gold → `INSUFFICIENT_GOLD`; with no Sea habitat or a full one → `NO_HABITAT_SLOT` (R26); an unfinished habitat doesn't count; schema parity for a valid and an invalid element. Shop's Build tab lists `Sea Basic · 5,000 gold`, disabled with reason `Level 3` at PL 1 and `Build a Sea habitat first` with no room.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement**; add a `Dragons` section to the Build tab above Habitats.
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat: buy Basics for Gold, gated by Player Level (§4.4, §5.7)`
+
+### Task 5b: XP multiplier and harvest XP (R27), plus Task 4 clean-up
+
+See `.superpowers/sdd/2026-10-30-gdd-m2-breeding/task-5b-brief.md`.
 
 ### Task 6: Dragon Book state and the hybrid arbitrage flag (§1.4, §5.2, A13)
 
@@ -249,11 +253,11 @@ export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'
 **Interfaces:**
 - Produces: `PlayerState.discovered: string[]` (`['terra', 'flame']` in `newPlayer`; `hatch` and `buyBasic` add the species once). `Preset.habitatRateCap: number | null` in percent, `null` in both presets (A13; 125 is the only other allowed value, R21). `dragonRateX20(sp: Species, level: number, h: Habitat, preset: Preset): number`, used by `storedGold` and both panels.
 
-- [ ] **Step 1: Write the failing tests**: with `habitatRateCap: null`, a Lv 5 Terra-War Rare in a War habitat earns its full Terra rate: `goldPerMinuteX20('terra', 'rare', 5, FLASH_14)` = 19,800. With `{ ...FLASH_14, habitatRateCap: 125 }` it earns `floor(goldPerMinuteX20('war', 'rare', 5, preset) × 125 / 100)` = 8,625; a War Basic in War and any dragon in a Golden Aerie are uncapped; a Terra-War in a Terra habitat is uncapped since its rate is below the cap. `discovered` dedupes on a second hatch.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** Integer math; "native rate" = the same rarity and level at the habitat's element (R21).
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): Dragon Book discovery and the habitatRateCap flag (§5.2, A13)`
+- [x] **Step 1: Write the failing tests**: with `habitatRateCap: null`, a Lv 5 Terra-War Rare in a War habitat earns its full Terra rate: `goldPerMinuteX20('terra', 'rare', 5, FLASH_14)` = 19,800. With `{ ...FLASH_14, habitatRateCap: 125 }` it earns `floor(goldPerMinuteX20('war', 'rare', 5, preset) × 125 / 100)` = 8,625; a War Basic in War and any dragon in a Golden Aerie are uncapped; a Terra-War in a Terra habitat is uncapped since its rate is below the cap. `discovered` dedupes on a second hatch.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** Integer math; "native rate" = the same rarity and level at the habitat's element (R21).
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): Dragon Book discovery and the habitatRateCap flag (§5.2, A13)`
 
 ### Task 7: Island badges for waiting eggs (§3.1, §5.4)
 
@@ -263,11 +267,11 @@ export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'
 **Interfaces:**
 - Produces: badges: a finished breeder egg shows `ready` when a Hatchery slot is free and `hatchery full` when not; an egg in a breeder or the Hatchery draws `egg.<primary element>`; the species name is never shown before hatching (R20).
 
-- [ ] **Step 1: Write the failing tests** in `island.test.ts`: finished egg with a free slot → `badge: 'ready'`; with a full Hatchery → `badge: 'hatchery full'`; hud attention item for the same state names the Hatchery.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(web): island shows a finished egg waiting on the Hatchery`
+- [x] **Step 1: Write the failing tests** in `island.test.ts`: finished egg with a free slot → `badge: 'ready'`; with a full Hatchery → `badge: 'hatchery full'`; hud attention item for the same state names the Hatchery.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(web): island shows a finished egg waiting on the Hatchery`
 
 ### Task 8: Breeding screen (§3.1–3.5, UI direction)
 
@@ -279,11 +283,11 @@ export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'
 - Consumes: `breedingPool`, `breedValidity`, `breederBreedMs`, `breedTimerMs`, `activeLegendaries`, `formatDuration`, `formatSkipPrice`.
 - Produces: `BreedPanel`, opened by the bar's Breed button and by tapping a breeder. Top: one row per breeder (`Breeding Mountain` / `Breeding Grove`): `idle`, `Egg · <timer>` with `Skip · $x`, or `Egg ready` with `Move to Hatchery` (disabled with reason `Hatchery is full` when full), plus `UpgradeSection`. Below: two parent pickers, then an outcome table sorted by chance. A row reads `Terra-Flame · Rare · 8.33% · 40m`; the timer uses the free building's reduction.
 
-- [ ] **Step 1: Write the failing tests**: after the first hybrid, Terra × Flame lists four rows: `Terra Basic · Common · 41.67% · 5s`, `Flame Basic · Common · 41.67% · 5s`, `Terra-Flame · Rare · 8.33% · 40m`, `Flame-Terra · Rare · 8.33% · 40m`; with Mountain L2, `36m`. Before the first hybrid, both hybrids at 50.00% and `1m`. Flame × Ice Basics: no table, button disabled, reason `Opposite Basics can't breed. Use a hybrid that carries one of them.` (Review Focus 2). A Lv 3 parent: reason `Both parents must be level 4`. PL 1: reason `Unlocks at level 2`. All busy: reason `Every breeding building is busy`. Legendary row appears only on event days. An undiscovered result still shows its name and odds (§3.2's outcome list is public). A finished egg with a full Hatchery shows the disabled button and reason.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** Every tap target at least 44 px.
-- [ ] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(web): breeding screen with buildings, outcome list, odds and timers`
+- [x] **Step 1: Write the failing tests**: after the first hybrid, Terra × Flame lists four rows: `Terra Basic · Common · 41.67% · 5s`, `Flame Basic · Common · 41.67% · 5s`, `Terra-Flame · Rare · 8.33% · 40m`, `Flame-Terra · Rare · 8.33% · 40m`; with Mountain L2, `36m`. Before the first hybrid, both hybrids at 50.00% and `1m`. Flame × Ice Basics: no table, button disabled, reason `Opposite Basics can't breed. Use a hybrid that carries one of them.` (Review Focus 2). A Lv 3 parent: reason `Both parents must be level 4`. PL 1: reason `Unlocks at level 2`. All busy: reason `Every breeding building is busy`. Legendary row appears only on event days. An undiscovered result still shows its name and odds (§3.2's outcome list is public). A finished egg with a full Hatchery shows the disabled button and reason.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** Every tap target at least 44 px.
+- [x] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(web): breeding screen with buildings, outcome list, odds and timers`
 
 ### Task 9: Hatchery screen (§3.1, §5.4)
 
@@ -294,11 +298,11 @@ export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'
 **Interfaces:**
 - Produces: `HatcheryPanel`, opened by tapping the Hatchery. Title `Hatchery · used/slots`. One row per slot: `Egg · <timer>` (no species name, R20), `Skip · $x`, `Hatch` when ready; a waiting dragon shows its name and `Needs a habitat`, opening its dragon panel; empty slots show `Empty`. Then `UpgradeSection`. Store lists `Hatchery · 5th slot · $3.00` and `Grove · Level 3 · $3.50` under `Level 5 upgrades` when eligible.
 
-- [ ] **Step 1: Write the failing tests**: a level 2 Hatchery with one egg and one waiting dragon renders `Hatchery · 2/2`; the egg row has no species name; after hatching, a toast or row names the species; the panel points to the Store (`Fifth slot in the Store`) from PL 15 until it is bought (Q5 a), and a Hatchery L1 with it reads `Hatchery · 1/2` with one egg; Store lists the items only when priced.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(web): hatchery screen and premium slot items`
+- [x] **Step 1: Write the failing tests**: a level 2 Hatchery with one egg and one waiting dragon renders `Hatchery · 2/2`; the egg row has no species name; after hatching, a toast or row names the species; the panel points to the Store (`Fifth slot in the Store`) from PL 15 until it is bought (Q5 a), and a Hatchery L1 with it reads `Hatchery · 1/2` with one egg; Store lists the items only when priced.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(web): hatchery screen and premium slot items`
 
 ### Task 10: Dragon Book (§1.4, §3.4, §4.4)
 
@@ -310,11 +314,11 @@ export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'
 - Consumes: `PlayerState.discovered`, `LAUNCH_CATALOG`, `LEGENDARY_EVENTS`, `HABITATS`, `isOpposite`.
 - Produces: `bookHint(sp: Species, preset: Preset, c: Catalog): string`. Tabs `Book` (default) and `My dragons`. Book: `n / total` found, groups by rarity, a tile per species: its sprite and name when discovered; its sprite with CSS `filter: brightness(0)` and `???` when not (R22). Tapping a tile shows elements, rarity and the hint.
 
-- [ ] **Step 1: Write the failing tests**: `bookHint`: `terra` → `Buy in the Shop at level 1`; `sea` → `Buy in the Shop at level 3`; `terra-flame` → `Breed a Terra parent with a Flame parent`; `flame-ice` → `Two Basics can't make this. Breed a hybrid carrying Flame with one carrying Ice`; `flame-ice-sea` → `Breed parents carrying Flame, Ice and Sea, one with a Flame primary`; `magma-sovereign` → `Breeding event, days 1–4: Terra and Flame parents`; `last-light` → `Not bred`. Panel: a fresh player shows `2 / <catalog size>`; an undiscovered tile shows `???` and no species name in its accessible name; a discovered one shows its name; the hint is visible for both.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** Tiles lazy-render (the list is over 100 sprites): sprites only for the open group.
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(web): Dragon Book with silhouettes and breeding hints`
+- [x] **Step 1: Write the failing tests**: `bookHint`: `terra` → `Buy in the Shop at level 1`; `sea` → `Buy in the Shop at level 3`; `terra-flame` → `Breed a Terra parent with a Flame parent`; `flame-ice` → `Two Basics can't make this. Breed a hybrid carrying Flame with one carrying Ice`; `flame-ice-sea` → `Breed parents carrying Flame, Ice and Sea, one with a Flame primary`; `magma-sovereign` → `Breeding event, days 1–4: Terra and Flame parents`; `last-light` → `Not bred`. Panel: a fresh player shows `2 / <catalog size>`; an undiscovered tile shows `???` and no species name in its accessible name; a discovered one shows its name; the hint is visible for both.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** Tiles lazy-render (the list is over 100 sprites): sprites only for the open group.
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(web): Dragon Book with silhouettes and breeding hints`
 
 ### Task 11: Art keys and the art list for the PixelLab thread
 
@@ -325,21 +329,21 @@ export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'
 **Interfaces:**
 - Produces: `art.dragon` holds only ids with a manifest key (plus Basics' drawn fallback). `dragonLook` falls back to the primary element's Basic sheet for a species with no art (R23). Keys read when present: `building.mountain.<1..3>`, `building.grove.<1..3>`, `building.hatchery.<1..4>`, else `building.nest` and `building.hatchery`.
 
-- [ ] **Step 1: Write the failing tests**: `flame-sea` with no art draws `dragon.flame`; with `dragon.flame-sea` present draws it; `sea-flame` draws `dragon.sea`; a Mountain L2 uses `building.mountain.2` when present and falls back to `.1`, then `building.nest`; no request goes out for an absent key.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement; write the list** in the table format of `docs/art/hud-art-list.md`: `dragon.<species>` 48×48 and `juvenile.<species>` 40×40 for 91 hybrids (48 Uncommon, 34 Rare, 8 Epic, `flame-ice-sea`) and the 5 Legendaries, same frames and fps as the M1 War set; `building.mountain.<1..3>` and `building.grove.<1..3>` at 80×80 (5×5 footprint), `building.hatchery.<1..4>` at 64×64; `book.unknown` for an undiscovered species that has no sprite yet; the waitlist's War set (`apps/waitlist/public/art/v1`: egg, hatchling and icon matching its other nine elements). Order of priority: Epics and tri-hybrid, Rares, Uncommons, Legendaries. State the generation count so the art thread can check its budget. Silhouettes need no art (R22). Flame/Sea and Sea/Flame are different dragons: primary element sets body and palette, secondary sets accents (§2.3).
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `docs(art): M2 art list; hybrid sprites fall back to the primary Basic`
+- [x] **Step 1: Write the failing tests**: `flame-sea` with no art draws `dragon.flame`; with `dragon.flame-sea` present draws it; `sea-flame` draws `dragon.sea`; a Mountain L2 uses `building.mountain.2` when present and falls back to `.1`, then `building.nest`; no request goes out for an absent key.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement; write the list** in the table format of `docs/art/hud-art-list.md`: `dragon.<species>` 48×48 and `juvenile.<species>` 40×40 for 91 hybrids (48 Uncommon, 34 Rare, 8 Epic, `flame-ice-sea`) and the 5 Legendaries, same frames and fps as the M1 War set; `building.mountain.<1..3>` and `building.grove.<1..3>` at 80×80 (5×5 footprint), `building.hatchery.<1..4>` at 64×64; `book.unknown` for an undiscovered species that has no sprite yet; the waitlist's War set (`apps/waitlist/public/art/v1`: egg, hatchling and icon matching its other nine elements). Order of priority: Epics and tri-hybrid, Rares, Uncommons, Legendaries. State the generation count so the art thread can check its budget. Silhouettes need no art (R22). Flame/Sea and Sea/Flame are different dragons: primary element sets body and palette, secondary sets accents (§2.3).
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `docs(art): M2 art list; hybrid sprites fall back to the primary Basic`
 
 Then send the list's path to the coordinator for the art thread.
 
 ### Task 12: M2 verification and report
 
-- [ ] **Step 1: `pnpm -r typecheck && pnpm test && pnpm --filter @wyrmhaven/web test:e2e`** — expected: green; record counts.
-- [ ] **Step 2: `pnpm playtest`** and a throwaway Playwright spec with console and network listeners: sign in; feed both starters to Lv 4 (use `/e2e/grant` for Food and PL 2); Terra × Flame shows the scripted rows; breed, `Move to Hatchery`, hatch: a Terra-Flame or Flame-Terra after 2 minutes, and the Book shows `3 / total`; fill the Hatchery and see a finished egg blocked; buy a Sea Basic at PL 3; breed Terra × Sea and read 33.3 % hybrid odds; refused Flame × Ice with a reason; build a Grove at PL 12 and run two eggs at once; upgrade Hatchery and Mountain; shift `/e2e/clock` to Day 5 and see the Legendary rows change. Delete the spec.
-- [ ] **Step 3: Take** `docs/art/m2-breed.png`, `m2-hatchery.png`, `m2-book.png`, `m2-island.png` at 390×844 and `m2-desktop.png` at 1440×900; read each to check it shows what its name says.
-- [ ] **Step 4: Write `docs/superpowers/reports/2026-10-30-m2-report.md`**: what works, what does not, what could not be verified, test counts, rulings made, deferred items for M3.
-- [ ] **Step 5: Commit** — `docs: M2 report and playtest screenshots`
+- [x] **Step 1: `pnpm -r typecheck && pnpm test && pnpm --filter @wyrmhaven/web test:e2e`** — expected: green; record counts.
+- [x] **Step 2: `pnpm playtest`** and a throwaway Playwright spec with console and network listeners: sign in; feed both starters to Lv 4 (use `/e2e/grant` for Food and PL 2); Terra × Flame shows the scripted rows; breed, `Move to Hatchery`, hatch: a Terra-Flame or Flame-Terra after 2 minutes, and the Book shows `3 / total`; fill the Hatchery and see a finished egg blocked; buy a Sea Basic at PL 3; breed Terra × Sea and read 33.3 % hybrid odds; refused Flame × Ice with a reason; build a Grove at PL 12 and run two eggs at once; upgrade Hatchery and Mountain; shift `/e2e/clock` to Day 5 and see the Legendary rows change. Delete the spec.
+- [x] **Step 3: Take** `docs/art/m2-breed.png`, `m2-hatchery.png`, `m2-book.png`, `m2-island.png` at 390×844 and `m2-desktop.png` at 1440×900; read each to check it shows what its name says.
+- [x] **Step 4: Write `docs/superpowers/reports/2026-10-30-m2-report.md`**: what works, what does not, what could not be verified, test counts, rulings made, deferred items for M3.
+- [x] **Step 5: Commit** — `docs: M2 report and playtest screenshots`
 
 ---
 
@@ -349,7 +353,7 @@ Also recorded in `docs/superpowers/specs/2026-10-30-gdd-rulings.md`.
 
 | # | Ruling | Why |
 | --- | --- | --- |
-| R15 | **Mountain and Grove take their GDD 5×5 footprint in M2**; the Hatchery stays 4×4 (already the GDD size). Other footprints wait for M4 (R9). | Their art is new, so drawing it once at final size avoids regenerating it. |
+| R15 | **Withdrawn, see R9. A 5×5 Mountain left no free 5×5 cell at step 0, only (9,5) at steps 1–2, and nothing more until step 6 (PL 18).** Original text: Mountain and Grove take their GDD 5×5 footprint in M2; the Hatchery stays 4×4 (already the GDD size). Other footprints wait for M4 (R9). | Their art is new, so drawing it once at final size avoids regenerating it. |
 | R16 | **Hatchery, Mountain and Grove upgrade timers** (GDD silent): to L2 1 h, L3 4 h, L4 12 h, $DRIS levels instant; Grove build 4 h. Classic, ÷ `timerDiv`. | Same ladder as A5 for habitats. |
 | R17 | Withdrawn; replaced by M2 plan Q5. | The §5.4 table's L5 and L4 order is a question for shiko. |
 | R18 | **A finished egg moves to the Hatchery on a tap**, not by itself; its building stays blocked until then. | §5.4 says only that the egg waits; a tap is the genre's collect moment and already exists. |
@@ -360,7 +364,8 @@ Also recorded in `docs/superpowers/specs/2026-10-30-gdd-rulings.md`.
 | R23 | **A hybrid with no art draws its primary Basic's sprite** until its art lands. | Keeps the game playable while 91 species of art arrive. |
 | R24 | **PvE stages and bots draw from the full catalog until M5**, with today's rarity rules, so stages 11+ meet real Rares and Epics. | M5 rewrites both from §6; not worth a stopgap. |
 | R25 | **The first hybrid's 1 minute** is real time under both presets, for breed and hatch, with no building reduction. Applies whichever answer to Q1 of the M2 plan. | §3.5 states a time, not a classic value. |
-| R26 | **Buying a Basic needs room**: a finished habitat of its element with a free slot, otherwise `NO_HABITAT_SLOT`. | The Hatchery should not fill with bought dragons. |
+| R26 | **Buying a Basic needs room**: a finished habitat that can house it (its element, or a Golden Aerie) with a free slot, otherwise `NO_HABITAT_SLOT`. | The Hatchery should not fill with bought dragons. |
+| R27 | **`xpMult` applies to all XP and harvest gives crop tier × 2 XP from M2** (§4.3, §7.2). M3 keeps the rest of the XP table. | M2 is unplayable to PL 2 without it; no GDD number changes. |
 
 ## Self-review notes
 

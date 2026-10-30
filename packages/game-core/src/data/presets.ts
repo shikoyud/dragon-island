@@ -15,6 +15,8 @@ export interface Preset {
   xpMult: number
   healPctPerMin: number
   arenaEnergyRegenMs: number
+  /** Cap, in percent, on a dragon's income in a habitat of another element than its primary, against the native rate (A13, R21). `null` = no cap; 125 is the only other allowed value. */
+  habitatRateCap: number | null
   /** Inclusive day ranges (§1.5). */
   phases: {
     rush: [number, number]
@@ -34,6 +36,7 @@ export const FLASH_14: Preset = {
   xpMult: 12,
   healPctPerMin: 6,
   arenaEnergyRegenMs: 3_600_000,
+  habitatRateCap: null,
   phases: { rush: [1, 4], endgame: [5, 12], finals: [13, 14], settlement: [15, 21] },
 }
 
@@ -47,6 +50,7 @@ export const FLASH_28: Preset = {
   xpMult: 8,
   healPctPerMin: 4,
   arenaEnergyRegenMs: 5_400_000,
+  habitatRateCap: null,
   phases: { rush: [1, 7], endgame: [8, 25], finals: [26, 28], settlement: [29, 35] },
 }
 

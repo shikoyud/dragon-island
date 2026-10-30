@@ -123,7 +123,7 @@ describe('simulateBattle', () => {
   })
 
   it('never exceeds the round cap and the AI never makes an illegal move', () => {
-    const pool = [...C.species.values()].filter(s => !s.recipeOnly).map(s => s.id)
+    const pool = [...C.species.values()].filter(s => s.rarity !== 'legendary').map(s => s.id)
     const randomTeam = (rng: Rng) => Array.from({ length: 3 }, () => spec(pool[rng.int(pool.length)]!, 1 + rng.int(30)))
     for (let seed = 1; seed <= 200; seed++) {
       const rng = createRng(seed)

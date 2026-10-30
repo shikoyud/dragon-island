@@ -32,7 +32,7 @@ describe('battlePreview', () => {
   })
 
   it('is a prefix of the full simulation for any legal prefix of moves', () => {
-    const pool = [...C.species.values()].filter(s => !s.recipeOnly).map(s => s.id)
+    const pool = [...C.species.values()].filter(s => s.rarity !== 'legendary').map(s => s.id)
     for (let seed = 1; seed <= 150; seed++) {
       const rng = createRng(seed)
       const team = () => Array.from({ length: 3 }, () => spec(pool[rng.int(pool.length)]!, 1 + rng.int(30)))

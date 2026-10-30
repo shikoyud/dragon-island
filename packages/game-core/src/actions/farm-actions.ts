@@ -1,5 +1,7 @@
 import { isUnfinished } from '../construction'
+import { HARVEST_XP_PER_TIER } from '../data/xp'
 import { CROPS, cropFood, cropGrowMs, cropUnlocked } from '../farm'
+import { addXp } from '../progression'
 import { spendGold } from '../wallet'
 import { failure, success, type Handler } from './types'
 
@@ -21,5 +23,6 @@ export const harvest: Handler<'harvest'> = (s, a, ctx) => {
   if (plot.crop === null) return failure('PLOT_EMPTY')
   if (ctx.nowMs < plot.readyAtMs) return failure('NOT_READY')
   const farms = s.farms.map((p, i) => i === a.plot ? { ...p, crop: null, readyAtMs: 0 } : p)
-  return success({ ...s, food: s.food + cropFood(plot.crop, plot.level, ctx.preset), farms })
+  const next = { ...s, food: s.food + cropFood(plot.crop, plot.level, ctx.preset), farms }
+  return success(addXp(next, CROPS[plot.crop].tier * HARVEST_XP_PER_TIER, ctx.preset))
 }

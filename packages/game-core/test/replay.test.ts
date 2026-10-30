@@ -10,10 +10,10 @@ const script: [Action, number][] = [
   ...Array.from({ length: 12 }, (): [Action, number] => [{ type: 'feed', dragonId: 'd1' }, 120_000]),
   ...Array.from({ length: 12 }, (): [Action, number] => [{ type: 'feed', dragonId: 'd2' }, 120_000]),
   [{ type: 'startBreed', parentA: 'd1', parentB: 'd2' }, 120_000],
-  [{ type: 'collectEgg', nest: 0 }, 135_000],
+  [{ type: 'collectEgg', breeder: 0 }, 135_000],
   [{ type: 'hatch', slot: 0 }, 150_000],
-  [{ type: 'placeBuilding', building: { kind: 'decoration', decoration: 'stonePath' }, placement: { island: 'home', col: 6, row: 8, facing: 0 } }, 160_000],
-  [{ type: 'moveBuilding', target: { type: 'decoration', id: 'c4' }, placement: { island: 'home', col: 7, row: 8, facing: 0 } }, 160_000],
+  [{ type: 'placeBuilding', building: { kind: 'decoration', decoration: 'stonePath' }, placement: { island: 'home', col: 9, row: 8, facing: 0 } }, 160_000],
+  [{ type: 'moveBuilding', target: { type: 'decoration', id: 'c4' }, placement: { island: 'home', col: 10, row: 8, facing: 0 } }, 160_000],
   [{ type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 160_000],
   [{ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 170_000],
   [{ type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 180_000],
@@ -41,6 +41,8 @@ it('replays to an identical state', () => {
   const a = replay(), b = replay()
   expect(a).toEqual(b)
   expect(a.state.dragons).toHaveLength(3)
+  // Pins the RNG order: breeding draws one rng.int(total), after the earlier actions' draws.
+  expect(a.state.dragons[2]!.speciesId).toBe('terra')
   expect(a.state.dragons.slice(0, 2).map(d => d.level)).toEqual([4, 4])
 })
 

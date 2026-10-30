@@ -20,7 +20,7 @@ describe('island geometry', () => {
     expect(placementError(s, { island: 'home', col: -1, row: 0, facing: 0 }, 1)).toBe('OUT_OF_BOUNDS')
     expect(placementError(s, { island: 'isle2', col: 0, row: 0, facing: 0 }, 1)).toBe('ISLAND_LOCKED')
     expect(placementError(s, { island: 'home', col: 4, row: 4, facing: 0 }, 2)).toBe('OVERLAP')
-    expect(placementError(s, { island: 'home', col: 6, row: 8, facing: 0 }, 2)).toBeNull()
+    expect(placementError(s, { island: 'home', col: 9, row: 8, facing: 0 }, 2)).toBeNull()
     expect(placementError(s, { island: 'home', col: 5, row: 0, facing: 0 }, 5, { type: 'habitat', id: 'h2' })).toBeNull()
   })
   it('OUTER_ISLANDS matches the spec', () => {

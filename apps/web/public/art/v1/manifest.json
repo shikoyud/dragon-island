@@ -1367,6 +1367,1622 @@
       "frames": 1,
       "fps": 0,
       "top": 1
+    },
+    "dragon.terra-dark": {
+      "file": "dragon-terra-dark.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.terra-dark": {
+      "file": "juvenile-terra-dark.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 6
+    },
+    "dragon.flame-ice": {
+      "file": "dragon-flame-ice.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.flame-ice": {
+      "file": "juvenile-flame-ice.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.sea-war": {
+      "file": "dragon-sea-war.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.sea-war": {
+      "file": "juvenile-sea-war.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.nature-electric": {
+      "file": "dragon-nature-electric.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.nature-electric": {
+      "file": "juvenile-nature-electric.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.electric-nature": {
+      "file": "dragon-electric-nature.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.electric-nature": {
+      "file": "juvenile-electric-nature.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.ice-flame": {
+      "file": "dragon-ice-flame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 5
+    },
+    "juvenile.ice-flame": {
+      "file": "juvenile-ice-flame.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.dark-terra": {
+      "file": "dragon-dark-terra.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.dark-terra": {
+      "file": "juvenile-dark-terra.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.war-sea": {
+      "file": "dragon-war-sea.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.war-sea": {
+      "file": "juvenile-war-sea.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.flame-ice-sea": {
+      "file": "dragon-flame-ice-sea.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.flame-ice-sea": {
+      "file": "juvenile-flame-ice-sea.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.terra-flame": {
+      "file": "dragon-terra-flame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.terra-flame": {
+      "file": "juvenile-terra-flame.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.terra-electric": {
+      "file": "dragon-terra-electric.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.terra-electric": {
+      "file": "juvenile-terra-electric.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.terra-metal": {
+      "file": "dragon-terra-metal.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 5
+    },
+    "juvenile.terra-metal": {
+      "file": "juvenile-terra-metal.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 5
+    },
+    "dragon.terra-war": {
+      "file": "dragon-terra-war.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 6
+    },
+    "juvenile.terra-war": {
+      "file": "juvenile-terra-war.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.flame-terra": {
+      "file": "dragon-flame-terra.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.flame-terra": {
+      "file": "juvenile-flame-terra.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.flame-sea": {
+      "file": "dragon-flame-sea.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.flame-sea": {
+      "file": "juvenile-flame-sea.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.flame-nature": {
+      "file": "dragon-flame-nature.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.flame-nature": {
+      "file": "juvenile-flame-nature.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.sea-flame": {
+      "file": "dragon-sea-flame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.sea-flame": {
+      "file": "juvenile-sea-flame.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.sea-nature": {
+      "file": "dragon-sea-nature.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.sea-nature": {
+      "file": "juvenile-sea-nature.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.sea-electric": {
+      "file": "dragon-sea-electric.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.sea-electric": {
+      "file": "juvenile-sea-electric.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.nature-flame": {
+      "file": "dragon-nature-flame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.nature-flame": {
+      "file": "juvenile-nature-flame.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.nature-sea": {
+      "file": "dragon-nature-sea.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.nature-sea": {
+      "file": "juvenile-nature-sea.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.nature-ice": {
+      "file": "dragon-nature-ice.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.nature-ice": {
+      "file": "juvenile-nature-ice.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.nature-light": {
+      "file": "dragon-nature-light.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.nature-light": {
+      "file": "juvenile-nature-light.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.electric-terra": {
+      "file": "dragon-electric-terra.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.electric-terra": {
+      "file": "juvenile-electric-terra.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.electric-sea": {
+      "file": "dragon-electric-sea.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.electric-sea": {
+      "file": "juvenile-electric-sea.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.electric-metal": {
+      "file": "dragon-electric-metal.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.electric-metal": {
+      "file": "juvenile-electric-metal.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.electric-light": {
+      "file": "dragon-electric-light.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.electric-light": {
+      "file": "juvenile-electric-light.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.ice-nature": {
+      "file": "dragon-ice-nature.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 5
+    },
+    "juvenile.ice-nature": {
+      "file": "juvenile-ice-nature.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.ice-metal": {
+      "file": "dragon-ice-metal.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.ice-metal": {
+      "file": "juvenile-ice-metal.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.ice-war": {
+      "file": "dragon-ice-war.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 5
+    },
+    "juvenile.ice-war": {
+      "file": "juvenile-ice-war.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.metal-terra": {
+      "file": "dragon-metal-terra.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.metal-terra": {
+      "file": "juvenile-metal-terra.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.metal-electric": {
+      "file": "dragon-metal-electric.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.metal-electric": {
+      "file": "juvenile-metal-electric.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.metal-ice": {
+      "file": "dragon-metal-ice.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.metal-ice": {
+      "file": "juvenile-metal-ice.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.metal-dark": {
+      "file": "dragon-metal-dark.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.metal-dark": {
+      "file": "juvenile-metal-dark.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.dark-metal": {
+      "file": "dragon-dark-metal.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.dark-metal": {
+      "file": "juvenile-dark-metal.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.dark-light": {
+      "file": "dragon-dark-light.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.dark-light": {
+      "file": "juvenile-dark-light.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.dark-war": {
+      "file": "dragon-dark-war.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.dark-war": {
+      "file": "juvenile-dark-war.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.light-nature": {
+      "file": "dragon-light-nature.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.light-nature": {
+      "file": "juvenile-light-nature.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.light-electric": {
+      "file": "dragon-light-electric.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.light-electric": {
+      "file": "juvenile-light-electric.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.light-dark": {
+      "file": "dragon-light-dark.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.light-dark": {
+      "file": "juvenile-light-dark.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.war-terra": {
+      "file": "dragon-war-terra.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.war-terra": {
+      "file": "juvenile-war-terra.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.war-ice": {
+      "file": "dragon-war-ice.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.war-ice": {
+      "file": "juvenile-war-ice.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.war-dark": {
+      "file": "dragon-war-dark.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.war-dark": {
+      "file": "juvenile-war-dark.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.terra-sea": {
+      "file": "dragon-terra-sea.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 6
+    },
+    "juvenile.terra-sea": {
+      "file": "juvenile-terra-sea.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.terra-nature": {
+      "file": "dragon-terra-nature.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.terra-nature": {
+      "file": "juvenile-terra-nature.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.terra-ice": {
+      "file": "dragon-terra-ice.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 5
+    },
+    "juvenile.terra-ice": {
+      "file": "juvenile-terra-ice.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.terra-light": {
+      "file": "dragon-terra-light.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.terra-light": {
+      "file": "juvenile-terra-light.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.flame-electric": {
+      "file": "dragon-flame-electric.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.flame-electric": {
+      "file": "juvenile-flame-electric.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.flame-metal": {
+      "file": "dragon-flame-metal.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.flame-metal": {
+      "file": "juvenile-flame-metal.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.flame-dark": {
+      "file": "dragon-flame-dark.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.flame-dark": {
+      "file": "juvenile-flame-dark.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.flame-light": {
+      "file": "dragon-flame-light.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.flame-light": {
+      "file": "juvenile-flame-light.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.flame-war": {
+      "file": "dragon-flame-war.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.flame-war": {
+      "file": "juvenile-flame-war.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.sea-terra": {
+      "file": "dragon-sea-terra.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.sea-terra": {
+      "file": "juvenile-sea-terra.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.sea-ice": {
+      "file": "dragon-sea-ice.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.sea-ice": {
+      "file": "juvenile-sea-ice.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.sea-metal": {
+      "file": "dragon-sea-metal.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.sea-metal": {
+      "file": "juvenile-sea-metal.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.sea-dark": {
+      "file": "dragon-sea-dark.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.sea-dark": {
+      "file": "juvenile-sea-dark.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.sea-light": {
+      "file": "dragon-sea-light.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.sea-light": {
+      "file": "juvenile-sea-light.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.nature-terra": {
+      "file": "dragon-nature-terra.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.nature-terra": {
+      "file": "juvenile-nature-terra.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.nature-metal": {
+      "file": "dragon-nature-metal.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.nature-metal": {
+      "file": "juvenile-nature-metal.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.nature-dark": {
+      "file": "dragon-nature-dark.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.nature-dark": {
+      "file": "juvenile-nature-dark.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.nature-war": {
+      "file": "dragon-nature-war.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.nature-war": {
+      "file": "juvenile-nature-war.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.electric-flame": {
+      "file": "dragon-electric-flame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.electric-flame": {
+      "file": "juvenile-electric-flame.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.electric-ice": {
+      "file": "dragon-electric-ice.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.electric-ice": {
+      "file": "juvenile-electric-ice.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.electric-dark": {
+      "file": "dragon-electric-dark.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.electric-dark": {
+      "file": "juvenile-electric-dark.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.electric-war": {
+      "file": "dragon-electric-war.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.electric-war": {
+      "file": "juvenile-electric-war.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.ice-terra": {
+      "file": "dragon-ice-terra.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.ice-terra": {
+      "file": "juvenile-ice-terra.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.ice-sea": {
+      "file": "dragon-ice-sea.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.ice-sea": {
+      "file": "juvenile-ice-sea.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.ice-electric": {
+      "file": "dragon-ice-electric.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.ice-electric": {
+      "file": "juvenile-ice-electric.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.ice-dark": {
+      "file": "dragon-ice-dark.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.ice-dark": {
+      "file": "juvenile-ice-dark.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.ice-light": {
+      "file": "dragon-ice-light.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.ice-light": {
+      "file": "juvenile-ice-light.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.metal-flame": {
+      "file": "dragon-metal-flame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 5
+    },
+    "juvenile.metal-flame": {
+      "file": "juvenile-metal-flame.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.metal-sea": {
+      "file": "dragon-metal-sea.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.metal-sea": {
+      "file": "juvenile-metal-sea.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.metal-nature": {
+      "file": "dragon-metal-nature.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.metal-nature": {
+      "file": "juvenile-metal-nature.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.metal-light": {
+      "file": "dragon-metal-light.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.metal-light": {
+      "file": "juvenile-metal-light.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.metal-war": {
+      "file": "dragon-metal-war.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.metal-war": {
+      "file": "juvenile-metal-war.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.dark-flame": {
+      "file": "dragon-dark-flame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 5
+    },
+    "juvenile.dark-flame": {
+      "file": "juvenile-dark-flame.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.dark-sea": {
+      "file": "dragon-dark-sea.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.dark-sea": {
+      "file": "juvenile-dark-sea.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.dark-nature": {
+      "file": "dragon-dark-nature.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 5
+    },
+    "juvenile.dark-nature": {
+      "file": "juvenile-dark-nature.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "dragon.dark-electric": {
+      "file": "dragon-dark-electric.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.dark-electric": {
+      "file": "juvenile-dark-electric.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.dark-ice": {
+      "file": "dragon-dark-ice.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "juvenile.dark-ice": {
+      "file": "juvenile-dark-ice.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.light-terra": {
+      "file": "dragon-light-terra.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.light-terra": {
+      "file": "juvenile-light-terra.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.light-flame": {
+      "file": "dragon-light-flame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.light-flame": {
+      "file": "juvenile-light-flame.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.light-sea": {
+      "file": "dragon-light-sea.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.light-sea": {
+      "file": "juvenile-light-sea.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.light-ice": {
+      "file": "dragon-light-ice.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.light-ice": {
+      "file": "juvenile-light-ice.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.light-metal": {
+      "file": "dragon-light-metal.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.light-metal": {
+      "file": "juvenile-light-metal.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.light-war": {
+      "file": "dragon-light-war.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.light-war": {
+      "file": "juvenile-light-war.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.war-flame": {
+      "file": "dragon-war-flame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.war-flame": {
+      "file": "juvenile-war-flame.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 1
+    },
+    "dragon.war-nature": {
+      "file": "dragon-war-nature.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.war-nature": {
+      "file": "juvenile-war-nature.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.war-electric": {
+      "file": "dragon-war-electric.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.war-electric": {
+      "file": "juvenile-war-electric.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.war-metal": {
+      "file": "dragon-war-metal.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.war-metal": {
+      "file": "juvenile-war-metal.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 1
+    },
+    "dragon.war-light": {
+      "file": "dragon-war-light.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 1
+    },
+    "juvenile.war-light": {
+      "file": "juvenile-war-light.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.magma-sovereign": {
+      "file": "dragon-magma-sovereign.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "juvenile.magma-sovereign": {
+      "file": "juvenile-magma-sovereign.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "dragon.glacier-warlord": {
+      "file": "dragon-glacier-warlord.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.glacier-warlord": {
+      "file": "juvenile-glacier-warlord.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.radiant-aegis": {
+      "file": "dragon-radiant-aegis.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.radiant-aegis": {
+      "file": "juvenile-radiant-aegis.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.last-light": {
+      "file": "dragon-last-light.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.last-light": {
+      "file": "juvenile-last-light.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "dragon.final-dawn": {
+      "file": "dragon-final-dawn.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.final-dawn": {
+      "file": "juvenile-final-dawn.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "building.mountain.1": {
+      "file": "mountain-1.png",
+      "w": 80,
+      "h": 80,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "building.mountain.2": {
+      "file": "mountain-2.png",
+      "w": 80,
+      "h": 80,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "building.mountain.3": {
+      "file": "mountain-3.png",
+      "w": 80,
+      "h": 80,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "building.grove.1": {
+      "file": "grove-1.png",
+      "w": 80,
+      "h": 80,
+      "frames": 1,
+      "fps": 0,
+      "top": 10
+    },
+    "building.grove.2": {
+      "file": "grove-2.png",
+      "w": 80,
+      "h": 80,
+      "frames": 1,
+      "fps": 0,
+      "top": 10
+    },
+    "building.grove.3": {
+      "file": "grove-3.png",
+      "w": 80,
+      "h": 80,
+      "frames": 1,
+      "fps": 0,
+      "top": 9
+    },
+    "building.hatchery.2": {
+      "file": "hatchery-2.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 11
+    },
+    "building.hatchery.3": {
+      "file": "hatchery-3.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 11
+    },
+    "building.hatchery.4": {
+      "file": "hatchery-4.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "book.unknown": {
+      "file": "book-unknown.png",
+      "w": 48,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
     }
   }
 }

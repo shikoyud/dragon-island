@@ -17,7 +17,7 @@ function playScript(preset: Preset): PlayerState[] {
     [{ type: 'plant', plot: 0, crop: 'dragonBush' }, 0],
     [{ type: 'harvest', plot: 0 }, 60_000],
     [{ type: 'startBreed', parentA: 'd1', parentB: 'd2' }, 60_000],
-    [{ type: 'placeBuilding', building: { kind: 'farm' }, placement: P(6, 7) }, 60_000],
+    [{ type: 'placeBuilding', building: { kind: 'farm' }, placement: P(9, 7) }, 60_000],
     [{ type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 60_000],
   ]
   let s: PlayerState = { ...newPlayer(0), gold: 10_000_000, level: 20, dragons: newPlayer(0).dragons.map(d => ({ ...d, level: 4 })) }
@@ -49,8 +49,8 @@ describe('Flash-28 at action level (Review Focus 4)', () => {
     expect([plant14.farms[0]!.readyAtMs, plant28.farms[0]!.readyAtMs]).toEqual([15_000, 20_000])
     // Dragon Bush: 5 Food x cropYieldMult (12, 8), on top of the 50 the player starts with.
     expect([harvest14.food, harvest28.food]).toEqual([110, 90])
-    expect(breed14.nests[0]!.egg!.readyAtMs).not.toBe(breed28.nests[0]!.egg!.readyAtMs)
-    expect(breed28.nests[0]!.egg!.readyAtMs - 60_000).toBeGreaterThan(breed14.nests[0]!.egg!.readyAtMs - 60_000)
+    expect(breed14.breeders[0]!.egg!.readyAtMs).not.toBe(breed28.breeders[0]!.egg!.readyAtMs)
+    expect(breed28.breeders[0]!.egg!.readyAtMs - 60_000).toBeGreaterThan(breed14.breeders[0]!.egg!.readyAtMs - 60_000)
     expect(place28.constructions[0]!.readyAtMs - 60_000).toBeGreaterThan(place14.constructions[0]!.readyAtMs - 60_000)
     expect(upgrade28.constructions[1]!.readyAtMs - 60_000).toBeGreaterThan(upgrade14.constructions[1]!.readyAtMs - 60_000)
   })

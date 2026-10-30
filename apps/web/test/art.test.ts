@@ -154,9 +154,28 @@ describe('artSetFromManifest', () => {
     }
   })
 
-  it('has one dragon slot per catalog species', () => {
-    expect(Object.keys(art.dragon).sort()).toEqual([...LAUNCH_CATALOG.species.keys()].sort())
+  it('has a dragon slot per Basic, and per hybrid only when the manifest has its art', () => {
+    expect(Object.keys(art.dragon).sort()).toEqual(ELEMENTS.slice().sort())
+    const withHybrid = artSetFromManifest('v1', { assets: { 'dragon.terra-flame': { file: 'tf.png', w: 64, h: 64, frames: 1, fps: 0 } } }, LAUNCH_CATALOG)
+    expect(Object.keys(withHybrid.dragon)).toContain('terra-flame')
+    expect(Object.keys(withHybrid.dragon)).not.toContain('terra-sea')
     for (const e of ELEMENTS) expect(art.elementIcon[e]).toMatchObject({ w: 16, h: 16 })
+  })
+
+  it('reads the breeder and Hatchery level sheets only when the manifest has them', () => {
+    expect(art.building.breeder.mountain).toEqual({})
+    expect(art.building.breeder.grove).toEqual({})
+    expect(art.building.hatcheryLevel).toEqual({})
+    const e = (file: string, w: number) => ({ file, w, h: w, frames: 1, fps: 0 })
+    const a = artSetFromManifest('v3', { assets: {
+      'building.mountain.2': e('m2.png', 80), 'building.grove.3': e('g3.png', 80), 'building.hatchery.4': e('h4.png', 64), 'building.mountain.4': e('x.png', 80),
+    } }, LAUNCH_CATALOG)
+    expect(Object.keys(a.building.breeder.mountain)).toEqual(['2'])
+    expect(a.building.breeder.mountain[2]).toMatchObject({ src: '/art/v3/m2.png', w: 80, h: 80 })
+    expect(a.building.breeder.grove[3]?.src).toBe('/art/v3/g3.png')
+    expect(a.building.hatcheryLevel[4]?.src).toBe('/art/v3/h4.png')
+    const keys = artEntries(a).map(r => r.key)
+    for (const k of ['building.mountain.2', 'building.grove.3', 'building.hatchery.4']) expect(keys).toContain(`art:${k}`)
   })
 
   it('collects island layers in order', () => {

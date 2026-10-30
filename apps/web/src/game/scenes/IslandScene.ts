@@ -1,6 +1,6 @@
 import { FOOTPRINT, islandSize, LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
-import { isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
+import { animateWater, isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet } from '../../art/types'
 import type { Bridge, Target } from '../bridge'
@@ -20,7 +20,7 @@ const GROUND = {
   grass: [0x5f9e3f, 0x579538], fog: [0xb9c4cf, 0xaab6c3], cliffLeft: 0x6b4a2b, cliffRight: 0x8b6136, lip: 0x3d6e2c, strata: 0x58391f,
 }
 const EMPTY: IslandMarkers = {
-  habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [],
+  habitats: [], dragons: [], waiting: [], breeders: [], hatchery: [], farms: [],
   obstacles: [], decorations: [], constructions: 0, ghost: null, sign: null,
 }
 /** On-screen height of badge text in CSS pixels (the font is 8 px in world space). */
@@ -116,9 +116,15 @@ export class IslandScene extends Phaser.Scene {
     return this.bridge.art ?? FALLBACK_ART
   }
 
-  /** True while this scene can still own display objects. */
+  /**
+   * True while this scene can still own display objects. `game.destroy` only marks the game until its next step, and
+   * the art swap puts the new art on the bridge at once: until then this game's textures do not match `bridge.art`.
+   * The replacement game draws the latest state when its own island scene starts, so nothing is lost by skipping.
+   * `pendingDestroy` is missing from Phaser's types; test/artSwapCrash.test.ts pins it against the real game.
+   */
   private alive(): boolean {
-    return Boolean(this.sys?.displayList) && this.sys.settings.status !== Phaser.Scenes.DESTROYED && this.sys.settings.status !== Phaser.Scenes.SHUTDOWN
+    const dying = (this.game as (Phaser.Game & { pendingDestroy?: boolean }) | undefined)?.pendingDestroy
+    return !dying && Boolean(this.sys?.displayList) && this.sys.settings.status !== Phaser.Scenes.DESTROYED && this.sys.settings.status !== Phaser.Scenes.SHUTDOWN
   }
 
   // ---- camera ------------------------------------------------------------------------------------------------
@@ -338,10 +344,7 @@ export class IslandScene extends Phaser.Scene {
       const pad = 2048 // the sea also fills the screen beyond the camera bounds when zoomed out
       this.water = this.add.tileSprite(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, textureKey('ground.water'), 0).setOrigin(0, 0).setDepth(-1).setAlpha(0.4) // softened: the sea is backdrop, not the subject
       const w = tiles.water
-      if (w.frames > 1 && w.fps > 0 && !this.bridge.reducedMotion) {
-        let f = 0
-        this.time.addEvent({ delay: 1000 / w.fps, loop: true, callback: () => { if (this.water?.active) this.water.setFrame(f = (f + 1) % w.frames) } })
-      }
+      animateWater(this, this.water, textureKey('ground.water'), w.frames, w.fps, this.bridge.reducedMotion)
     }
     const left = cellTop(0, shown.h)
     const bottom = cellTop(shown.w, shown.h)

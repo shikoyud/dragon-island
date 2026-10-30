@@ -1,6 +1,7 @@
-import { xpToNext, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
+import { xpToNext, type BreederKind, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import type { Target } from '../game/bridge'
+import { hatcheryHasRoom } from '../game/islandModel'
 
 /** Pure numbers and lists the HUD shows; no React, so they are tested directly. */
 
@@ -26,6 +27,8 @@ export const MAX_ATTENTION = 5
 
 const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1)
 
+export const breederName = (kind: BreederKind | undefined): string => (kind === 'grove' ? 'Breeding Grove' : 'Breeding Mountain')
+
 function buildingLabel(s: PlayerState, b: BuildingRef): string {
   switch (b.type) {
     case 'habitat': {
@@ -33,7 +36,7 @@ function buildingLabel(s: PlayerState, b: BuildingRef): string {
       return h?.element === 'aerie' ? 'Golden Aerie' : `${cap(h?.element ?? '')} habitat`.trim()
     }
     case 'farm': return `Farm plot ${b.index + 1}`
-    case 'nest': return `Nest ${b.index + 1}`
+    case 'breeder': return breederName(s.breeders[b.index]?.kind)
     case 'hatchery': return 'Hatchery'
   }
 }
@@ -42,7 +45,7 @@ function buildingTarget(b: BuildingRef): Target {
   switch (b.type) {
     case 'habitat': return { kind: 'habitat', id: b.id }
     case 'farm': return { kind: 'farm', plot: b.index }
-    case 'nest': return { kind: 'nest', index: b.index }
+    case 'breeder': return { kind: 'breeder', index: b.index }
     case 'hatchery': return { kind: 'hatcheryBuilding' }
   }
 }
@@ -56,16 +59,21 @@ function constructionItem(s: PlayerState, c: Construction, index: number, nowMs:
 }
 
 /**
- * Shortcuts for what needs attention: constructions (Finish when ready), eggs in nests (Collect when ready),
+ * Shortcuts for what needs attention: constructions (Finish when ready), eggs in breeders (Collect when ready),
  * the hatchery's soonest egg, ripe crops (harvest the first), and hatchlings with no room.
  * Ready items first, then by time left; at most MAX_ATTENTION.
  */
 export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
   const items: AttentionItem[] = s.constructions.map((c, i) => constructionItem(s, c, i, nowMs))
-  s.nests.forEach((n, i) => {
-    if (!n.egg) return
-    const ready = n.egg.readyAtMs <= nowMs
-    items.push({ id: `nest:${i}`, label: `Egg in nest ${i + 1}`, ready, readyAtMs: n.egg.readyAtMs, panel: { kind: 'nest', index: i }, ...(ready ? { action: { type: 'collectEgg', nest: i } as ClientAction } : {}) })
+  s.breeders.forEach((b, i) => {
+    if (!b.egg) return
+    const ready = b.egg.readyAtMs <= nowMs
+    if (ready && !hatcheryHasRoom(s)) {
+      // Finished, but the Hatchery is full: say where the egg is stuck; Collect would fail with HATCHERY_FULL.
+      items.push({ id: `breeder:${i}`, label: 'Egg waiting: Hatchery full', ready, readyAtMs: b.egg.readyAtMs, panel: { kind: 'hatcheryBuilding' } })
+      return
+    }
+    items.push({ id: `breeder:${i}`, label: `Egg in ${breederName(b.kind)}`, ready, readyAtMs: b.egg.readyAtMs, panel: { kind: 'breeder', index: i }, ...(ready ? { action: { type: 'collectEgg', breeder: i } as ClientAction } : {}) })
   })
   if (s.hatchery.length > 0) {
     const soonest = Math.min(...s.hatchery.map(e => e.readyAtMs))

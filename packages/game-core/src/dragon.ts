@@ -30,7 +30,7 @@ export function stageOf(level: number): Stage {
   return level >= ADULT_FROM_LEVEL ? 'adult' : level >= JUVENILE_FROM_LEVEL ? 'juvenile' : 'baby'
 }
 
-/** XP for feeding `food` (§4.3); the preset XP multiplier is applied in M3. */
+/** XP for feeding `food` (§4.3); classic XP; `addXp` applies the preset multiplier (R27). */
 export function feedXp(food: number): number {
   return Math.max(1, Math.floor(food / FOOD_PER_FEED_XP))
 }

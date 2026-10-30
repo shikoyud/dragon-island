@@ -5,7 +5,7 @@ import type { GameArtSet } from '../art/types'
 export type Target =
   | { kind: 'habitat'; id: string }
   | { kind: 'dragon'; id: string }
-  | { kind: 'nest'; index: number }
+  | { kind: 'breeder'; index: number }
   | { kind: 'hatchery'; slot: number }
   | { kind: 'farm'; plot: number }
   | { kind: 'hatcheryBuilding' }

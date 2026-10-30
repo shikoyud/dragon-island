@@ -5,7 +5,7 @@ import { cardImagePath } from '../../card/cardUrl'
 import type { EntrantState } from '../../server/entrants'
 
 export function shareText(position: number): string {
-  return `I'm #${position} on the Dragon Island waitlist. Breed dragons. Build your island. Battle for the season.`
+  return `I'm #${position} on the Dragon Island waitlist. Breed dragons. Build your island. Battle for the ranks.`
 }
 
 export function Joined({ state, siteUrl }: { state: EntrantState; siteUrl: string }) {

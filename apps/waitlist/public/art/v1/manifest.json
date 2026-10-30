@@ -63,6 +63,13 @@
       "frames": 6,
       "fps": 8
     },
+    "egg.war": {
+      "file": "egg-war.png",
+      "w": 32,
+      "h": 32,
+      "frames": 6,
+      "fps": 8
+    },
     "hatchling.dark": {
       "file": "hatchling-dark.png",
       "w": 32,
@@ -121,6 +128,13 @@
     },
     "hatchling.terra": {
       "file": "hatchling-terra.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4
+    },
+    "hatchling.war": {
+      "file": "hatchling-war.png",
       "w": 32,
       "h": 32,
       "frames": 4,
@@ -198,6 +212,13 @@
     },
     "icon.terra": {
       "file": "icon-terra.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0
+    },
+    "icon.war": {
+      "file": "icon-war.png",
       "w": 32,
       "h": 32,
       "frames": 1,

@@ -59,7 +59,7 @@ shiko also said the token use and reward system will be discussed again after th
 | R12 | **Interim items until M7/M8**: the Store keeps timer skips and the existing Food pack; the shop's other items are removed in M0. | Playtests need food; the GDD's Supply Crates replace the pack in M7. |
 | R13 | **Sprinter figure.** §5.2's 136k/day assumes about 17 hourly check-ins; 24 would be 190,080. The test pins 17 check-ins = 134,640. | The formula, caps and War's 66k all hold; only the 136k assumption was unstated. |
 | R14 | **Waitlist element rename.** A waitlist SQL migration maps stored fire/water/earth to flame/sea/terra; `war` is added to its element list. | Entrants have a persisted element; without it their cards would have no colour or art. |
-| R15 | **Mountain and Grove take their GDD 5×5 footprint in M2**; the Hatchery stays 4×4 (already the GDD size). Other footprints wait for M4 (R9). | Their art is new, so drawing it once at final size avoids regenerating it. |
+| R15 | **Withdrawn, see R9. A 5×5 Mountain left no free 5×5 cell at step 0, only (9,5) at steps 1–2, and nothing more until step 6 (PL 18).** Original text: Mountain and Grove take their GDD 5×5 footprint in M2; the Hatchery stays 4×4 (already the GDD size). Other footprints wait for M4 (R9). | Their art is new, so drawing it once at final size avoids regenerating it. |
 | R16 | **Hatchery, Mountain and Grove upgrade timers** (GDD silent): to L2 1 h, L3 4 h, L4 12 h, $DRIS levels instant; Grove build 4 h. Classic, ÷ `timerDiv`. | Same ladder as A5 for habitats. |
 | R17 | Withdrawn; replaced by M2 plan Q5. | The §5.4 table's L5 and L4 order is a question for shiko. |
 | R18 | **A finished egg moves to the Hatchery on a tap**, not by itself; its building stays blocked until then. | §5.4 says only that the egg waits; a tap is the genre's collect moment and already exists. |
@@ -70,4 +70,5 @@ shiko also said the token use and reward system will be discussed again after th
 | R23 | **A hybrid with no art draws its primary Basic's sprite** until its art lands. | Keeps the game playable while 91 species of art arrive. |
 | R24 | **PvE stages and bots draw from the full catalog until M5**, with today's rarity rules, so stages 11+ meet real Rares and Epics. | M5 rewrites both from §6; not worth a stopgap. |
 | R25 | **The first hybrid's 1 minute** is real time under both presets, for breed and hatch, with no building reduction. Applies whichever answer to Q1 of the M2 plan. | §3.5 states a time, not a classic value. |
-| R26 | **Buying a Basic needs room**: a finished habitat of its element with a free slot, otherwise `NO_HABITAT_SLOT`. | The Hatchery should not fill with bought dragons. |
+| R26 | **Buying a Basic needs room**: a finished habitat that can house it (its element, or a Golden Aerie) with a free slot, otherwise `NO_HABITAT_SLOT`. | The Hatchery should not fill with bought dragons. |
+| R27 | **`xpMult` applies to all XP and harvest gives crop tier × 2 XP from M2** (§4.3, §7.2). M3 keeps the rest of the XP table. | M2 is unplayable to PL 2 without it; no GDD number changes. |

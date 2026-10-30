@@ -1,5 +1,5 @@
 import {
-  atkAt, canLiveIn, FEEDS_PER_LEVEL, foodPerFeed, getSpecies, goldPerMinuteX20, habitatSlots, hpAt, isUnfinished, LAUNCH_CATALOG, levelCap,
+  atkAt, canLiveIn, dragonRateX20, FEEDS_PER_LEVEL, foodPerFeed, getSpecies, goldPerMinuteX20, habitatSlots, hpAt, isUnfinished, LAUNCH_CATALOG, levelCap,
   residents, SELL_GOLD, stageOf, type Catalog, type Habitat,
 } from '@wyrmhaven/game-core'
 import { useState } from 'react'
@@ -46,6 +46,7 @@ export function DragonPanel({ dragonId, onClose, catalog = LAUNCH_CATALOG }: { d
   const maxed = d.level >= levelCap(s.roostTier)
   const foodCost = maxed ? 0 : foodPerFeed(d.level)
   const sellGold = SELL_GOLD[species.rarity]
+  const home = s.habitats.find(x => x.id === d.habitatId)
   const inTeam = s.defenceTeam?.includes(d.id) ?? false
   // Hybrids live in any habitat of their elements; a full or unbuilt habitat, and the current one, are not offered.
   const destinations = s.habitats.filter(h =>
@@ -63,7 +64,7 @@ export function DragonPanel({ dragonId, onClose, catalog = LAUNCH_CATALOG }: { d
         <span style={{ textTransform: 'capitalize' }}>{species.rarity}</span>
       </p>
       <p>{`Level ${d.level} · ${STAGE_NAME[stageOf(d.level)]}`}</p>
-      <p>{`${formatPerMinuteX20(goldPerMinuteX20(species.elements[0]!, species.rarity, d.level, preset))} gold/min`}</p>
+      <p>{`${formatPerMinuteX20(home ? dragonRateX20(species, d.level, home, preset) : goldPerMinuteX20(species.elements[0]!, species.rarity, d.level, preset))} gold/min`}</p>
       <p>{`HP ${hpAt(species.rarity, d.level)} · ATK ${atkAt(species.rarity, d.level)}`}</p>
       <p>{d.habitatId ? `Lives in ${d.habitatId}` : 'Waiting in the hatchery (no habitat has room)'}{inTeam ? ' · defence team' : ''}</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -100,6 +101,7 @@ export function DragonPanel({ dragonId, onClose, catalog = LAUNCH_CATALOG }: { d
           </ActionButton>
         )}
       </div>
+      {d.habitatId === null && sellGold === null && <p><small>Needs room: upgrade a habitat or build a new one.</small></p>}
       {moving && (
         <fieldset style={{ marginTop: 8 }}>
           <legend>Move to</legend>

@@ -55,14 +55,17 @@ export async function signIn(page: Page, opts: { fresh?: boolean } = {}) {
 
 /**
  * Opens a panel through the HUD the way a player would: the main menu at the bottom, the island menu on the right,
- * Settings for the wallet, Battle's tabs for Campaign and Arena, and a click on the hatchery or a plot for Nests and
+ * Settings for the wallet, Battle's tabs for Campaign and Arena, and a click on the hatchery or a plot for Hatchery and
  * Farm. Any dialog already open is closed first (its scrim covers the HUD).
  */
 export async function openPanel(page: Page, label: string) {
   if (await page.getByTestId('dialog-scrim').isVisible().catch(() => false)) await page.keyboard.press('Escape')
   const main = (name: string) => page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).click()
   const side = (name: string) => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name, exact: true }).click()
-  const select = (target: unknown) => page.evaluate(t => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: t }), target)
+  const select = async (target: unknown) => {
+    await page.waitForFunction(() => '__bridge' in window)
+    return page.evaluate(t => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: t }), target)
+  }
   switch (label) {
     case 'Campaign':
     case 'Arena':
@@ -72,7 +75,7 @@ export async function openPanel(page: Page, label: string) {
       return side(label)
     case 'Wallet':
       return page.getByRole('button', { name: 'Settings' }).click()
-    case 'Nests':
+    case 'Hatchery':
       return select({ kind: 'hatcheryBuilding' })
     case 'Farm':
       return select({ kind: 'farm', plot: 0 })

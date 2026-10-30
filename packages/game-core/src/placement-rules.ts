@@ -12,7 +12,7 @@ export function movableFootprint(s: PlayerState, t: MovableRef): Footprint | nul
   switch (t.type) {
     case 'habitat': return s.habitats.some(h => h.id === t.id) ? FOOTPRINT.habitat : null
     case 'farm': return s.farms[t.index] ? FOOTPRINT.farm : null
-    case 'nest': return s.nests[t.index] ? FOOTPRINT.nest : null
+    case 'breeder': return s.breeders[t.index] ? FOOTPRINT.breeder : null
     case 'hatchery': return FOOTPRINT.hatchery
     case 'decoration': {
       const d = s.decorations.find(x => x.id === t.id)
@@ -28,6 +28,7 @@ export function subjectFootprint(s: PlayerState, subject: PlacementSubject): Foo
     case 'move': return movableFootprint(s, subject.target)
     case 'decoration': return DECORATIONS[subject.decoration].size
     case 'farm': return FOOTPRINT.farm
+    case 'grove': return FOOTPRINT.breeder
     default: return FOOTPRINT.habitat
   }
 }

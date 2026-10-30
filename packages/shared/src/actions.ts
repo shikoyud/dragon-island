@@ -19,18 +19,19 @@ export const placementSchema = z.object({
 const placeableSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('habitat'), element: elementSchema }),
   z.object({ kind: z.literal('farm') }),
+  z.object({ kind: z.literal('grove') }),
   z.object({ kind: z.literal('decoration'), decoration: decorationSchema }),
 ])
 const buildingRefSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('habitat'), id }),
   z.object({ type: z.literal('farm'), index }),
-  z.object({ type: z.literal('nest'), index }),
+  z.object({ type: z.literal('breeder'), index }),
   z.object({ type: z.literal('hatchery') }),
 ])
 const movableRefSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('habitat'), id }),
   z.object({ type: z.literal('farm'), index }),
-  z.object({ type: z.literal('nest'), index }),
+  z.object({ type: z.literal('breeder'), index }),
   z.object({ type: z.literal('hatchery') }),
   z.object({ type: z.literal('decoration'), id }),
 ])
@@ -40,11 +41,13 @@ export const playerMoveSchema = z.object({ move: index, target: index })
 const movesSchema = z.array(playerMoveSchema).max(MAX_ROUNDS * TEAM_SIZE)
 
 export const storeItemSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('skip'), target: z.enum(['nest', 'hatchery', 'farm', 'construction']), index }),
+  z.object({ kind: z.literal('skip'), target: z.enum(['breeder', 'hatchery', 'farm', 'construction']), index }),
   z.object({ kind: z.literal('foodPack') }),
   z.object({ kind: z.literal('habitatL5'), habitatId: id }),
   z.object({ kind: z.literal('farmL5'), index }),
   z.object({ kind: z.literal('goldenAerie'), placement: placementSchema }),
+  z.object({ kind: z.literal('hatcheryL5') }),
+  z.object({ kind: z.literal('groveL3'), index }),
 ])
 
 export const opponentSnapshotSchema = z.object({
@@ -70,8 +73,9 @@ const common = [
   z.object({ type: z.literal('plant'), plot: index, crop: cropSchema }),
   z.object({ type: z.literal('harvest'), plot: index }),
   z.object({ type: z.literal('startBreed'), parentA: id, parentB: id }),
-  z.object({ type: z.literal('collectEgg'), nest: index }),
+  z.object({ type: z.literal('collectEgg'), breeder: index }),
   z.object({ type: z.literal('hatch'), slot: index }),
+  z.object({ type: z.literal('buyBasic'), element: elementSchema }),
   z.object({ type: z.literal('buy'), item: storeItemSchema }),
   z.object({ type: z.literal('setDefenceTeam'), dragonIds: teamIdsSchema }),
   z.object({ type: z.literal('pveBattle'), stage: z.number().int(), team: teamIdsSchema, moves: movesSchema }),

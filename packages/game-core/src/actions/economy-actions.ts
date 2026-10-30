@@ -1,16 +1,17 @@
 import type { Catalog } from '../catalog'
+import { GROVE_L3, HATCHERY_FIFTH_SLOT } from '../data/breeding-buildings'
 import { FARM_MAX_LEVEL } from '../data/farms'
 import { HABITAT_MAX_LEVEL } from '../data/habitats'
 import type { Preset } from '../data/presets'
 import { placementRuleError } from '../placement-rules'
 import type { PlayerState } from '../state'
-import { FOOD_PACK, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
+import { FOOD_PACK, ownsAerie, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
 import { completeConstruction } from './build-actions'
 import { collectHabitat } from './island-actions'
 import { failure, success, type ActionError, type Handler } from './types'
 
 function skipSlotCount(s: PlayerState, target: SkipTarget): number {
-  return target === 'nest' ? s.nests.length : target === 'hatchery' ? s.hatchery.length
+  return target === 'breeder' ? s.breeders.length : target === 'hatchery' ? s.hatchery.length
     : target === 'construction' ? s.constructions.length : s.farms.length
 }
 
@@ -38,7 +39,18 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
     }
     // The Aerie takes a habitat footprint, on any island.
     case 'goldenAerie':
+      if (ownsAerie(s)) return 'AERIE_EXISTS'
       return placementRuleError(s, { kind: 'habitat', element: 'terra' }, item.placement)
+    case 'hatcheryL5':
+      if (s.hatcheryFifthSlot) return 'MAX_LEVEL'
+      return s.level < HATCHERY_FIFTH_SLOT.minPl ? 'LEVEL_TOO_LOW' : null
+    case 'groveL3': {
+      const g = s.breeders[item.index]
+      if (!g || g.kind !== 'grove') return 'NOT_FOUND'
+      if (g.level >= GROVE_L3.level) return 'MAX_LEVEL'
+      if (g.level !== GROVE_L3.level - 1) return 'INVALID_ACTION'
+      return s.level < GROVE_L3.minPl ? 'LEVEL_TOO_LOW' : null
+    }
   }
 }
 
@@ -47,7 +59,7 @@ function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, p
     case 'skip': {
       const at = <T extends { readyAtMs: number } | null>(xs: T[]) =>
         xs.map((x, i) => i === item.index && x ? { ...x, readyAtMs: nowMs } : x)
-      if (item.target === 'nest') return { ...s, nests: s.nests.map((n, i) => i === item.index && n.egg ? { ...n, egg: { ...n.egg, readyAtMs: nowMs } } : n) }
+      if (item.target === 'breeder') return { ...s, breeders: s.breeders.map((b, i) => i === item.index && b.egg ? { ...b, egg: { ...b.egg, readyAtMs: nowMs } } : b) }
       if (item.target === 'construction') {
         return completeConstruction({ ...s, constructions: at(s.constructions) }, item.index, c, nowMs, preset)
       }
@@ -68,6 +80,10 @@ function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, p
         habitats: [...s.habitats, { id: `h${s.nextId}`, element: 'aerie', level: HABITAT_MAX_LEVEL, lastCollectedMs: nowMs, placement: item.placement }],
         nextId: s.nextId + 1,
       }
+    case 'hatcheryL5':
+      return { ...s, hatcheryFifthSlot: true }
+    case 'groveL3':
+      return { ...s, breeders: s.breeders.map((b, i) => i === item.index ? { ...b, level: GROVE_L3.level } : b) }
   }
 }
 

@@ -1,7 +1,7 @@
 import {
   constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
-  DEFAULT_PRESET, habitatCap, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
-  type BuildingRef, type Catalog, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
+  DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
+  type BreederKind, type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
@@ -34,7 +34,7 @@ export interface IslandMarkers {
   habitats: string[]
   dragons: string[]
   waiting: { id: string; noRoom: boolean }[]
-  nests: { index: number; egg: boolean }[]
+  breeders: { index: number; egg: boolean }[]
   hatchery: { slot: number }[]
   farms: { plot: number; crop: string | null }[]
   obstacles: string[]
@@ -51,13 +51,40 @@ export interface IslandModel {
   markers: IslandMarkers
 }
 
+/** The client clock can lag the server by a moment, so a fresh 1-minute timer reads a little over. Up to this much over a whole unit still shows that unit. */
+const TIMER_LAG_S = 5
+
 export function timerLabel(readyAtMs: number, nowMs: number): string {
   const left = Math.max(0, readyAtMs - nowMs)
   if (left === 0) return 'ready'
   const s = Math.ceil(left / 1000)
   if (s < 60) return `${s}s`
-  if (s < 3600) return `${Math.ceil(s / 60)}m`
-  return `${Math.ceil(s / 3600)}h`
+  if (s < 3600) return `${Math.ceil((s - TIMER_LAG_S) / 60)}m`
+  return `${Math.ceil((s - TIMER_LAG_S) / 3600)}h`
+}
+
+/** True when a finished egg could move to the Hatchery now (R18). */
+export const hatcheryHasRoom = (s: PlayerState): boolean => hatcheryUsed(s) < hatcherySlots(s.hatcheryLevel, s.hatcheryFifthSlot)
+
+/** Badge of an egg in a breeder: its timer, then 'ready', or 'hatchery full' when it is done but has nowhere to go. */
+export function eggBadge(s: PlayerState, readyAtMs: number, nowMs: number): string {
+  return readyAtMs <= nowMs && !hatcheryHasRoom(s) ? 'hatchery full' : timerLabel(readyAtMs, nowMs)
+}
+
+/** The GOLD badge waits for this share of the habitat's cap, if that is less than a minute of its residents' income (M1 Q1). */
+export const GOLD_BADGE_CAP_PERCENT = 5
+
+/**
+ * Stored Gold at which a habitat shows its GOLD badge: min(Gold per minute of its residents, 5 % of its cap), floored.
+ * The per-minute rate is the one the habitat panel shows (sum of goldPerMinuteX20 ÷ 20). Client-only; collecting from
+ * the panel still works from 1 Gold.
+ */
+export function goldBadgeThreshold(h: Habitat, live: readonly Dragon[], cap: number, catalog: Catalog, preset: Preset): number {
+  const perMinuteX20 = live.reduce((n, d) => {
+    const sp = getSpecies(catalog, d.speciesId)
+    return n + dragonRateX20(sp, d.level, h, preset)
+  }, 0)
+  return Math.min(Math.floor(perMinuteX20 / 20), Math.floor(cap * GOLD_BADGE_CAP_PERCENT / 100))
 }
 
 /** World y of a badge's bottom edge: 2 px above the sprite's visible top (canvas top when unknown), scaled. */
@@ -68,7 +95,7 @@ export function badgeY(o: Pick<IslandObject, 'y' | 'sprite' | 'scale'>): number 
 /**
  * Sheet for a dragon by stage (R11): Baby uses the hatchling of its primary element, Juvenile its `juvenile.<species>`
  * sheet when the manifest has one (else the dragon sheet), Adult the dragon sheet. A species without art falls back to
- * the flame dragon until hybrids have art.
+ * its primary Basic (R23).
  */
 export function dragonLook(speciesId: string, level: number, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): { key: string; sprite: Sprite } {
   const stage = stageOf(level)
@@ -79,7 +106,13 @@ export function dragonLook(speciesId: string, level: number, art: GameArtSet, ca
   const juvenile = stage === 'juvenile' ? art.juvenile[speciesId] : undefined
   if (juvenile) return { key: textureKey(`juvenile.${speciesId}`), sprite: juvenile }
   const adult = art.dragon[speciesId]
-  return adult ? { key: textureKey(`dragon.${speciesId}`), sprite: adult } : { key: textureKey('dragon.flame'), sprite: art.dragon['flame']! }
+  if (adult) return { key: textureKey(`dragon.${speciesId}`), sprite: adult }
+  // No art for this species (R23): the primary element's Basic, so Flame/Sea and Sea/Flame look different. Juveniles try
+  // that Basic's juvenile sheet first. Basics always have a dragon slot.
+  const primary = catalog.species.get(speciesId)?.elements[0] ?? 'flame'
+  const primaryJuvenile = stage === 'juvenile' ? art.juvenile[primary] : undefined
+  if (primaryJuvenile) return { key: textureKey(`juvenile.${primary}`), sprite: primaryJuvenile }
+  return { key: textureKey(`dragon.${primary}`), sprite: art.dragon[primary]! }
 }
 
 export const dragonKey = (speciesId: string, level: number, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): string =>
@@ -92,12 +125,37 @@ const decorationLook = (art: GameArtSet, kind: DecorationKind) => ({
   key: textureKey(`decoration.${kind}`),
   sprite: art.decoration[kind],
 })
+/**
+ * Mountain and Grove sheets stay specified at 80x80, their footprint size from M4 (docs/art/gdd-m2-art-list.md). Until
+ * then they stand on a 2-cell footprint (R9), so they are drawn smaller. Change this constant, not the sheet sizes;
+ * M4 sets it back to 1. The `building.nest` fallback is 32x32 already and keeps its native scale.
+ */
+export const BREEDER_ART_SCALE = 0.5
+/**
+ * A Mountain or Grove at `level`: its own `building.<kind>.<level>` sheet, else the nearest lower level's, else the small
+ * nest sprite (which stands on the footprint's bottom vertex like any building).
+ */
+function breederLook(art: GameArtSet, kind: BreederKind, level: number): { key: string; sprite: Sprite; scale?: number } {
+  for (let l = level; l >= 1; l--) {
+    const s = art.building.breeder[kind][l]
+    if (s) return { key: textureKey(`building.${kind}.${l}`), sprite: s, scale: BREEDER_ART_SCALE }
+  }
+  return { key: textureKey('building.nest'), sprite: art.building.nest }
+}
+/** The Hatchery at `level`: `building.hatchery.<level>`, else a lower level's, else `building.hatchery`. The fifth slot is not a level. */
+function hatcheryLook(art: GameArtSet, level: number): { key: string; sprite: Sprite } {
+  for (let l = level; l >= 1; l--) {
+    const s = art.building.hatcheryLevel[l]
+    if (s) return { key: textureKey(`building.hatchery.${l}`), sprite: s }
+  }
+  return { key: textureKey('building.hatchery'), sprite: art.building.hatchery }
+}
 const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), sprite: art.building.nexus })
 /** The Golden Aerie: its own sprite when the manifest has one, else the Nexus sprite. */
 const aerieLook = (art: GameArtSet) => (art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art))
 
 /** Sprite and texture key of a thing that can be placed, for the ghost. */
-function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): { key: string; sprite: Sprite } {
+function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): { key: string; sprite: Sprite; scale?: number } {
   if (what.kind === 'move') {
     const t: MovableRef = what.target
     switch (t.type) {
@@ -108,8 +166,11 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
         return { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
       }
       case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
-      case 'nest': return { key: textureKey('building.nest'), sprite: art.building.nest }
-      case 'hatchery': return { key: textureKey('building.hatchery'), sprite: art.building.hatchery }
+      case 'breeder': {
+        const b = state.breeders[t.index]
+        return b ? breederLook(art, b.kind, b.level) : breederLook(art, 'mountain', 1)
+      }
+      case 'hatchery': return hatcheryLook(art, state.hatcheryLevel)
       case 'decoration': {
         const d = state.decorations.find(x => x.id === t.id)
         return d ? decorationLook(art, d.kind) : nexusLook(art)
@@ -119,6 +180,7 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
   switch (what.kind) {
     case 'habitat': return { key: textureKey(`habitat.${what.element}`), sprite: art.habitat[what.element] }
     case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
+    case 'grove': return breederLook(art, 'grove', 1)
     case 'decoration': return decorationLook(art, what.decoration)
     case 'goldenAerie': return aerieLook(art)
   }
@@ -141,7 +203,7 @@ export function buildIslandModel(
 ): IslandModel {
   const objects: IslandObject[] = []
   const markers: IslandMarkers = {
-    habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [],
+    habitats: [], dragons: [], waiting: [], breeders: [], hatchery: [], farms: [],
     obstacles: [], decorations: [], constructions: 0, ghost: null, sign: null,
   }
   if (!state) return { objects, markers }
@@ -179,17 +241,19 @@ export function buildIslandModel(
   for (const h of state.habitats) {
     if (h.placement.island !== view) continue
     const a = anchor(h.placement.col, h.placement.row, FOOTPRINT.habitat)
-    const gold = storedGold(h, residents(state, h.id), catalog, nowMs, preset)
+    const live = residents(state, h.id)
+    const cap = habitatCap(h.element, h.level, preset)
+    const gold = storedGold(h, live, catalog, nowMs, preset)
     const base = h.element === 'aerie'
       ? aerieLook(art)
       : { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
     const group: IslandObject[] = [{
       id: `habitat:${h.id}`, ...base, ...a, target: { kind: 'habitat', id: h.id },
-      badge: gold > 0 && gold >= habitatCap(h.element, h.level, preset) ? 'full' : gold > 0 ? 'gold' : undefined,
+      badge: gold > 0 && gold >= cap ? 'full' : gold > 0 && gold >= goldBadgeThreshold(h, live, cap, catalog, preset) ? 'gold' : undefined,
       ...look({ type: 'habitat', id: h.id }, h.placement),
     }]
     markers.habitats.push(h.id)
-    residents(state, h.id).forEach((d, slot) => {
+    live.forEach((d, slot) => {
       group.push({ id: `dragon:${d.id}`, ...dragonLook(d.speciesId, d.level, art, catalog), ...dragonSpot(a, slot), target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
     })
@@ -198,25 +262,25 @@ export function buildIslandModel(
     add(h.placement, FOOTPRINT.habitat, group)
   }
 
-  state.nests.forEach((nest, index) => {
-    if (nest.placement.island !== view) return
-    const a = anchor(nest.placement.col, nest.placement.row, FOOTPRINT.nest)
+  state.breeders.forEach((breeder, index) => {
+    if (breeder.placement.island !== view) return
+    const a = anchor(breeder.placement.col, breeder.placement.row, FOOTPRINT.breeder)
     const group: IslandObject[] = [{
-      id: `nest:${index}`, key: textureKey('building.nest'), sprite: art.building.nest, ...a,
-      target: { kind: 'nest', index }, ...look({ type: 'nest', index }, nest.placement),
+      id: `breeder:${index}`, ...breederLook(art, breeder.kind, breeder.level), ...a,
+      target: { kind: 'breeder', index }, ...look({ type: 'breeder', index }, breeder.placement),
     }]
-    if (nest.egg) {
-      const el = getSpecies(catalog, nest.egg.speciesId).elements[0]!
-      group.push({ id: `egg:${index}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], x: a.x, y: a.y - 9, scale: NEST_EGG_SCALE, target: { kind: 'nest', index }, badge: timerLabel(nest.egg.readyAtMs, nowMs) })
+    if (breeder.egg) {
+      const el = getSpecies(catalog, breeder.egg.speciesId).elements[0]!
+      group.push({ id: `egg:${index}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], x: a.x, y: a.y - 9, scale: NEST_EGG_SCALE, target: { kind: 'breeder', index }, badge: eggBadge(state, breeder.egg.readyAtMs, nowMs) })
     }
-    add(nest.placement, FOOTPRINT.nest, group)
-    markers.nests.push({ index, egg: nest.egg !== null })
+    add(breeder.placement, FOOTPRINT.breeder, group)
+    markers.breeders.push({ index, egg: breeder.egg !== null })
   })
 
   if (state.hatcheryPlacement.island === view) {
     const a = anchor(state.hatcheryPlacement.col, state.hatcheryPlacement.row, FOOTPRINT.hatchery)
     const group: IslandObject[] = [{
-      id: 'hatchery', key: textureKey('building.hatchery'), sprite: art.building.hatchery, ...a,
+      id: 'hatchery', ...hatcheryLook(art, state.hatcheryLevel), ...a,
       target: { kind: 'hatcheryBuilding' }, ...look({ type: 'hatchery' }, state.hatcheryPlacement),
     }]
     let spot = 0
@@ -227,7 +291,7 @@ export function buildIslandModel(
     })
     for (const d of state.dragons.filter(x => x.habitatId === null)) {
       const el = getSpecies(catalog, d.speciesId).elements[0]!
-      const at = hatcherySpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel) - 1))
+      const at = hatcherySpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel, state.hatcheryFifthSlot) - 1))
       group.push({ id: `dragon:${d.id}`, key: textureKey(`hatchling.${el}`), sprite: art.hatchling[el], ...at, scale: HATCHERY_ITEM_SCALE, target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
       markers.waiting.push({ id: d.id, noRoom: true })

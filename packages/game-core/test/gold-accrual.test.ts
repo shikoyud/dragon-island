@@ -83,10 +83,10 @@ describe('Gold accrues by the millisecond', () => {
 describe('moving a dragon between occupied habitats (the carry-over exploit)', () => {
   // Terra-primary hybrid, 180 Gold/min wherever it lives.
   const CAT = makeCatalog([
-    { id: 'terra', name: 'terra', elements: ['terra'], rarity: 'common', recipeOnly: false },
-    { id: 'flame', name: 'flame', elements: ['flame'], rarity: 'common', recipeOnly: false },
-    { id: 'tf', name: 'tf', elements: ['terra', 'flame'], rarity: 'common', recipeOnly: false },
-  ], [])
+    { id: 'terra', name: 'terra', elements: ['terra'], rarity: 'common' },
+    { id: 'flame', name: 'flame', elements: ['flame'], rarity: 'common' },
+    { id: 'tf', name: 'tf', elements: ['terra', 'flame'], rarity: 'common' },
+  ])
   const base = newPlayer(0)
   // h2 was last collected 30 s after h1: out of phase, which is what whole-minute carry-over paid twice for.
   const start: PlayerState = {

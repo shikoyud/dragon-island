@@ -1,10 +1,16 @@
-import { newPlayer, skipPriceMicroUsd, type PlayerState } from '@wyrmhaven/game-core'
+import { applyAction, newPlayer, skipPriceMicroUsd, type PlayerState } from '@wyrmhaven/game-core'
 import { eq, sql } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { actionLog, balances, players, spendBatches } from '../src/db/schema'
 import { FixedPriceSource } from '../src/services/price'
 import { bearer, testApp, type TestApp } from './helpers/testApp'
 import { TEST_KEYS, wallet } from './helpers/wallet'
+
+// Wraps the real applyAction so a test can read the arguments the server passes.
+vi.mock('@wyrmhaven/game-core', async importOriginal => {
+  const mod = await importOriginal<typeof import('@wyrmhaven/game-core')>()
+  return { ...mod, applyAction: vi.fn(mod.applyAction) }
+})
 
 const E18 = 10n ** 18n
 let t: TestApp
@@ -105,7 +111,7 @@ describe('POST /actions', () => {
   })
 
   it('runs placeBuilding and finishConstruction through /actions and charges a construction skip', async () => {
-    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 6, row: 7, facing: 0 } })
+    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 7, row: 7, facing: 0 } })
     expect(placed.statusCode).toBe(200)
     expect(placed.json().state.constructions).toHaveLength(1)
     const skipped = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } })
@@ -119,7 +125,7 @@ describe('POST /actions', () => {
   })
 
   it('a construction skip with a bad index or on a ready construction charges nothing', async () => {
-    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 6, row: 7, facing: 0 } })
+    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 7, row: 7, facing: 0 } })
     expect(placed.statusCode).toBe(200)
     const bad = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 5 } })
     expect([bad.statusCode, bad.json()]).toEqual([422, { error: 'NOT_FOUND' }])
@@ -157,10 +163,57 @@ describe('POST /actions', () => {
     expect(resets()[1]![0]).toMatchObject({ playerId })
   })
 
+  it('resets a version 2 save (nests and pity) to a fresh player on /me and on /actions, logging each reset once', async () => {
+    const warn = vi.spyOn(t.app.log, 'warn')
+    const resets = () => warn.mock.calls.filter(c => JSON.stringify(c).includes('state reset'))
+    const v2 = { ...newPlayer(0), version: 2, pity: { 'flame+sea': 4 } }
+    await t.db.update(players).set({ state: v2 }).where(eq(players.id, playerId))
+    const me = await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })
+    expect(me.statusCode).toBe(200)
+    expect(me.json().state.version).toBe(newPlayer(0).version)
+    expect(me.json().state).not.toHaveProperty('pity')
+    expect(resets()).toHaveLength(1)
+
+    await t.db.update(players).set({ state: v2 }).where(eq(players.id, playerId))
+    const r = await post({ type: 'collectGold', habitatId: 'h1' })
+    expect(r.statusCode).toBeLessThan(500)
+    expect(r.json().state).not.toHaveProperty('pity')
+    expect(resets()).toHaveLength(2)
+  })
+
+  it('passes the game day to applyAction, from the game row when LAUNCH_AT is unset', async () => {
+    const spy = vi.mocked(applyAction)
+    spy.mockClear()
+    await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) }) // creates the game row at clock 0
+    t.clock.set(4 * 86_400_000 + 1_000) // launch + 4 days: game day 5
+    await post({ type: 'collectGold', habitatId: 'h1' })
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy.mock.calls[0]![6]).toBe(5)
+    t.clock.set(1_000)
+    await post({ type: 'collectGold', habitatId: 'h1' })
+    expect(spy.mock.calls[1]![6]).toBe(1)
+  })
+
+  it('passes the game day from LAUNCH_AT when it is set, ignoring the game row', async () => {
+    const launch = 10 * 86_400_000
+    const t2 = await testApp({ price: new FixedPriceSource(50_000n), config: { ...t.deps.config, LAUNCH_AT: new Date(launch).toISOString() } }, launch)
+    try {
+      const { token: tok2 } = await t2.login(wallet(TEST_KEYS.alice))
+      const spy = vi.mocked(applyAction)
+      spy.mockClear()
+      t2.clock.set(launch + 2 * 86_400_000 + 5) // LAUNCH_AT + 2 days: game day 3
+      const r = await t2.app.inject({ method: 'POST', url: '/actions', headers: bearer(tok2), payload: { action: { type: 'collectGold', habitatId: 'h1' }, idempotencyKey: crypto.randomUUID() } })
+      expect(r.statusCode).toBe(200)
+      expect(spy.mock.calls[0]![6]).toBe(3)
+    } finally {
+      await t2.close()
+    }
+  })
+
   it('runs a startBreed action without a seasons table and logs no season_id', async () => {
     const tables = await t.db.execute(sql`select table_name from information_schema.tables where table_schema = 'public'`)
     expect(JSON.stringify(tables)).not.toContain('seasons')
-    await setState({ dragons: newPlayer(0).dragons.map(d => ({ ...d, level: 4 })) })
+    await setState({ level: 2, dragons: newPlayer(0).dragons.map(d => ({ ...d, level: 4 })) })
     const r = await post({ type: 'startBreed', parentA: 'd1', parentB: 'd2' })
     expect(r.statusCode).toBe(200)
     const [log] = await t.db.select().from(actionLog).where(eq(actionLog.playerId, playerId))

@@ -1,35 +1,28 @@
+import { BREEDER_LEVELS, HATCHERY_LEVELS, type BuildingLevel } from './data/breeding-buildings'
 import { FARM_LEVELS } from './data/farms'
 import { HABITAT_MAX_LEVEL, habitatUpgradeGold, habitatUpgradeMs } from './data/habitats'
 import type { Preset } from './data/presets'
-import type { BuildingRef, PlayerState } from './state'
+import type { Breeder, BuildingRef, PlayerState } from './state'
 
 export interface UpgradeStep { cost: number; timerMs: number; minLevel: number }
 
-/** Index = hatchery level - 1. */
-export const HATCHERY_LEVELS: readonly { slots: number; up: UpgradeStep | null }[] = [
-  { slots: 3, up: { cost: 12_000, timerMs: 7_200_000, minLevel: 8 } },
-  { slots: 4, up: { cost: 75_000, timerMs: 28_800_000, minLevel: 20 } },
-  { slots: 5, up: null },
-]
-
-/** Index = nest level - 1. */
-export const NEST_LEVELS: readonly { breedPct: number; up: UpgradeStep | null }[] = [
-  { breedPct: 100, up: { cost: 15_000, timerMs: 7_200_000, minLevel: 12 } },
-  { breedPct: 90, up: { cost: 90_000, timerMs: 28_800_000, minLevel: 24 } },
-  { breedPct: 80, up: null },
-]
-
-export function hatcherySlots(level: number): number {
-  return HATCHERY_LEVELS[level - 1]!.slots
+/** The level's slots, plus one when the fifth slot was bought (§5.4, Q5 a). */
+export function hatcherySlots(level: number, fifthSlot: boolean): number {
+  return HATCHERY_LEVELS[level - 1]!.slots + (fifthSlot ? 1 : 0)
 }
 
-export function nestBreedMs(baseMs: number, nestLevel: number): number {
-  return Math.floor(baseMs * NEST_LEVELS[nestLevel - 1]!.breedPct / 100)
+/** Breed time in this building. Reductions don't apply to hatching (§5.4). */
+export function breederBreedMs(baseMs: number, b: Pick<Breeder, 'kind' | 'level'>): number {
+  return Math.floor(baseMs * (100 - BREEDER_LEVELS[b.kind][b.level - 1]!.reductionPct) / 100)
 }
+
+/** A table row as a Gold upgrade, or null when the row is missing or isn't bought with Gold. */
+const goldStep = (next: BuildingLevel | undefined, preset: Preset): UpgradeStep | null =>
+  next && next.gold !== null ? { cost: next.gold, timerMs: Math.floor(next.classicMs / preset.timerDiv), minLevel: next.minPl } : null
 
 /**
  * Next Gold upgrade of a building, or null at max level (or an unknown building). A habitat has a Gold upgrade to
- * L2..L4 only; L5 is a store item (§5.2, §5.3), so L4 and the Golden Aerie return null.
+ * L2..L4 only; L5 is a store item (§5.2, §5.3), so L4 and the Golden Aerie return null. Grove L3 is a store item too (§5.4).
  */
 export function upgradeInfo(s: PlayerState, ref: BuildingRef, preset: Preset): UpgradeStep | null {
   switch (ref.type) {
@@ -47,11 +40,12 @@ export function upgradeInfo(s: PlayerState, ref: BuildingRef, preset: Preset): U
         ? { cost: next.upgradeGold, timerMs: Math.floor(next.classicMs / preset.timerDiv), minLevel: 1 }
         : null
     }
-    case 'nest': {
-      const n = s.nests[ref.index]
-      return n ? NEST_LEVELS[n.level - 1]?.up ?? null : null
+    case 'breeder': {
+      // As with farms, entry `level` is the next level.
+      const b = s.breeders[ref.index]
+      return b ? goldStep(BREEDER_LEVELS[b.kind][b.level], preset) : null
     }
     case 'hatchery':
-      return HATCHERY_LEVELS[s.hatcheryLevel - 1]?.up ?? null
+      return goldStep(HATCHERY_LEVELS[s.hatcheryLevel], preset)
   }
 }

@@ -12,7 +12,7 @@ import { isValidAction } from '../src/index'
 const run = (st: PlayerState, a: Action, t = 0) => applyAction(st, a, t, createRng(1), FIXTURE_CATALOG)
 const buy = (item: StoreItem): Action => ({ type: 'buy', item })
 const p0 = newPlayer(0)
-const s = p0
+const s: PlayerState = p0
 const P = (col: number, row: number) => ({ island: 'home' as const, col, row, facing: 0 as const })
 
 describe('buy', () => {
@@ -23,12 +23,12 @@ describe('buy', () => {
   })
 
   it('skips timers', () => {
-    const st = { ...p0, nests: [{ ...p0.nests[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001 } }] }
-    const r = run(st, buy({ kind: 'skip', target: 'nest', index: 0 }))
+    const st = { ...p0, breeders: [{ ...p0.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001, hatchMs: 1 } }] }
+    const r = run(st, buy({ kind: 'skip', target: 'breeder', index: 0 }))
     expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: skipPriceMicroUsd(1_800_001) }])
-    expect(ok(r).nests[0]!.egg!.readyAtMs).toBe(0)
-    err(run(st, buy({ kind: 'skip', target: 'nest', index: 0 }), 1_800_001), 'NOTHING_TO_SKIP')
-    err(run(st, buy({ kind: 'skip', target: 'nest', index: 3 })), 'NOT_FOUND')
+    expect(ok(r).breeders[0]!.egg!.readyAtMs).toBe(0)
+    err(run(st, buy({ kind: 'skip', target: 'breeder', index: 0 }), 1_800_001), 'NOTHING_TO_SKIP')
+    err(run(st, buy({ kind: 'skip', target: 'breeder', index: 3 })), 'NOT_FOUND')
   })
 
   it('skips hatchery and farm timers', () => {
@@ -121,10 +121,10 @@ describe('habitat L5 and the Golden Aerie', () => {
   })
 
   it('the Golden Aerie is a level 5 habitat that houses 6 dragons of any element for $5.00', () => {
-    const r = run({ ...s, level: 1 }, buy({ kind: 'goldenAerie', placement: P(6, 7) }), 5_000)
+    const r = run({ ...s, level: 1 }, buy({ kind: 'goldenAerie', placement: P(7, 7) }), 5_000)
     expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 5_000_000 }])
     const a = ok(r)
-    expect(a.habitats.at(-1)).toEqual({ id: 'h3', element: 'aerie', level: 5, lastCollectedMs: 5_000, placement: P(6, 7) })
+    expect(a.habitats.at(-1)).toEqual({ id: 'h3', element: 'aerie', level: 5, lastCollectedMs: 5_000, placement: P(7, 7) })
     expect([a.nextId, a.constructions]).toEqual([4, []])
     const species = ['flame', 'sea', 'ice', 'nature', 'fw-rare', 'wall']
     const dragons = species.map((speciesId, i) => ({ id: `a${i}`, speciesId, level: 1, feeds: 0, habitatId: null }))
@@ -133,15 +133,22 @@ describe('habitat L5 and the Golden Aerie', () => {
     expect(st.dragons.filter(d => d.habitatId === 'h3')).toHaveLength(6)
     err(run({ ...st, dragons: [...st.dragons, { id: 'a9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }] }, { type: 'moveDragon', dragonId: 'a9', habitatId: 'h3' }), 'NO_HABITAT_SLOT')
   })
+  it('a second Golden Aerie fails AERIE_EXISTS and charges nothing', () => {
+    const first = ok(run({ ...s, level: 1 }, buy({ kind: 'goldenAerie', placement: P(7, 7) }), 5_000))
+    const again = run(first, buy({ kind: 'goldenAerie', placement: P(12, 12) }), 6_000)
+    err(again, 'AERIE_EXISTS')
+    expect(again.ok).toBe(false)
+    expect(first.habitats.filter(h => h.element === 'aerie')).toHaveLength(1)
+  })
   it('the Golden Aerie needs a legal cell', () => {
     err(run(s, buy({ kind: 'goldenAerie', placement: P(0, 0) })), 'OVERLAP')
-    err(run(s, buy({ kind: 'goldenAerie', placement: P(8, 8) })), 'OUT_OF_BOUNDS')
+    err(run(s, buy({ kind: 'goldenAerie', placement: P(10, 10) })), 'OUT_OF_BOUNDS')
   })
   it('validates the new store items', () => {
     expect(isValidAction(buy(l5))).toBe(true)
     expect(isValidAction(buy({ kind: 'habitatL5', habitatId: '' } as never))).toBe(false)
-    expect(isValidAction(buy({ kind: 'goldenAerie', placement: P(6, 7) }))).toBe(true)
-    expect(isValidAction(buy({ kind: 'goldenAerie', placement: { ...P(6, 7), facing: 4 } } as never))).toBe(false)
+    expect(isValidAction(buy({ kind: 'goldenAerie', placement: P(7, 7) }))).toBe(true)
+    expect(isValidAction(buy({ kind: 'goldenAerie', placement: { ...P(7, 7), facing: 4 } } as never))).toBe(false)
     expect(isValidAction(buy({ kind: 'goldenAerie' } as never))).toBe(false)
   })
 })

@@ -26,7 +26,7 @@ export function CardView({ code, handle, position }: { code: string; handle: str
             width={1200}
             height={675}
           />
-          <p className="step-text card-page-pitch">Breed dragons. Build your island. Battle for the season.</p>
+          <p className="step-text card-page-pitch">Breed dragons. Build your island. Battle for the ranks.</p>
           <a className="btn btn-primary btn-big" href={`/?ref=${encodeURIComponent(code)}#join`}>
             Join the waitlist
           </a>

@@ -1,4 +1,4 @@
-import { canLiveIn, getSpecies, goldPerMinuteX20, habitatCap, habitatSlots, isUnfinished, LAUNCH_CATALOG, residents, stageOf, storedGold } from '@wyrmhaven/game-core'
+import { canLiveIn, dragonRateX20, getSpecies, habitatCap, habitatSlots, isUnfinished, LAUNCH_CATALOG, residents, stageOf, storedGold } from '@wyrmhaven/game-core'
 import { Icon } from '../hud/Icon'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -30,7 +30,7 @@ export function HabitatPanel({ habitatId, nowMs, onClose, onOpenDragon }: {
   const full = gold >= cap
   const perMinuteX20 = live.reduce((n, d) => {
     const sp = getSpecies(catalog, d.speciesId)
-    return n + goldPerMinuteX20(sp.elements[0]!, sp.rarity, d.level, preset)
+    return n + dragonRateX20(sp, d.level, h, preset)
   }, 0)
   const free = habitatSlots(h) - live.length
   const building = isUnfinished(s, { type: 'habitat', id: h.id })

@@ -35,7 +35,7 @@ export function initWallet(): AppKit | null {
     projectId,
     metadata: {
       name: 'Dragon Island',
-      description: 'Breed dragons. Build your island. Battle for the season.',
+      description: 'Breed dragons. Build your island. Battle for the ranks.',
       url: window.location.origin,
       icons: [],
     },

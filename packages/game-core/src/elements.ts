@@ -32,8 +32,3 @@ export function highestTier(elements: readonly Element[]): ElementTier {
   const tiers = elements.map(e => ELEMENT_TIER[e])
   return tiers.includes('C') ? 'C' : tiers.includes('B') ? 'B' : 'A'
 }
-
-/** Unordered pair key, alphabetical: pairKey('sea', 'flame') === 'flame+sea'. */
-export function pairKey(a: Element, b: Element): string {
-  return a <= b ? `${a}+${b}` : `${b}+${a}`
-}

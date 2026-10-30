@@ -9,8 +9,9 @@ export const errorMessages: Record<string, string> = {
   LEVEL_CAP: 'Upgrade your Roost to raise this dragon further.',
   LEVEL_TOO_LOW: 'Your level is too low for that yet.',
   INVALID_PARENTS: 'Pick two different dragons you own.',
-  NO_FREE_NEST: 'Every nest is busy.',
-  NEST_EMPTY: 'That nest is empty.',
+  OPPOSITE_BASICS: "Opposite Basics can't breed. Use a hybrid that carries one of them.",
+  NO_FREE_BREEDER: 'Every breeding building is busy.',
+  BREEDER_EMPTY: 'There is no egg there.',
   NOT_READY: 'Not ready yet.',
   HATCHERY_FULL: 'The hatchery is full. Hatch or place a dragon first.',
   NO_HABITAT_SLOT: 'That habitat has no free slot.',
@@ -48,6 +49,7 @@ export const errorMessages: Record<string, string> = {
   UNDER_CONSTRUCTION: 'That building is still being built.',
   NO_LEGENDARY: 'Own a legendary dragon to unlock Dawnspire.',
   MAX_EXPANSION: 'The home island is at its full size.',
+  AERIE_EXISTS: 'You already own a Golden Aerie.',
   WITHDRAWALS_DISABLED: 'Withdrawals are not enabled on this server.',
 }
 
