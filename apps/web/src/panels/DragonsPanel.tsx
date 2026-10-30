@@ -1,14 +1,13 @@
 import { getSpecies, LAUNCH_CATALOG } from '@wyrmhaven/game-core'
 import { useMe } from '../state/me'
-import { Panel } from '../ui/Panel'
 
-/** Every dragon the player owns, by habitat; a row opens that dragon's panel. */
-export function DragonsPanel({ onSelect, onClose }: { onSelect: (dragonId: string) => void; onClose?: () => void }) {
+/** Every dragon the player owns, by habitat; a row opens that dragon's panel. The Dragon Book's `My dragons` tab. */
+export function DragonsPanel({ onSelect }: { onSelect: (dragonId: string) => void }) {
   const me = useMe()
   const s = me.data?.state
   if (!s) return null
   return (
-    <Panel title={`Dragons (${s.dragons.length})`} onClose={onClose}>
+    <>
       {s.dragons.length === 0 && <p>No dragons yet. Breed two to get an egg.</p>}
       <ul className="list-rows">
         {s.dragons.map(d => {
@@ -23,6 +22,6 @@ export function DragonsPanel({ onSelect, onClose }: { onSelect: (dragonId: strin
           )
         })}
       </ul>
-    </Panel>
+    </>
   )
 }
