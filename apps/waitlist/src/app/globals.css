@@ -420,7 +420,8 @@ h3 {
 
 .hatchlings {
   display: grid;
-  grid-template-columns: repeat(10, 32px);
+  /* One row of ten needs 372px, wider than the scene on small phones. */
+  grid-template-columns: repeat(5, 32px);
   gap: 4px;
   justify-content: center;
   margin: 0;
@@ -432,6 +433,12 @@ h3 {
     0 4px 0 0 var(--frame),
     -4px 0 0 0 var(--frame),
     4px 0 0 0 var(--frame);
+}
+
+@media (min-width: 400px) {
+  .hatchlings {
+    grid-template-columns: repeat(10, 32px);
+  }
 }
 
 .hatch {
@@ -458,7 +465,8 @@ h3 {
     display: block;
   }
   .hatchlings {
-    grid-template-columns: repeat(9, 48px);
+    /* Two rows of five: ten 48px cells (540px) are wider than the scene column at every desktop width. */
+    grid-template-columns: repeat(5, 48px);
     gap: 4px;
     padding: 14px 12px;
   }
@@ -607,16 +615,23 @@ h3 {
 
 .elements {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* 2, 5 then 10 columns: ten divides evenly, so no element is left alone on a row. */
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-@media (min-width: 720px) {
+@media (min-width: 560px) {
   .elements {
-    grid-template-columns: repeat(9, 1fr);
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .elements {
+    grid-template-columns: repeat(10, 1fr);
   }
 }
 

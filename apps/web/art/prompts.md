@@ -26,6 +26,8 @@ Prompt: `young adult dragon standing on four legs, <line>`. Species ids are the 
 
 Egg and hatchling lines: see the waitlist prompts file.
 
+War has no prompts yet, including its icon, and uses the drawn fallback (`FALLBACK_PALETTE.war`) until the art list lands.
+
 ## Generation runs
 
 | Run | Tool | Cost | Used for |

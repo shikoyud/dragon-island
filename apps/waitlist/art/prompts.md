@@ -24,6 +24,8 @@ Scenes add their own lighting: night for the waitlist hero, warm daylight for th
 
 Egg prompt: `dragon egg, <egg line>`. Hatchling prompt: `baby dragon hatchling sitting, <hatchling line>`.
 
+War has no prompts yet, including its icon, and uses the drawn fallback (a dark red block) until the art list lands.
+
 ## Assets
 
 | Key | File | Size | Frames | fps | Source |
