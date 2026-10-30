@@ -1,9 +1,53 @@
 import { applyAction, createRng, foodPerFeed, LAUNCH_CATALOG, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
-import { screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { TerminalClock } from '../src/hud/TerminalClock'
 import { DragonPanel } from '../src/panels/DragonPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
+import { useGameClock } from '../src/state/clock'
+import { useMe } from '../src/state/me'
 import { harness } from './harness'
+
+describe('the client clock follows the server (A12)', () => {
+  const DAY = 86_400_000
+  const HOUR = 3_600_000
+  afterEach(() => { vi.useRealTimers() })
+
+  function Probe() {
+    const game = useMe().data?.game
+    const nowMs = useGameClock(game?.serverNowMs)
+    return game ? <TerminalClock game={game} nowMs={nowMs} /> : null
+  }
+
+  it('a +10 days server shows its own countdown and keeps ticking', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.setSystemTime(5_000) // the player's device still thinks it is launch day
+    const h = harness(newPlayer(0), 0, 'flash14', { launchAtMs: 0, serverNowMs: 10 * DAY + HOUR })
+    h.wrap(<Probe />)
+    expect(screen.getByRole('timer')).toHaveTextContent('Finals lock in 3d 23:00:00')
+    act(() => { vi.advanceTimersByTime(1_000) })
+    expect(screen.getByRole('timer')).toHaveTextContent('Finals lock in 3d 22:59:59')
+  })
+
+  it('an action response carrying the old server time does not rewind the clock', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.setSystemTime(5_000)
+    const h = harness(newPlayer(0), 0, 'flash14', { launchAtMs: 0, serverNowMs: 10 * DAY + HOUR })
+    h.wrap(<Probe />)
+    act(() => { vi.advanceTimersByTime(60_000) })
+    h.setState(newPlayer(0)) // same `game`, new state: what applyStateFromResponse leaves
+    expect(screen.getByRole('timer')).toHaveTextContent('Finals lock in 3d 22:59:00')
+  })
+
+  it('runs on the device clock until /me has a server time', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.setSystemTime(DAY)
+    const seen: number[] = []
+    function Now() { seen.push(useGameClock(undefined)); return null }
+    harness(newPlayer(0)).wrap(<Now />)
+    expect(seen.at(-1)).toBe(DAY)
+  })
+})
 
 describe('the client prediction follows the Gold carry-over', () => {
   it('a server collect at 1:59 leaves the panel showing a minute of Gold at 2:00, none at 1:59', () => {

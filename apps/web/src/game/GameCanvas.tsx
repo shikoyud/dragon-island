@@ -8,15 +8,17 @@ import type { Bridge } from './bridge'
 import { createGame } from './config'
 
 /** Mounts the Phaser game once and streams state, time and motion preference into the bridge. */
-export function GameCanvas({ bridge, art }: { bridge: Bridge; art: GameArtSet }) {
+export function GameCanvas({ bridge, art, nowMs }: { bridge: Bridge; art: GameArtSet; nowMs: number }) {
   const host = useRef<HTMLDivElement>(null)
   const game = useRef<Phaser.Game | null>(null)
   const me = useMe()
 
+  // Before the mount effect, so the first scene draw already has the time.
+  useEffect(() => { bridge.setClock(nowMs) }, [bridge, nowMs])
+
   useEffect(() => {
     if (!host.current || game.current) return
     bridge.setArt(art)
-    bridge.setClock(Date.now())
     const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)')
     bridge.setReducedMotion(mq?.matches ?? false)
     const onMq = (e: MediaQueryListEvent) => bridge.setReducedMotion(e.matches)
@@ -24,9 +26,7 @@ export function GameCanvas({ bridge, art }: { bridge: Bridge; art: GameArtSet })
     game.current = createGame(host.current, bridge)
     // Playwright drives the canvas through the bridge (the scene emits the same events on a click); test wallet builds only.
     if (import.meta.env.VITE_TEST_WALLET === '1') (window as unknown as { __bridge?: Bridge }).__bridge = bridge
-    const tick = setInterval(() => bridge.setClock(Date.now()), 1000)
     return () => {
-      clearInterval(tick)
       mq?.removeEventListener?.('change', onMq)
       game.current?.destroy(true)
       game.current = null

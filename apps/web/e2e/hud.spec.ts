@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openPanel, resetPlayer, signIn } from './helpers'
+import { openPanel, resetPlayer, setServerClock, signIn } from './helpers'
 
 /**
  * The HUD over the full-screen island, at a desktop and a phone size: resources, menus, dialogs, the placement
@@ -7,6 +7,24 @@ import { openPanel, resetPlayer, signIn } from './helpers'
  */
 type B = { state: { constructions: unknown[]; farms: unknown[] } | null; placing: { col: number; row: number; size: number } | null; cellToScreen: ((c: number, r: number) => { x: number; y: number }) | null }
 const bridge = <T>(page: Page, fn: (b: B) => T) => page.evaluate(`(${fn.toString()})(window.__bridge)`) as Promise<T>
+
+test('the countdown follows the server clock, not the device', async ({ page, request }) => {
+  const days = async () => Number(/(\d+)d /.exec(await page.getByRole('timer', { name: 'Terminal countdown' }).innerText())![1])
+  await signIn(page)
+  await resetPlayer(request)
+  await setServerClock(request, 0)
+  await page.reload()
+  await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toBeVisible()
+  const before = await days()
+  try {
+    await setServerClock(request, 86_400_000)
+    await page.reload()
+    await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toBeVisible()
+    expect(await days()).toBe(before - 1)
+  } finally {
+    await setServerClock(request, 0)
+  }
+})
 
 for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phone', width: 390, height: 844 }]) {
   test.describe(size.name, () => {

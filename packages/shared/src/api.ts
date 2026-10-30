@@ -13,6 +13,8 @@ export interface VerifyResponse { token: string; playerId: string; address: `0x$
 /** GET /game (§1.5, A12). `revealedSecret` stays null until the game reveals it. */
 export interface GameInfo {
   launchAtMs: number
+  /** The server's clock when it answered; the client keeps its offset to this and runs its timers on it. */
+  serverNowMs: number
   preset: PresetId
   day: number
   phase: Phase

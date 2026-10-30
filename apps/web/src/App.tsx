@@ -17,6 +17,7 @@ import { PlacementBar } from './panels/PlacementBar'
 import { useAutoFinish } from './panels/useAutoFinish'
 import { useAction } from './state/actions'
 import { useBattle } from './state/battle'
+import { useGameClock } from './state/clock'
 import { useMe } from './state/me'
 import { nearestLegalCell, placingAction } from './state/placing'
 import { StartPlacingProvider, type StartPlacing } from './state/startPlacing'
@@ -48,7 +49,7 @@ function Game() {
   const me = useMe()
   const bridge = useMemo(() => createBridge(), [])
   const [art, setArt] = useState<GameArtSet>(FALLBACK_ART)
-  const [nowMs, setNowMs] = useState(() => Date.now())
+  const nowMs = useGameClock(me.data?.game?.serverNowMs)
   const [dialog, setDialog] = useDialog(bridge)
   const battle = useBattle()
   const { placing, view, dispatch } = usePlacing(bridge)
@@ -56,10 +57,6 @@ function Game() {
   useAutoFinish(nowMs)
 
   useEffect(() => { void loadActiveArt().then(setArt) }, [])
-  useEffect(() => {
-    const t = setInterval(() => setNowMs(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [])
   useEffect(() => { bridge.setBattle(battle.preview) }, [bridge, battle.preview])
   useEffect(() => { if (battle.error) toasts.error(battle.error) }, [battle.error, toasts])
   useEffect(() => { if (me.error) toasts.error(me.error) }, [me.error, toasts])
@@ -113,7 +110,7 @@ function Game() {
     <HudArtContext.Provider value={art.hud}>
       <StartPlacingProvider value={startPlacing}>
         <div className={`game-root ${skin.className}`} style={skin.style} data-testid="shell">
-          <GameCanvas bridge={bridge} art={art} />
+          <GameCanvas bridge={bridge} art={art} nowMs={nowMs} />
           <Hud
             battle={Boolean(battle.setup)}
             bridge={bridge}

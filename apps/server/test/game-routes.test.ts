@@ -22,7 +22,7 @@ describe('GET /game', () => {
     const res = await t.app.inject({ method: 'GET', url: '/game' })
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({
-      launchAtMs: LAUNCH, preset: 'flash14', day: 6, phase: 'endgame', commitHash: g.commitHash, revealedSecret: null,
+      launchAtMs: LAUNCH, serverNowMs: LAUNCH + 5 * DAY, preset: 'flash14', day: 6, phase: 'endgame', commitHash: g.commitHash, revealedSecret: null,
     })
     const { token } = await t.login(player)
     const me = await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })

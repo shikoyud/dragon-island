@@ -5,7 +5,7 @@ import { TerminalClock, terminalLabel } from '../src/hud/TerminalClock'
 
 const DAY = 86_400_000
 const HOUR = 3_600_000
-const game = (over: Partial<GameInfo> = {}): GameInfo => ({ launchAtMs: 0, preset: 'flash14', day: 1, phase: 'rush', commitHash: '0x00', revealedSecret: null, ...over })
+const game = (over: Partial<GameInfo> = {}): GameInfo => ({ launchAtMs: 0, serverNowMs: 0, preset: 'flash14', day: 1, phase: 'rush', commitHash: '0x00', revealedSecret: null, ...over })
 
 describe('TerminalClock', () => {
   it('counts down to the Finals lock in rush and endgame', () => {

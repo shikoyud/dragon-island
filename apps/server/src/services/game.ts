@@ -42,9 +42,11 @@ export async function getGame(db: Db | Tx): Promise<Game | null> {
 export async function gameInfo(db: Db | Tx, clock: Clock, config: Pick<Config, 'LAUNCH_AT' | 'PRESET'>): Promise<GameInfo> {
   const g = await ensureGame(db, clock)
   const launchAtMs = config.LAUNCH_AT ? Date.parse(config.LAUNCH_AT) : g.launchAt.getTime()
-  const day = gameDay(launchAtMs, clock())
+  const serverNowMs = clock()
+  const day = gameDay(launchAtMs, serverNowMs)
   return {
     launchAtMs,
+    serverNowMs,
     preset: config.PRESET,
     day,
     phase: phaseOf(day, PRESETS[config.PRESET]),
