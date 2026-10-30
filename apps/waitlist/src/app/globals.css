@@ -420,7 +420,7 @@ h3 {
 
 .hatchlings {
   display: grid;
-  /* One row of ten needs 372px, wider than the scene on small phones. */
+  /* One row of ten needs 380px with its frame; the scene only reaches that at a 402px viewport. */
   grid-template-columns: repeat(5, 32px);
   gap: 4px;
   justify-content: center;
@@ -435,7 +435,7 @@ h3 {
     4px 0 0 0 var(--frame);
 }
 
-@media (min-width: 400px) {
+@media (min-width: 402px) {
   .hatchlings {
     grid-template-columns: repeat(10, 32px);
   }
