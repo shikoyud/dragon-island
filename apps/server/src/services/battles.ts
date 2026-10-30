@@ -10,7 +10,7 @@ import type { Db, Tx } from '../db/client'
 import { battleOffers, players } from '../db/schema'
 import { AppError } from '../plugins/errors'
 import type { ResolvedOffer } from './actions'
-import { ensureCurrentSeason } from './season'
+import { ensureGame } from './game'
 import { battleSeed, secretFromHex } from './seed'
 import { migrateState } from './stateMigration'
 
@@ -45,15 +45,14 @@ const seed32Of = (seedHex: string): number => Buffer.from(hexToBytes(seedHex as 
 /**
  * Builds three offers for the seeker (spec §11): other players with a saved defence team inside the
  * ±100 trophy / ±5 level window, bots to fill. Each offer carries its battle seed, revealed now so the
- * client can simulate turn by turn (Phase 2 ruling); the seed is still bound to the season secret.
+ * client can simulate turn by turn (Phase 2 ruling); the seed is still bound to the game secret.
  */
-export async function createOffers(deps: { db: Db; clock: Clock; catalog: Catalog }, seeker: PlayerRow): Promise<Offer[]> {
+export async function createOffers(deps: { db: Db; clock: Clock; catalog: Catalog; onStateReset?: (playerId: string) => void }, seeker: PlayerRow): Promise<Offer[]> {
   const { db, clock, catalog } = deps
   const nowMs = clock()
-  const state = migrateState(seeker.state, nowMs)
+  const state = migrateState(seeker.state, nowMs, () => deps.onStateReset?.(seeker.id))
   if (state.level < PVP_MIN_PLAYER_LEVEL) throw new AppError(422, 'LEVEL_TOO_LOW')
-  const season = await ensureCurrentSeason(db, clock)
-  const secret = secretFromHex(season.secretHex)
+  const secret = secretFromHex((await ensureGame(db, clock)).secretHex)
 
   const rows = await db
     .select()
@@ -70,7 +69,7 @@ export async function createOffers(deps: { db: Db; clock: Clock; catalog: Catalo
 
   const candidates: OpponentSnapshot[] = []
   for (const r of rows) {
-    const team = defenceSpecs(migrateState(r.state, nowMs))
+    const team = defenceSpecs(migrateState(r.state, nowMs, () => deps.onStateReset?.(r.id)))
     if (team) candidates.push({ playerId: r.id, trophies: r.trophies, level: r.level, team })
   }
   // One live offer set per player: a new GET retires unused earlier offers, so revealed seeds cannot be
@@ -112,10 +111,10 @@ export async function resolveOffer(tx: Tx, playerId: string, offerId: string, no
 }
 
 /** Applies a defenceResult effect to the other player (locked in the caller's transaction). */
-export async function settleDefence(tx: Tx, defenderId: string, trophyDelta: number, nowMs: number): Promise<void> {
+export async function settleDefence(tx: Tx, defenderId: string, trophyDelta: number, nowMs: number, onReset?: () => void): Promise<void> {
   const [d] = await tx.select().from(players).where(eq(players.id, defenderId)).for('update')
   if (!d) return
-  const state = migrateState(d.state, nowMs)
+  const state = migrateState(d.state, nowMs, onReset)
   const trophies = applyTrophies(state.trophies, trophyDelta)
   await tx
     .update(players)

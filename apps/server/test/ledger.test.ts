@@ -35,20 +35,20 @@ describe('price conversion', () => {
 describe('ledger', () => {
   it('charges spend and records the daily batch', async () => {
     await db.transaction(async tx => {
-      await charge(tx, () => 0, playerId, 10n * 10n ** 18n, 3, 'buy:foodPack')
+      await charge(tx, () => 0, playerId, 10n * 10n ** 18n, 3)
     })
     const b = await getBalance(db, playerId)
     expect(b.tokenWei).toBe(90n * 10n ** 18n)
     expect(b.spentWei).toBe(10n * 10n ** 18n)
     const [batch] = await db.select().from(spendBatches).where(eq(spendBatches.day, 3))
     expect(batch!.spentWei).toBe(10n * 10n ** 18n)
-    await db.transaction(async tx => charge(tx, () => 0, playerId, 5n * 10n ** 18n, 3, 'buy:nest'))
+    await db.transaction(async tx => charge(tx, () => 0, playerId, 5n * 10n ** 18n, 3))
     const [again] = await db.select().from(spendBatches).where(eq(spendBatches.day, 3))
     expect(again!.spentWei).toBe(15n * 10n ** 18n)
   })
 
   it('refuses to overdraw and leaves nothing behind', async () => {
-    await expect(db.transaction(async tx => charge(tx, () => 0, playerId, 101n * 10n ** 18n, 3, 'x')))
+    await expect(db.transaction(async tx => charge(tx, () => 0, playerId, 101n * 10n ** 18n, 3)))
       .rejects.toMatchObject(new AppError(402, 'INSUFFICIENT_TOKENS'))
     expect((await getBalance(db, playerId)).tokenWei).toBe(100n * 10n ** 18n)
     expect(await db.select().from(spendBatches)).toEqual([])

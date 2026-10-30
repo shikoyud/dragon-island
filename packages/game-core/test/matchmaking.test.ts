@@ -6,14 +6,14 @@ import { FIXTURE_CATALOG as C } from './fixtures'
 
 const me: Seeker = { trophies: 50, level: 8, teamLevel: 6 }
 const cand = (playerId: string, trophies: number, level: number): OpponentSnapshot =>
-  ({ playerId, trophies, level, team: [{ speciesId: 'fire', level: 5 }, { speciesId: 'water', level: 5 }, { speciesId: 'ice', level: 5 }] })
+  ({ playerId, trophies, level, team: [{ speciesId: 'flame', level: 5 }, { speciesId: 'sea', level: 5 }, { speciesId: 'ice', level: 5 }] })
 
 describe('generateBotTeam', () => {
   it('picks common or rare non-recipe species at the clamped level', () => {
     const team = generateBotTeam(40, C, createRng(1))
     expect(team).toHaveLength(3)
     for (const d of team) {
-      expect(d.level).toBe(30)
+      expect(d.level).toBe(40)
       const sp = getSpecies(C, d.speciesId)
       expect(sp.recipeOnly).toBe(false)
       expect(['common', 'rare']).toContain(sp.rarity)

@@ -1,5 +1,6 @@
 import type { BattleOutcome, PlayerMove } from '../battle/sim'
 import type { Catalog } from '../catalog'
+import type { Preset } from '../data/presets'
 import type { Element } from '../elements'
 import type { OpponentSnapshot } from '../matchmaking'
 import type { Rng } from '../rng'
@@ -9,8 +10,8 @@ import type { StoreItem } from '../store'
 export type TeamIds = [string, string, string]
 
 export type Placeable =
-  | { kind: 'habitat'; element: Element } | { kind: 'nexus' } | { kind: 'farm' } | { kind: 'decoration'; decoration: DecorationId }
-export type MovableRef = BuildingRef | { type: 'hoard' } | { type: 'decoration'; id: string }
+  | { kind: 'habitat'; element: Element } | { kind: 'farm' } | { kind: 'decoration'; decoration: DecorationId }
+export type MovableRef = BuildingRef | { type: 'decoration'; id: string }
 
 export type Action =
   | { type: 'collectGold'; habitatId: string }
@@ -30,7 +31,6 @@ export type Action =
   | { type: 'startBreed'; parentA: string; parentB: string }
   | { type: 'collectEgg'; nest: number }
   | { type: 'hatch'; slot: number }
-  | { type: 'sellGold'; gold: number }
   | { type: 'buy'; item: StoreItem }
   | { type: 'setDefenceTeam'; dragonIds: TeamIds }
   /**
@@ -41,18 +41,17 @@ export type Action =
   | { type: 'pvpBattle'; team: TeamIds; opponent: OpponentSnapshot; moves: PlayerMove[] }
   | { type: 'pveBattle'; stage: number; team: TeamIds; moves: PlayerMove[] }
 
-export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'INSUFFICIENT_GOLD' | 'INSUFFICIENT_FOOD' | 'MAX_LEVEL'
+export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'INSUFFICIENT_GOLD' | 'INSUFFICIENT_FOOD' | 'MAX_LEVEL' | 'LEVEL_CAP'
   | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'NO_FREE_NEST' | 'NEST_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'
-  | 'NO_HABITAT_SLOT' | 'HABITAT_LIMIT' | 'ELEMENT_MISMATCH' | 'MAX_PLOTS' | 'PLOT_BUSY' | 'PLOT_EMPTY'
-  | 'MAX_NESTS' | 'LAST_DRAGONS' | 'EARNING_LOCKED' | 'NO_HOARD' | 'SELL_LIMIT_REACHED' | 'NOTHING_TO_SKIP'
+  | 'NO_HABITAT_SLOT' | 'ELEMENT_MISMATCH' | 'MAX_PLOTS' | 'PLOT_BUSY' | 'PLOT_EMPTY'
+  | 'LAST_DRAGONS' | 'NOT_SELLABLE' | 'NOTHING_TO_SKIP'
   | 'INVALID_TEAM' | 'NO_DEFENCE_TEAM' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'
   | 'OUT_OF_BOUNDS' | 'OVERLAP' | 'BUILDERS_BUSY' | 'ISLAND_LOCKED' | 'MAX_ISLAND' | 'WRONG_ISLAND' | 'UNDER_CONSTRUCTION'
-  | 'NO_LEGENDARY' | 'NEXUS_EXISTS' | 'MAX_EXPANSION'
+  | 'NO_LEGENDARY' | 'MAX_EXPANSION'
 
 /** Side effects the server settles after persisting the new state. */
 export type Effect =
   | { type: 'charge'; microUsd: number }
-  | { type: 'payout'; microUsd: number }
   /** Apply to the defending player with `applyTrophies` (floor 0); spec §11 defence win/loss. */
   | { type: 'defenceResult'; playerId: string; trophyDelta: number }
 
@@ -63,7 +62,7 @@ export type ActionResult =
   | { ok: true; state: PlayerState; effects: Effect[]; battle?: BattleReport }
   | { ok: false; error: ActionError }
 
-export interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog }
+export interface ActionCtx { nowMs: number; rng: Rng; catalog: Catalog; preset: Preset }
 
 export type Handler<T extends Action['type']> =
   (s: PlayerState, a: Extract<Action, { type: T }>, ctx: ActionCtx) => ActionResult

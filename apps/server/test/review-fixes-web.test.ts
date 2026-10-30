@@ -21,21 +21,6 @@ describe('I6: E2E mode cannot run against anything real', () => {
   })
 })
 
-describe('I2: /me carries the chain-derived ledger', () => {
-  let t: TestApp
-  beforeEach(async () => { t = await testApp({ price: new FixedPriceSource(50_000n) }, 1_000) })
-  afterEach(async () => { await t.close() })
-
-  it('derives deposited/withdrawn micro-USD from balances at the current price', async () => {
-    const { token, playerId } = await t.login(wallet(TEST_KEYS.alice))
-    await t.db.update(balances).set({ depositedWei: 3n * E18, withdrawnWei: 1n }).where(eq(balances.playerId, playerId))
-    const me = await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })
-    expect((me.json().state as PlayerState).ledger).toMatchObject({ depositedMicroUsd: 150_000, withdrawnMicroUsd: 1 })
-    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
-    expect((p!.state as PlayerState).ledger).toEqual(newPlayer(0).ledger) // stored state untouched
-  })
-})
-
 describe('I5: pve battles fall back to the AI for missing moves instead of forfeiting', () => {
   let t: TestApp
   beforeEach(async () => { t = await testApp({}, 1_000) })
@@ -46,7 +31,7 @@ describe('I5: pve battles fall back to the AI for missing moves instead of forfe
     const TEAM = ['d1', 'd2', 'd3']
     const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
     await t.db.update(players).set({
-      state: { ...(p!.state as PlayerState), level: 8, dragons: TEAM.map(id => ({ id, speciesId: 'water', level: 20, habitatId: 'h2' })) }, level: 8,
+      state: { ...(p!.state as PlayerState), level: 8, dragons: TEAM.map(id => ({ id, speciesId: 'sea', level: 20, feeds: 0, habitatId: 'h2' })) }, level: 8,
     }).where(eq(players.id, playerId))
     const r = await t.app.inject({ method: 'POST', url: '/actions', headers: bearer(token), payload: { action: { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ move: 0, target: 0 }] }, idempotencyKey: 'k' } })
     expect(r.statusCode).toBe(200)

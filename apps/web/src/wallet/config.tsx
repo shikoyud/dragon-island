@@ -29,7 +29,7 @@ createAppKit({
   adapters: [wagmiAdapter],
   networks: [robinhoodTestnet],
   projectId: import.meta.env.VITE_REOWN_PROJECT_ID ?? 'missing-project-id',
-  metadata: { name: 'Dragon Island', description: 'Breed dragons. Build your island. Battle for the season.', url: location.origin, icons: [] },
+  metadata: { name: 'Dragon Island', description: 'Breed dragons. Build your island. Battle for glory.', url: location.origin, icons: [] },
   features: { analytics: false, email: false, socials: false },
 })
 

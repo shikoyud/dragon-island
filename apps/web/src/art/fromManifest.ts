@@ -8,7 +8,7 @@ export interface Manifest { assets: Record<string, ManifestEntry> }
 /** Manifest keys the HUD reads (docs/art/hud-art-list.md). */
 const HUD_KEY = /^(icon\.[a-z]+\.(16|32)|ui\..+|map\.backdrop)$/
 
-const CROPS: CropId[] = ['sprout', 'bushel', 'harvest', 'bounty']
+const CROPS: CropId[] = ['dragonBush', 'emberWheat', 'seaMelon', 'thunderPumpkin', 'frostBerries', 'warlordPepper']
 
 /** Builds the typed art set; any key the manifest lacks becomes an empty sprite at its slot's default size. */
 export function artSetFromManifest(version: string, manifest: Manifest, catalog: Catalog): GameArtSet {
@@ -31,6 +31,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     egg: perElement('egg', 'egg'),
     hatchling: perElement('hatchling', 'hatchling'),
     dragon: Object.fromEntries([...catalog.species.keys()].map(id => [id, get(`dragon.${id}`, 'dragon')])),
+    juvenile: Object.fromEntries([...catalog.species.keys()].flatMap(id => (manifest.assets[`juvenile.${id}`] ? [[id, get(`juvenile.${id}`, 'dragon')]] : []))),
     habitat: perElement('habitat', 'habitat'),
     building: {
       nest: get('building.nest', 'nest'),
@@ -38,8 +39,8 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
       farmPlot: get('building.farmPlot', 'farmPlot'),
       cropStage: Object.fromEntries(CROPS.map(c => [c, get(`crop.${c}`, 'crop')])) as Record<CropId, Sprite>,
       cropSway: Object.fromEntries(CROPS.flatMap(c => { const s = present(`crop.${c}.sway`); return s ? [[c, s]] : [] })),
-      hoard: get('building.hoard', 'hoard'),
       nexus: get('building.nexus', 'nexus'),
+      goldenAerie: present('building.goldenAerie'),
     },
     elementIcon: perElement('icon', 'icon'),
     ui: { panel: get('ui.panel', 'panel'), button: get('ui.button', 'button'), cursor: get('ui.cursor', 'cursor') },
@@ -47,7 +48,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     obstacle: Object.fromEntries((Object.keys(OBSTACLES) as ObstacleKind[]).map(k => [k, get(`obstacle.${k}`, footprintPx(OBSTACLES[k].size))])) as Record<ObstacleKind, Sprite>,
     decoration: Object.fromEntries((Object.keys(DECORATIONS) as DecorationId[]).map(d => [d, get(`decoration.${d}`, footprintPx(DECORATIONS[d].size))])) as Record<DecorationId, Sprite>,
     map: Object.fromEntries(ISLAND_ORDER.map(i => [i, get(`map.${i}`, 'map')])) as Record<IslandId, Sprite>,
-    fx: { construction: get('fx.construction', 'fxConstruction'), hatch: get('fx.hatch', 'fxHatch') },
+    fx: { construction: get('fx.construction', 'fxConstruction'), hatch: get('fx.hatch', 'fxHatch'), coins: get('fx.coins', 'fxCoins') },
     ground: {
       grass: [0, 1, 2].map(i => present(`ground.grass.${i}`)).filter((g): g is Sprite => g !== null),
       fog: present('ground.fog'), water: present('ground.water'), cliffSw: present('ground.cliff.sw'), cliffSe: present('ground.cliff.se'),

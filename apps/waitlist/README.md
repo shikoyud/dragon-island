@@ -56,6 +56,8 @@ With `DATABASE_URL` unset, data lives in a file-backed PGlite in `PGLITE_DIR` (d
    DATABASE_URL=postgres://... pnpm --filter @wyrmhaven/waitlist db:migrate
    ```
    Run it on every deploy before starting the new version.
+
+   **Release note for `0001_element_rename`:** migrate and restart together. The card renderer has no fallback for an element it does not know, so the old code breaks on renamed rows and the new code on unmigrated ones. There is no down migration: take a database backup first.
 3. `pnpm --filter @wyrmhaven/waitlist build` then `pnpm --filter @wyrmhaven/waitlist start` (run from the app directory: migrations, sprites and the card font are read relative to the working directory).
 
 **Proxy assumption.** Per-IP rate limits use the first entry of `X-Forwarded-For`. Deploy behind a proxy or CDN that overwrites that header with the real client address; if clients can set it themselves, the limits can be bypassed. Rate-limit state is in memory, per process.

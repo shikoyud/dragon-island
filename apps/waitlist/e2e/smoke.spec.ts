@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
 import { E2E_CARD_CODE } from './constants'
 
-test('home page shows the hero, nine element icons and the waitlist panel', async ({ page }) => {
+test('home page shows the hero, ten element icons and the waitlist panel', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-  await expect(page.locator('ul.elements li')).toHaveCount(9)
+  await expect(page.locator('ul.elements li')).toHaveCount(10)
   await expect(page.locator('.waitlist-panel')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Connect X' })).toBeVisible()
 })

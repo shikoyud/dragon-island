@@ -1,6 +1,4 @@
 export const MS_PER_DAY = 86_400_000
-/** Timer for the tutorial breed, hatch and first constructions. */
-export const TUTORIAL_TIMER_MS = 15_000
 
 /** Days since the Unix epoch, rolling over at 00:00 UTC. */
 export function utcDay(nowMs: number): number {

@@ -1,7 +1,8 @@
-import { constructionFor, MAX_BUILDERS, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
+import { constructionFor, MAX_BUILDERS, priceMicroUsd, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
 import { timerLabel } from '../game/islandModel'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
+import { usePreset } from '../state/preset'
 import { formatGold } from '../ui/Money'
 import { ActionButton } from '../ui/Panel'
 import { ConstructionStatus } from './ConstructionStatus'
@@ -16,11 +17,16 @@ export function levelOf(s: PlayerState, b: BuildingRef): number {
   }
 }
 
+/** Level 4 habitats and farms stop here: level 5 is an instant Store purchase (§5.2, §5.3). A true level 5 is Max level. */
+const pointsToStore = (s: PlayerState, b: BuildingRef): boolean =>
+  (b.type === 'habitat' || b.type === 'farm') && levelOf(s, b) === 4 && priceMicroUsd(b.type === 'habitat' ? { kind: 'habitatL5', habitatId: b.id } : { kind: 'farmL5', index: b.index }, s, 0) !== null
+
 const idOf = (b: BuildingRef): string => (b.type === 'habitat' ? b.id : b.type === 'hatchery' ? 'hatchery' : `${b.type}-${b.index}`)
 
 /** Level, upgrade (or its timer, skip and manual finish), Move and Turn for one building. */
 export function UpgradeSection({ building, nowMs }: { building: BuildingRef; nowMs: number }) {
   const me = useMe()
+  const preset = usePreset()
   const { run, pending } = useAction()
   const s = me.data?.state
   const con = s ? constructionFor(s, building) : undefined
@@ -28,7 +34,7 @@ export function UpgradeSection({ building, nowMs }: { building: BuildingRef; now
   if (!s) return null
 
   const level = levelOf(s, building)
-  const info = upgradeInfo(s, building)
+  const info = upgradeInfo(s, building, preset)
   const id = idOf(building)
 
   const reason = !info ? '' : s.level < info.minLevel ? `Needs player level ${info.minLevel}`
@@ -51,7 +57,7 @@ export function UpgradeSection({ building, nowMs }: { building: BuildingRef; now
         >
           Upgrade to {level + 1} · {formatGold(info.cost)} gold · {timerLabel(info.timerMs, 0)}
         </ActionButton>
-      ) : <span>Max level</span>}
+      ) : <span>{pointsToStore(s, building) ? 'Level 5 in the Store' : 'Max level'}</span>}
       <MoveTurn target={building} />
     </div>
   )

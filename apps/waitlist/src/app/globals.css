@@ -236,7 +236,7 @@ h3 {
 .wordmark-gem {
   width: 16px;
   height: 16px;
-  background: var(--el-fire);
+  background: var(--el-flame);
   box-shadow:
     inset 4px 4px 0 0 var(--el-electric),
     inset -4px -4px 0 0 #a8321a;
@@ -420,7 +420,8 @@ h3 {
 
 .hatchlings {
   display: grid;
-  grid-template-columns: repeat(9, 32px);
+  /* One row of ten needs 380px with its frame; the scene only reaches that at a 402px viewport. */
+  grid-template-columns: repeat(5, 32px);
   gap: 4px;
   justify-content: center;
   margin: 0;
@@ -432,6 +433,12 @@ h3 {
     0 4px 0 0 var(--frame),
     -4px 0 0 0 var(--frame),
     4px 0 0 0 var(--frame);
+}
+
+@media (min-width: 402px) {
+  .hatchlings {
+    grid-template-columns: repeat(10, 32px);
+  }
 }
 
 .hatch {
@@ -457,8 +464,19 @@ h3 {
   .hero-sprite-x2 {
     display: block;
   }
+}
+
+/* The hero is two columns from 960px and the scene is only about 279px wide until 970px, so ten 32px columns (380px) would clip. */
+@media (min-width: 960px) and (max-width: 969px) {
   .hatchlings {
-    grid-template-columns: repeat(9, 48px);
+    grid-template-columns: repeat(5, 32px);
+  }
+}
+
+/* Two rows of five: the 288px frame needs the scene to be wider than 960px, so this starts at 970px. */
+@media (min-width: 970px) {
+  .hatchlings {
+    grid-template-columns: repeat(5, 48px);
     gap: 4px;
     padding: 14px 12px;
   }
@@ -607,16 +625,23 @@ h3 {
 
 .elements {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* 2, 5 then 10 columns: ten divides evenly, so no element is left alone on a row. */
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-@media (min-width: 720px) {
+@media (min-width: 560px) {
   .elements {
-    grid-template-columns: repeat(9, 1fr);
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .elements {
+    grid-template-columns: repeat(10, 1fr);
   }
 }
 
@@ -766,7 +791,7 @@ h3 {
 }
 
 .notice-warn {
-  border-left-color: var(--el-fire);
+  border-left-color: var(--el-flame);
   color: #ffd2c4;
 }
 
@@ -1021,25 +1046,27 @@ h3 {
 
 /* ---------- Element accents ---------- */
 
-.el-accent-fire { --accent: var(--el-fire); }
-.el-accent-water { --accent: var(--el-water); }
-.el-accent-earth { --accent: var(--el-earth); }
+.el-accent-flame { --accent: var(--el-flame); }
+.el-accent-sea { --accent: var(--el-sea); }
+.el-accent-terra { --accent: var(--el-terra); }
 .el-accent-nature { --accent: var(--el-nature); }
 .el-accent-electric { --accent: var(--el-electric); }
 .el-accent-ice { --accent: var(--el-ice); }
 .el-accent-metal { --accent: var(--el-metal); }
 .el-accent-dark { --accent: #a77fe0; }
 .el-accent-light { --accent: var(--el-light); }
+.el-accent-war { --accent: #d9566a; }
 
-.el-text-fire { color: var(--el-fire); }
-.el-text-water { color: var(--el-water); }
-.el-text-earth { color: var(--el-earth); }
+.el-text-flame { color: var(--el-flame); }
+.el-text-sea { color: var(--el-sea); }
+.el-text-terra { color: var(--el-terra); }
 .el-text-nature { color: var(--el-nature); }
 .el-text-electric { color: var(--el-electric); }
 .el-text-ice { color: var(--el-ice); }
 .el-text-metal { color: var(--el-metal); }
 .el-text-dark { color: #a77fe0; }
 .el-text-light { color: var(--el-light); }
+.el-text-war { color: #d9566a; }
 
 /* ---------- Motion (all stepped) ---------- */
 

@@ -1,10 +1,11 @@
 import type { Catalog } from '../catalog'
 import { LAUNCH_CATALOG } from '../data/launch-catalog'
+import { DEFAULT_PRESET, type Preset } from '../data/presets'
 import type { Rng } from '../rng'
 import type { PlayerState } from '../state'
 import { pveBattle, pvpBattle, setDefenceTeam } from './battle-actions'
 import { collectEgg, hatch, startBreed } from './breed-actions'
-import { buy, sellGold } from './economy-actions'
+import { buy } from './economy-actions'
 import { harvest, plant } from './farm-actions'
 import { finishConstruction, moveBuilding, placeBuilding, removeDecoration, startUpgrade } from './build-actions'
 import { clearObstacle, expandIsland, unlockIsland } from './island-unlock-actions'
@@ -12,12 +13,12 @@ import { collectGold, feed, moveDragon, sellDragon } from './island-actions'
 import { failure, type Action, type ActionCtx, type ActionResult } from './types'
 import { isValidAction } from './validate'
 
-/** Single entry point: pure, deterministic given (state, action, nowMs, rng, catalog). */
+/** Single entry point: pure, deterministic given (state, action, nowMs, rng, catalog, preset). */
 export function applyAction(
-  s: PlayerState, a: Action, nowMs: number, rng: Rng, catalog: Catalog = LAUNCH_CATALOG,
+  s: PlayerState, a: Action, nowMs: number, rng: Rng, catalog: Catalog = LAUNCH_CATALOG, preset: Preset = DEFAULT_PRESET,
 ): ActionResult {
   if (!isValidAction(a)) return failure('INVALID_ACTION')
-  const ctx: ActionCtx = { nowMs, rng, catalog }
+  const ctx: ActionCtx = { nowMs, rng, catalog, preset }
   switch (a.type) {
     case 'collectGold': return collectGold(s, a, ctx)
     case 'placeBuilding': return placeBuilding(s, a, ctx)
@@ -36,7 +37,6 @@ export function applyAction(
     case 'startBreed': return startBreed(s, a, ctx)
     case 'collectEgg': return collectEgg(s, a, ctx)
     case 'hatch': return hatch(s, a, ctx)
-    case 'sellGold': return sellGold(s, a, ctx)
     case 'buy': return buy(s, a, ctx)
     case 'setDefenceTeam': return setDefenceTeam(s, a, ctx)
     case 'pvpBattle': return pvpBattle(s, a, ctx)

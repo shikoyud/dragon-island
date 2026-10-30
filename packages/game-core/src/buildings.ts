@@ -1,23 +1,9 @@
-import { HABITAT_LEVELS } from './habitat'
+import { FARM_LEVELS } from './data/farms'
+import { HABITAT_MAX_LEVEL, habitatUpgradeGold, habitatUpgradeMs } from './data/habitats'
+import type { Preset } from './data/presets'
 import type { BuildingRef, PlayerState } from './state'
 
 export interface UpgradeStep { cost: number; timerMs: number; minLevel: number }
-
-/** Index = current level - 1 (upgrade to level 2..5); cost stays HABITAT_LEVELS[].upgradeCost. */
-export const HABITAT_UPGRADES: readonly { timerMs: number; minLevel: number }[] = [
-  { timerMs: 600_000, minLevel: 1 },
-  { timerMs: 3_600_000, minLevel: 5 },
-  { timerMs: 14_400_000, minLevel: 10 },
-  { timerMs: 36_000_000, minLevel: 18 },
-]
-
-/** Index = plot level - 1. */
-export const FARM_LEVELS: readonly { foodPct: number; up: UpgradeStep | null }[] = [
-  { foodPct: 100, up: { cost: 1_500, timerMs: 900_000, minLevel: 4 } },
-  { foodPct: 115, up: { cost: 8_000, timerMs: 3_600_000, minLevel: 10 } },
-  { foodPct: 130, up: { cost: 30_000, timerMs: 14_400_000, minLevel: 18 } },
-  { foodPct: 150, up: null },
-]
 
 /** Index = hatchery level - 1. */
 export const HATCHERY_LEVELS: readonly { slots: number; up: UpgradeStep | null }[] = [
@@ -41,23 +27,25 @@ export function nestBreedMs(baseMs: number, nestLevel: number): number {
   return Math.floor(baseMs * NEST_LEVELS[nestLevel - 1]!.breedPct / 100)
 }
 
-export function farmFood(cropFood: number, plotLevel: number): number {
-  return Math.floor(cropFood * FARM_LEVELS[plotLevel - 1]!.foodPct / 100)
-}
-
-/** Next upgrade of a building, or null at max level (or an unknown building). */
-export function upgradeInfo(s: PlayerState, ref: BuildingRef): UpgradeStep | null {
+/**
+ * Next Gold upgrade of a building, or null at max level (or an unknown building). A habitat has a Gold upgrade to
+ * L2..L4 only; L5 is a store item (§5.2, §5.3), so L4 and the Golden Aerie return null.
+ */
+export function upgradeInfo(s: PlayerState, ref: BuildingRef, preset: Preset): UpgradeStep | null {
   switch (ref.type) {
     case 'habitat': {
       const h = s.habitats.find(x => x.id === ref.id)
-      if (!h) return null
-      const cost = HABITAT_LEVELS[h.level - 1]?.upgradeCost
-      const step = HABITAT_UPGRADES[h.level - 1]
-      return cost == null || !step ? null : { cost, ...step }
+      if (!h || h.element === 'aerie' || h.level >= HABITAT_MAX_LEVEL - 1) return null
+      const to = (h.level + 1) as 2 | 3 | 4
+      return { cost: habitatUpgradeGold(h.element, to), timerMs: habitatUpgradeMs(to, preset), minLevel: 1 }
     }
     case 'farm': {
+      // Entry `level` of the table holds the cost of reaching level + 1. L5 is a store item (§5.3), so L4 returns null.
       const f = s.farms[ref.index]
-      return f ? FARM_LEVELS[f.level - 1]?.up ?? null : null
+      const next = f ? FARM_LEVELS[f.level] : undefined
+      return next && next.upgradeGold !== null
+        ? { cost: next.upgradeGold, timerMs: Math.floor(next.classicMs / preset.timerDiv), minLevel: 1 }
+        : null
     }
     case 'nest': {
       const n = s.nests[ref.index]

@@ -1,6 +1,6 @@
 import { FOOTPRINT, islandSize, LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
-import { playOrStill, textureKey } from '../../art/phaserLoader'
+import { isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet } from '../../art/types'
 import type { Bridge, Target } from '../bridge'
@@ -20,11 +20,13 @@ const GROUND = {
   grass: [0x5f9e3f, 0x579538], fog: [0xb9c4cf, 0xaab6c3], cliffLeft: 0x6b4a2b, cliffRight: 0x8b6136, lip: 0x3d6e2c, strata: 0x58391f,
 }
 const EMPTY: IslandMarkers = {
-  habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [], hoard: false,
+  habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [],
   obstacles: [], decorations: [], constructions: 0, ghost: null, sign: null,
 }
 /** On-screen height of badge text in CSS pixels (the font is 8 px in world space). */
 const BADGE_PX = 14
+/** Local (unscaled) size of a tappable badge's hit box: 28 local px x BADGE_PX / 8 = 49 CSS px, over the 44 px minimum. */
+const BADGE_HIT_LOCAL = 28
 /** Pinch distance ratio that counts as one zoom step. */
 const PINCH_STEP = 1.25
 
@@ -253,6 +255,9 @@ export class IslandScene extends Phaser.Scene {
     this.last = null
     this.panning = false
     if (wasPan) return
+    // A gold badge sits above every sprite: a tap on it collects instead of opening the habitat.
+    const badge = this.bridge.placing ? undefined : over.find(o => o.getData('collect'))
+    if (badge) return this.collect(badge as Phaser.GameObjects.Text)
     // While placing, every click is a cell; otherwise a sprite under the pointer wins over the ground.
     const hit = this.bridge.placing ? undefined : over.find(o => o.getData('target'))
     if (hit) this.bridge.emit({ type: 'select', target: hit.getData('target') as Target })
@@ -270,7 +275,7 @@ export class IslandScene extends Phaser.Scene {
     for (const obj of this.drawn) obj.destroy()
     this.drawn = []
     this.badges = []
-    const model = buildIslandModel(state, this.art(), this.catalog, this.bridge.nowMs, view, this.bridge.placing)
+    const model = buildIslandModel(state, this.art(), this.catalog, this.bridge.nowMs, view, this.bridge.placing, this.bridge.preset)
     // Fewer eggs in the hatchery on the same island than a moment ago: one hatched (or was sold). Burst once.
     const hatched = state && view === this.hatchView && model.markers.hatchery.length < this.current.hatchery.length
     this.hatchView = view
@@ -285,19 +290,29 @@ export class IslandScene extends Phaser.Scene {
     for (const o of model.objects) if (o.badge) this.drawBadge(o, o.badge)
   }
 
+  /**
+   * Collect from a tapped gold badge: ask React to run `collectGold`, then the coin burst in place of the badge, or
+   * without `fx.coins` art the badge itself goes up and away. Nothing moves with reduced motion.
+   */
+  private collect(badge: Phaser.GameObjects.Text): void {
+    this.bridge.emit({ type: 'collectGold', habitatId: badge.getData('collect') as string })
+    badge.disableInteractive()
+    if (this.bridge.reducedMotion) return
+    if (isSheet(this.art().fx.coins)) {
+      badge.setVisible(false)
+      this.playOnce('fx.coins', { x: badge.x, y: badge.y })
+      return
+    }
+    this.tweens.add({ targets: badge, y: badge.y - 12 / (this.view?.zoom ?? 1), alpha: 0, duration: 450, ease: 'Quad.easeOut' })
+  }
+
   /** Plays a one-shot effect at a world point: its sheet once, or a fade for a still; nothing with reduced motion. */
-  private playOnce(path: 'fx.hatch', at: Pos): void {
+  private playOnce(path: 'fx.hatch' | 'fx.coins', at: Pos): void {
     if (this.bridge.reducedMotion) return
     const key = textureKey(path)
-    const sprite = this.art().fx.hatch
+    const sprite = path === 'fx.hatch' ? this.art().fx.hatch : this.art().fx.coins
     const spr = this.add.sprite(at.x, at.y, key).setOrigin(0.5, 1).setDepth(1)
-    if (sprite.frames > 1 && sprite.fps > 0) {
-      const anim = `${key}:once`
-      if (!this.anims.exists(anim)) this.anims.create({ key: anim, frames: this.anims.generateFrameNumbers(key, { start: 0, end: sprite.frames - 1 }), frameRate: sprite.fps, repeat: 0 })
-      spr.play(anim).once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => spr.destroy())
-    } else {
-      this.tweens.add({ targets: spr, alpha: 0, y: at.y - 8, duration: 700, onComplete: () => spr.destroy() })
-    }
+    if (!playOneShot(spr, key, sprite)) this.tweens.add({ targets: spr, alpha: 0, y: at.y - 8, duration: 700, onComplete: () => spr.destroy() })
   }
 
   /**
@@ -408,7 +423,17 @@ export class IslandScene extends Phaser.Scene {
   }
 
   private drawBadge(o: IslandObject, badge: string): void {
-    const t = this.add.text(o.x, badgeY(o), badge, TEXT_STYLE).setOrigin(0.5, 1).setResolution(4).setScale(this.badgeScale())
+    const tappable = (badge === 'gold' || badge === 'full') && o.target.kind === 'habitat'
+    const label = badge === 'gold' ? 'GOLD' : badge === 'full' ? 'FULL' : badge
+    const t = this.add.text(o.x, badgeY(o), label, TEXT_STYLE).setOrigin(0.5, 1).setResolution(4).setScale(this.badgeScale())
+    if (tappable) {
+      // The text is scaled to BADGE_PX on screen at every zoom, so a hit box of HIT_LOCAL local pixels is
+      // HIT_LOCAL * BADGE_PX / 8 = at least 44 CSS px. It grows upward and sideways from the text's bottom edge.
+      const w = Math.max(t.width, BADGE_HIT_LOCAL)
+      const h = Math.max(t.height, BADGE_HIT_LOCAL)
+      t.setData('collect', (o.target as { id: string }).id)
+      t.setInteractive({ hitArea: new Phaser.Geom.Rectangle((t.width - w) / 2, t.height - h, w, h), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true })
+    }
     this.layer.add(t)
     this.drawn.push(t)
     this.badges.push(t)

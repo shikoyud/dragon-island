@@ -2,8 +2,8 @@ import { createHmac, randomBytes } from 'node:crypto'
 import { bytesToHex, hexToBytes, keccak256, type Hex } from 'viem'
 
 /**
- * Provably-fair randomness (spec §17). Per season a secret S; its keccak256 is published at
- * season start and S is revealed at season end, so every seed below can be re-derived by players.
+ * Provably-fair randomness (spec §17). One game secret S (A1); its keccak256 is published up
+ * front and S is revealed when the game reveals it, so every seed below can be re-derived by players.
  */
 export interface DerivedSeed { seedHex: Hex; seed32: number }
 

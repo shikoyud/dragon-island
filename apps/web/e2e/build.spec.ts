@@ -21,8 +21,8 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows isl
   await expect(page.getByRole('status', { name: /resources/i })).toContainText('50,000')
   await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: { state: unknown } }).__bridge?.state))
 
-  // Build -> Farm plot -> ghost on the free cell (6,8) -> Confirm.
-  await openPanel(page, 'Build')
+  // Shop (Build tab) -> Farm plot -> ghost on the free cell (6,8) -> Confirm.
+  await openPanel(page, 'Shop')
   await page.locator('#shop-farm').click()
   await bridge(page, b => b.emit({ type: 'cell', col: 6, row: 8 }))
   const placement = page.getByRole('toolbar', { name: /placement/i })
@@ -32,18 +32,18 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows isl
 
   // The construction badge: the scene draws it from the state's construction; the plot's panel shows the same timer.
   await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
-  await bridge(page, b => b.emit({ type: 'select', target: { kind: 'farm', plot: 2 } }))
+  await bridge(page, b => b.emit({ type: 'select', target: { kind: 'farm', plot: 1 } }))
   const farm = page.getByRole('region', { name: /farm/i })
   await expect(farm.getByText(/^Building · /)).toBeVisible()
 
   // Skip through the store charge path (a micro-USD price paid from the game balance).
-  await farm.locator('#skip-construction-farm-2').click()
+  await farm.locator('#skip-construction-farm-1').click()
   await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(0)
-  await expect.poll(() => bridge(page, b => b.state!.farms.length)).toBe(3)
+  await expect.poll(() => bridge(page, b => b.state!.farms.length)).toBe(2)
 
   // Upgrade h1.
   await bridge(page, b => b.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
-  const habitat = page.getByRole('region', { name: /fire habitat h1/i })
+  const habitat = page.getByRole('region', { name: /terra habitat h1/i })
   await habitat.locator('#upgrade-h1').click()
   await expect(habitat.getByText(/^Upgrading to 2 · /)).toBeVisible()
   await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
@@ -58,7 +58,7 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows isl
 
   // Turn it.
   await bridge(page, b => b.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
-  await page.getByRole('region', { name: /fire habitat h1/i }).getByRole('button', { name: /^turn$/i }).click()
+  await page.getByRole('region', { name: /terra habitat h1/i }).getByRole('button', { name: /^turn$/i }).click()
   await expect.poll(() => bridge(page, b => b.state!.habitats.find(h => h.id === 'h1')!.placement.facing)).toBe(1)
 
   // The island map: at level 5 isle2 is still locked. It is the next island in order, so the panel shows a disabled

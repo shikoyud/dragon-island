@@ -28,7 +28,7 @@ function paint(): Grid {
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) set(x + i, y + j, c)
   }
   const rnd = lcg(46630)
-  const { earth, nature, water, ice, fire, metal } = ELEMENT_COLORS
+  const { terra, nature, sea, ice, flame, metal } = ELEMENT_COLORS
 
   // Rock body: tapers from a wide top to a point, banded light → dark.
   const top = 26
@@ -40,8 +40,8 @@ function paint(): Grid {
     const shift = Math.round(Math.sin(t * 5) * 2)
     for (let x = cx - half + shift; x <= cx + half + shift; x++) {
       const edge = x === cx - half + shift || x === cx + half + shift
-      const band = t < 0.18 ? earth.light : t < 0.55 ? earth.base : earth.dark
-      set(x, y, edge ? earth.dark : band)
+      const band = t < 0.18 ? terra.light : t < 0.55 ? terra.base : terra.dark
+      set(x, y, edge ? terra.dark : band)
       if (!edge && rnd() < 0.05) set(x, y, metal.dark)
     }
   }
@@ -52,7 +52,7 @@ function paint(): Grid {
     [53, 3],
     [58, 5],
   ] as const)
-    rect(x, bottom - 6, 1, len + 6, earth.dark)
+    rect(x, bottom - 6, 1, len + 6, terra.dark)
 
   // Grass cap with a bumpy upper edge.
   for (let x = 8; x <= 87; x++) {
@@ -63,14 +63,14 @@ function paint(): Grid {
   }
 
   // Waterfall off the right edge, with a small pool on top.
-  rect(70, top - 3, 8, 1, water.light)
+  rect(70, top - 3, 8, 1, sea.light)
   for (let y = top - 2; y < ISLAND_H; y++) {
-    rect(76, y, 3, 1, water.base)
-    if (y % 3 === 0) set(77, y, water.light)
+    rect(76, y, 3, 1, sea.base)
+    if (y % 3 === 0) set(77, y, sea.light)
   }
 
   // Tree on the left.
-  rect(19, 12, 2, 11, earth.dark)
+  rect(19, 12, 2, 11, terra.dark)
   rect(13, 6, 14, 6, nature.dark)
   rect(14, 4, 12, 3, nature.base)
   rect(16, 2, 8, 2, nature.light)
@@ -82,12 +82,12 @@ function paint(): Grid {
   rect(31, 19, 1, 4, ice.dark)
 
   // Nest with an egg.
-  rect(53, 21, 12, 2, earth.dark)
-  rect(54, 20, 10, 1, earth.base)
-  rect(56, 13, 6, 7, fire.base)
-  rect(57, 12, 4, 1, fire.base)
-  rect(57, 14, 2, 2, fire.light)
-  rect(60, 18, 2, 2, fire.dark)
+  rect(53, 21, 12, 2, terra.dark)
+  rect(54, 20, 10, 1, terra.base)
+  rect(56, 13, 6, 7, flame.base)
+  rect(57, 12, 4, 1, flame.base)
+  rect(57, 14, 2, 2, flame.light)
+  rect(60, 18, 2, 2, flame.dark)
 
   return g
 }

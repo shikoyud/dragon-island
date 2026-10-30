@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { fixedClock } from '../src/clock'
 import type { Db } from '../src/db/client'
 import { prune } from '../src/jobs/prune'
-import { actionLog, battleOffers, players, rateLimits, seasons, siweNonces } from '../src/db/schema'
+import { actionLog, battleOffers, players, rateLimits, siweNonces } from '../src/db/schema'
 import { testDb } from './helpers/testDb'
 
 const NOW = Date.UTC(2026, 9, 29, 12)
@@ -55,11 +55,8 @@ describe('prune', () => {
     const [o] = await db.insert(battleOffers).values({
       playerId: p!.id, opponent: {}, seedHex: '0xabc', expiresAt: new Date(NOW - 9 * DAY), usedAt: new Date(NOW - 9 * DAY),
     }).returning()
-    const [season] = await db.insert(seasons).values({
-      startsAt: new Date(NOW - 20 * DAY), endsAt: new Date(NOW + DAY), secretHex: '0x00', commitHash: '0x00',
-    }).returning()
     await db.insert(actionLog).values({
-      playerId: p!.id, nonce: 1n, idempotencyKey: 'k1', seasonId: season!.id, seedHex: '0xabc', seedLabel: `battle:${o!.id}`,
+      playerId: p!.id, nonce: 1n, idempotencyKey: 'k1', seedHex: '0xabc', seedLabel: `battle:${o!.id}`,
       action: { type: 'battle', offerId: o!.id }, status: 200, response: {}, createdAt: new Date(NOW - 9 * DAY),
     })
     expect((await prune({ db, clock: fixedClock(NOW) })).offers).toBe(1)

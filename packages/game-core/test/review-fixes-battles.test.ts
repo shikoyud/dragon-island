@@ -13,15 +13,15 @@ const raw = (st: PlayerState, a: unknown, t = 0) => run(st, a as Action, t)
 const three = (id: string, level: number): BattleDragonSpec[] => [{ speciesId: id, level }, { speciesId: id, level }, { speciesId: id, level }]
 const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
 const SWEEP = [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }]
-const dragons = (level: number): Dragon[] => TEAM.map(id => ({ id, speciesId: 'fire', level, habitatId: 'h1' }))
-const human: OpponentSnapshot = { playerId: 'p2', trophies: 500, level: 8, team: three('fire', 12) }
+const dragons = (level: number): Dragon[] => TEAM.map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))
+const human: OpponentSnapshot = { playerId: 'p2', trophies: 500, level: 8, team: three('flame', 12) }
 const bot: OpponentSnapshot = { ...human, playerId: null, team: three('nature', 1) }
 const s8: PlayerState = { ...newPlayer(0), level: 8, trophies: 500, dragons: dragons(10), defenceTeam: TEAM }
 const pvp = (opponent: OpponentSnapshot, moves = SWEEP): Action => ({ type: 'pvpBattle', team: TEAM, opponent, moves })
 
 describe('a short or illegal move list is a forfeit, not a free cancel', () => {
   it('pvp: counts the attempt, costs trophies and credits the defender', () => {
-    const r = run(s8, pvp(human, SWEEP))          // fire L10 cannot sweep fire L12 in three hits
+    const r = run(s8, pvp(human, SWEEP))          // flame L10 cannot sweep flame L12 in three hits
     expect(r.ok && r.effects).toEqual([{ type: 'defenceResult', playerId: 'p2', trophyDelta: 5 }])
     const a = ok(r)
     expect([a.trophies, a.pvp.count, a.gold, a.xp]).toEqual([485, 1, 1000, 0])
@@ -50,7 +50,7 @@ describe('opponent snapshots are checked before the battle runs', () => {
   it('rejects unknown species and out-of-range levels without throwing', () => {
     err(run(s8, pvp({ ...bot, team: three('nope', 1) })), 'NOT_FOUND')
     err(raw(s8, pvp({ ...bot, team: three('nature', 0) })), 'INVALID_ACTION')
-    err(raw(s8, pvp({ ...bot, team: three('nature', 31) })), 'INVALID_ACTION')
+    err(raw(s8, pvp({ ...bot, team: three('nature', 41) })), 'INVALID_ACTION')
     err(raw(s8, pvp({ ...bot, team: three('nature', 1e308) })), 'INVALID_ACTION')
   })
 

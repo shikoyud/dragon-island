@@ -1,7 +1,7 @@
 import { priceMicroUsd } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
-import { formatMicroUsd } from '../ui/Money'
+import { formatSkipPrice } from '../ui/Money'
 import { ActionButton } from '../ui/Panel'
 import { Timer } from '../ui/Timer'
 
@@ -21,7 +21,7 @@ export function ConstructionStatus({ index, readyAtMs, nowMs, id, label }: { ind
       )}
       {skip !== null && (
         <ActionButton id={`skip-construction-${id}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'construction', index } })}>
-          Skip · {formatMicroUsd(skip)}
+          Skip · {formatSkipPrice(skip)}
         </ActionButton>
       )}
     </>

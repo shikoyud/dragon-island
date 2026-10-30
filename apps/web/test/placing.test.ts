@@ -14,7 +14,7 @@ describe('placing', () => {
     // The start event puts the ghost on that cell.
     expect(placingReducer(null, { type: 'start', what: { kind: 'farm' }, size: 2, island: 'home', cell: mid })).toMatchObject(mid)
     // Nowhere legal: a full grid gives null.
-    expect(nearestLegalCell({ ...s, gold: 0 }, { kind: 'habitat', element: 'fire' }, 'isle2', { col: 0, row: 0 })).toBeNull()
+    expect(nearestLegalCell({ ...s, gold: 0 }, { kind: 'habitat', element: 'flame' }, 'isle2', { col: 0, row: 0 })).toBeNull()
   })
 
   it('placing reducer tracks the cursor, turns and cancels', () => {
@@ -39,8 +39,16 @@ describe('placing', () => {
     expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, col: 6, row: 8, facing: 1 })).toEqual({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { island: 'home', col: 6, row: 8, facing: 1 } })
     expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, col: 0, row: 0, facing: 0 })).toBeNull()
     expect(placingAction(s, 'home', { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 5, col: 0, row: 1, facing: 0 })).toEqual({ type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: { island: 'home', col: 0, row: 1, facing: 0 } })
-    expect(placingAction(s, 'home', { what: { kind: 'nest' }, size: 2, col: 6, row: 8, facing: 0 })).toEqual({ type: 'buy', item: { kind: 'nest', placement: { island: 'home', col: 6, row: 8, facing: 0 } } })
-    expect(placingAction(s, 'home', { what: { kind: 'hoard' }, size: 4, col: 6, row: 8, facing: 0 })).toEqual({ type: 'buy', item: { kind: 'hoard', placement: { island: 'home', col: 6, row: 8, facing: 0 } } })
     expect(placingAction(s, 'isle2', { what: { kind: 'farm' }, size: 2, col: 1, row: 1, facing: 0 })).toBeNull()
+  })
+
+  it('placing the Golden Aerie buys it with the placement, on a free habitat-sized spot', () => {
+    const s = newPlayer(0)
+    const spot = nearestLegalCell(s, { kind: 'goldenAerie' }, 'home', { col: 4, row: 4 })!
+    expect(spot).not.toBeNull()
+    expect(placingAction(s, 'home', { what: { kind: 'goldenAerie' }, size: 5, ...spot, facing: 2 })).toEqual({
+      type: 'buy', item: { kind: 'goldenAerie', placement: { island: 'home', ...spot, facing: 2 } },
+    })
+    expect(placingAction(s, 'home', { what: { kind: 'goldenAerie' }, size: 5, col: 0, row: 0, facing: 0 })).toBeNull()
   })
 })

@@ -1,10 +1,11 @@
 import { upgradeInfo } from '../buildings'
 import type { Catalog } from '../catalog'
-import { FARM_PLOT_BUILD_MS, NEXUS_BUILD_MS, NEXUS_COST, isUnderConstruction, newHabitatTimerMs, startConstruction } from '../construction'
+import type { Preset } from '../data/presets'
+import { isUnderConstruction, startConstruction } from '../construction'
+import { FARM_UNLOCK_PL, FIRST_FARM_CLASSIC_MS, MAX_FARMS } from '../data/farms'
+import { HABITATS, habitatBuildMs } from '../data/habitats'
 import { DECORATIONS, decorationRefund } from '../decorations'
-import { MAX_PLOTS, plotCost } from '../farm'
-import { habitatBuildCost, maxHabitats } from '../habitat'
-import { outerIslandsUnlocked } from '../island'
+import { farmBuildGold } from '../farm'
 import { placementRuleError } from '../placement-rules'
 import type { PlayerState } from '../state'
 import { earnGold, spendGold } from '../wallet'
@@ -18,15 +19,13 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
   const bad = placementRuleError(s, b, a.placement)
   if (bad) return failure(bad)
   if (b.kind === 'decoration' && s.level < DECORATIONS[b.decoration].minLevel) return failure('LEVEL_TOO_LOW')
-  if (b.kind === 'nexus' && s.habitats.some(h => h.element === 'any')) return failure('NEXUS_EXISTS')
-  const habitatsOwned = s.habitats.filter(h => h.element !== 'any').length
-  if (b.kind === 'habitat' && habitatsOwned >= maxHabitats(s.level, outerIslandsUnlocked(s))) return failure('HABITAT_LIMIT')
-  if (b.kind === 'farm' && s.farms.length >= MAX_PLOTS) return failure('MAX_PLOTS')
+  if (b.kind === 'habitat' && s.level < HABITATS[b.element].unlockPl) return failure('LEVEL_TOO_LOW')
+  if (b.kind === 'farm' && s.farms.length >= MAX_FARMS) return failure('MAX_PLOTS')
+  if (b.kind === 'farm' && s.level < FARM_UNLOCK_PL[s.farms.length]!) return failure('LEVEL_TOO_LOW')
 
   const cost = b.kind === 'decoration' ? DECORATIONS[b.decoration].cost
-    : b.kind === 'habitat' ? habitatBuildCost(s, b.element)
-    : b.kind === 'farm' ? plotCost(s.farms.length)
-    : NEXUS_COST
+    : b.kind === 'habitat' ? HABITATS[b.element].buildGold
+    : farmBuildGold(s.farms.length + 1)
   const paid = spendGold(s, cost)
   if (!paid) return failure('INSUFFICIENT_GOLD')
 
@@ -39,16 +38,14 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
   }
   if (b.kind === 'farm') {
     const index = s.farms.length
-    const started = startConstruction(paid, { kind: 'build', building: { type: 'farm', index } }, FARM_PLOT_BUILD_MS[index - 2]!, ctx.nowMs)
+    const started = startConstruction(paid, { kind: 'build', building: { type: 'farm', index } }, Math.floor(FIRST_FARM_CLASSIC_MS / ctx.preset.timerDiv), ctx.nowMs)
     if (!started) return failure('BUILDERS_BUSY')
     return success({ ...started, farms: [...started.farms, { crop: null, readyAtMs: 0, level: 1, placement: a.placement }] })
   }
   const id = `h${s.nextId}`
-  const isNexus = b.kind === 'nexus'
-  const started = startConstruction(paid, { kind: 'build', building: { type: 'habitat', id } },
-    isNexus ? NEXUS_BUILD_MS : newHabitatTimerMs(habitatsOwned), ctx.nowMs)
+  const started = startConstruction(paid, { kind: 'build', building: { type: 'habitat', id } }, habitatBuildMs(b.element, ctx.preset), ctx.nowMs)
   if (!started) return failure('BUILDERS_BUSY')
-  const habitat = { id, element: isNexus ? 'any' as const : b.element, level: isNexus ? 5 : 1, lastCollectedMs: ctx.nowMs, placement: a.placement }
+  const habitat = { id, element: b.element, level: 1, lastCollectedMs: ctx.nowMs, placement: a.placement }
   return success({ ...started, habitats: [...started.habitats, habitat], nextId: s.nextId + 1 })
 }
 
@@ -62,7 +59,6 @@ export const moveBuilding: Handler<'moveBuilding'> = (s, a) => {
     case 'farm': return success({ ...s, farms: s.farms.map((f, i) => i === t.index ? { ...f, placement: p } : f) })
     case 'nest': return success({ ...s, nests: s.nests.map((n, i) => i === t.index ? { ...n, placement: p } : n) })
     case 'hatchery': return success({ ...s, hatcheryPlacement: p })
-    case 'hoard': return success({ ...s, hoardPlacement: p })
     default: return success({ ...s, decorations: s.decorations.map(d => d.id === t.id ? { ...d, placement: p } : d) })
   }
 }
@@ -70,7 +66,7 @@ export const moveBuilding: Handler<'moveBuilding'> = (s, a) => {
 export const removeDecoration: Handler<'removeDecoration'> = (s, a) => {
   const d = s.decorations.find(x => x.id === a.id)
   if (!d) return failure('NOT_FOUND')
-  return success(earnGold({ ...s, decorations: s.decorations.filter(x => x.id !== a.id) }, decorationRefund(d.kind), false))
+  return success(earnGold({ ...s, decorations: s.decorations.filter(x => x.id !== a.id) }, decorationRefund(d.kind)))
 }
 
 export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {
@@ -81,7 +77,7 @@ export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {
     : true
   if (!exists) return failure('NOT_FOUND')
   if (isUnderConstruction(s, ref)) return failure('UNDER_CONSTRUCTION')
-  const info = upgradeInfo(s, ref)
+  const info = upgradeInfo(s, ref, ctx.preset)
   if (!info) return failure('MAX_LEVEL')
   if (s.level < info.minLevel) return failure('LEVEL_TOO_LOW')
   const paid = spendGold(s, info.cost)
@@ -92,7 +88,7 @@ export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {
 }
 
 /** Applies construction `index` (which must be ready); shared by finishConstruction and the construction skip. */
-export function completeConstruction(s: PlayerState, index: number, c: Catalog, nowMs: number): PlayerState {
+export function completeConstruction(s: PlayerState, index: number, c: Catalog, nowMs: number, preset: Preset): PlayerState {
   const con = s.constructions[index]!
   const rest = { ...s, constructions: s.constructions.filter((_, i) => i !== index) }
   if (con.kind === 'build') return rest
@@ -106,7 +102,7 @@ export function completeConstruction(s: PlayerState, index: number, c: Catalog, 
   const ref = con.building
   switch (ref.type) {
     case 'habitat': {
-      const collected = collectHabitat(rest, ref.id, c, nowMs)
+      const collected = collectHabitat(rest, ref.id, c, nowMs, preset)
       return { ...collected, habitats: collected.habitats.map(h => h.id === ref.id ? { ...h, level: h.level + 1 } : h) }
     }
     case 'farm': return { ...rest, farms: rest.farms.map((f, i) => i === ref.index ? { ...f, level: f.level + 1 } : f) }
@@ -119,5 +115,5 @@ export const finishConstruction: Handler<'finishConstruction'> = (s, a, ctx) => 
   const con = s.constructions[a.index]
   if (!con) return failure('NOT_FOUND')
   if (ctx.nowMs < con.readyAtMs) return failure('NOT_READY')
-  return success(completeConstruction(s, a.index, ctx.catalog, ctx.nowMs))
+  return success(completeConstruction(s, a.index, ctx.catalog, ctx.nowMs, ctx.preset))
 }

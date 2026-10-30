@@ -3,8 +3,8 @@ import { DECORATIONS } from './decorations'
 import { FOOTPRINT, placementError, type Footprint, type PlacementError } from './island'
 import type { IslandId, Placement, PlayerState } from './state'
 
-/** What is being put on the grid: a new building, a store purchase (nest, first Hoard) or a move. */
-export type PlacementSubject = Placeable | { kind: 'nest' } | { kind: 'hoard' } | { kind: 'move'; target: MovableRef }
+/** What is being put on the grid: a new building, or a move. */
+export type PlacementSubject = Placeable | { kind: 'move'; target: MovableRef }
 export type PlacementRuleError = PlacementError | 'WRONG_ISLAND' | 'NOT_FOUND'
 
 /** Footprint of a building already on the grid, or null when it does not exist. */
@@ -14,7 +14,6 @@ export function movableFootprint(s: PlayerState, t: MovableRef): Footprint | nul
     case 'farm': return s.farms[t.index] ? FOOTPRINT.farm : null
     case 'nest': return s.nests[t.index] ? FOOTPRINT.nest : null
     case 'hatchery': return FOOTPRINT.hatchery
-    case 'hoard': return s.hoardLevel > 0 && s.hoardPlacement ? FOOTPRINT.hoard : null
     case 'decoration': {
       const d = s.decorations.find(x => x.id === t.id)
       return d ? DECORATIONS[d.kind].size : null
@@ -29,8 +28,6 @@ export function subjectFootprint(s: PlayerState, subject: PlacementSubject): Foo
     case 'move': return movableFootprint(s, subject.target)
     case 'decoration': return DECORATIONS[subject.decoration].size
     case 'farm': return FOOTPRINT.farm
-    case 'nest': return FOOTPRINT.nest
-    case 'hoard': return FOOTPRINT.hoard
     default: return FOOTPRINT.habitat
   }
 }
@@ -38,13 +35,10 @@ export function subjectFootprint(s: PlayerState, subject: PlacementSubject): Foo
 /** The one island the subject may stand on, or null when any island will do (spec section 2). */
 export function requiredIsland(s: PlayerState, subject: PlacementSubject): IslandId | null {
   switch (subject.kind) {
-    case 'hoard': return 'home'
-    case 'nexus': return 'dawnspire'
     case 'decoration': return DECORATIONS[subject.decoration].island ?? null
     case 'move': {
       const t = subject.target
-      if (t.type === 'hatchery' || t.type === 'hoard') return 'home'
-      if (t.type === 'habitat') return s.habitats.find(h => h.id === t.id)?.element === 'any' ? 'dawnspire' : null
+      if (t.type === 'hatchery') return 'home'
       if (t.type === 'decoration') {
         const d = s.decorations.find(x => x.id === t.id)
         return d ? DECORATIONS[d.kind].island ?? null : null

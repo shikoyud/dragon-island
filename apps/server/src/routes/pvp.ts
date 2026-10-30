@@ -11,6 +11,6 @@ export function pvpRoutes(app: FastifyInstance, deps: AppDeps): void {
   // Ban check before terms, so a banned player is told BANNED rather than asked to accept terms.
   app.get('/pvp/offers', { preHandler: [requireSession(db, clock), requireActive, requireTerms(config)] }, async req => {
     await rateLimit(db, `player:${req.player!.id}`, PLAYER_LIMIT.limit, PLAYER_LIMIT.windowMs, clock)
-    return { offers: await createOffers({ db, clock, catalog: deps.catalog! }, req.player!) }
+    return { offers: await createOffers({ db, clock, catalog: deps.catalog!, ...(deps.onStateReset ? { onStateReset: deps.onStateReset } : {}) }, req.player!) }
   })
 }

@@ -13,10 +13,10 @@ function HeroArt() {
     <>
       {[1, 2].map((scale) => (
         <div key={scale} className={`hero-sprite hero-sprite-x${scale}`}>
-          <Sprite sprite={base} element="water" scale={scale} />
+          <Sprite sprite={base} element="sea" scale={scale} />
           {layers.map((l, i) => (
             <div key={i} className="hero-layer">
-              <Sprite sprite={l} element="water" scale={scale} />
+              <Sprite sprite={l} element="sea" scale={scale} />
             </div>
           ))}
         </div>
@@ -48,7 +48,7 @@ export function Hero() {
         <div className="hero-art">
           <HeroArt />
         </div>
-        <ul className="hatchlings" aria-label="The nine element hatchlings">
+        <ul className="hatchlings" aria-label="The ten element hatchlings">
           {ELEMENTS.map((e, i) => (
             <li key={e} className="hatch" style={{ animationDelay: `${(i % 3) * 0.25}s` }}>
               <Sprite sprite={ACTIVE_ART.hatchling[e]} element={e} scale={1} />

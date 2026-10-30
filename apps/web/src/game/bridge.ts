@@ -1,4 +1,4 @@
-import type { BattlePreview, Facing, Footprint, IslandId, MovableRef, Placeable, PlayerState } from '@wyrmhaven/game-core'
+import { DEFAULT_PRESET, type BattlePreview, type Facing, type Footprint, type IslandId, type MovableRef, type Placeable, type PlayerState, type Preset } from '@wyrmhaven/game-core'
 import type { GameArtSet } from '../art/types'
 
 /** Something the player can click in a scene. */
@@ -8,7 +8,6 @@ export type Target =
   | { kind: 'nest'; index: number }
   | { kind: 'hatchery'; slot: number }
   | { kind: 'farm'; plot: number }
-  | { kind: 'hoard' }
   | { kind: 'hatcheryBuilding' }
   | { kind: 'decoration'; id: string }
   | { kind: 'obstacle'; id: string }
@@ -16,9 +15,17 @@ export type Target =
   | { kind: 'cell'; col: number; row: number }
   | { kind: 'empty' }
 
+/** The Golden Aerie: a Store purchase (§5.2) placed like a habitat; the charge is sent with its placement on Confirm. */
+export interface AerieOffer { kind: 'goldenAerie' }
+
+/** What the grid rules judge for a thing being placed: the Aerie is a habitat-sized building. */
+export function placementSubject(what: Placing['what']): Placeable | { kind: 'move'; target: MovableRef } {
+  return what.kind === 'goldenAerie' ? { kind: 'habitat', element: 'terra' } : what
+}
+
 /** A building being placed or moved: the ghost the island scene draws under the pointer. */
 export interface Placing {
-  what: Placeable | { kind: 'move'; target: MovableRef } | { kind: 'nest' } | { kind: 'hoard' }
+  what: Placeable | AerieOffer | { kind: 'move'; target: MovableRef }
   size: Footprint
   col: number
   row: number
@@ -28,6 +35,8 @@ export interface Placing {
 export type GameEvent =
   | { type: 'select'; target: Target }
   | { type: 'hover'; target: Target | null }
+  /** A tap on a habitat's gold badge; React runs the `collectGold` action. */
+  | { type: 'collectGold'; habitatId: string }
   | { type: 'battleTarget'; slot: number }
   | { type: 'battle'; preview: BattlePreview | null }
   | { type: 'state'; state: PlayerState | null }
@@ -49,6 +58,8 @@ export function createBridge() {
     state: null as PlayerState | null,
     art: null as GameArtSet | null,
     nowMs: 0,
+    /** Soft-economy preset; stored Gold and caps depend on it (§7.2). */
+    preset: DEFAULT_PRESET as Preset,
     reducedMotion: false,
     battle: null as BattlePreview | null,
     selected: { kind: 'empty' } as Target,
@@ -79,6 +90,7 @@ export function createBridge() {
     },
     setArt(art: GameArtSet): void { bridge.art = art },
     setClock(nowMs: number): void { bridge.nowMs = nowMs },
+    setPreset(preset: Preset): void { bridge.preset = preset },
     setReducedMotion(v: boolean): void { bridge.reducedMotion = v },
     setView(id: IslandId): void {
       bridge.view = id

@@ -27,7 +27,7 @@ function entrant(over: Partial<EntrantState> = {}): EntrantState {
     handle: 'drake',
     name: 'Drake',
     avatarUrl: '',
-    element: 'fire',
+    element: 'flame',
     refCode: 'abc123',
     inviteCount: 2,
     tasks: { follow: none, like: none, repost: none, comment: none },

@@ -1,6 +1,6 @@
 import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
-import { attentionItems, MAX_ATTENTION, sellLeftMicroUsd, xpFraction } from '../src/hud/hudModel'
+import { attentionItems, MAX_ATTENTION, xpFraction } from '../src/hud/hudModel'
 
 const base = (): PlayerState => newPlayer(0)
 
@@ -11,13 +11,8 @@ describe('HUD model', () => {
     expect(xpFraction({ ...base(), level: 2, xp: 999 })).toBe(1)
   })
 
-  it('shows the remaining sell limit only once the Hoard exists', () => {
-    expect(sellLeftMicroUsd(base(), 0)).toBeNull()
-    expect(sellLeftMicroUsd({ ...base(), hoardLevel: 1 }, 0)).toBeGreaterThan(0)
-  })
-
-  it('lists daily quests even when nothing else needs attention', () => {
-    expect(attentionItems(base(), 0).map(i => i.id)).toEqual(['quests'])
+  it('lists nothing when nothing needs attention (no daily quests entry)', () => {
+    expect(attentionItems(base(), 0)).toEqual([])
   })
 
   it('lists builds with a timer, and a Finish action once ready', () => {
@@ -34,10 +29,10 @@ describe('HUD model', () => {
 
   it('lists eggs in nests and hatchery, ripe crops, and hatchlings with no room', () => {
     const s = base()
-    s.nests[0]!.egg = { speciesId: 'fire', readyAtMs: 1_000 }
-    s.hatchery = [{ speciesId: 'water', readyAtMs: 90_000 }] as PlayerState['hatchery']
-    s.farms[0] = { ...s.farms[0]!, crop: 'sprout', readyAtMs: 500 }
-    s.farms[1] = { ...s.farms[1]!, crop: 'sprout', readyAtMs: 800 }
+    s.nests[0]!.egg = { speciesId: 'flame', readyAtMs: 1_000 }
+    s.hatchery = [{ speciesId: 'sea', readyAtMs: 90_000 }] as PlayerState['hatchery']
+    s.farms[0] = { ...s.farms[0]!, crop: 'dragonBush', readyAtMs: 500 }
+    s.farms[1] = { ...s.farms[1]!, crop: 'dragonBush', readyAtMs: 800 }
     s.dragons.push({ ...s.dragons[0]!, id: 'd9', habitatId: null })
     const items = attentionItems(s, 2_000)
     const byId = Object.fromEntries(items.map(i => [i.id, i]))
@@ -46,13 +41,12 @@ describe('HUD model', () => {
     expect(byId['hatchery']).toMatchObject({ ready: false, readyAtMs: 90_000 })
     expect(byId['noRoom']).toMatchObject({ ready: true, label: expect.stringMatching(/no room/i), panel: { kind: 'hatcheryBuilding' } })
     expect(items.length).toBeLessThanOrEqual(MAX_ATTENTION)
-    expect(items.at(-1)!.id).toBe('quests')
+    expect(items.some(i => i.id === 'quests')).toBe(false)
   })
 
-  it('keeps at most MAX_ATTENTION items, quests always last', () => {
+  it('keeps at most MAX_ATTENTION items', () => {
     const s = { ...base(), constructions: [0, 1, 2, 3, 4, 5].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 1000 * i })) }
     const items = attentionItems(s, 0)
     expect(items).toHaveLength(MAX_ATTENTION)
-    expect(items.at(-1)!.id).toBe('quests')
   })
 })

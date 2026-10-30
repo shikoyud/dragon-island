@@ -12,7 +12,7 @@ import { ME_KEY } from '../src/state/me'
 
 function setup(actionImpl: Api['action']) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  const me = { playerId: 'p1', address: '0xabc' as const, state: newPlayer(0), balanceWei: 0n, earningUnlocked: false, banned: false, season: null as never }
+  const me = { playerId: 'p1', address: '0xabc' as const, state: newPlayer(0), balanceWei: 0n, earningUnlocked: false, banned: false }
   qc.setQueryData(ME_KEY, me)
   sessionStore.set({ token: 't', playerId: 'p1', address: '0xabc' })
   const api = { action: actionImpl } as unknown as Api
@@ -39,7 +39,7 @@ describe('useAction', () => {
     const impl = vi.fn(async () => { throw new ApiError(422, 'PLOT_BUSY') })
     const { wrapper, state } = setup(impl as unknown as Api['action'])
     const { result } = renderHook(() => useAction(), { wrapper })
-    await act(async () => { await result.current.run({ type: 'plant', plot: 0, crop: 'sprout' }).catch(() => {}) })
+    await act(async () => { await result.current.run({ type: 'plant', plot: 0, crop: 'dragonBush' }).catch(() => {}) })
     expect(state().gold).toBe(1000)
     await waitFor(() => expect(result.current.error?.code).toBe('PLOT_BUSY'))
   })
@@ -80,13 +80,5 @@ describe('useAction', () => {
     const h2 = renderHook(() => useAction(), { wrapper: s2.wrapper })
     await act(async () => { await h2.result.current.run({ type: 'harvest', plot: 0 }).catch(() => {}) })
     expect(sessionStore.get()).toBeNull()
-  })
-
-  it('reports season points awarded by the response', async () => {
-    const impl = vi.fn(async () => ({ state: newPlayer(0), effects: [], sp: { awarded: 7, today: 7 } }))
-    const { wrapper } = setup(impl as unknown as Api['action'])
-    const { result } = renderHook(() => useAction(), { wrapper })
-    await act(async () => { await result.current.run({ type: 'startBreed', parentA: 'd1', parentB: 'd2' }) })
-    expect(result.current.lastSp).toEqual({ awarded: 7, today: 7 })
   })
 })

@@ -168,7 +168,7 @@ describe('exportCsv', () => {
       xCreatedAt: at,
       wallet: `0x${i.toString(16).padStart(40, '0')}`,
       position: i + 1,
-      element: 'fire',
+      element: 'flame',
       refCode: `BULK${i}`,
       joinedAt: at,
     }))

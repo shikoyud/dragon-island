@@ -13,7 +13,7 @@ describe('pve campaign', () => {
   })
 
   it('scales stage level and rarity', () => {
-    expect([1, 27, 28, 30].map(stageLevel)).toEqual([3, 29, 30, 30])
+    expect([1, 27, 28, 30].map(stageLevel)).toEqual([3, 29, 30, 32])
     expect([1, 10, 11, 20, 21, 30].map(stageRarity)).toEqual(['common', 'common', 'rare', 'rare', 'epic', 'epic'])
   })
 

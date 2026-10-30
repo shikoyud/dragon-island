@@ -18,7 +18,7 @@ const row = (n: number, extra: Partial<typeof entrants.$inferInsert> = {}): type
   xHandle: `h${n}`,
   xName: `n${n}`,
   xCreatedAt: new Date('2020-01-01T00:00:00Z'),
-  element: 'fire',
+  element: 'flame',
   refCode: `ref${n}`,
   ...extra,
 })

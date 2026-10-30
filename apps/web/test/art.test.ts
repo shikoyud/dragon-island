@@ -10,11 +10,14 @@ import { SLOT_SIZES } from '../src/art/types'
 
 const manifest: Manifest = {
   assets: {
-    'egg.fire': { file: 'egg-fire.png', w: 32, h: 32, frames: 6, fps: 8 },
-    'dragon.fire': { file: 'dragon-fire.png', w: 48, h: 48, frames: 4, fps: 6 },
+    'egg.flame': { file: 'egg-flame.png', w: 32, h: 32, frames: 6, fps: 8 },
+    'dragon.flame': { file: 'dragon-flame.png', w: 48, h: 48, frames: 4, fps: 6 },
     'ui.panel': { file: 'panel.png', w: 24, h: 24, frames: 1, fps: 0 },
   },
 }
+
+// War has no sprites yet (Task B3): the drawn fallback covers it.
+const ELEMENTS_WITH_ART = ELEMENTS
 
 describe('art v1 manifest', () => {
   const dir = path.join(__dirname, '..', 'public', 'art', 'v1')
@@ -27,18 +30,18 @@ describe('art v1 manifest', () => {
 
   it('fills every slot with a real sprite', () => {
     const sprites: [string, { src: string }][] = [
-      ...ELEMENTS.flatMap(e => [
+      ...ELEMENTS_WITH_ART.flatMap(e => [
         [`egg.${e}`, art.egg[e]], [`hatchling.${e}`, art.hatchling[e]],
         [`habitat.${e}`, art.habitat[e]], [`icon.${e}`, art.elementIcon[e]],
       ] as [string, { src: string }][]),
       ...Object.entries(art.dragon).map(([id, s]) => [`dragon.${id}`, s] as [string, { src: string }]),
       ['nest', art.building.nest], ['hatchery', art.building.hatchery], ['farmPlot', art.building.farmPlot],
-      ['hoard', art.building.hoard], ...Object.entries(art.building.cropStage).map(([c, s]) => [`crop.${c}`, s] as [string, { src: string }]),
+      ...Object.entries(art.building.cropStage).map(([c, s]) => [`crop.${c}`, s] as [string, { src: string }]),
       ['ui.panel', art.ui.panel], ['ui.button', art.ui.button], ['ui.cursor', art.ui.cursor], ['island.base', art.island.base],
     ]
     for (const [key, s] of sprites) expect(s.src, key).not.toBe('')
     expect(art.island.layers.length).toBeGreaterThan(0)
-    for (const c of Object.values(art.building.cropStage)) expect(c.frames).toBe(4)
+    for (const c of Object.values(art.building.cropStage)) expect(c.frames).toBe(3)
   })
 
   it('fills every base-building slot at its footprint size', () => {
@@ -46,10 +49,9 @@ describe('art v1 manifest', () => {
       expect(s.src, key).not.toBe('')
       expect([s.w, s.h], key).toEqual([w, h])
     }
-    for (const e of ELEMENTS) fit(`habitat.${e}`, art.habitat[e], 80, 64)
+    for (const e of ELEMENTS_WITH_ART) fit(`habitat.${e}`, art.habitat[e], 80, 64)
     fit('building.nexus', art.building.nexus, 80, 64)
     fit('building.hatchery', art.building.hatchery, 64, 64)
-    fit('building.hoard', art.building.hoard, 64, 64)
     fit('building.farmPlot', art.building.farmPlot, 32, 32)
     fit('building.nest', art.building.nest, 32, 32)
     for (const id of Object.keys(DECORATIONS) as DecorationId[]) fit(id, art.decoration[id], DECORATIONS[id].size * 16, DECORATIONS[id].size * 16)
@@ -81,7 +83,7 @@ describe('art v1 manifest', () => {
 
   it('animates eggs and hatchlings at the 32x32 frame the waitlist site uses', () => {
     // Since the animation art (fb78b8c) the game's sheets are 4-frame loops; the waitlist keeps its own stills.
-    for (const e of ELEMENTS) {
+    for (const e of ELEMENTS_WITH_ART) {
       expect(art.egg[e]).toMatchObject({ w: 32, h: 32, frames: 4 })
       expect(art.hatchling[e]).toMatchObject({ w: 32, h: 32, frames: 4 })
     }
@@ -95,19 +97,19 @@ describe('artSetFromManifest', () => {
   it('carries a manifest top inset onto the sprite only when present', () => {
     const a = artSetFromManifest('v1', { assets: { 'building.hatchery': { file: 'hatchery.png', w: 64, h: 64, frames: 1, fps: 0, top: 17 } } }, LAUNCH_CATALOG)
     expect(a.building.hatchery.top).toBe(17)
-    expect(a.building.hoard.top).toBeUndefined()
+    expect(a.building.nest.top).toBeUndefined()
   })
 
   it('maps present keys to versioned urls with frame data', () => {
     expect(art.version).toBe('v1')
-    expect(art.egg.fire).toEqual({ src: '/art/v1/egg-fire.png', w: 32, h: 32, frames: 6, fps: 8 })
-    expect(art.dragon['fire']).toEqual({ src: '/art/v1/dragon-fire.png', w: 48, h: 48, frames: 4, fps: 6 })
+    expect(art.egg.flame).toEqual({ src: '/art/v1/egg-flame.png', w: 32, h: 32, frames: 6, fps: 8 })
+    expect(art.dragon['flame']).toEqual({ src: '/art/v1/dragon-flame.png', w: 48, h: 48, frames: 4, fps: 6 })
     expect(art.ui.panel.src).toBe('/art/v1/panel.png')
   })
 
   it('fills missing keys with empty sprites at the slot default size', () => {
     expect(art.egg.ice).toEqual({ src: '', w: 32, h: 32, frames: 1, fps: 0 })
-    expect(art.habitat.water).toEqual({ src: '', ...SLOT_SIZES.habitat, frames: 1, fps: 0 })
+    expect(art.habitat.sea).toEqual({ src: '', ...SLOT_SIZES.habitat, frames: 1, fps: 0 })
     expect(art.island.base).toMatchObject({ src: '', w: 480, h: 270 })
     expect(art.island.layers).toEqual([])
   })
@@ -187,25 +189,43 @@ function gridContext(w: number, h: number) {
 describe('drawFallback', () => {
   it('paints an element-coloured egg covering a good share of the canvas, deterministically', () => {
     const a = gridContext(32, 32)
-    drawFallback(a.ctx, 'egg', 'fire', 32, 32)
-    const base = FALLBACK_PALETTE.fire.base
+    drawFallback(a.ctx, 'egg', 'flame', 32, 32)
+    const base = FALLBACK_PALETTE.flame.base
     const painted = a.px.filter(p => p === base).length
     expect(painted).toBeGreaterThanOrEqual(32 * 32 * 0.2)
     const b = gridContext(32, 32)
-    drawFallback(b.ctx, 'egg', 'fire', 32, 32)
+    drawFallback(b.ctx, 'egg', 'flame', 32, 32)
     expect(b.px).toEqual(a.px)
   })
 
   it('draws every slot without touching pixels outside the canvas', () => {
-    for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'nest', 'hatchery', 'farmPlot', 'crop', 'hoard', 'icon', 'panel', 'button', 'island', 'nexus', 'decoration', 'obstacle', 'locked', 'sign', 'map', 'fx'] as const) {
+    for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'nest', 'hatchery', 'farmPlot', 'crop', 'icon', 'panel', 'button', 'island', 'nexus', 'decoration', 'obstacle', 'locked', 'sign', 'map', 'fx', 'fxCoins'] as const) {
       const g = gridContext(48, 48)
-      expect(() => drawFallback(g.ctx, slot, 'water', 48, 48)).not.toThrow()
+      expect(() => drawFallback(g.ctx, slot, 'sea', 48, 48)).not.toThrow()
       expect(g.px.some(p => p !== null)).toBe(true)
     }
   })
 
+  it('has a palette for all ten elements, with War dark red', () => {
+    expect(Object.keys(FALLBACK_PALETTE).sort()).toEqual([...ELEMENTS].sort())
+    expect(FALLBACK_PALETTE.war.base).toBe('#a32638')
+  })
+
+  it('draws an element from the fallback when the manifest lacks it: every slot is empty, with a drawn texture row', () => {
+    const v1 = JSON.parse(readFileSync(path.join(__dirname, '..', 'public', 'art', 'v1', 'manifest.json'), 'utf8')) as Manifest
+    const noWar = Object.fromEntries(Object.entries(v1.assets).filter(([k]) => !/\.war(\.|$)/.test(k)))
+    const rows = artEntries(artSetFromManifest('v1', { assets: noWar }, LAUNCH_CATALOG))
+    for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'icon']) {
+      const row = rows.find(r => r.key === `art:${slot}.war`)
+      expect(row, slot).toMatchObject({ element: 'war', sprite: { src: '' } })
+    }
+    const g = gridContext(48, 48)
+    drawFallback(g.ctx, 'dragon', 'war', 48, 48)
+    expect(g.px).toContain(FALLBACK_PALETTE.war.base)
+  })
+
   it('keys fallbacks by slot and element', () => {
-    expect(fallbackKey('egg', 'fire')).toBe('fallback:egg:fire')
+    expect(fallbackKey('egg', 'flame')).toBe('fallback:egg:flame')
     expect(fallbackKey('panel')).toBe('fallback:panel')
   })
 })

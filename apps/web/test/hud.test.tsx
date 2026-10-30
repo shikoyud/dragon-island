@@ -1,6 +1,7 @@
 import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { GameInfo } from '@wyrmhaven/shared'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createBridge } from '../src/game/bridge'
 import { Dialog } from '../src/hud/Dialog'
@@ -10,12 +11,12 @@ import { harness } from './harness'
 
 const base = (): PlayerState => ({ ...newPlayer(0), gold: 12_345, food: 678, level: 3, xp: 225 })
 
-function renderHud(state: PlayerState, opts: { placing?: boolean } = {}) {
-  const h = harness(state)
+function renderHud(state: PlayerState, opts: { placing?: boolean; nowMs?: number; game?: Partial<GameInfo> } = {}) {
+  const h = harness(state, 0, undefined, opts.game)
   const onOpen = vi.fn()
   const bridge = createBridge()
   const setInsets = vi.spyOn(bridge, 'setInsets')
-  h.wrap(<Hud bridge={bridge} nowMs={10_000} open={null} onOpen={onOpen} placing={opts.placing ?? false} />)
+  h.wrap(<Hud bridge={bridge} nowMs={opts.nowMs ?? 10_000} open={null} onOpen={onOpen} placing={opts.placing ?? false} />)
   return { ...h, onOpen, bridge, setInsets }
 }
 
@@ -31,35 +32,57 @@ describe('HUD', () => {
     expect(within(res).getByLabelText('Gold')).toHaveTextContent('12,345')
     expect(within(res).getByLabelText('DRIS')).toHaveTextContent('5')
     await userEvent.click(screen.getByRole('button', { name: 'Buy food' }))
-    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'store' })
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'shop', tab: 'store' })
+    expect(screen.queryByRole('button', { name: 'Get gold' })).toBeNull() // the Store sells no Gold yet
     await userEvent.click(screen.getByRole('button', { name: 'Add DRIS' }))
     expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'settings' })
   })
 
-  it('adds the remaining daily sell limit to the gold pill once the Hoard exists', () => {
-    renderHud(base())
+  it('gold pill has no sell-back sub-label, even with a lot of gold', () => {
+    renderHud({ ...base(), gold: 9_999_999 })
+    expect(screen.queryByText(/sell .* today/)).toBeNull()
     expect(screen.queryByText(/today/)).toBeNull()
   })
 
-  it('shows the sell limit with a Hoard', () => {
-    renderHud({ ...base(), hoardLevel: 1 })
-    expect(screen.getByText(/sell \$[\d.,]+ today/)).toBeInTheDocument()
-  })
-
-  it('has the main menu at the bottom and highlights Build while placing', async () => {
+  it('has the seven genre buttons at the bottom, in order, and highlights Shop while placing', async () => {
     const { onOpen } = renderHud(base(), { placing: true })
     const bar = screen.getByRole('navigation', { name: 'Main menu' })
-    for (const label of ['Dragons', 'Breed', 'Battle', 'Hoard', 'Build', 'Store']) expect(within(bar).getByRole('button', { name: label })).toBeInTheDocument()
-    expect(within(bar).getByRole('button', { name: 'Build' })).toHaveAttribute('aria-pressed', 'true')
-    expect(within(bar).getByRole('button', { name: 'Dragons' })).toHaveAttribute('aria-pressed', 'false')
+    expect(within(bar).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Shop', 'Breed', 'Dragon Book', 'Battle', 'Wings', 'Quests', 'Inbox'])
+    expect(within(bar).getByRole('button', { name: 'Shop' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(bar).getByRole('button', { name: 'Dragon Book' })).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(within(bar).getByRole('button', { name: 'Battle' }))
     expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'battle' })
   })
 
-  it('has the island menu on the right; Admin only with an operator token in this tab', () => {
+  it('opens Shop, Breed and Dragon Book from the bar', async () => {
+    const { onOpen } = renderHud(base())
+    const bar = screen.getByRole('navigation', { name: 'Main menu' })
+    await userEvent.click(within(bar).getByRole('button', { name: 'Shop' }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'shop' })
+    await userEvent.click(within(bar).getByRole('button', { name: 'Breed' }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'breed' })
+    await userEvent.click(within(bar).getByRole('button', { name: 'Dragon Book' }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'book' })
+  })
+
+  it('disables Wings, Quests and Inbox with the coming-later note', async () => {
+    const { onOpen } = renderHud(base())
+    const bar = screen.getByRole('navigation', { name: 'Main menu' })
+    for (const name of ['Wings', 'Quests', 'Inbox']) {
+      const b = within(bar).getByRole('button', { name })
+      expect(b).toBeDisabled()
+      expect(b).toHaveAccessibleDescription('Coming in a later milestone')
+      await userEvent.click(b)
+    }
+    expect(onOpen).not.toHaveBeenCalled()
+    for (const name of ['Shop', 'Breed', 'Dragon Book', 'Battle']) expect(within(bar).getByRole('button', { name })).toBeEnabled()
+  })
+
+  it('has the island menu on the right (Map; Settings sits in the top bar); Admin only with an operator token in this tab', () => {
     renderHud(base())
     const right = screen.getByRole('navigation', { name: 'Island menu' })
-    for (const label of ['Season', 'Ranks', 'Map', 'Referral']) expect(within(right).getByRole('button', { name: label })).toBeInTheDocument()
+    expect(within(right).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Map'])
+    for (const label of ['Hoard', 'Season', 'Ranks', 'Referral']) expect(screen.queryByRole('button', { name: label })).toBeNull()
     expect(within(right).queryByRole('link', { name: 'Admin' })).toBeNull()
   })
 
@@ -76,8 +99,20 @@ describe('HUD', () => {
     expect(within(left).getByText('Building Farm plot 2')).toBeInTheDocument()
     await userEvent.click(within(left).getByRole('button', { name: 'Finish' }))
     expect(action).toHaveBeenCalledWith({ type: 'finishConstruction', index: 0 }, expect.any(String))
-    await userEvent.click(within(left).getByRole('button', { name: /Daily quests/ }))
-    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'quests' })
+    await userEvent.click(within(left).getByRole('button', { name: /Building Farm plot 2/ }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'target', target: { kind: 'farm', plot: 1 } })
+  })
+
+  it('has no Daily quests attention item', () => {
+    renderHud(base())
+    const left = screen.getByRole('complementary', { name: 'Needs attention' })
+    expect(within(left).queryByText(/quests/i)).toBeNull()
+    expect(screen.queryByText(/daily quests/i)).toBeNull()
+  })
+
+  it('shows the Terminal clock under the pills', () => {
+    renderHud(base(), { nowMs: 86_400_000 * 10 + 3_600_000, game: { launchAtMs: 0, preset: 'flash14' } })
+    expect(screen.getByRole('timer', { name: 'Terminal countdown' })).toHaveTextContent('Finals lock in 3d 23:00:00')
   })
 
   it('reports the space its top and bottom take to the bridge', () => {

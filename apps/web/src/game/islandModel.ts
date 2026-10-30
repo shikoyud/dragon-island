@@ -1,11 +1,11 @@
 import {
-  constructionFor, CROPS, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
-  OBSTACLES, placementRuleError, residents, storedGold,
-  type BuildingRef, type Catalog, type IslandId, type MovableRef, type Placement, type PlayerState,
+  constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
+  DEFAULT_PRESET, habitatCap, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
+  type BuildingRef, type Catalog, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
-import type { Placing, Target } from './bridge'
+import { placementSubject, type Placing, type Target } from './bridge'
 import { anchor, depthOrder, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, NEST_EGG_SCALE } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
@@ -16,7 +16,11 @@ export interface IslandObject {
   x: number
   y: number
   target: Target
-  badge?: string
+  /**
+   * 'gold' / 'full' mark a habitat with Gold to collect (tappable); any other string is a timer or status label.
+   * (The brief's `{ timer: number }` form is not used: labels like 'no room' and 'ready' need a string.)
+   */
+  badge?: 'gold' | 'full' | (string & {})
   scale?: number
   /** Static frame of a multi-frame sheet to show (crop growth stages). */
   frame?: number
@@ -33,7 +37,6 @@ export interface IslandMarkers {
   nests: { index: number; egg: boolean }[]
   hatchery: { slot: number }[]
   farms: { plot: number; crop: string | null }[]
-  hoard: boolean
   obstacles: string[]
   decorations: string[]
   /** Constructions running anywhere (the builder count). */
@@ -62,10 +65,25 @@ export function badgeY(o: Pick<IslandObject, 'y' | 'sprite' | 'scale'>): number 
   return o.y - Math.round((o.sprite.h - (o.sprite.top ?? 0)) * (o.scale ?? 1)) - 2
 }
 
-/** Dragon sheet for a species, falling back to the fire dragon until hybrids have art. */
-export function dragonKey(speciesId: string, art: GameArtSet): string {
-  return art.dragon[speciesId] ? textureKey(`dragon.${speciesId}`) : textureKey('dragon.fire')
+/**
+ * Sheet for a dragon by stage (R11): Baby uses the hatchling of its primary element, Juvenile its `juvenile.<species>`
+ * sheet when the manifest has one (else the dragon sheet), Adult the dragon sheet. A species without art falls back to
+ * the flame dragon until hybrids have art.
+ */
+export function dragonLook(speciesId: string, level: number, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): { key: string; sprite: Sprite } {
+  const stage = stageOf(level)
+  if (stage === 'baby') {
+    const el = catalog.species.get(speciesId)?.elements[0] ?? 'flame'
+    return { key: textureKey(`hatchling.${el}`), sprite: art.hatchling[el] }
+  }
+  const juvenile = stage === 'juvenile' ? art.juvenile[speciesId] : undefined
+  if (juvenile) return { key: textureKey(`juvenile.${speciesId}`), sprite: juvenile }
+  const adult = art.dragon[speciesId]
+  return adult ? { key: textureKey(`dragon.${speciesId}`), sprite: adult } : { key: textureKey('dragon.flame'), sprite: art.dragon['flame']! }
 }
+
+export const dragonKey = (speciesId: string, level: number, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): string =>
+  dragonLook(speciesId, level, art, catalog).key
 
 const flip = (facing: number): { flipX?: true } => (facing === 1 || facing === 3 ? { flipX: true } : {})
 
@@ -75,6 +93,8 @@ const decorationLook = (art: GameArtSet, kind: DecorationKind) => ({
   sprite: art.decoration[kind],
 })
 const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), sprite: art.building.nexus })
+/** The Golden Aerie: its own sprite when the manifest has one, else the Nexus sprite. */
+const aerieLook = (art: GameArtSet) => (art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art))
 
 /** Sprite and texture key of a thing that can be placed, for the ghost. */
 function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): { key: string; sprite: Sprite } {
@@ -83,13 +103,13 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
     switch (t.type) {
       case 'habitat': {
         const h = state.habitats.find(x => x.id === t.id)
-        if (!h || h.element === 'any') return nexusLook(art)
+        if (!h) return nexusLook(art)
+        if (h.element === 'aerie') return aerieLook(art)
         return { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
       }
       case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
       case 'nest': return { key: textureKey('building.nest'), sprite: art.building.nest }
       case 'hatchery': return { key: textureKey('building.hatchery'), sprite: art.building.hatchery }
-      case 'hoard': return { key: textureKey('building.hoard'), sprite: art.building.hoard }
       case 'decoration': {
         const d = state.decorations.find(x => x.id === t.id)
         return d ? decorationLook(art, d.kind) : nexusLook(art)
@@ -98,11 +118,9 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
   }
   switch (what.kind) {
     case 'habitat': return { key: textureKey(`habitat.${what.element}`), sprite: art.habitat[what.element] }
-    case 'nexus': return nexusLook(art)
     case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
-    case 'nest': return { key: textureKey('building.nest'), sprite: art.building.nest }
-    case 'hoard': return { key: textureKey('building.hoard'), sprite: art.building.hoard }
     case 'decoration': return decorationLook(art, what.decoration)
+    case 'goldenAerie': return aerieLook(art)
   }
 }
 
@@ -119,10 +137,11 @@ function signCell(homeStep: number): { col: number; row: number } {
  */
 export function buildIslandModel(
   state: PlayerState | null, art: GameArtSet, catalog: Catalog, nowMs: number, view: IslandId, placing: Placing | null,
+  preset: Preset = DEFAULT_PRESET,
 ): IslandModel {
   const objects: IslandObject[] = []
   const markers: IslandMarkers = {
-    habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [], hoard: false,
+    habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [],
     obstacles: [], decorations: [], constructions: 0, ghost: null, sign: null,
   }
   if (!state) return { objects, markers }
@@ -160,17 +179,18 @@ export function buildIslandModel(
   for (const h of state.habitats) {
     if (h.placement.island !== view) continue
     const a = anchor(h.placement.col, h.placement.row, FOOTPRINT.habitat)
-    const gold = storedGold(h, residents(state, h.id), catalog, nowMs)
-    const base = h.element === 'any'
-      ? nexusLook(art)
+    const gold = storedGold(h, residents(state, h.id), catalog, nowMs, preset)
+    const base = h.element === 'aerie'
+      ? aerieLook(art)
       : { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
     const group: IslandObject[] = [{
       id: `habitat:${h.id}`, ...base, ...a, target: { kind: 'habitat', id: h.id },
-      badge: gold > 0 ? `${gold}g` : undefined, ...look({ type: 'habitat', id: h.id }, h.placement),
+      badge: gold > 0 && gold >= habitatCap(h.element, h.level, preset) ? 'full' : gold > 0 ? 'gold' : undefined,
+      ...look({ type: 'habitat', id: h.id }, h.placement),
     }]
     markers.habitats.push(h.id)
     residents(state, h.id).forEach((d, slot) => {
-      group.push({ id: `dragon:${d.id}`, key: dragonKey(d.speciesId, art), sprite: art.dragon[d.speciesId] ?? art.dragon['fire']!, ...dragonSpot(a, slot), target: { kind: 'dragon', id: d.id } })
+      group.push({ id: `dragon:${d.id}`, ...dragonLook(d.speciesId, d.level, art, catalog), ...dragonSpot(a, slot), target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
     })
     // Residents back to front on the platform, after the platform itself.
@@ -230,7 +250,7 @@ export function buildIslandModel(
       target: { kind: 'farm', plot: i }, ...look({ type: 'farm', index: i }, plot.placement),
     }]
     if (plot.crop) {
-      const grow = CROPS[plot.crop].growMs
+      const grow = cropGrowMs(plot.crop, preset)
       const fraction = Math.min(1, Math.max(0, 1 - (plot.readyAtMs - nowMs) / grow))
       const sprite = art.building.cropStage[plot.crop]
       // A stage sheet shows growth by frame; a single still (or fallback) grows by scale.
@@ -240,17 +260,11 @@ export function buildIslandModel(
       // A ripe crop sways when the art has the loop.
       const sway = fraction >= 1 ? art.building.cropSway[plot.crop] : undefined
       const look = sway ? { key: textureKey(`crop.${plot.crop}.sway`), sprite: sway } : { key: textureKey(`crop.${plot.crop}`), sprite, ...growth }
-      group.push({ id: `crop:${i}`, ...look, x: a.x, y: a.y - 10, target: { kind: 'farm', plot: i }, badge: timerLabel(plot.readyAtMs, nowMs) })
+      group.push({ id: `crop:${i}`, ...look, x: a.x, y: a.y - 10, target: { kind: 'farm', plot: i }, badge: nowMs >= plot.readyAtMs ? 'ripe' : timerLabel(plot.readyAtMs, nowMs) })
     }
     add(plot.placement, FOOTPRINT.farm, group)
     markers.farms.push({ plot: i, crop: plot.crop })
   })
-
-  if (state.hoardLevel > 0 && state.hoardPlacement && state.hoardPlacement.island === view) {
-    const a = anchor(state.hoardPlacement.col, state.hoardPlacement.row, FOOTPRINT.hoard)
-    add(state.hoardPlacement, FOOTPRINT.hoard, [{ id: 'hoard', key: textureKey('building.hoard'), sprite: art.building.hoard, ...a, target: { kind: 'hoard' }, badge: `Hoard ${state.hoardLevel}`, ...flip(state.hoardPlacement.facing) }])
-    markers.hoard = true
-  }
 
   if (view === 'home' && state.islands.homeStep < HOME_MAX_STEP) {
     const next = HOME_EXPANSION[state.islands.homeStep]!
@@ -273,7 +287,7 @@ export function buildIslandModel(
 
   if (placing) {
     const placement: Placement = { island: view, col: placing.col, row: placing.row, facing: placing.facing }
-    const legal = placementRuleError(state, placing.what, placement) === null
+    const legal = placementRuleError(state, placementSubject(placing.what), placement) === null
     objects.push({
       id: 'ghost', ...ghostLook(state, art, placing.what), ...anchor(placing.col, placing.row, placing.size),
       target: { kind: 'cell', col: placing.col, row: placing.row }, tint: legal ? 'ok' : 'bad', ...flip(placing.facing),

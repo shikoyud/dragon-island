@@ -1,6 +1,6 @@
 import { isValidAction } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
-import { actionSchema, clientActionSchema } from '../src/actions'
+import { actionSchema, clientActionSchema, storeItemSchema } from '../src/actions'
 
 const TEAM = ['d1', 'd2', 'd3']
 const PL = { island: 'home', col: 6, row: 7, facing: 0 }
@@ -11,7 +11,9 @@ const bot = { playerId: null, trophies: 0, level: 8, team: [1, 2, 3].map(() => (
 const payloads: unknown[] = [
   { type: 'collectGold', habitatId: 'h1' },
   { type: 'collectGold', habitatId: '' },
-  { type: 'placeBuilding', building: { kind: 'habitat', element: 'earth' }, placement: PL },
+  { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: PL },
+  { type: 'placeBuilding', building: { kind: 'habitat', element: 'war' }, placement: PL },
+  { type: 'placeBuilding', building: { kind: 'habitat', element: 'fire' }, placement: PL },
   { type: 'placeBuilding', building: { kind: 'habitat', element: 'plasma' }, placement: PL },
   { type: 'placeBuilding', building: { kind: 'nexus' }, placement: { ...PL, island: 'dawnspire' } },
   { type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...PL, island: 'isle9' } },
@@ -42,10 +44,10 @@ const payloads: unknown[] = [
   { type: 'feed', dragonId: 'd1' },
   { type: 'feed', dragonId: 1 },
   { type: 'sellDragon', dragonId: 'd1' },
-  { type: 'plant', plot: 0, crop: 'sprout' },
+  { type: 'plant', plot: 0, crop: 'dragonBush' },
   { type: 'plant', plot: 0, crop: 'constructor' },
-  { type: 'plant', plot: -1, crop: 'sprout' },
-  { type: 'plant', plot: 0.5, crop: 'sprout' },
+  { type: 'plant', plot: -1, crop: 'dragonBush' },
+  { type: 'plant', plot: 0.5, crop: 'dragonBush' },
   { type: 'harvest', plot: 7 },
   { type: 'harvest', plot: Number.NaN },
   { type: 'startBreed', parentA: 'd1', parentB: 'd2' },
@@ -55,6 +57,14 @@ const payloads: unknown[] = [
   { type: 'sellGold', gold: 100 },
   { type: 'sellGold', gold: '100' },
   { type: 'buy', item: { kind: 'foodPack' } },
+  { type: 'buy', item: { kind: 'habitatL5', habitatId: 'h1' } },
+  { type: 'buy', item: { kind: 'habitatL5', habitatId: '' } },
+  { type: 'buy', item: { kind: 'farmL5', index: 0 } },
+  { type: 'buy', item: { kind: 'farmL5', index: -1 } },
+  { type: 'plant', plot: 0, crop: 'sprout' },
+  { type: 'buy', item: { kind: 'goldenAerie', placement: PL } },
+  { type: 'buy', item: { kind: 'goldenAerie', placement: { ...PL, facing: 4 } } },
+  { type: 'buy', item: { kind: 'goldenAerie' } },
   { type: 'buy', item: { kind: 'skip', target: 'nest', index: 0 } },
   { type: 'buy', item: { kind: 'skip', target: 'construction', index: 1 } },
   { type: 'buy', item: { kind: 'skip', target: 'bank', index: 0 } },
@@ -87,7 +97,7 @@ describe('actionSchema', () => {
     expect(actionSchema.safeParse(full).success).toBe(true)
     expect(isValidAction(full)).toBe(true)
     expect(actionSchema.safeParse({ ...full, opponent: { ...bot, team: bot.team.slice(0, 2) } }).success).toBe(false)
-    expect(actionSchema.safeParse({ ...full, opponent: { ...bot, team: bot.team.map(d => ({ ...d, level: 31 })) } }).success).toBe(false)
+    expect(actionSchema.safeParse({ ...full, opponent: { ...bot, team: bot.team.map(d => ({ ...d, level: 41 })) } }).success).toBe(false)
   })
 })
 
@@ -97,5 +107,16 @@ describe('clientActionSchema', () => {
     expect(clientActionSchema.safeParse({ type: 'pvpBattle', team: TEAM, opponent: bot, moves }).success).toBe(false)
     expect(clientActionSchema.safeParse({ type: 'pvpBattle', offerId: '', team: TEAM, moves }).success).toBe(false)
     expect(clientActionSchema.safeParse({ type: 'collectGold', habitatId: 'h1' }).success).toBe(true)
+  })
+})
+
+describe('M0 teardown', () => {
+  it('rejects sellGold, oddsBoost and hoard on the wire', () => {
+    expect(clientActionSchema.safeParse({ type: 'sellGold', gold: 1 }).success).toBe(false)
+    expect(storeItemSchema.safeParse({ kind: 'oddsBoost' }).success).toBe(false)
+    expect(storeItemSchema.safeParse({ kind: 'hoard' }).success).toBe(false)
+    expect(storeItemSchema.safeParse({ kind: 'foodPack' }).success).toBe(true)
+    expect(storeItemSchema.safeParse({ kind: 'skip', target: 'nest', index: 0 }).success).toBe(true)
+    expect(clientActionSchema.safeParse({ type: 'moveBuilding', target: { type: 'hoard' }, placement: PL }).success).toBe(false)
   })
 })

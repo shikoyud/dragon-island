@@ -4,10 +4,9 @@ import type { Rarity } from './rarity'
 export interface Species {
   id: string
   name: string
-  /** 1..2 elements; the first is primary. */
+  /** 1..3 elements; the first is primary. */
   elements: readonly Element[]
   rarity: Rarity
-  baseSpeed: number
   recipeOnly: boolean
 }
 
@@ -31,7 +30,7 @@ export function getSpecies(c: Catalog, id: string): Species {
   return s
 }
 
-/** Pool key for a species: pairKey of its element set (pure fire → 'fire+fire'). */
+/** Pool key for a species: pairKey of its element set (pure flame → 'flame+flame'). */
 export function speciesPairKey(s: Species): string {
   const [a, b] = s.elements
   return pairKey(a!, b ?? a!)
@@ -42,11 +41,10 @@ export function validateCatalog(c: Catalog): string[] {
   const errors: string[] = []
   const tiers = new Set<string>()
   for (const s of c.species.values()) {
-    if (s.elements.length < 1 || s.elements.length > 2 || s.elements[0] === s.elements[1]) {
+    if (s.elements.length < 1 || s.elements.length > 3 || new Set(s.elements).size !== s.elements.length) {
       errors.push(`BAD_ELEMENTS:${s.id}`)
       continue
     }
-    if (!Number.isInteger(s.baseSpeed) || s.baseSpeed < 1 || s.baseSpeed > 100) errors.push(`BAD_SPEED:${s.id}`)
     if (s.rarity === 'legendary' && !s.recipeOnly) errors.push(`LEGENDARY_NOT_RECIPE:${s.id}`)
     const tier = `${speciesPairKey(s)}:${s.rarity}`
     if (tiers.has(tier)) errors.push(`DUPLICATE_TIER:${tier}`)

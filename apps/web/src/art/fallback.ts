@@ -2,15 +2,16 @@ import type { Element } from '@wyrmhaven/game-core'
 
 /** Element colours (same values as styles/tokens.css) with a darker outline and lighter highlight. */
 export const FALLBACK_PALETTE: Record<Element, { base: string; dark: string; light: string }> = {
-  fire: { base: '#e4572e', dark: '#8c2f14', light: '#f7a07a' },
-  water: { base: '#3a86c8', dark: '#1f4f7a', light: '#8fc3ea' },
-  earth: { base: '#a0683b', dark: '#5e3a1d', light: '#d1a373' },
+  terra: { base: '#a0683b', dark: '#5e3a1d', light: '#d1a373' },
+  flame: { base: '#e4572e', dark: '#8c2f14', light: '#f7a07a' },
+  sea: { base: '#3a86c8', dark: '#1f4f7a', light: '#8fc3ea' },
   nature: { base: '#4caf50', dark: '#276a2b', light: '#9ad99c' },
   electric: { base: '#f4d03f', dark: '#9a7f12', light: '#fbe99a' },
   ice: { base: '#9ad7f0', dark: '#4d8aa8', light: '#d6f0fa' },
   metal: { base: '#9aa5b1', dark: '#555e68', light: '#d0d6dc' },
   dark: { base: '#5b4b8a', dark: '#2d2447', light: '#9d8fc9' },
   light: { base: '#f7f0c8', dark: '#b5a86a', light: '#fffbe6' },
+  war: { base: '#a32638', dark: '#5e1420', light: '#d9566a' },
 }
 const OUTLINE = '#141627'
 const WOOD = '#6b4a2b'
@@ -20,9 +21,9 @@ const PANEL = '#1b2140'
 const PANEL_EDGE = '#3b4680'
 
 export type FallbackSlot =
-  | 'egg' | 'hatchling' | 'dragon' | 'habitat' | 'nest' | 'hatchery' | 'farmPlot' | 'crop' | 'hoard'
+  | 'egg' | 'hatchling' | 'dragon' | 'habitat' | 'nest' | 'hatchery' | 'farmPlot' | 'crop'
   | 'icon' | 'panel' | 'button' | 'cursor' | 'island'
-  | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'map' | 'fx'
+  | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'map' | 'fx' | 'fxCoins'
 
 export const fallbackKey = (slot: FallbackSlot, element?: Element): string =>
   element ? `fallback:${slot}:${element}` : `fallback:${slot}`
@@ -104,13 +105,6 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
       ellipse(w * 0.5, h * 0.3, w * 0.25, h * 0.2, '#4caf50')
       return
     }
-    case 'hoard': {
-      ellipse(w / 2, h * 0.7, w * 0.42, h * 0.2, '#9a7f12') // gold pile
-      ellipse(w / 2, h * 0.55, w * 0.3, h * 0.16, '#f4d03f')
-      px(w * 0.3, h * 0.2, w * 0.4, h * 0.3, WOOD) // chest
-      px(w * 0.3, h * 0.2, w * 0.4, 2, OUTLINE)
-      return
-    }
     case 'icon': {
       ellipse(w / 2, h / 2, w * 0.4, h * 0.4, p.base)
       px(w * 0.35, h * 0.3, w * 0.15, h * 0.15, p.light)
@@ -179,6 +173,13 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
       px(w * 0.47, h * 0.25, w * 0.08, h * 0.45, WOOD) // handle
       px(w * 0.34, h * 0.18, w * 0.34, h * 0.12, STONE) // head
       px(w * 0.36, h * 0.2, w * 0.3, h * 0.04, p.light)
+      return
+    }
+    case 'fxCoins': {
+      // A small heap of gold coins.
+      ellipse(w * 0.36, h * 0.7, w * 0.2, h * 0.1, '#e0a516')
+      ellipse(w * 0.64, h * 0.68, w * 0.2, h * 0.1, '#f2c53d')
+      ellipse(w * 0.5, h * 0.52, w * 0.2, h * 0.1, '#f7dc6f')
       return
     }
     case 'island': {

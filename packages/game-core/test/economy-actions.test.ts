@@ -3,145 +3,146 @@ import { applyAction } from '../src/actions/apply'
 import type { Action } from '../src/actions/types'
 import { createRng } from '../src/rng'
 import { newPlayer, type PlayerState } from '../src/state'
+import { skipPriceMicroUsd } from '../src/data/speedups'
 import { priceMicroUsd, type StoreItem } from '../src/store'
 import { FIXTURE_CATALOG } from './fixtures'
 import { err, ok } from './helpers'
 import { isValidAction } from '../src/index'
 
 const run = (st: PlayerState, a: Action, t = 0) => applyAction(st, a, t, createRng(1), FIXTURE_CATALOG)
-const sell = (gold: number): Action => ({ type: 'sellGold', gold })
 const buy = (item: StoreItem): Action => ({ type: 'buy', item })
-const base: PlayerState = { ...newPlayer(0), earningUnlocked: true, hoardLevel: 1, gold: 300_000, eligibleGold: 300_000 }
 const p0 = newPlayer(0)
 const s = p0
 const P = (col: number, row: number) => ({ island: 'home' as const, col, row, facing: 0 as const })
-
-describe('sellGold', () => {
-  it('checks gates in order', () => {
-    err(run(p0, sell(1)), 'EARNING_LOCKED')
-    err(run({ ...base, hoardLevel: 0 }, sell(1)), 'NO_HOARD')
-    for (const g of [0, -1, 1.5, Number.NaN]) err(run(base, sell(g)), 'INVALID_AMOUNT')
-    err(run({ ...base, eligibleGold: 10 }, sell(11)), 'INSUFFICIENT_GOLD')
-  })
-
-  it('pays out eligible gold and records the sale', () => {
-    const r = run(base, sell(100_000))
-    expect(r.ok && r.effects).toEqual([{ type: 'payout', microUsd: 500_000 }])
-    const a = ok(r)
-    expect([a.gold, a.eligibleGold]).toEqual([200_000, 200_000])
-    expect(a.sell.soldTodayMicroUsd).toBe(500_000)
-    expect(a.ledger.soldMicroUsd).toBe(500_000)
-  })
-
-  it('enforces the daily limit and resets at 00:00 UTC', () => {
-    const a = ok(run(base, sell(100_000)))
-    err(run(a, sell(100_001)), 'SELL_LIMIT_REACHED')
-    const b = ok(run(a, sell(100_000)))
-    expect(b.sell.soldTodayMicroUsd).toBe(1_000_000)
-    err(run(b, sell(1)), 'SELL_LIMIT_REACHED')
-    const c = ok(run({ ...b, gold: 100_000, eligibleGold: 100_000 }, sell(100_000), 86_400_000))
-    expect(c.sell).toEqual({ day: 1, soldTodayMicroUsd: 500_000 })
-    expect(c.ledger.soldMicroUsd).toBe(1_500_000)
-  })
-})
 
 describe('buy', () => {
   it('sells food packs', () => {
     const r = run(p0, buy({ kind: 'foodPack' }))
     expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 500_000 }])
-    expect(ok(r).food).toBe(1_100)
-  })
-
-  it('sells nests up to four', () => {
-    const r = run(p0, buy({ kind: 'nest', placement: P(6, 8) }))
-    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 2_000_000 }])
-    expect(ok(r).nests.map(n => n.egg)).toEqual([null, null])
-    expect(ok(r).nests[1]!.level).toBe(1)
-    err(run({ ...p0, nests: [p0.nests[0]!, p0.nests[0]!, p0.nests[0]!, p0.nests[0]!] }, buy({ kind: 'nest', placement: P(6, 8) })), 'MAX_NESTS')
+    expect(ok(r).food).toBe(p0.food + 1_000)
   })
 
   it('skips timers', () => {
-    const st = { ...p0, nests: [{ ...p0.nests[0]!, egg: { speciesId: 'fire', readyAtMs: 1_800_001 } }] }
+    const st = { ...p0, nests: [{ ...p0.nests[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001 } }] }
     const r = run(st, buy({ kind: 'skip', target: 'nest', index: 0 }))
-    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 200_000 }])
+    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: skipPriceMicroUsd(1_800_001) }])
     expect(ok(r).nests[0]!.egg!.readyAtMs).toBe(0)
     err(run(st, buy({ kind: 'skip', target: 'nest', index: 0 }), 1_800_001), 'NOTHING_TO_SKIP')
     err(run(st, buy({ kind: 'skip', target: 'nest', index: 3 })), 'NOT_FOUND')
   })
 
   it('skips hatchery and farm timers', () => {
-    const st = { ...p0, hatchery: [{ speciesId: 'fire', readyAtMs: 90_000 }], farms: [{ ...p0.farms[0]!, crop: 'sprout' as const, readyAtMs: 60_000 }, p0.farms[1]!] }
+    const st = { ...p0, hatchery: [{ speciesId: 'flame', readyAtMs: 90_000 }], farms: [{ ...p0.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 60_000 }, { ...p0.farms[0]!, crop: null }] }
     expect(ok(run(st, buy({ kind: 'skip', target: 'hatchery', index: 0 }), 10)).hatchery[0]!.readyAtMs).toBe(10)
-    expect(ok(run(st, buy({ kind: 'skip', target: 'farm', index: 0 }), 10)).farms[0]).toEqual({ ...p0.farms[0], crop: 'sprout', readyAtMs: 10 })
+    expect(ok(run(st, buy({ kind: 'skip', target: 'farm', index: 0 }), 10)).farms[0]).toEqual({ ...p0.farms[0], crop: 'dragonBush', readyAtMs: 10 })
     err(run(st, buy({ kind: 'skip', target: 'farm', index: 1 })), 'NOTHING_TO_SKIP')
     err(run(st, buy({ kind: 'skip', target: 'hatchery', index: 1 })), 'NOT_FOUND')
   })
 
-  it('levels a dragon up without food or xp', () => {
-    const r = run(p0, buy({ kind: 'levelUp', dragonId: 'd1' }))
-    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 50_000 }])
-    const a = ok(r)
-    expect([a.dragons[0]!.level, a.food, a.xp]).toEqual([2, 100, 0])
-    const max = { ...p0, dragons: p0.dragons.map(d => ({ ...d, level: 30 })) }
-    err(run(max, buy({ kind: 'levelUp', dragonId: 'd1' })), 'MAX_LEVEL')
-    err(run(p0, buy({ kind: 'levelUp', dragonId: 'd9' })), 'NOT_FOUND')
-  })
-
-  it('sells odds boosts', () => {
-    expect(ok(run(p0, buy({ kind: 'oddsBoost' }))).oddsBoosts).toBe(1)
-  })
-
-  it('builds and upgrades the Hoard', () => {
-    err(run({ ...p0, level: 4 }, buy({ kind: 'hoard' })), 'LEVEL_TOO_LOW')
-    const r = run({ ...p0, level: 5 }, buy({ kind: 'hoard', placement: P(7, 6) }))
-    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 2_000_000 }])
-    expect(ok(r).hoardLevel).toBe(1)
-    err(run({ ...p0, level: 5, hoardLevel: 7 }, buy({ kind: 'hoard' })), 'MAX_LEVEL')
+  it('rejects removed actions and store items', () => {
+    err(run(p0, { type: 'sellGold', gold: 1 } as never), 'INVALID_ACTION')
+    const removed = [
+      { kind: 'oddsBoost' }, { kind: 'levelUp', dragonId: 'd1' }, { kind: 'nest', placement: P(6, 8) }, { kind: 'hoard' },
+    ]
+    for (const item of removed) err(run(p0, buy(item as never)), 'INVALID_ACTION')
   })
 })
 
 describe('placed store items and construction skips', () => {
   it('prices and applies a construction skip, which finishes the build', () => {
-    const a = ok(run({ ...s, gold: 2_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
-    expect(priceMicroUsd({ kind: 'skip', target: 'construction', index: 0 }, a, 0)).toBe(100_000)
+    const a = ok(run({ ...s, gold: 25_000 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    expect(priceMicroUsd({ kind: 'skip', target: 'construction', index: 0 }, a, 0)).toBe(skipPriceMicroUsd(600_000))
     expect(priceMicroUsd({ kind: 'skip', target: 'construction', index: 0 }, a, 600_000)).toBeNull()
     const r = run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 1_000)
-    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 100_000 }])
+    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: skipPriceMicroUsd(599_000) }])
     expect([ok(r).habitats[0]!.level, ok(r).constructions]).toEqual([2, []])
   })
   it('a construction skip with a bad index is NOT_FOUND and charges nothing', () => {
-    const a = ok(run({ ...s, gold: 2_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    const a = ok(run({ ...s, gold: 25_000 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
     for (const index of [1, 99]) err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index } }, 0), 'NOT_FOUND')
     for (const index of [-1, 0.5]) err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index } }, 0), 'INVALID_ACTION')
     err(run(s, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 0), 'NOT_FOUND')
   })
   it('a construction skip on a ready construction is NOTHING_TO_SKIP', () => {
-    const a = ok(run({ ...s, gold: 2_000, tutorial: { ...s.tutorial, buildsStarted: 2 } }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
+    const a = ok(run({ ...s, gold: 25_000 }, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0))
     const readyAt = a.constructions[0]!.readyAtMs
     err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, readyAt), 'NOTHING_TO_SKIP')
     err(run(a, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, readyAt + 1), 'NOTHING_TO_SKIP')
   })
   it('a construction skip frees a builder', () => {
-    const t = { ...s, gold: 50_000, level: 10, tutorial: { ...s.tutorial, buildsStarted: 2 } }
+    const t = { ...s, gold: 100_000, level: 10 }
     const two = ok(run(ok(run(t, { type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 0)), { type: 'startUpgrade', building: { type: 'habitat', id: 'h2' } }, 0))
     err(run(two, { type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 0), 'BUILDERS_BUSY')
     const freed = ok(run(two, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 0))
     expect(ok(run(freed, { type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 0)).constructions).toHaveLength(2)
   })
-  it('a bought nest and the first Hoard are placed', () => {
-    const a = ok(run(s, { type: 'buy', item: { kind: 'nest', placement: P(6, 8) } }, 0))
-    expect(a.nests[1]).toEqual({ egg: null, level: 1, placement: P(6, 8) })
-    err(run(s, { type: 'buy', item: { kind: 'nest', placement: P(0, 0) } }, 0), 'OVERLAP')
-    err(run({ ...s, level: 5 }, { type: 'buy', item: { kind: 'hoard', placement: { island: 'isle2', col: 0, row: 0, facing: 0 } } }, 0), 'ISLAND_LOCKED')
-    const h = ok(run({ ...s, level: 5 }, { type: 'buy', item: { kind: 'hoard', placement: P(7, 6) } }, 0))
-    expect([h.hoardLevel, h.hoardPlacement]).toEqual([1, P(7, 6)])
-    expect(ok(run(h, { type: 'buy', item: { kind: 'hoard' } }, 0)).hoardLevel).toBe(2)
-    expect(isValidAction({ type: 'buy', item: { kind: 'nest' } })).toBe(false)
+})
+
+describe('farm L5', () => {
+  const farmAt = (level: number): PlayerState => ({ ...s, farms: s.farms.map((f, i) => i === 0 ? { ...f, level } : f) })
+  const l5 = { kind: 'farmL5', index: 0 } as const
+
+  it('a level 4 farm goes to level 5 for $2.00, instantly', () => {
+    const r = run(farmAt(4), buy(l5))
+    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 2_000_000 }])
+    expect(ok(r).farms[0]!.level).toBe(5)
+    expect(ok(r).constructions).toEqual([])
   })
-  it('the first Hoard needs a home placement', () => {
-    err(run({ ...s, level: 5 }, { type: 'buy', item: { kind: 'hoard' } }, 0), 'INVALID_ACTION')
-    const t = { ...s, level: 5, islands: { ...s.islands, unlocked: ['home', 'isle2'] as PlayerState['islands']['unlocked'] } }
-    err(run(t, { type: 'buy', item: { kind: 'hoard', placement: { island: 'isle2', col: 0, row: 0, facing: 0 } } }, 0), 'WRONG_ISLAND')
+  it('refuses unknown, maxed and too-low farms', () => {
+    err(run(farmAt(4), buy({ kind: 'farmL5', index: 9 })), 'NOT_FOUND')
+    err(run(farmAt(5), buy(l5)), 'MAX_LEVEL')
+    err(run(farmAt(3), buy(l5)), 'INVALID_ACTION')
+  })
+  it('validates the store item', () => {
+    expect(isValidAction(buy(l5))).toBe(true)
+    expect(isValidAction(buy({ kind: 'farmL5', index: -1 } as never))).toBe(false)
+    expect(isValidAction(buy({ kind: 'farmL5' } as never))).toBe(false)
+  })
+})
+
+describe('habitat L5 and the Golden Aerie', () => {
+  const dark = (level: number): PlayerState => ({ ...s, habitats: s.habitats.map(h => h.id === 'h1' ? { ...h, element: 'dark' as const, level } : h) })
+  const l5 = { kind: 'habitatL5', habitatId: 'h1' } as const
+
+  it('a Tier C habitat at level 4 goes to level 5 for $4.00, instantly', () => {
+    const r = run(dark(4), buy(l5))
+    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 4_000_000 }])
+    expect(ok(r).habitats[0]!.level).toBe(5)
+    expect(ok(r).constructions).toEqual([])
+  })
+  it('collects first so accrued Gold is paid at the old level', () => {
+    const r = ok(run(dark(4), buy(l5), 600_000))
+    expect(r.gold).toBe(s.gold + 1_800)
+  })
+  it('refuses unknown, maxed and too-low habitats and charges nothing', () => {
+    err(run(dark(4), buy({ kind: 'habitatL5', habitatId: 'h9' })), 'NOT_FOUND')
+    err(run(dark(5), buy(l5)), 'MAX_LEVEL')
+    err(run(dark(3), buy(l5)), 'INVALID_ACTION')
+  })
+
+  it('the Golden Aerie is a level 5 habitat that houses 6 dragons of any element for $5.00', () => {
+    const r = run({ ...s, level: 1 }, buy({ kind: 'goldenAerie', placement: P(6, 7) }), 5_000)
+    expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 5_000_000 }])
+    const a = ok(r)
+    expect(a.habitats.at(-1)).toEqual({ id: 'h3', element: 'aerie', level: 5, lastCollectedMs: 5_000, placement: P(6, 7) })
+    expect([a.nextId, a.constructions]).toEqual([4, []])
+    const species = ['flame', 'sea', 'ice', 'nature', 'fw-rare', 'wall']
+    const dragons = species.map((speciesId, i) => ({ id: `a${i}`, speciesId, level: 1, feeds: 0, habitatId: null }))
+    let st: PlayerState = { ...a, dragons: [...a.dragons, ...dragons] }
+    for (const d of dragons) st = ok(run(st, { type: 'moveDragon', dragonId: d.id, habitatId: 'h3' }))
+    expect(st.dragons.filter(d => d.habitatId === 'h3')).toHaveLength(6)
+    err(run({ ...st, dragons: [...st.dragons, { id: 'a9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }] }, { type: 'moveDragon', dragonId: 'a9', habitatId: 'h3' }), 'NO_HABITAT_SLOT')
+  })
+  it('the Golden Aerie needs a legal cell', () => {
+    err(run(s, buy({ kind: 'goldenAerie', placement: P(0, 0) })), 'OVERLAP')
+    err(run(s, buy({ kind: 'goldenAerie', placement: P(8, 8) })), 'OUT_OF_BOUNDS')
+  })
+  it('validates the new store items', () => {
+    expect(isValidAction(buy(l5))).toBe(true)
+    expect(isValidAction(buy({ kind: 'habitatL5', habitatId: '' } as never))).toBe(false)
+    expect(isValidAction(buy({ kind: 'goldenAerie', placement: P(6, 7) }))).toBe(true)
+    expect(isValidAction(buy({ kind: 'goldenAerie', placement: { ...P(6, 7), facing: 4 } } as never))).toBe(false)
+    expect(isValidAction(buy({ kind: 'goldenAerie' } as never))).toBe(false)
   })
 })
 

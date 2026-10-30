@@ -1,4 +1,4 @@
-import { remainingSellMicroUsd, xpToNext, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
+import { xpToNext, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import type { Target } from '../game/bridge'
 
@@ -7,11 +7,6 @@ import type { Target } from '../game/bridge'
 /** How far the player is towards the next level, 0..1. */
 export function xpFraction(s: PlayerState): number {
   return Math.min(1, Math.max(0, s.xp / xpToNext(s.level)))
-}
-
-/** Today's remaining gold sell-back in micro-USD, or null before the Hoard exists (the gold pill shows it then). */
-export function sellLeftMicroUsd(s: PlayerState, nowMs: number): number | null {
-  return s.hoardLevel > 0 ? remainingSellMicroUsd(s, nowMs) : null
 }
 
 /** Something waiting for the player, shown as a shortcut in the HUD's left column. */
@@ -24,7 +19,7 @@ export interface AttentionItem {
   /** Sent by the shortcut's button when ready. */
   action?: ClientAction
   /** What the shortcut opens otherwise: the same panel a click on the island would. */
-  panel: Target | { kind: 'quests' }
+  panel: Target
 }
 
 export const MAX_ATTENTION = 5
@@ -35,7 +30,7 @@ function buildingLabel(s: PlayerState, b: BuildingRef): string {
   switch (b.type) {
     case 'habitat': {
       const h = s.habitats.find(x => x.id === b.id)
-      return h?.element === 'any' ? 'Nexus habitat' : `${cap(h?.element ?? '')} habitat`.trim()
+      return h?.element === 'aerie' ? 'Golden Aerie' : `${cap(h?.element ?? '')} habitat`.trim()
     }
     case 'farm': return `Farm plot ${b.index + 1}`
     case 'nest': return `Nest ${b.index + 1}`
@@ -62,8 +57,8 @@ function constructionItem(s: PlayerState, c: Construction, index: number, nowMs:
 
 /**
  * Shortcuts for what needs attention: constructions (Finish when ready), eggs in nests (Collect when ready),
- * the hatchery's soonest egg, ripe crops (harvest the first), hatchlings with no room, and the daily quests.
- * Ready items first, then by time left; at most MAX_ATTENTION, with the quests always last.
+ * the hatchery's soonest egg, ripe crops (harvest the first), and hatchlings with no room.
+ * Ready items first, then by time left; at most MAX_ATTENTION.
  */
 export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
   const items: AttentionItem[] = s.constructions.map((c, i) => constructionItem(s, c, i, nowMs))
@@ -85,5 +80,5 @@ export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
     items.push({ id: 'noRoom', label: waiting === 1 ? 'Hatchling: no room' : `${waiting} hatchlings: no room`, ready: true, panel: { kind: 'hatcheryBuilding' } })
   }
   const ordered = items.sort((p, q) => Number(q.ready) - Number(p.ready) || (p.readyAtMs ?? 0) - (q.readyAtMs ?? 0))
-  return [...ordered.slice(0, MAX_ATTENTION - 1), { id: 'quests', label: 'Daily quests', ready: true, panel: { kind: 'quests' } }]
+  return ordered.slice(0, MAX_ATTENTION)
 }

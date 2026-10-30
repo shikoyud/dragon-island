@@ -1,14 +1,15 @@
 /* Shared with the waitlist site: same element palette, same fonts, same pixel rules. */
 :root {
-  --el-fire: #e4572e;
-  --el-water: #3a86c8;
-  --el-earth: #a0683b;
+  --el-flame: #e4572e;
+  --el-sea: #3a86c8;
+  --el-terra: #a0683b;
   --el-nature: #4caf50;
   --el-electric: #f4d03f;
   --el-ice: #9ad7f0;
   --el-metal: #9aa5b1;
   --el-dark: #5b4b8a;
   --el-light: #f7f0c8;
+  --el-war: #a32638;
 
   --bg: #0f1324;
   --bg-panel: #1b2140;
@@ -45,7 +46,11 @@ canvas, .sprite, img.pixel { image-rendering: pixelated; image-rendering: crisp-
   cursor: pointer;
   font-size: 12px;
 }
+.panel .btn { min-height: 44px; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Crop picker rows: full-width tap targets, 44 px tall at least. */
+.crop-list .action-button, .crop-list .btn { display: block; width: 100%; }
+.crop-list .btn { min-height: 44px; text-align: left; }
 .btn--ghost { background: transparent; }
 .btn--primary { background: var(--accent); color: #1b1300; border-color: #b89a1a; }
 .btn--danger { background: var(--danger); border-color: #9a3a1e; }

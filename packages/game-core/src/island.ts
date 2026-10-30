@@ -33,9 +33,9 @@ export function islandSize(s: PlayerState, island: IslandId): { w: number; h: nu
 }
 
 export type Footprint = 1 | 2 | 3 | 4 | 5
-export const FOOTPRINT = { habitat: 5, hatchery: 4, hoard: 4, farm: 2, nest: 2 } as const
+export const FOOTPRINT = { habitat: 5, hatchery: 4, farm: 2, nest: 2 } as const
 
-export type OccupantRef = BuildingRef | { type: 'hoard' } | { type: 'decoration'; id: string } | { type: 'obstacle'; id: string }
+export type OccupantRef = BuildingRef | { type: 'decoration'; id: string } | { type: 'obstacle'; id: string }
 export interface Occupant { ref: OccupantRef; col: number; row: number; size: Footprint }
 
 
@@ -46,7 +46,6 @@ export function occupants(s: PlayerState, island: IslandId): Occupant[] {
   s.farms.forEach((f, index) => { if (f.placement.island === island) add({ type: 'farm', index }, f.placement, FOOTPRINT.farm) })
   s.nests.forEach((n, index) => { if (n.placement.island === island) add({ type: 'nest', index }, n.placement, FOOTPRINT.nest) })
   if (s.hatcheryPlacement.island === island) add({ type: 'hatchery' }, s.hatcheryPlacement, FOOTPRINT.hatchery)
-  if (s.hoardLevel > 0 && s.hoardPlacement && s.hoardPlacement.island === island) add({ type: 'hoard' }, s.hoardPlacement, FOOTPRINT.hoard)
   for (const d of s.decorations) if (d.placement.island === island) add({ type: 'decoration', id: d.id }, d.placement, DECORATIONS[d.kind].size)
   for (const o of s.islands.obstacles) if (o.island === island) add({ type: 'obstacle', id: o.id }, o, OBSTACLES[o.kind].size)
   return out

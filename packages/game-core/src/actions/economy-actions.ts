@@ -1,30 +1,13 @@
 import type { Catalog } from '../catalog'
-import { MAX_DRAGON_LEVEL } from '../dragon'
-import { HOARD, HOARD_MIN_PLAYER_LEVEL, MICRO_USD_PER_GOLD, remainingSellMicroUsd, sellCounterAt } from '../sell'
-import type { PlayerState } from '../state'
-import { FOOD_PACK, MAX_NESTS, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
+import { FARM_MAX_LEVEL } from '../data/farms'
+import { HABITAT_MAX_LEVEL } from '../data/habitats'
+import type { Preset } from '../data/presets'
 import { placementRuleError } from '../placement-rules'
+import type { PlayerState } from '../state'
+import { FOOD_PACK, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
 import { completeConstruction } from './build-actions'
-import { collectDragonHome } from './island-actions'
+import { collectHabitat } from './island-actions'
 import { failure, success, type ActionError, type Handler } from './types'
-
-/** Sells eligible gold for a token payout within the Hoard's daily limit. */
-export const sellGold: Handler<'sellGold'> = (s, a, ctx) => {
-  if (!s.earningUnlocked) return failure('EARNING_LOCKED')
-  if (s.hoardLevel === 0) return failure('NO_HOARD')
-  if (!Number.isSafeInteger(a.gold) || a.gold <= 0) return failure('INVALID_AMOUNT')
-  if (a.gold > s.eligibleGold) return failure('INSUFFICIENT_GOLD')
-  const microUsd = a.gold * MICRO_USD_PER_GOLD
-  if (microUsd > remainingSellMicroUsd(s, ctx.nowMs)) return failure('SELL_LIMIT_REACHED')
-  const sell = sellCounterAt(s, ctx.nowMs)
-  return success({
-    ...s,
-    gold: s.gold - a.gold,
-    eligibleGold: s.eligibleGold - a.gold,
-    sell: { ...sell, soldTodayMicroUsd: sell.soldTodayMicroUsd + microUsd },
-    ledger: { ...s.ledger, soldMicroUsd: s.ledger.soldMicroUsd + microUsd },
-  }, [{ type: 'payout', microUsd }])
-}
 
 function skipSlotCount(s: PlayerState, target: SkipTarget): number {
   return target === 'nest' ? s.nests.length : target === 'hatchery' ? s.hatchery.length
@@ -39,46 +22,52 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
       const readyAt = skipTargetReadyAt(s, item.target, item.index)
       return readyAt === null || readyAt <= nowMs ? 'NOTHING_TO_SKIP' : null
     }
-    case 'nest':
-      if (s.nests.length >= MAX_NESTS) return 'MAX_NESTS'
-      return placementRuleError(s, { kind: 'nest' }, item.placement)
-    case 'levelUp': {
-      const d = s.dragons.find(x => x.id === item.dragonId)
-      if (!d) return 'NOT_FOUND'
-      return d.level >= MAX_DRAGON_LEVEL ? 'MAX_LEVEL' : null
-    }
-    case 'hoard':
-      if (s.hoardLevel >= HOARD.length) return 'MAX_LEVEL'
-      if (s.level < HOARD_MIN_PLAYER_LEVEL) return 'LEVEL_TOO_LOW'
-      if (s.hoardLevel > 0) return null
-      if (!item.placement) return 'INVALID_ACTION'
-      return placementRuleError(s, { kind: 'hoard' }, item.placement)
     case 'foodPack':
-    case 'oddsBoost':
       return null
+    case 'habitatL5': {
+      const h = s.habitats.find(x => x.id === item.habitatId)
+      if (!h) return 'NOT_FOUND'
+      if (h.element === 'aerie' || h.level >= HABITAT_MAX_LEVEL) return 'MAX_LEVEL'
+      return h.level === HABITAT_MAX_LEVEL - 1 ? null : 'INVALID_ACTION'
+    }
+    case 'farmL5': {
+      const f = s.farms[item.index]
+      if (!f) return 'NOT_FOUND'
+      if (f.level >= FARM_MAX_LEVEL) return 'MAX_LEVEL'
+      return f.level === FARM_MAX_LEVEL - 1 ? null : 'INVALID_ACTION'
+    }
+    // The Aerie takes a habitat footprint, on any island.
+    case 'goldenAerie':
+      return placementRuleError(s, { kind: 'habitat', element: 'terra' }, item.placement)
   }
 }
 
-function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog): PlayerState {
+function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, preset: Preset): PlayerState {
   switch (item.kind) {
     case 'skip': {
       const at = <T extends { readyAtMs: number } | null>(xs: T[]) =>
         xs.map((x, i) => i === item.index && x ? { ...x, readyAtMs: nowMs } : x)
       if (item.target === 'nest') return { ...s, nests: s.nests.map((n, i) => i === item.index && n.egg ? { ...n, egg: { ...n.egg, readyAtMs: nowMs } } : n) }
       if (item.target === 'construction') {
-        return completeConstruction({ ...s, constructions: at(s.constructions) }, item.index, c, nowMs)
+        return completeConstruction({ ...s, constructions: at(s.constructions) }, item.index, c, nowMs, preset)
       }
       if (item.target === 'hatchery') return { ...s, hatchery: at(s.hatchery) }
       return { ...s, farms: at(s.farms) }
     }
-    case 'nest': return { ...s, nests: [...s.nests, { egg: null, level: 1, placement: item.placement }] }
     case 'foodPack': return { ...s, food: s.food + FOOD_PACK }
-    case 'levelUp': {
-      const collected = collectDragonHome(s, item.dragonId, c, nowMs)
-      return { ...collected, dragons: collected.dragons.map(d => d.id === item.dragonId ? { ...d, level: d.level + 1 } : d) }
+    case 'habitatL5': {
+      // A new level changes the cap, so Gold accrued so far is collected first.
+      const collected = collectHabitat(s, item.habitatId, c, nowMs, preset)
+      return { ...collected, habitats: collected.habitats.map(h => h.id === item.habitatId ? { ...h, level: HABITAT_MAX_LEVEL } : h) }
     }
-    case 'oddsBoost': return { ...s, oddsBoosts: s.oddsBoosts + 1 }
-    case 'hoard': return { ...s, hoardLevel: s.hoardLevel + 1, hoardPlacement: s.hoardLevel === 0 ? item.placement! : s.hoardPlacement }
+    case 'farmL5':
+      return { ...s, farms: s.farms.map((f, i) => i === item.index ? { ...f, level: FARM_MAX_LEVEL } : f) }
+    case 'goldenAerie':
+      return {
+        ...s,
+        habitats: [...s.habitats, { id: `h${s.nextId}`, element: 'aerie', level: HABITAT_MAX_LEVEL, lastCollectedMs: nowMs, placement: item.placement }],
+        nextId: s.nextId + 1,
+      }
   }
 }
 
@@ -88,5 +77,5 @@ export const buy: Handler<'buy'> = (s, a, ctx) => {
   if (error) return failure(error)
   const microUsd = priceMicroUsd(a.item, s, ctx.nowMs)
   if (microUsd === null) return failure('NOT_FOUND')
-  return success(applyItem(a.item, s, ctx.nowMs, ctx.catalog), [{ type: 'charge', microUsd }])
+  return success(applyItem(a.item, s, ctx.nowMs, ctx.catalog, ctx.preset), [{ type: 'charge', microUsd }])
 }

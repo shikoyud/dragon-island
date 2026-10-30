@@ -24,7 +24,7 @@ const offer: Offer = { offerId: 'offer-1', opponent: bot, seedHex: SEED_HEX }
 
 function harness(state: PlayerState) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  qc.setQueryData(ME_KEY, { playerId: 'p1', address: '0xabc', state, balanceWei: 0n, earningUnlocked: false, banned: false, season: null })
+  qc.setQueryData(ME_KEY, { playerId: 'p1', address: '0xabc', state, balanceWei: 0n, earningUnlocked: false, banned: false })
   sessionStore.set({ token: 't', playerId: 'p1', address: '0xabc' })
   const action = vi.fn(async () => ({ state, effects: [], battle: undefined }))
   const api = { action, offers: vi.fn(async () => ({ offers: [offer] })) } as unknown as Api
@@ -34,9 +34,9 @@ function harness(state: PlayerState) {
   return { wrapper, action, qc }
 }
 
-// Fire is ×2 against nature, so a fire L20 team one-shots the nature L1 bots (water would be ×0.5).
-const fireTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'fire', level, habitatId: 'h1' }))
-const s8: PlayerState = { ...newPlayer(0), level: 8, dragons: fireTeam(20), defenceTeam: TEAM }
+// Flame is ×2 against nature, so a flame L20 team one-shots the nature L1 bots (sea would be ×0.5).
+const flameTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))
+const s8: PlayerState = { ...newPlayer(0), level: 8, dragons: flameTeam(20), defenceTeam: TEAM }
 
 describe('useBattle', () => {
   it('previews with the offer seed, offers only legal moves, and submits exactly the chosen list', async () => {
@@ -44,14 +44,14 @@ describe('useBattle', () => {
     const { result } = renderHook(() => useBattle(), { wrapper })
     act(() => result.current.startPvp(offer, TEAM))
     expect(result.current.preview?.next).toEqual({ side: 'attacker', slot: 0 })
-    expect(result.current.legalMoves()).toHaveLength(6) // 2 moves (fire, Strike) × 3 living targets
+    expect(result.current.legalMoves()).toHaveLength(6) // 2 moves (flame, Strike) × 3 living targets
     act(() => result.current.choose(0, 0))
     act(() => result.current.choose(0, 1))
     expect(result.current.legalMoves().every(m => m.target === 2)).toBe(true)
     act(() => result.current.choose(0, 2))
     const done = result.current.preview!.done!
     expect(done.ok && done.winner).toBe('attacker')
-    const local = simulateBattle(three('fire', 20), bot.team, [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }], createRng(battleSeed32(SEED_HEX)), result.current.catalog)
+    const local = simulateBattle(three('flame', 20), bot.team, [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }], createRng(battleSeed32(SEED_HEX)), result.current.catalog)
     expect(done).toEqual(local)
     await act(async () => { await result.current.submit() })
     expect(action).toHaveBeenCalledWith({ type: 'pvpBattle', offerId: 'offer-1', team: TEAM, moves: [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }] }, expect.any(String))
@@ -80,13 +80,13 @@ describe('BattlePanel', () => {
     render(<Host />, { wrapper })
     const submit = await screen.findByRole('button', { name: /submit/i })
     expect(submit).toBeDisabled()
-    await userEvent.click(screen.getByRole('button', { name: /^fire$/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^flame$/i }))
     await userEvent.click(screen.getByRole('button', { name: /target 1/i }))
-    // slot 0 is now KO'd (fire L20 one-shots nature L1)
+    // slot 0 is now KO'd (flame L20 one-shots nature L1)
     expect(screen.getByRole('button', { name: /target 1/i })).toBeDisabled()
-    await userEvent.click(screen.getByRole('button', { name: /^fire$/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^flame$/i }))
     await userEvent.click(screen.getByRole('button', { name: /target 2/i }))
-    await userEvent.click(screen.getByRole('button', { name: /^fire$/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^flame$/i }))
     await userEvent.click(screen.getByRole('button', { name: /target 3/i }))
     expect(screen.getByRole('button', { name: /submit/i })).toBeEnabled()
     expect(screen.getByText(/you win/i)).toBeInTheDocument()

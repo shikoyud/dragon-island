@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
-import { openPanel, resetPlayer, signIn, waterTeam } from './helpers'
+import { openPanel, resetPlayer, signIn, seaTeam } from './helpers'
 
 test('clears campaign stage 1 and gets offers in the arena', async ({ page, request }) => {
   page.on('pageerror', e => console.log('PAGEERROR', e.message))
   await signIn(page)
-  await resetPlayer(request, { level: 8, dragons: waterTeam(20), defenceTeam: ['d1', 'd2', 'd3'] })
+  await resetPlayer(request, { level: 8, dragons: seaTeam(20), defenceTeam: ['d1', 'd2', 'd3'] })
   await page.reload()
 
   // Campaign: stage 1 is three level-3 commons; a level-20 team wins whatever moves it picks.

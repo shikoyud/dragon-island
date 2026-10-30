@@ -67,7 +67,7 @@ export async function verifyAndLogin(
       // Deposits or entries made before this wallet ever signed in.
       await applyPendingEvents(tx, id, address, clock)
     }
-    // Spec §16: the whole origin history feeds the referral checks, not just the latest sign-in.
+    // The whole origin history is kept for abuse review, not just the latest sign-in.
     await tx
       .insert(signInOrigins)
       .values({ playerId: id, ipHash: origin.ipHash ?? '', deviceHash: origin.deviceHash ?? '', firstSeenAt: new Date(clock()) })

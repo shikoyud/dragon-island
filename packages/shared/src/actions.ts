@@ -1,14 +1,14 @@
-import { DECORATIONS, ISLAND_ORDER, type Action, type DecorationId, type IslandId } from '@wyrmhaven/game-core'
+import { CROP_IDS, DECORATIONS, ELEMENTS, ISLAND_ORDER, MAX_DRAGON_LEVEL, MAX_ROUNDS, TEAM_SIZE, type Action, type CropId, type DecorationId, type Element, type IslandId } from '@wyrmhaven/game-core'
 import { z } from 'zod'
 
 // Mirrors game-core's isValidAction: the client sends JSON, this is the wire-level shape check.
 const id = z.string().min(1)
 const index = z.number().int().min(0)
-const level = z.number().int().min(1).max(30)
-const elementSchema = z.enum(['fire', 'water', 'earth', 'nature', 'electric', 'ice', 'metal', 'dark', 'light'])
+const level = z.number().int().min(1).max(MAX_DRAGON_LEVEL)
+const elementSchema = z.enum(ELEMENTS as unknown as [Element, ...Element[]])
 const coord = z.number().int().min(0).max(63)
 const decorationSchema = z.custom<DecorationId>(v => typeof v === 'string' && Object.hasOwn(DECORATIONS, v))
-const cropSchema = z.enum(['sprout', 'bushel', 'harvest', 'bounty'])
+const cropSchema = z.enum(CROP_IDS as [CropId, ...CropId[]])
 
 export const placementSchema = z.object({
   island: z.enum(ISLAND_ORDER as unknown as [IslandId, ...IslandId[]]),
@@ -18,7 +18,6 @@ export const placementSchema = z.object({
 })
 const placeableSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('habitat'), element: elementSchema }),
-  z.object({ kind: z.literal('nexus') }),
   z.object({ kind: z.literal('farm') }),
   z.object({ kind: z.literal('decoration'), decoration: decorationSchema }),
 ])
@@ -33,21 +32,19 @@ const movableRefSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('farm'), index }),
   z.object({ type: z.literal('nest'), index }),
   z.object({ type: z.literal('hatchery') }),
-  z.object({ type: z.literal('hoard') }),
   z.object({ type: z.literal('decoration'), id }),
 ])
 
 export const teamIdsSchema = z.tuple([id, id, id])
 export const playerMoveSchema = z.object({ move: index, target: index })
-const movesSchema = z.array(playerMoveSchema).max(90)
+const movesSchema = z.array(playerMoveSchema).max(MAX_ROUNDS * TEAM_SIZE)
 
 export const storeItemSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('skip'), target: z.enum(['nest', 'hatchery', 'farm', 'construction']), index }),
-  z.object({ kind: z.literal('nest'), placement: placementSchema }),
   z.object({ kind: z.literal('foodPack') }),
-  z.object({ kind: z.literal('levelUp'), dragonId: id }),
-  z.object({ kind: z.literal('oddsBoost') }),
-  z.object({ kind: z.literal('hoard'), placement: placementSchema.optional() }),
+  z.object({ kind: z.literal('habitatL5'), habitatId: id }),
+  z.object({ kind: z.literal('farmL5'), index }),
+  z.object({ kind: z.literal('goldenAerie'), placement: placementSchema }),
 ])
 
 export const opponentSnapshotSchema = z.object({
@@ -75,7 +72,6 @@ const common = [
   z.object({ type: z.literal('startBreed'), parentA: id, parentB: id }),
   z.object({ type: z.literal('collectEgg'), nest: index }),
   z.object({ type: z.literal('hatch'), slot: index }),
-  z.object({ type: z.literal('sellGold'), gold: z.number() }),
   z.object({ type: z.literal('buy'), item: storeItemSchema }),
   z.object({ type: z.literal('setDefenceTeam'), dragonIds: teamIdsSchema }),
   z.object({ type: z.literal('pveBattle'), stage: z.number().int(), team: teamIdsSchema, moves: movesSchema }),

@@ -1,9 +1,10 @@
+import type { Element } from '@wyrmhaven/game-core'
 import { createContext, useContext } from 'react'
 import type { Sprite } from '../art/types'
 
 export type IconName =
-  | 'food' | 'gold' | 'dris' | 'xp' | 'timer' | 'build' | 'map' | 'season' | 'leaderboard' | 'referral' | 'settings'
-  | 'dragons' | 'breed' | 'battle' | 'hoard' | 'store' | 'admin' | 'quests'
+  | 'food' | 'gold' | 'dris' | 'xp' | 'timer' | 'build' | 'map' | 'settings'
+  | 'dragons' | 'breed' | 'battle' | 'store' | 'admin' | 'quests' | 'wings' | 'inbox'
 
 /** HUD art from the manifest (`art.hud`), keyed `icon.<name>.16` / `icon.<name>.32`; provided once by the App. */
 export const HudArtContext = createContext<Record<string, Sprite>>({})
@@ -23,27 +24,38 @@ const GLYPHS: Record<IconName, string[]> = {
   timer: ['.kkkkkkkkkk.', '.kWWWWWWWWk.', '..kYYYYYYk..', '...kYYYYk...', '....kYYk....', '.....kk.....', '....kWWk....', '...kWYYWk...', '..kYYYYYYk..', '.kWWWWWWWWk.', '.kkkkkkkkkk.', '............'],
   build: ['............', '..kkkkkk....', '.kSSSSSSk...', '.kSssSSSk...', '..kkkkSSk...', '.....kNk....', '....kNk.....', '...kNk......', '..kNk.......', '.kNk........', '.kk.........', '............'],
   map: ['............', '.kkkkkkkkkk.', 'kTTkTTTTkTTk', 'kTTkTGTTkTTk', 'kTTkGGGTkTTk', 'kTTkTGRTkTTk', 'kTTkTTRTkTTk', 'kTTkTTTTkTTk', 'kTTkTTTTkTTk', '.kkkkkkkkkk.', '............', '............'],
-  season: ['.kk.........', '.kWk........', '.kWkkkkkkk..', '.kWkRRRRRRk.', '.kWkRRYRRRk.', '.kWkRYYYRRk.', '.kWkRRYRRRk.', '.kWkRRRRRRk.', '.kWkRRkkRRk.', '.kWkRk..kRk.', '.kWkk....kk.', '.kWk........'],
-  leaderboard: ['............', '.kkkkkkkkkk.', 'kYkYYYYYYkYk', 'kYkYYyYYYkYk', '.kkYYyYYYkk.', '...kYYYYk...', '....kYYk....', '.....kk.....', '....kYYk....', '...kkkkkk...', '...kNNNNk...', '...kkkkkk...'],
-  referral: ['............', '..kk....kk..', '.kKKk..kKKk.', '.kKKk..kKKk.', '..kk....kk..', '.kVVk..kGGk.', 'kVVVVkkGGGGk', 'kVVVVkkGGGGk', 'kVVVVkkGGGGk', '.kkkk..kkkk.', '............', '............'],
   settings: ['....kkkk....', '..k.kSSk.k..', '.kSkkSSkkSk.', '..kSSSSSSk..', 'kkSSSkkSSSkk', 'kSSSk..kSSSk', 'kSSSk..kSSSk', 'kkSSSkkSSSkk', '..kSSSSSSk..', '.kSkkSSkkSk.', '..k.kSSk.k..', '....kkkk....'],
   dragons: ['............', '..k.....k...', '.kGk...kGk..', '.kGGkkkGGk..', '..kGGGGGGk..', '.kGWkGGGGGkk', 'kGGkkGGGGGGk', 'kGGGGGGGkkk.', '.kRRkGGGGk..', '..kkkGGGGk..', '.....kkkk...', '............'],
   breed: ['....kk.kk...', '...kRRkRRk..', '...kRRRRRk..', '....kRRRk...', '.....kRk....', '.kkk...kkk..', 'kEEEk.kEEEk.', 'kEeEk.kEeEk.', 'kEEEk.kEEEk.', 'kEEEk.kEEEk.', '.kkk...kkk..', '............'],
   battle: ['k..........k', 'kSk......kSk', '.kSk....kSk.', '..kSk..kSk..', '...kSkkSk...', '....kSSk....', '....kSSk....', '...kNkkNk...', '..kNk..kNk..', '.kYk....kYk.', 'kYk......kYk', 'kk........kk'],
-  hoard: ['............', '..kkkkkkkk..', '.kNNNNNNNNk.', 'kNNNNNNNNNNk', 'kkkkkYYkkkkk', 'kNNNkYYkNNNk', 'kNNNNkkNNNNk', 'kNNNNNNNNNNk', 'kNNNNNNNNNNk', 'kkkkkkkkkkkk', '............', '............'],
   store: ['............', 'kkkkkkkkkkkk', 'kRRWWRRWWRRk', 'kRRWWRRWWRRk', '.kkkkkkkkkk.', '.kTTTTTTTTk.', '.kTkkTTkkTk.', '.kTkWTTkWTk.', '.kTkkTTkkTk.', '.kTTTTTTTTk.', '.kkkkkkkkkk.', '............'],
   admin: ['............', '.kkkkkkkkkk.', '.kSSSSSSSSk.', '.kSSSkkSSSk.', '.kSSkYYkSSk.', '.kSSkYYkSSk.', '..kSSkkSSk..', '..kSSSSSSk..', '...kSSSSk...', '....kSSk....', '.....kk.....', '............'],
   quests: ['............', '.kkkkkkkkk..', '.kTTTTTTTk..', '.kTkkkkkTk..', '.kTTTTTTTk..', '.kTkkkkTTk..', '.kTTTTTGGk..', '.kTkkTGGTk..', '.kTGTGGTTk..', '.kTTGGTTTk..', '.kkkkkkkkk..', '............'],
+  wings: ['............', 'kk........kk', 'kBkk....kkBk', 'kBBBk..kBBBk', 'kBbBBkkBBbBk', '.kBbBBBBbBk.', '..kBBBBBBk..', '...kBBBBk...', '....kBBk....', '.....kk.....', '............', '............'],
+  inbox: ['............', '............', 'kkkkkkkkkkkk', 'kWkWWWWWWkWk', 'kWWkWWWWkWWk', 'kWWWkWWkWWWk', 'kWWWWkkWWWWk', 'kWWWWWWWWWWk', 'kWWWWWWWWWWk', 'kkkkkkkkkkkk', '............', '............'],
 }
 
-/** A HUD icon: the manifest's `icon.<name>.32` (or .16) when it exists, else a built-in pixel glyph. */
-export function Icon({ name, size = 24 }: { name: IconName; size?: number }) {
+/**
+ * A HUD icon: the manifest's `icon.<name>.32` (or .16) when it exists, else a built-in pixel glyph.
+ * Element names (`flame`, `war`, ...) are accepted too; with no art yet they draw a diamond in the element colour.
+ * Decorative unless `label` is given, which makes it an image with that accessible name.
+ */
+export function Icon({ name, size = 24, label }: { name: IconName | Element; size?: number; label?: string }) {
   const art = useContext(HudArtContext)
   const sprite = art[`icon.${name}.${size > 16 ? 32 : 16}`] ?? art[`icon.${name}.32`] ?? art[`icon.${name}.16`]
-  if (sprite?.src) return <img className="pixel hud-icon" src={sprite.src} width={size} height={size} alt="" aria-hidden="true" />
-  const rows = GLYPHS[name]
+  const a11y = label ? { role: 'img' as const, 'aria-label': label } : { 'aria-hidden': true as const }
+  if (sprite?.src) return <img className="pixel hud-icon" src={sprite.src} width={size} height={size} alt={label ?? ''} {...(label ? {} : a11y)} />
+  const rows = (GLYPHS as Partial<Record<string, string[]>>)[name]
+  if (!rows) {
+    return (
+      <svg className="hud-icon" width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" data-icon={name} {...a11y}>
+        <path d="M6 0 L12 6 L6 12 L0 6 Z" fill="#141627" />
+        <path d="M6 2 L10 6 L6 10 L2 6 Z" fill={`var(--el-${name})`} />
+      </svg>
+    )
+  }
   return (
-    <svg className="hud-icon" width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" aria-hidden="true" data-icon={name}>
+    <svg className="hud-icon" width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" data-icon={name} {...a11y}>
       {rows.flatMap((row, y) => [...row].map((ch, x) => (C[ch] ? <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} fill={C[ch]} /> : null)))}
     </svg>
   )

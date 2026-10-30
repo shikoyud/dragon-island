@@ -8,8 +8,8 @@ export const TEST_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
 /** Must match playwright.config.ts. */
 export const ADMIN_TOKEN = 'e2e-admin-token-0123456789abcdef-32'
 
-/** Creates/patches the test player on the E2E server; `sp` adds Season Points in the current season. */
-export async function grant(request: APIRequestContext, patch: { tokenWei?: string; earningUnlocked?: boolean; state?: Record<string, unknown>; sp?: number }) {
+/** Creates/patches the test player on the E2E server. */
+export async function grant(request: APIRequestContext, patch: { tokenWei?: string; earningUnlocked?: boolean; state?: Record<string, unknown> }) {
   const r = await request.post(`${SERVER}/e2e/grant`, { data: { address: TEST_ADDRESS, ...patch } })
   expect(r.ok(), await r.text()).toBe(true)
 }
@@ -68,10 +68,7 @@ export async function openPanel(page: Page, label: string) {
     case 'Arena':
       await main('Battle')
       return page.getByRole('tab', { name: label }).click()
-    case 'Season':
     case 'Map':
-    case 'Referral':
-    case 'Ranks':
       return side(label)
     case 'Wallet':
       return page.getByRole('button', { name: 'Settings' }).click()
@@ -84,5 +81,5 @@ export async function openPanel(page: Page, label: string) {
   }
 }
 
-export const fireTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'fire', level, habitatId: 'h1' }))
-export const waterTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'water', level, habitatId: 'h2' }))
+export const flameTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))
+export const seaTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'sea', level, feeds: 0, habitatId: 'h2' }))

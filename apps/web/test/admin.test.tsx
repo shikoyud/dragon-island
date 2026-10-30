@@ -6,9 +6,8 @@ import { Admin } from '../src/pages/Admin'
 
 const TOKEN = 'test-admin-token-0123456789abcdef-32'
 const PLAYER = {
-  player: { id: '11111111-2222-4333-8444-555555555555', address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', level: 3, trophies: 120, earningUnlocked: true, bannedAt: null, banReason: null, referrerId: null, createdAtMs: 0 },
+  player: { id: '11111111-2222-4333-8444-555555555555', address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', level: 3, trophies: 120, earningUnlocked: true, bannedAt: null, banReason: null, createdAtMs: 0 },
   balance: { tokenWei: '5000000000000000000', depositedWei: '0', withdrawnWei: '0', spentWei: '0', earnedWei: '2000000000000000000' },
-  sp: { total: 12, today: 12 },
 }
 
 function fakeAdmin(over: Partial<AdminApi> = {}): AdminApi {
@@ -17,12 +16,8 @@ function fakeAdmin(over: Partial<AdminApi> = {}): AdminApi {
     playerByAddress: vi.fn(async () => PLAYER),
     ban: vi.fn(async () => ({ ok: true as const })),
     unban: vi.fn(async () => ({ ok: true as const })),
-    seasonSummary: vi.fn(async () => ({ season: { id: 1, startsAtMs: 0, endsAtMs: 1, commitHash: '0x', revealedSecret: null }, closedAt: null, inflows: { totalWei: '10', bySource: { spend: '10' } }, poolWei: '3', standingsCount: 1, prizesPaidWei: '0' })),
-    closeSeason: vi.fn(async () => ({ closed: [1] })),
-    revealSeason: vi.fn(async () => ({ seasonId: 1, secret: '0x' })),
-    recordInflow: vi.fn(async () => ({ ok: true as const, seasonId: 1 })),
     setPrice: vi.fn(async () => ({ ok: true as const, microUsdPerToken: '50000' })),
-    runJob: vi.fn(async () => ({ job: 'seasonClose', result: { closed: [], busy: false } })),
+    runJob: vi.fn(async () => ({ job: 'game', result: { ok: true } })),
     betaCount: vi.fn(async () => ({ count: 4 })),
     betaAllow: vi.fn(async () => ({ added: 2 })),
     stats: vi.fn(async () => ({ players: 1, earningUnlocked: 1, banned: 0, actions24h: 0, openVouchers: 0 })),
@@ -61,22 +56,6 @@ describe('Admin page', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('"ok": true')
   })
 
-  it('closes a season only after confirming', async () => {
-    sessionStorage.setItem('dris.admin', TOKEN)
-    const api = fakeAdmin()
-    render(<Admin makeApi={() => api} />)
-    await userEvent.click(await screen.findByRole('tab', { name: /season/i }))
-    await userEvent.type(screen.getByLabelText(/season id/i), '1')
-    await userEvent.click(screen.getByRole('button', { name: /load/i }))
-    await screen.findByText(/pool/i)
-    await userEvent.click(screen.getByRole('button', { name: /close now/i }))
-    expect(api.closeSeason).not.toHaveBeenCalled()
-    await userEvent.click(screen.getByRole('button', { name: /yes, close/i }))
-    await waitFor(() => expect(api.closeSeason).toHaveBeenCalledWith(1))
-    expect(await screen.findByRole('status')).toHaveTextContent('"closed"') // reply stays under the buttons
-    await waitFor(() => expect(api.seasonSummary).toHaveBeenCalledTimes(2)) // summary refreshed
-  })
-
   it('createAdminApi sends the token header to the admin routes', async () => {
     const fetchImpl = vi.fn(async () => new Response('{"ok":true}', { status: 200, headers: { 'content-type': 'application/json' } }))
     const api = createAdminApi('/api', TOKEN, fetchImpl as unknown as typeof fetch)
@@ -97,8 +76,8 @@ describe('Admin page', () => {
     const b = '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
     await userEvent.click(box)
     await userEvent.paste(`position,handle,wallet,element
-1,a,${a},fire
-2,b,,water
+1,a,${a},flame
+2,b,,sea
 3,c,${b},ice
 `)
     await userEvent.click(screen.getByRole('button', { name: /allow wallets/i }))

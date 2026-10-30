@@ -1,21 +1,21 @@
 import { LAUNCH_CATALOG } from '@wyrmhaven/game-core'
 import { describe, expect, it, vi } from 'vitest'
 import { artSetFromManifest } from '../src/art/fromManifest'
-import { animKey, artEntries, playOrStill, textureKey } from '../src/art/phaserLoader'
+import { animKey, artEntries, isSheet, playOneShot, playOrStill, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 
 describe('artEntries', () => {
   it('flattens every slot with a texture key and a fallback slot', () => {
     const rows = artEntries(FALLBACK_ART)
     const keys = rows.map(r => r.key)
-    expect(keys).toContain(textureKey('egg.fire'))
-    expect(keys).toContain(textureKey('dragon.water'))
-    expect(keys).toContain(textureKey('building.hoard'))
-    expect(keys).toContain(textureKey('crop.bounty'))
+    expect(keys).toContain(textureKey('egg.flame'))
+    expect(keys).toContain(textureKey('dragon.sea'))
+    expect(keys).not.toContain(textureKey('building.hoard'))
+    expect(keys).toContain(textureKey('crop.warlordPepper'))
     expect(keys).toContain(textureKey('island.base'))
     expect(new Set(keys).size).toBe(keys.length)
-    // base: 9 eggs + 9 hatchlings + 9 dragons + 9 habitats + 9 icons + ...; plus nexus, 15 decorations, 5 obstacles, 6 map icons, locked + sign; was: 3 buildings + 4 crops + hoard + 9 icons + 3 ui + island
-    expect(rows).toHaveLength(9 * 5 + 3 + 4 + 1 + 3 + 1 + 1 + 15 + 5 + 6 + 2 + 2) // + fx.construction, fx.hatch
+    // base: 10 eggs + 10 hatchlings + 10 dragons + 10 habitats + 10 icons + ...; plus nexus, 15 decorations, 5 obstacles, 6 map icons, locked + sign; was: 3 buildings + 4 crops + 10 icons + 3 ui + island
+    expect(rows).toHaveLength(10 * 5 + 3 + 6 + 3 + 1 + 1 + 15 + 5 + 6 + 2 + 3) // + fx.construction, fx.hatch, fx.coins
     expect(rows.find(r => r.key === textureKey('dragon.ice'))!.element).toBe('ice')
     expect(rows.find(r => r.key === textureKey('egg.dark'))!.slot).toBe('egg')
   })
@@ -47,23 +47,66 @@ function stubSprite(existing = false) {
 describe('playOrStill', () => {
   it('shows frame 0 and never animates for static sheets or reduced motion', () => {
     const a = stubSprite()
-    playOrStill(a.sprite, 'art:egg.fire', 1, 0, false)
-    expect(a.raw.setTexture).toHaveBeenCalledWith('art:egg.fire', 0)
+    playOrStill(a.sprite, 'art:egg.flame', 1, 0, false)
+    expect(a.raw.setTexture).toHaveBeenCalledWith('art:egg.flame', 0)
     expect(a.raw.play).not.toHaveBeenCalled()
     const b = stubSprite()
-    playOrStill(b.sprite, 'art:egg.fire', 6, 8, true)
+    playOrStill(b.sprite, 'art:egg.flame', 6, 8, true)
     expect(b.raw.play).not.toHaveBeenCalled()
     expect(b.raw.anims.stop).toHaveBeenCalled()
   })
 
   it('creates the idle animation once and plays it', () => {
     const a = stubSprite(false)
-    playOrStill(a.sprite, 'art:egg.fire', 6, 8, false)
-    expect(a.create).toHaveBeenCalledWith(expect.objectContaining({ key: animKey('art:egg.fire'), frameRate: 8, repeat: -1 }))
-    expect(a.raw.play).toHaveBeenCalledWith(animKey('art:egg.fire'))
+    playOrStill(a.sprite, 'art:egg.flame', 6, 8, false)
+    expect(a.create).toHaveBeenCalledWith(expect.objectContaining({ key: animKey('art:egg.flame'), frameRate: 8, repeat: -1 }))
+    expect(a.raw.play).toHaveBeenCalledWith(animKey('art:egg.flame'))
     const b = stubSprite(true)
-    playOrStill(b.sprite, 'art:egg.fire', 6, 8, false)
+    playOrStill(b.sprite, 'art:egg.flame', 6, 8, false)
     expect(b.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('playOneShot', () => {
+  const coins = { src: '/art/v1/fx-coins.png', w: 32, h: 32, frames: 8, fps: 12 }
+  const stub = (exists = false) => {
+    const handlers: Record<string, () => void> = {}
+    const create = vi.fn()
+    const raw = {
+      scene: { anims: { exists: () => exists, create, generateFrameNumbers: (_: string, o: { start: number; end: number }) => [o.start, o.end] } },
+      play: vi.fn(() => raw),
+      once: vi.fn((e: string, h: () => void) => { handlers[e] = h; return raw }),
+      destroy: vi.fn(),
+    }
+    return { sprite: raw as unknown as Phaser.GameObjects.Sprite, raw, create, handlers }
+  }
+
+  it('plays a sheet once, on an animation apart from the looping idle one, and destroys the sprite at the end', () => {
+    const s = stub()
+    expect(playOneShot(s.sprite, 'art:fx.coins', coins)).toBe(true)
+    expect(s.create).toHaveBeenCalledWith(expect.objectContaining({ key: 'art:fx.coins:once', frameRate: 12, repeat: 0, frames: [0, 7] }))
+    expect(s.raw.play).toHaveBeenCalledWith('art:fx.coins:once')
+    expect('art:fx.coins:once').not.toBe(animKey('art:fx.coins'))
+    expect(s.raw.destroy).not.toHaveBeenCalled()
+    s.handlers.animationcomplete!()
+    expect(s.raw.destroy).toHaveBeenCalledOnce()
+  })
+
+  it('reuses the animation once created', () => {
+    const s = stub(true)
+    playOneShot(s.sprite, 'art:fx.coins', coins)
+    expect(s.create).not.toHaveBeenCalled()
+  })
+
+  it('leaves a still alone and says so, so the caller can use its tween', () => {
+    const s = stub()
+    expect(playOneShot(s.sprite, 'art:fx.coins', { ...coins, frames: 1, fps: 0 })).toBe(false)
+    expect(s.raw.play).not.toHaveBeenCalled()
+  })
+
+  it('isSheet tells a sheet from a still or the drawn fallback', () => {
+    expect(isSheet(coins)).toBe(true)
+    expect(isSheet(FALLBACK_ART.fx.coins)).toBe(false)
   })
 })
 

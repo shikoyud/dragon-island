@@ -3,7 +3,6 @@ import type { ChainClient, VaultLog } from '../chain/client'
 import type { Clock } from '../clock'
 import type { Db, Tx } from '../db/client'
 import { chainEvents, indexerState, players, vouchers } from '../db/schema'
-import { recordInflow } from './inflows'
 import { creditDeposit, forceDebit } from './ledger'
 
 /** indexer_state row the vault indexer advances (read by the chain watch). */
@@ -81,14 +80,10 @@ async function applyToPlayer(tx: Tx, playerId: string, log: VaultLog, clock: Clo
     case 'Deposited': {
       const n = (k: string) => BigInt(log.args[k] ?? '0')
       await creditDeposit(tx, playerId, n('credited'), log.txHash)
-      // Spec §13: 2% fee, 1% burned and 1% kept by the vault = amount − credited − burned.
-      await recordInflow(tx, clock, 'depositFee', n('amount') - n('credited') - n('burned'), `${log.txHash}:${log.logIndex}`)
       return
     }
     case 'Claimed': {
       const n = (k: string) => BigInt(log.args[k] ?? '0')
-      // Spec §13: 5% fee, 2.5% burned and 2.5% kept = gross − net − burned.
-      await recordInflow(tx, clock, 'claimFee', n('gross') - n('net') - n('burned'), `${log.txHash}:${log.logIndex}`)
       const cumulative = n('cumulative')
       const [v] = await tx
         .select()

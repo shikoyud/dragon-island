@@ -8,7 +8,7 @@ import { ApiProvider } from '../src/api/ApiProvider'
 import { ApiError, type Api } from '../src/api/client'
 import { sessionStore } from '../src/api/session'
 import { VaultProvider, type VaultAdapter } from '../src/chain/vault'
-import { StorePanel } from '../src/panels/StorePanel'
+import { ShopPanel } from '../src/panels/ShopPanel'
 import { WalletPanel } from '../src/panels/WalletPanel'
 import { useAction } from '../src/state/actions'
 import { useBattle } from '../src/state/battle'
@@ -22,7 +22,7 @@ const OTHER = '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC' as const
 
 function harness(state: PlayerState, api: Record<string, unknown>, wallet?: WalletAdapter, vault?: VaultAdapter) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  qc.setQueryData(ME_KEY, { playerId: 'p1', address: ADDRESS, state, balanceWei: 20n * E18, earningUnlocked: false, banned: false, season: null })
+  qc.setQueryData(ME_KEY, { playerId: 'p1', address: ADDRESS, state, balanceWei: 20n * E18, earningUnlocked: false, banned: false })
   sessionStore.set({ token: 't', playerId: 'p1', address: ADDRESS })
   const w: WalletAdapter = wallet ?? { address: ADDRESS, chainId: 46630, isConnected: true, connect: vi.fn(async () => {}), switchChain: vi.fn(async () => {}), signMessage: vi.fn(async () => '0x' as const) }
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -37,7 +37,7 @@ describe('C1: action errors surface as toasts from any panel', () => {
     const unhandled = vi.fn()
     process.on('unhandledRejection', unhandled)
     const h = harness(newPlayer(0), api)
-    h.render(<StorePanel nowMs={0} />)
+    h.render(<ShopPanel tab="store" nowMs={0} view="home" onPlace={() => {}} />)
     await userEvent.click(screen.getByRole('button', { name: /food pack/i }))
     const alerts = await screen.findAllByRole('alert')
     expect(alerts).toHaveLength(1)
@@ -60,7 +60,7 @@ describe('C1: action errors surface as toasts from any panel', () => {
 
 describe('I2/I8: money effects refresh /me and in-flight refetches cannot clobber newer state', () => {
   it('invalidates /me after a charge or payout effect', async () => {
-    const me = vi.fn(async () => ({ playerId: 'p1', address: ADDRESS, state: { ...newPlayer(0), food: 1_100 }, balanceWei: '10000000000000000000', earningUnlocked: false, banned: false, season: null }))
+    const me = vi.fn(async () => ({ playerId: 'p1', address: ADDRESS, state: { ...newPlayer(0), food: 1_100 }, balanceWei: '10000000000000000000', earningUnlocked: false, banned: false }))
     const api = { action: vi.fn(async () => ({ state: { ...newPlayer(0), food: 1_100 }, effects: [{ type: 'charge', microUsd: 500_000 }] })), me }
     const h = harness(newPlayer(0), api)
     const { result } = renderHook(() => ({ action: useAction(), me: useMe() }), { wrapper: h.wrapper }) // a mounted /me observer, as in the app
@@ -76,7 +76,7 @@ describe('I2/I8: money effects refresh /me and in-flight refetches cannot clobbe
     void h.qc.fetchQuery({ queryKey: ME_KEY, queryFn: () => (api.me as () => Promise<unknown>)() }).catch(() => {})
     const { result } = renderHook(() => useAction(), { wrapper: h.wrapper })
     await act(async () => { await result.current.run({ type: 'collectGold', habitatId: 'h1' }) })
-    resolveMe({ playerId: 'p1', address: ADDRESS, state: newPlayer(0), balanceWei: 0n, earningUnlocked: false, banned: false, season: null })
+    resolveMe({ playerId: 'p1', address: ADDRESS, state: newPlayer(0), balanceWei: 0n, earningUnlocked: false, banned: false })
     await new Promise(r => setTimeout(r, 10))
     expect((h.qc.getQueryData(ME_KEY) as { state: PlayerState }).state.gold).toBe(1_020)
   })
@@ -130,7 +130,7 @@ describe('C2/I1: deposit step machine, receipt waits and account guard', () => {
 describe('I4: a finished battle cannot be submitted twice', () => {
   it('disables Submit and Undo after a result', async () => {
     const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
-    const s8: PlayerState = { ...newPlayer(0), level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'fire', level: 20, habitatId: 'h1' })) }
+    const s8: PlayerState = { ...newPlayer(0), level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'flame', level: 20, feeds: 0, habitatId: 'h1' })) }
     const api = { action: vi.fn(async () => ({ state: s8, effects: [], battle: { ok: true, winner: 'attacker', rounds: 1, log: [], attacker: [1, 1, 1], defender: [0, 0, 0] } })) }
     const h = harness(s8, api)
     const { result } = renderHook(() => useBattle(), { wrapper: h.wrapper })

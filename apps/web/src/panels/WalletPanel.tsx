@@ -82,7 +82,7 @@ export function WalletPanel({ onClose }: { onClose?: () => void }) {
       {!me.data?.earningUnlocked && (
         <section aria-label="Enter" style={{ marginTop: 8 }}>
           <h3 style={{ fontSize: 12 }}>Unlock earning</h3>
-          <p><small>A one-time entry fee of about $1 in ETH ({vault.entryFeeWei !== null ? `${formatWei(vault.entryFeeWei)} ETH` : '…'}) unlocks gold sell-back, Season Points and prizes.</small></p>
+          <p><small>A one-time entry fee of about $1 in ETH ({vault.entryFeeWei !== null ? `${formatWei(vault.entryFeeWei)} ETH` : '…'}) unlocks token earning.</small></p>
           <ActionButton id="enter" primary disabled={Boolean(chainReason ?? busyReason) || vault.entryFeeWei === null} reason={chainReason ?? busyReason ?? 'Loading fee'} onClick={() => vault.entryFeeWei !== null && void send('enter', 'Enter', () => vault.enter(vault.entryFeeWei!))}>
             {busy === 'enter' ? 'Entering…' : 'Enter · pay the fee'}
           </ActionButton>

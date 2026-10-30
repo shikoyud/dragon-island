@@ -19,6 +19,8 @@ export interface GameArtSet {
   hatchling: Record<Element, Sprite>
   /** Keyed by species id. */
   dragon: Record<string, Sprite>
+  /** Juvenile (Lv 4-6) sheets by species id; only species the manifest has art for appear (R11), the rest use `dragon`. */
+  juvenile: Record<string, Sprite>
   habitat: Record<Element, Sprite>
   building: {
     nest: Sprite
@@ -27,9 +29,10 @@ export interface GameArtSet {
     cropStage: Record<CropId, Sprite>
     /** Ripe-stage sway loop per crop, when the manifest has one (else the last growth frame stays still). */
     cropSway: Partial<Record<CropId, Sprite>>
-    hoard: Sprite
     /** The all-element habitat on Dawnspire. */
     nexus: Sprite
+    /** The Golden Aerie's own sprite when the manifest has one; null = it reuses the Nexus sprite. */
+    goldenAerie: Sprite | null
   }
   elementIcon: Record<Element, Sprite>
   ui: { panel: Sprite; button: Sprite; cursor: Sprite }
@@ -40,7 +43,7 @@ export interface GameArtSet {
   /** Island map icons. */
   map: Record<IslandId, Sprite>
   /** Effects: a loop over buildings under construction, a one-shot burst where an egg hatches. */
-  fx: { construction: Sprite; hatch: Sprite }
+  fx: { construction: Sprite; hatch: Sprite; /** Gold coin burst, one-shot, on a tapped gold badge. */ coins: Sprite }
   /** Isometric ground tiles; null (or empty) until the art exists, and the island scene draws placeholders. */
   ground: { grass: Sprite[]; fog: Sprite | null; water: Sprite | null; cliffSw: Sprite | null; cliffSe: Sprite | null }
   /** HUD art present in the manifest (icon.<name>.16/.32, ui.*), by manifest key; absent keys use drawn placeholders. */
@@ -58,7 +61,6 @@ export const SLOT_SIZES = {
   hatchery: { w: 64, h: 64 },
   farmPlot: { w: 32, h: 32 },
   crop: { w: 16, h: 16 },
-  hoard: { w: 64, h: 64 },
   icon: { w: 16, h: 16 },
   panel: { w: 24, h: 24 },
   button: { w: 24, h: 16 },
@@ -69,6 +71,7 @@ export const SLOT_SIZES = {
   map: { w: 32, h: 32 },
   fxConstruction: { w: 32, h: 32 },
   fxHatch: { w: 48, h: 48 },
+  fxCoins: { w: 32, h: 32 },
 } as const
 
 export type SlotName = keyof typeof SLOT_SIZES

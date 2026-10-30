@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyTrophies, LEAGUES, leagueIndex, pvpWinGold, seasonResetTrophies, TROPHY } from '../src/trophy'
+import { applyTrophies, LEAGUES, leagueIndex, pvpWinGold, TROPHY } from '../src/trophy'
 
 describe('leagues', () => {
   it('maps trophies to league index', () => {
@@ -19,9 +19,5 @@ describe('trophies', () => {
     expect(TROPHY).toEqual({ attackWin: 30, attackLoss: -15, defenceWin: 5, defenceLoss: -10 })
     expect(applyTrophies(10, TROPHY.attackLoss)).toBe(0)
     expect(applyTrophies(10, TROPHY.attackWin)).toBe(40)
-  })
-
-  it('compresses trophies above 1000 at season reset', () => {
-    expect([0, 1000, 1001, 1500, 2001].map(seasonResetTrophies)).toEqual([0, 1000, 1000, 1250, 1500])
   })
 })

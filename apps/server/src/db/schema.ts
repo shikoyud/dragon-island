@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
-  bigint, bigserial, boolean, check, customType, index, integer, jsonb, pgTable, primaryKey, serial, text, timestamp, uniqueIndex, uuid,
+  bigint, bigserial, boolean, check, customType, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid,
 } from 'drizzle-orm/pg-core'
 
 /** Exact integer money: numeric(78,0) on disk, bigint in TypeScript. */
@@ -26,8 +26,7 @@ export const players = pgTable('players', {
   trophies: integer('trophies').notNull().default(0),
   defenceTeam: jsonb('defence_team'),
   level: integer('level').notNull().default(1),
-  /** Referral (spec §16): who referred this player, and sign-in hashes used to refuse self-referral. */
-  referrerId: uuid('referrer_id'),
+  /** Latest sign-in origin, salted hashes (full history is in sign_in_origins). */
   ipHash: text('ip_hash'),
   deviceHash: text('device_hash'),
   /** Last terms version the player accepted (config TERMS_VERSION); null = never. */
@@ -54,40 +53,20 @@ export const betaAllowlist = pgTable('beta_allowlist', {
   addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-export const seasons = pgTable('seasons', {
-  id: serial('id').primaryKey(),
-  startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
-  endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+/** The one game secret (A1): row 1. commit_hash is public; secret_hex stays hidden until revealed. */
+export const game = pgTable('game', {
+  id: integer('id').primaryKey(),
   secretHex: text('secret_hex').notNull(),
   commitHash: text('commit_hash').notNull(),
   revealed: boolean('revealed').notNull().default(false),
-  /** Set by the season-close job once prizes are credited and trophies reset. */
-  closedAt: timestamp('closed_at', { withTimezone: true }),
   createdAt: createdAt(),
-}, t => [uniqueIndex('seasons_starts_at_unique').on(t.startsAt)])
-
-/** Spec §12: every token inflow the vault keeps, per season; 30% of the season total is the prize pool. */
-export const vaultInflows = pgTable('vault_inflows', {
-  id: bigserial('id', { mode: 'bigint' }).primaryKey(),
-  seasonId: integer('season_id').notNull().references(() => seasons.id),
-  source: text('source').notNull(), // spend | depositFee | claimFee | buyback | forfeit
-  wei: wei('wei').notNull(),
-  ref: text('ref').notNull(),
-  createdAt: createdAt(),
-}, t => [uniqueIndex('vault_inflows_source_ref').on(t.source, t.ref), index('vault_inflows_season').on(t.seasonId)])
-
-export const seasonPrizes = pgTable('season_prizes', {
-  seasonId: integer('season_id').notNull().references(() => seasons.id),
-  playerId: uuid('player_id').notNull().references(() => players.id),
-  wei: wei('wei').notNull(),
-  tier: integer('tier'),
-  rank: integer('rank'),
-  createdAt: createdAt(),
-}, t => [primaryKey({ columns: [t.seasonId, t.playerId] })])
+  /** Dev default for the launch time (§1.5): set to created_at on first use; LAUNCH_AT config overrides it. */
+  launchAt: timestamp('launch_at', { withTimezone: true }).notNull().defaultNow(),
+})
 
 /**
- * Every (ip, device) pair a player has ever signed in from, as salted hashes ('' when unknown). Referral
- * checks compare whole histories, so moving to a VPN for one sign-in does not hide a shared device.
+ * Every (ip, device) pair a player has ever signed in from, as salted hashes ('' when unknown). Kept so
+ * abuse review can compare whole histories, so moving to a VPN for one sign-in does not hide a shared device.
  */
 export const signInOrigins = pgTable('sign_in_origins', {
   playerId: uuid('player_id').notNull().references(() => players.id),
@@ -96,22 +75,11 @@ export const signInOrigins = pgTable('sign_in_origins', {
   firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [primaryKey({ columns: [t.playerId, t.ipHash, t.deviceHash] })])
 
-/** Spec §16: 5% of a referred player's spend, paid to the referrer from the vault's share. */
-export const referralPayouts = pgTable('referral_payouts', {
-  id: bigserial('id', { mode: 'bigint' }).primaryKey(),
-  referrerId: uuid('referrer_id').notNull().references(() => players.id),
-  referredId: uuid('referred_id').notNull().references(() => players.id),
-  wei: wei('wei').notNull(),
-  ref: text('ref').notNull().unique(),
-  createdAt: createdAt(),
-}, t => [index('referral_payouts_referrer').on(t.referrerId)])
-
 export const actionLog = pgTable('action_log', {
   id: bigserial('id', { mode: 'bigint' }).primaryKey(),
   playerId: uuid('player_id').notNull().references(() => players.id),
   nonce: bigint('nonce', { mode: 'bigint' }).notNull(),
   idempotencyKey: text('idempotency_key').notNull(),
-  seasonId: integer('season_id').notNull().references(() => seasons.id),
   seedHex: text('seed_hex').notNull(),
   /** What the seed was derived from: `<player>:<nonce>` for actions, `battle:<id>` for battles (spec §17). */
   seedLabel: text('seed_label').notNull().default(''),
@@ -121,19 +89,7 @@ export const actionLog = pgTable('action_log', {
   createdAt: createdAt(),
 }, t => [
   uniqueIndex('action_log_player_key').on(t.playerId, t.idempotencyKey),
-  index('action_log_season_player_idx').on(t.seasonId, t.playerId, t.nonce),
 ])
-
-export const spLedger = pgTable('sp_ledger', {
-  id: bigserial('id', { mode: 'bigint' }).primaryKey(),
-  playerId: uuid('player_id').notNull().references(() => players.id),
-  seasonId: integer('season_id').notNull().references(() => seasons.id),
-  day: integer('day').notNull(),
-  source: text('source').notNull(),
-  points: integer('points').notNull(),
-  ref: text('ref').notNull().default(''),
-  createdAt: createdAt(),
-}, t => [uniqueIndex('sp_ledger_once').on(t.playerId, t.seasonId, t.day, t.source, t.ref)])
 
 export const battleOffers = pgTable('battle_offers', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -152,7 +108,7 @@ export const balances = pgTable('balances', {
   depositedWei: wei('deposited_wei').notNull().default(sql`0`),
   withdrawnWei: wei('withdrawn_wei').notNull().default(sql`0`),
   spentWei: wei('spent_wei').notNull().default(sql`0`),
-  /** Payouts and prizes; forfeited on ban. */
+  /** Earned tokens (M7 earning layer); forfeited on ban. */
   earnedWei: wei('earned_wei').notNull().default(sql`0`),
   updatedAt: updatedAt(),
 }, t => [check('balances_token_wei_nonneg', sql`${t.tokenWei} >= 0`)])

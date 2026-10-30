@@ -1,21 +1,28 @@
 import { getSpecies, type Catalog, type Species } from './catalog'
 import { pairKey, type Element } from './elements'
-import { RARITIES, RARITY, type Rarity } from './rarity'
+import { RARITIES, type Rarity } from './rarity'
 import type { Rng } from './rng'
 
 export interface Parent { speciesId: string; level: number }
-export interface BreedContext { boost: boolean; pity: Readonly<Record<string, number>> }
+export interface BreedContext { pity: Readonly<Record<string, number>> }
 export interface BreedRoll { speciesId: string; pairKey: string; rarePlus: boolean }
 
 export const RECIPE_MIN_LEVEL = 15
 export const RECIPE_CHANCE = 0.03
 export const PITY_THRESHOLD = 10
 
-export function tierWeights(scoreSum: number, boost: boolean): Record<Rarity, number> {
+/**
+ * Transitional (task M2 reworks breeding odds): rarity score S for the weights below. Uncommon scores 0 and has a
+ * flat weight so the four existing tiers keep their odds.
+ */
+const RARITY_SCORE: Record<Rarity, number> = { common: 0, uncommon: 0, rare: 1, epic: 2, legendary: 3 }
+
+export function tierWeights(scoreSum: number): Record<Rarity, number> {
   return {
     common: 70,
-    rare: 25 + 5 * scoreSum + (boost ? 10 : 0),
-    epic: 5 + 2 * scoreSum + (boost ? 5 : 0),
+    uncommon: 30,
+    rare: 25 + 5 * scoreSum,
+    epic: 5 + 2 * scoreSum,
     legendary: 1,
   }
 }
@@ -38,7 +45,7 @@ interface Tier { rarity: Rarity; weight: number; species: Species[] }
 
 /** Tiers present in the pool with their integer weights, after pity. */
 function tiersFor(pool: Species[], scoreSum: number, ctx: BreedContext, key: string): Tier[] {
-  const w = tierWeights(scoreSum, ctx.boost)
+  const w = tierWeights(scoreSum)
   let tiers = RARITIES
     .map(rarity => ({ rarity, weight: w[rarity], species: pool.filter(s => s.rarity === rarity) }))
     .filter(t => t.species.length > 0)
@@ -57,7 +64,7 @@ function recipeFor(a: Parent, b: Parent, c: Catalog): string | null {
 }
 
 function scoreSum(a: Species, b: Species): number {
-  return RARITY[a.rarity].score + RARITY[b.rarity].score
+  return RARITY_SCORE[a.rarity] + RARITY_SCORE[b.rarity]
 }
 
 /** Exact probabilities of each child species (non-zero entries only). */

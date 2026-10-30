@@ -1,7 +1,7 @@
 # Dragon Island — Claude Code guide
 
 Original dragon-breeding web game with play-and-earn on Robinhood Chain (Arbitrum Orbit L2).
-Design source of truth: `docs/superpowers/specs/2026-10-28-wyrmhaven-design.md`.
+Design source of truth: `docs/dragon-island-gdd.md` (the GDD) + `docs/superpowers/specs/2026-10-30-gdd-rulings.md`. Older specs in `docs/superpowers/specs/` are history.
 Research: `reports/Dragon breeding genre and RaidLords.md`. Background: `docs/reference/`.
 
 ## Hard rules

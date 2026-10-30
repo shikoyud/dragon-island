@@ -19,12 +19,12 @@ const fighter = (id: string, level: number, hp?: number): Combatant => {
 const win = (o: BattleOutcome) => { if (!o.ok) throw new Error(o.error); return o }
 
 describe('turnOrder', () => {
-  it('sorts living combatants by speed, attacker first on ties', () => {
-    const order = turnOrder([fighter('fire', 10), fighter('water', 5)], [fighter('ice', 10), fighter('nature', 1)])
+  it('orders living combatants by slot, attacker first (no SPD until M5)', () => {
+    const order = turnOrder([fighter('flame', 10), fighter('sea', 5)], [fighter('ice', 10), fighter('nature', 1)])
     expect(order).toEqual([
       { side: 'attacker', slot: 0 }, { side: 'defender', slot: 0 }, { side: 'attacker', slot: 1 }, { side: 'defender', slot: 1 },
     ])
-    expect(turnOrder([fighter('fire', 10, 0)], [fighter('ice', 1)])).toEqual([{ side: 'defender', slot: 0 }])
+    expect(turnOrder([fighter('flame', 10, 0)], [fighter('ice', 1)])).toEqual([{ side: 'defender', slot: 0 }])
   })
 })
 
@@ -32,15 +32,15 @@ describe('aiMove', () => {
   const actor = fighter('fn-rare', 5)
 
   it('picks the strongest multiplier, then the lowest HP, then the lowest slot', () => {
-    expect(aiMove(actor, [fighter('water', 1), fighter('nature', 1), fighter('nature', 1, 1)])).toEqual({ move: 0, target: 2 })
-    expect(aiMove(actor, [fighter('water', 1), fighter('water', 1), fighter('water', 1)])).toEqual({ move: 1, target: 0 })
-    expect(aiMove(actor, [fighter('water', 1, 0), fighter('water', 1), fighter('water', 1)])).toEqual({ move: 1, target: 1 })
+    expect(aiMove(actor, [fighter('sea', 1), fighter('nature', 1), fighter('nature', 1, 1)])).toEqual({ move: 0, target: 2 })
+    expect(aiMove(actor, [fighter('sea', 1), fighter('sea', 1), fighter('sea', 1)])).toEqual({ move: 1, target: 0 })
+    expect(aiMove(actor, [fighter('sea', 1, 0), fighter('sea', 1), fighter('sea', 1)])).toEqual({ move: 1, target: 1 })
   })
 })
 
 describe('isLegalMove', () => {
   const actor = fighter('fw-rare', 1)
-  const targets = [fighter('fire', 1, 0), fighter('fire', 1), fighter('fire', 1)]
+  const targets = [fighter('flame', 1, 0), fighter('flame', 1), fighter('flame', 1)]
 
   it('rejects KO’d targets, bad slots and bad move indexes', () => {
     expect(isLegalMove(actor, targets, { move: 0, target: 0 })).toBe(false)
@@ -53,15 +53,15 @@ describe('isLegalMove', () => {
 
 describe('simulateBattle', () => {
   it('lets a strong attacker sweep in one round', () => {
-    const o = win(simulateBattle(three('fire', 20), three('nature', 1), SWEEP, createRng(1), C))
+    const o = win(simulateBattle(three('flame', 20), three('nature', 1), SWEEP, createRng(1), C))
     expect(o.winner).toBe('attacker')
     expect(o.rounds).toBe(1)
     const atk = o.log.filter(e => e.side === 'attacker')
     expect(atk).toHaveLength(3)
     for (const e of atk) {
       expect(e.multiplier).toBe(2)
-      expect(e.damage).toBeGreaterThanOrEqual(126)
-      expect(e.damage).toBeLessThanOrEqual(154)
+      expect(e.damage).toBeGreaterThanOrEqual(3397)
+      expect(e.damage).toBeLessThanOrEqual(4152)
       expect(e.ko).toBe(true)
     }
     expect(o.log.filter(e => e.side === 'defender')).toHaveLength(0)
@@ -69,28 +69,48 @@ describe('simulateBattle', () => {
   })
 
   it('rejects missing and illegal moves with the index', () => {
-    expect(simulateBattle(three('fire', 20), three('nature', 1), [{ move: 0, target: 0 }], createRng(1), C))
+    expect(simulateBattle(three('flame', 20), three('nature', 1), [{ move: 0, target: 0 }], createRng(1), C))
       .toEqual({ ok: false, error: 'MISSING_MOVES', at: 1 })
     const twice = [{ move: 0, target: 0 }, { move: 0, target: 0 }, { move: 0, target: 1 }]
-    expect(simulateBattle(three('fire', 20), three('nature', 1), twice, createRng(1), C))
+    expect(simulateBattle(three('flame', 20), three('nature', 1), twice, createRng(1), C))
       .toEqual({ ok: false, error: 'ILLEGAL_MOVE', at: 1 })
   })
 
   it('lets the defender win and zeroes the losing side', () => {
-    const o = win(simulateBattle(three('fire', 1), three('fw-legend', 30), [], createRng(1), C, AI))
+    const o = win(simulateBattle(three('flame', 1), three('fw-legend', 30), [], createRng(1), C, AI))
     expect(o.winner).toBe('defender')
     expect(o.rounds).toBeLessThan(MAX_ROUNDS)
     expect(o.attacker).toEqual([0, 0, 0])
   })
 
   it('breaks mirror ties in favour of the attacker', () => {
-    const o = win(simulateBattle(three('fire', 1), three('fire', 1), [], createRng(1), C, AI))
+    const o = win(simulateBattle(three('flame', 1), three('flame', 1), [], createRng(1), C, AI))
     expect(o.winner).toBe('attacker')
     expect(o.defender).toEqual([0, 0, 0])
+    // Flame is 0x against flame, so both AIs fight the mirror with Strike.
+    for (const e of o.log) {
+      expect(e.move).toBe(1)
+      expect(e.multiplier).toBe(1)
+      expect(e.damage).toBeGreaterThan(0)
+    }
+  })
+
+  it('lets a player waste turns on a 0x move: no damage, and the battle still ends', () => {
+    const zero = Array.from({ length: 3 * MAX_ROUNDS }, () => ({ move: 0, target: 0 }))
+    const o = win(simulateBattle(three('flame', 40), three('flame', 40), zero, createRng(1), C))
+    expect(o.winner).toBe('defender')
+    const atk = o.log.filter(e => e.side === 'attacker')
+    expect(atk.length).toBeGreaterThan(0)
+    for (const e of atk) {
+      expect(e.multiplier).toBe(0)
+      expect(e.damage).toBe(0)
+      expect(e.ko).toBe(false)
+    }
+    expect(o.defender).toEqual(three('flame', 40).map(d => combatStats(d, C).hp))
   })
 
   it('hands the defender the win at the round cap', () => {
-    const o = win(simulateBattle(three('fire', 1), three('wall', 30), [], createRng(1), C, AI))
+    const o = win(simulateBattle(three('flame', 1), three('wall', 30), [], createRng(1), C, AI))
     expect(o.winner).toBe('defender')
     expect(o.rounds).toBeLessThanOrEqual(MAX_ROUNDS)
   })
