@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getSpecies } from '../src/catalog'
+import { getSpecies, isBasic, makeCatalog } from '../src/catalog'
 import { LAUNCH_CATALOG } from '../src/data/launch-catalog'
 import {
   PVE_MIN_PLAYER_LEVEL, PVE_REPLAYS_PER_DAY, PVE_STAGES, PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL,
@@ -23,7 +23,16 @@ describe('pve campaign', () => {
     expect(stageTeam(7, C).every(d => d.level === 9)).toBe(true)
     expect(stageTeam(25, C).every(d => getSpecies(C, d.speciesId).rarity === 'epic')).toBe(true)
     expect(stageTeam(15, C).every(d => getSpecies(C, d.speciesId).rarity === 'rare')).toBe(true)
-    expect(stageTeam(25, LAUNCH_CATALOG).every(d => getSpecies(LAUNCH_CATALOG, d.speciesId).rarity === 'common')).toBe(true)
+    const basicsOnly = makeCatalog([...LAUNCH_CATALOG.species.values()].filter(isBasic))
+    expect(stageTeam(25, basicsOnly).every(d => getSpecies(basicsOnly, d.speciesId).rarity === 'common')).toBe(true)
+  })
+
+  it('draws stage teams from the full catalog, hybrids included, never Legendaries (R24)', () => {
+    // Re-pinned in Task 1: the launch catalog now holds Epics, so stage 25 is no longer all Basics.
+    const rarities = (stage: number) => stageTeam(stage, LAUNCH_CATALOG).map(d => getSpecies(LAUNCH_CATALOG, d.speciesId).rarity)
+    expect(rarities(25).every(r => r === 'epic')).toBe(true)
+    expect(rarities(15).every(r => r === 'rare')).toBe(true)
+    for (let stage = 1; stage <= 30; stage++) expect(rarities(stage)).not.toContain('legendary')
   })
 
   it('pays first clears in full and replays a quarter of the gold', () => {

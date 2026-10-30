@@ -1,27 +1,17 @@
-import { ELEMENTS, pairKey, type Element } from './elements'
-import type { Rarity } from './rarity'
+import { ELEMENTS, STRONG_AGAINST, isOpposite } from './elements'
+import type { SpeciesRow } from './data/species-rows'
 
-export interface Species {
-  id: string
-  name: string
-  /** 1..3 elements; the first is primary. */
-  elements: readonly Element[]
-  rarity: Rarity
-  recipeOnly: boolean
-}
+export type { SpeciesRow } from './data/species-rows'
 
-export interface Recipe {
-  parents: readonly [string, string]
-  legendaryId: string
-}
+/** 1..3 elements; the first is primary. */
+export interface Species extends SpeciesRow {}
 
 export interface Catalog {
   species: ReadonlyMap<string, Species>
-  recipes: readonly Recipe[]
 }
 
-export function makeCatalog(species: Species[], recipes: Recipe[] = []): Catalog {
-  return { species: new Map(species.map(s => [s.id, s])), recipes }
+export function makeCatalog(species: readonly Species[]): Catalog {
+  return { species: new Map(species.map(s => [s.id, s])) }
 }
 
 export function getSpecies(c: Catalog, id: string): Species {
@@ -30,36 +20,37 @@ export function getSpecies(c: Catalog, id: string): Species {
   return s
 }
 
-/** Pool key for a species: pairKey of its element set (pure flame → 'flame+flame'). */
-export function speciesPairKey(s: Species): string {
-  const [a, b] = s.elements
-  return pairKey(a!, b ?? a!)
+export function isBasic(s: Species): boolean {
+  return s.elements.length === 1
 }
 
-/** Returns error codes; [] means the catalog satisfies the spec §5 rules. */
+/** §3.4 rule for a two-element hybrid: opposite pair = epic, counter pair = rare, else uncommon. */
+function gridRarity(a: Species['elements'][number], b: Species['elements'][number]): string {
+  if (isOpposite(a, b)) return 'epic'
+  if (STRONG_AGAINST[a].includes(b) || STRONG_AGAINST[b].includes(a)) return 'rare'
+  return 'uncommon'
+}
+
+/** Returns error codes; [] means the catalog satisfies GDD §3.3–3.4. */
 export function validateCatalog(c: Catalog): string[] {
   const errors: string[] = []
-  const tiers = new Set<string>()
+  const ordered = new Set<string>()
   for (const s of c.species.values()) {
     if (s.elements.length < 1 || s.elements.length > 3 || new Set(s.elements).size !== s.elements.length) {
       errors.push(`BAD_ELEMENTS:${s.id}`)
       continue
     }
-    if (s.rarity === 'legendary' && !s.recipeOnly) errors.push(`LEGENDARY_NOT_RECIPE:${s.id}`)
-    const tier = `${speciesPairKey(s)}:${s.rarity}`
-    if (tiers.has(tier)) errors.push(`DUPLICATE_TIER:${tier}`)
-    tiers.add(tier)
+    if (s.rarity === 'legendary') continue // Legendaries share element sets with grid rows
+    const key = s.elements.join('-')
+    if (ordered.has(key)) errors.push(`DUPLICATE_ELEMENTS:${key}`)
+    ordered.add(key)
+    if (s.elements.length === 2 && s.rarity !== gridRarity(s.elements[0]!, s.elements[1]!)) {
+      errors.push(`HYBRID_RARITY:${s.id}`)
+    }
   }
   for (const e of ELEMENTS) {
-    const pure = [...c.species.values()].some(s => s.elements.length === 1 && s.elements[0] === e && s.rarity === 'common' && !s.recipeOnly)
-    if (!pure) errors.push(`MISSING_PURE:${e}`)
-  }
-  for (const r of c.recipes) {
-    for (const id of [...r.parents, r.legendaryId]) {
-      if (!c.species.has(id)) errors.push(`UNKNOWN_RECIPE_SPECIES:${id}`)
-    }
-    const legend = c.species.get(r.legendaryId)
-    if (legend && (legend.rarity !== 'legendary' || !legend.recipeOnly)) errors.push(`RECIPE_NOT_LEGENDARY:${r.legendaryId}`)
+    const has = [...c.species.values()].some(s => isBasic(s) && s.elements[0] === e && s.rarity === 'common')
+    if (!has) errors.push(`MISSING_BASIC:${e}`)
   }
   return errors
 }

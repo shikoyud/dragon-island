@@ -7,8 +7,6 @@ export interface Parent { speciesId: string; level: number }
 export interface BreedContext { pity: Readonly<Record<string, number>> }
 export interface BreedRoll { speciesId: string; pairKey: string; rarePlus: boolean }
 
-export const RECIPE_MIN_LEVEL = 15
-export const RECIPE_CHANCE = 0.03
 export const PITY_THRESHOLD = 10
 
 /**
@@ -34,7 +32,7 @@ function sameSet(elements: readonly Element[], eA: Element, eB: Element): boolea
 }
 
 export function poolFor(eA: Element, eB: Element, a: Parent, b: Parent, c: Catalog): Species[] {
-  const pool = [...c.species.values()].filter(s => !s.recipeOnly && sameSet(s.elements, eA, eB))
+  const pool = [...c.species.values()].filter(s => s.rarity !== 'legendary' && sameSet(s.elements, eA, eB))
   if (pool.length > 0) return pool
   const parents = [getSpecies(c, a.speciesId)]
   if (b.speciesId !== a.speciesId) parents.push(getSpecies(c, b.speciesId))
@@ -55,14 +53,6 @@ function tiersFor(pool: Species[], scoreSum: number, ctx: BreedContext, key: str
   return tiers
 }
 
-/** Legendary id if the unordered parent pair matches a recipe and both are high enough. */
-function recipeFor(a: Parent, b: Parent, c: Catalog): string | null {
-  if (a.level < RECIPE_MIN_LEVEL || b.level < RECIPE_MIN_LEVEL) return null
-  const r = c.recipes.find(({ parents: [x, y] }) =>
-    (x === a.speciesId && y === b.speciesId) || (x === b.speciesId && y === a.speciesId))
-  return r ? r.legendaryId : null
-}
-
 function scoreSum(a: Species, b: Species): number {
   return RARITY_SCORE[a.rarity] + RARITY_SCORE[b.rarity]
 }
@@ -72,10 +62,7 @@ export function breedingOdds(a: Parent, b: Parent, ctx: BreedContext, c: Catalog
   const sa = getSpecies(c, a.speciesId), sb = getSpecies(c, b.speciesId)
   const odds: Record<string, number> = {}
   const add = (id: string, p: number) => { if (p > 0) odds[id] = (odds[id] ?? 0) + p }
-  const legendary = recipeFor(a, b, c)
-  let rest = 1
-  if (legendary) { add(legendary, RECIPE_CHANCE); rest -= RECIPE_CHANCE }
-  const pick = rest / (sa.elements.length * sb.elements.length)
+  const pick = 1 / (sa.elements.length * sb.elements.length)
   for (const eA of sa.elements) {
     for (const eB of sb.elements) {
       const tiers = tiersFor(poolFor(eA, eB, a, b, c), scoreSum(sa, sb), ctx, pairKey(eA, eB))
@@ -92,8 +79,6 @@ export function rollOffspring(a: Parent, b: Parent, ctx: BreedContext, c: Catalo
   const eA = sa.elements[rng.int(sa.elements.length)]!
   const eB = sb.elements[rng.int(sb.elements.length)]!
   const key = pairKey(eA, eB)
-  const legendary = recipeFor(a, b, c)
-  if (legendary && rng.next() < RECIPE_CHANCE) return { speciesId: legendary, pairKey: key, rarePlus: true }
   const tiers = tiersFor(poolFor(eA, eB, a, b, c), scoreSum(sa, sb), ctx, key)
   let roll = rng.int(tiers.reduce((n, t) => n + t.weight, 0))
   let tier = tiers[tiers.length - 1]!

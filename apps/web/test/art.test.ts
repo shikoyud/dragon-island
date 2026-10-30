@@ -154,8 +154,11 @@ describe('artSetFromManifest', () => {
     }
   })
 
-  it('has one dragon slot per catalog species', () => {
-    expect(Object.keys(art.dragon).sort()).toEqual([...LAUNCH_CATALOG.species.keys()].sort())
+  it('has a dragon slot per Basic, and per hybrid only when the manifest has its art', () => {
+    expect(Object.keys(art.dragon).sort()).toEqual(ELEMENTS.slice().sort())
+    const withHybrid = artSetFromManifest('v1', { assets: { 'dragon.terra-flame': { file: 'tf.png', w: 64, h: 64, frames: 1, fps: 0 } } }, LAUNCH_CATALOG)
+    expect(Object.keys(withHybrid.dragon)).toContain('terra-flame')
+    expect(Object.keys(withHybrid.dragon)).not.toContain('terra-sea')
     for (const e of ELEMENTS) expect(art.elementIcon[e]).toMatchObject({ w: 16, h: 16 })
   })
 

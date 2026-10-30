@@ -29,7 +29,7 @@ const clampLevel = (level: number) => Math.min(MAX_DRAGON_LEVEL, Math.max(1, lev
 /** Three picks (with replacement) from common/rare non-recipe species, in stable id order. */
 export function generateBotTeam(level: number, c: Catalog, rng: Rng): BattleDragonSpec[] {
   const pool = [...c.species.values()]
-    .filter(s => !s.recipeOnly && BOT_RARITIES.includes(s.rarity))
+    .filter(s => s.rarity !== 'legendary' && BOT_RARITIES.includes(s.rarity))
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   return Array.from({ length: MATCH_OFFERS }, () => ({ speciesId: pool[rng.int(pool.length)]!.id, level: clampLevel(level) }))
 }

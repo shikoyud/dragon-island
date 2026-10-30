@@ -170,7 +170,7 @@ describe('DragonPanel (B11)', () => {
   })
 
   it('names the element icons, primary first', () => {
-    const catalog = makeCatalog([{ id: 'steam', name: 'Steam', elements: ['flame', 'sea'], rarity: 'rare', recipeOnly: false }])
+    const catalog = makeCatalog([{ id: 'steam', name: 'Steam', elements: ['flame', 'sea'], rarity: 'rare' }])
     const { wrap } = harness(withD1({ speciesId: 'steam' }))
     wrap(<DragonPanel dragonId="d1" catalog={catalog} />)
     expect(screen.getAllByRole('img', { name: /^(flame|sea)$/i }).map(i => i.getAttribute('aria-label'))).toEqual(['flame', 'sea'])
@@ -207,7 +207,7 @@ describe('DragonPanel (B11)', () => {
   })
 
   it('lets a hybrid move into either of its elements, and hides Sell for a Legendary', () => {
-    const catalog = makeCatalog([{ id: 'steam', name: 'Steam', elements: ['flame', 'sea'], rarity: 'legendary', recipeOnly: true }])
+    const catalog = makeCatalog([{ id: 'steam', name: 'Steam', elements: ['flame', 'sea'], rarity: 'legendary' }])
     const s: PlayerState = {
       ...withD1({ speciesId: 'steam' }),
       habitats: [...base.habitats, habitat('h3', 'sea'), habitat('h4', 'terra')],

@@ -22,7 +22,7 @@ export function stageRarity(stage: number): Rarity {
 
 /** Fixed per stage (seeded by stage number); falls back to the best rarity the catalog has. */
 export function stageTeam(stage: number, c: Catalog): BattleDragonSpec[] {
-  const nonRecipe = [...c.species.values()].filter(s => !s.recipeOnly)
+  const nonRecipe = [...c.species.values()].filter(s => s.rarity !== 'legendary')
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   let rarityIndex = RARITIES.indexOf(stageRarity(stage))
   let pool = nonRecipe.filter(s => s.rarity === RARITIES[rarityIndex])

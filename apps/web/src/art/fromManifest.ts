@@ -30,7 +30,11 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     version,
     egg: perElement('egg', 'egg'),
     hatchling: perElement('hatchling', 'hatchling'),
-    dragon: Object.fromEntries([...catalog.species.keys()].map(id => [id, get(`dragon.${id}`, 'dragon')])),
+    // Basics always get a slot (drawn fallback if the art is missing); a hybrid or Legendary only when the manifest has
+    // art for it. dragonLook falls back to the flame sprite for the rest, so no empty fallback texture per hybrid (Task 11).
+    dragon: Object.fromEntries([...catalog.species.values()]
+      .filter(s => s.elements.length === 1 || manifest.assets[`dragon.${s.id}`])
+      .map(s => [s.id, get(`dragon.${s.id}`, 'dragon')])),
     juvenile: Object.fromEntries([...catalog.species.keys()].flatMap(id => (manifest.assets[`juvenile.${id}`] ? [[id, get(`juvenile.${id}`, 'dragon')]] : []))),
     habitat: perElement('habitat', 'habitat'),
     building: {

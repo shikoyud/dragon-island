@@ -13,10 +13,10 @@ const HOUR = 3_600_000
 const CLASSIC = { ...FLASH_14, goldMult: 1 }
 const PL = { island: 'home' as const, col: 0, row: 0, facing: 0 as const }
 const CAT = makeCatalog([
-  { id: 'terra', name: 'terra', elements: ['terra'], rarity: 'common', recipeOnly: false },
-  { id: 'war', name: 'war', elements: ['war'], rarity: 'common', recipeOnly: false },
-  { id: 'tw-rare', name: 'tw-rare', elements: ['terra', 'war'], rarity: 'rare', recipeOnly: false },
-], [])
+  { id: 'terra', name: 'terra', elements: ['terra'], rarity: 'common' },
+  { id: 'war', name: 'war', elements: ['war'], rarity: 'common' },
+  { id: 'tw-rare', name: 'tw-rare', elements: ['terra', 'war'], rarity: 'rare' },
+])
 
 /** A player with one habitat holding `n` Lv 5 Commons of `speciesId`, last collected at 0. */
 function holding(element: Habitat['element'], speciesId: string, n: number, level = 1): PlayerState {

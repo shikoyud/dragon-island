@@ -34,19 +34,8 @@ describe('breedingOdds', () => {
     expectOdds(breedingOdds(p('flame'), p('flame'), none, C), { flame: 1 })
   })
 
-  it('rolls the legendary recipe first at level 15', () => {
-    expectOdds(breedingOdds(p('fw-rare', 15), p('fw-epic', 15), none, C), {
-      'fw-legend': 0.03,
-      flame: 0.2425,
-      sea: 0.2425,
-      'fw-common': 0.97 * 0.5 * 70 / 121,
-      'fw-rare': 0.97 * 0.5 * 40 / 121,
-      'fw-epic': 0.97 * 0.5 * 11 / 121,
-    })
-  })
-
-  it('skips the recipe below level 15', () => {
-    expect(breedingOdds(p('fw-rare', 14), p('fw-epic', 15), none, C)).not.toHaveProperty('fw-legend')
+  it('never puts a Legendary in the pool (events arrive in Task 2)', () => {
+    expect(breedingOdds(p('fw-rare', 15), p('fw-epic', 15), none, C)).not.toHaveProperty('fw-legend')
   })
 })
 
