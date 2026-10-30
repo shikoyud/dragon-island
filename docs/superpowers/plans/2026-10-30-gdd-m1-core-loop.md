@@ -85,9 +85,9 @@ docs/art/gdd-m1-art-list.md  art for the PixelLab thread
 - Create: `docs/superpowers/specs/2026-10-30-gdd-rulings.md`, `docs/superpowers/plans/2026-10-30-gdd-roadmap.md`, `docs/superpowers/plans/2026-10-30-gdd-m1-core-loop.md` (copied from the project Library `gdd/` folder)
 - Modify: `CLAUDE.md` line 4 ("Design source of truth")
 
-- [ ] **Step 1: Copy the three documents into the repo paths above**
-- [ ] **Step 2: Edit `CLAUDE.md`**: replace the "Design source of truth" line with `Design source of truth: docs/dragon-island-gdd.md (the GDD) + docs/superpowers/specs/2026-10-30-gdd-rulings.md. Older specs in docs/superpowers/specs/ are history.`
-- [ ] **Step 3: Commit**
+- [x] **Step 1: Copy the three documents into the repo paths above**
+- [x] **Step 2: Edit `CLAUDE.md`**: replace the "Design source of truth" line with `Design source of truth: docs/dragon-island-gdd.md (the GDD) + docs/superpowers/specs/2026-10-30-gdd-rulings.md. Older specs in docs/superpowers/specs/ are history.`
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/dragon-island-gdd.md docs/superpowers CLAUDE.md
@@ -104,7 +104,7 @@ git commit -m "docs: adopt the Dragon Island GDD as the source of truth; rulings
 **Interfaces:**
 - Produces: `PlayerState` without `eligibleGold`, `hoardLevel`, `hoardPlacement`, `sell`, `ledger`, `earningUnlocked`, `oddsBoosts`; with `version: 2` (`STATE_VERSION = 2` exported from `state.ts`). `earnGold(s, amount)` (no `eligible` flag), `spendGold(s, amount)`. `StoreItem = { kind: 'skip'; target: SkipTarget; index: number } | { kind: 'foodPack' }`. `BreedContext = { pity }` (boost gone). `Action` without `sellGold`; `Effect` without `payout`. `OccupantRef`/`MovableRef` without `hoard`; `PlacementSubject` without `hoard` and `nest` purchase (nests are no longer bought: `MAX_NESTS` stays for M2 to replace).
 
-- [ ] **Step 1: Write the failing tests** in `test/state.test.ts`:
+- [x] **Step 1: Write the failing tests** in `test/state.test.ts`:
 
 ```ts
 it('new players carry the state version and no removed fields', () => {
@@ -118,11 +118,11 @@ it('new players carry the state version and no removed fields', () => {
 ```
 and in `test/economy-actions.test.ts`: `applyAction(s, { type: 'sellGold', gold: 1 } as never, ...)` returns `{ ok: false, error: 'INVALID_ACTION' }`; `buy` of `{ kind: 'oddsBoost' }`, `{ kind: 'levelUp', dragonId: 'd1' }`, `{ kind: 'nest', placement }`, `{ kind: 'hoard' }` each return `INVALID_ACTION`; `buy { kind: 'foodPack' }` still adds `FOOD_PACK` food with a `charge` effect of 500,000.
 
-- [ ] **Step 2: Run `pnpm --filter @wyrmhaven/game-core test`** — expected: the new tests fail; many old tests still pass.
-- [ ] **Step 3: Delete the files listed and remove every reference**: `sell`, `HOARD*`, `MICRO_USD_PER_GOLD`, `eligibleGold`, `earnGold(..., eligible)` third argument, `hoard` placement subject, `nest`/`levelUp`/`oddsBoost`/`hoard` store items and their `priceMicroUsd` cases, `seasonResetTrophies`, `prizes` exports, `layoutLegacyState`, `BreedContext.boost` and `tierWeights(scoreSum, boost)` → `tierWeights(scoreSum)`, `ActionError` values `EARNING_LOCKED | NO_HOARD | SELL_LIMIT_REACHED | MAX_NESTS`. Add `version: STATE_VERSION` to `newPlayer`.
-- [ ] **Step 4: Delete or trim the tests that covered removed behaviour** (sell-back, hoard placement, nest purchase, legacy layout, odds boost, prizes, season reset). Keep every other assertion.
-- [ ] **Step 5: Run the suite and typecheck**: `pnpm --filter @wyrmhaven/game-core test && pnpm --filter @wyrmhaven/game-core typecheck` — expected: PASS.
-- [ ] **Step 6: Commit** — `refactor(game-core): remove Hoard, gold sell-back, prizes, season reset and non-GDD store items (GDD overrides, A1)`
+- [x] **Step 2: Run `pnpm --filter @wyrmhaven/game-core test`** — expected: the new tests fail; many old tests still pass.
+- [x] **Step 3: Delete the files listed and remove every reference**: `sell`, `HOARD*`, `MICRO_USD_PER_GOLD`, `eligibleGold`, `earnGold(..., eligible)` third argument, `hoard` placement subject, `nest`/`levelUp`/`oddsBoost`/`hoard` store items and their `priceMicroUsd` cases, `seasonResetTrophies`, `prizes` exports, `layoutLegacyState`, `BreedContext.boost` and `tierWeights(scoreSum, boost)` → `tierWeights(scoreSum)`, `ActionError` values `EARNING_LOCKED | NO_HOARD | SELL_LIMIT_REACHED | MAX_NESTS`. Add `version: STATE_VERSION` to `newPlayer`.
+- [x] **Step 4: Delete or trim the tests that covered removed behaviour** (sell-back, hoard placement, nest purchase, legacy layout, odds boost, prizes, season reset). Keep every other assertion.
+- [x] **Step 5: Run the suite and typecheck**: `pnpm --filter @wyrmhaven/game-core test && pnpm --filter @wyrmhaven/game-core typecheck` — expected: PASS.
+- [x] **Step 6: Commit** — `refactor(game-core): remove Hoard, gold sell-back, prizes, season reset and non-GDD store items (GDD overrides, A1)`
 
 ### Task A3: shared package teardown
 
@@ -132,11 +132,11 @@ and in `test/economy-actions.test.ts`: `applyAction(s, { type: 'sellGold', gold:
 **Interfaces:**
 - Produces: `clientActionSchema` without `sellGold`; `storeItemSchema` = skip | foodPack; `movableRefSchema` without `hoard`; `MeResponse` without `season` (a `game: GameInfo` field is added in Task B2); `ActionResponse` without `sp`; `SeasonInfo`, `SpResponse`, `LeaderboardRow`, `LeaderboardResponse`, `ReferralMeResponse`, `ReferralClaimRequest`, `PrizeInfo`, `PrizeResponse` deleted.
 
-- [ ] **Step 1: Write the failing test** in `test/actions.test.ts`: `clientActionSchema.safeParse({ type: 'sellGold', gold: 1 }).success === false`; `storeItemSchema.safeParse({ kind: 'oddsBoost' }).success === false`; `storeItemSchema.safeParse({ kind: 'foodPack' }).success === true`.
-- [ ] **Step 2: Run `pnpm --filter @wyrmhaven/shared test`** — expected: FAIL.
-- [ ] **Step 3: Apply the schema and type removals above.**
-- [ ] **Step 4: Run tests and `pnpm --filter @wyrmhaven/shared typecheck`** — expected: PASS.
-- [ ] **Step 5: Commit** — `refactor(shared): drop season, SP, referral and hoard wire types`
+- [x] **Step 1: Write the failing test** in `test/actions.test.ts`: `clientActionSchema.safeParse({ type: 'sellGold', gold: 1 }).success === false`; `storeItemSchema.safeParse({ kind: 'oddsBoost' }).success === false`; `storeItemSchema.safeParse({ kind: 'foodPack' }).success === true`.
+- [x] **Step 2: Run `pnpm --filter @wyrmhaven/shared test`** — expected: FAIL.
+- [x] **Step 3: Apply the schema and type removals above.**
+- [x] **Step 4: Run tests and `pnpm --filter @wyrmhaven/shared typecheck`** — expected: PASS.
+- [x] **Step 5: Commit** — `refactor(shared): drop season, SP, referral and hoard wire types`
 
 ### Task A4: server teardown (seasons, SP, prizes, referrals, inflows) and the game secret
 
@@ -148,13 +148,13 @@ and in `test/economy-actions.test.ts`: `applyAction(s, { type: 'sellGold', gold:
 **Interfaces:**
 - Produces: table `game` (`id integer primary key` = 1, `secret_hex text`, `commit_hash text`, `revealed boolean default false`, `created_at`). `ensureGame(db, clock): Promise<Game>` creates row 1 with `newSecret()`/`commitHash()` from `services/seed.ts`. `actionLog.seasonId` dropped. `runAction` derives seeds from `game.secretHex` (labels unchanged). `charge()` books `spendBatches` only (no referral, no inflow). `migrateState(raw, nowMs)` returns `newPlayer(nowMs)` and calls the injected `onReset?: () => void` when `raw.version !== STATE_VERSION`. `/me` returns no `season`, no `earningUnlocked` use in state (column stays for M7). Admin routes keep bans, jobs, price, beta allowlist; drop seasons, standings, referrals.
 
-- [ ] **Step 1: Write the failing tests**: `test/game.test.ts` — `ensureGame` returns the same row on two calls and `commitHash(secret)` matches; `test/stateMigration.test.ts` — a state without `version` becomes `newPlayer(now)` and `onReset` is called once; `test/actions.test.ts` — a `startBreed` action succeeds without a `seasons` table and its log row has no `season_id`.
-- [ ] **Step 2: Run `pnpm --filter @wyrmhaven/server test`** — expected: the new tests fail.
-- [ ] **Step 3: Write `drizzle/0007_gdd_teardown.sql`**: `create table game (...)`; `alter table action_log drop column season_id`; `drop table season_prizes, vault_inflows, sp_ledger, referral_payouts, seasons`; `alter table players drop column referrer_id`. Mirror it in `schema.ts`.
-- [ ] **Step 4: Implement `services/game.ts`** (`ensureGame`, `getGame`) and switch `services/actions.ts` and `services/battles.ts` to it; delete the files listed; strip SP from `runAction` (`awardSp` dep and `sp` in the body), referral from `charge` and sign-in, season jobs from `app.ts`/`scheduler.ts`, `sp` from `e2e/grant`.
-- [ ] **Step 5: Delete the tests of removed services; fix the remaining tests' helpers** (`testApp.ts` no longer seeds a season).
-- [ ] **Step 6: Run tests and typecheck** — expected: PASS.
-- [ ] **Step 7: Commit** — `refactor(server): replace seasons with one game secret; remove SP, prizes, inflows and referrals (A1, A1b)`
+- [x] **Step 1: Write the failing tests**: `test/game.test.ts` — `ensureGame` returns the same row on two calls and `commitHash(secret)` matches; `test/stateMigration.test.ts` — a state without `version` becomes `newPlayer(now)` and `onReset` is called once; `test/actions.test.ts` — a `startBreed` action succeeds without a `seasons` table and its log row has no `season_id`.
+- [x] **Step 2: Run `pnpm --filter @wyrmhaven/server test`** — expected: the new tests fail.
+- [x] **Step 3: Write `drizzle/0007_gdd_teardown.sql`**: `create table game (...)`; `alter table action_log drop column season_id`; `drop table season_prizes, vault_inflows, sp_ledger, referral_payouts, seasons`; `alter table players drop column referrer_id`. Mirror it in `schema.ts`.
+- [x] **Step 4: Implement `services/game.ts`** (`ensureGame`, `getGame`) and switch `services/actions.ts` and `services/battles.ts` to it; delete the files listed; strip SP from `runAction` (`awardSp` dep and `sp` in the body), referral from `charge` and sign-in, season jobs from `app.ts`/`scheduler.ts`, `sp` from `e2e/grant`.
+- [x] **Step 5: Delete the tests of removed services; fix the remaining tests' helpers** (`testApp.ts` no longer seeds a season).
+- [x] **Step 6: Run tests and typecheck** — expected: PASS.
+- [x] **Step 7: Commit** — `refactor(server): replace seasons with one game secret; remove SP, prizes, inflows and referrals (A1, A1b)`
 
 ### Task A5: web teardown
 
@@ -165,17 +165,17 @@ and in `test/economy-actions.test.ts`: `applyAction(s, { type: 'sellGold', gold:
 **Interfaces:**
 - Produces: HUD right column = Map, Settings only; bottom bar unchanged for now except Hoard removed (relabelled in Task B12); `PanelId` without `hoard | season | ranks | referral`; `Target` without `hoard`.
 
-- [ ] **Step 1: Write the failing tests** in `test/hud.test.tsx`: the HUD renders no button named Hoard, Season, Ranks or Referral; the gold pill has no "sell … today" sub-label.
-- [ ] **Step 2: Run `pnpm --filter @wyrmhaven/web test`** — expected: FAIL.
-- [ ] **Step 3: Remove the panels, pages, routes, HUD buttons, hoard placement/rendering and `lastSp`; delete the obsolete tests and e2e spec.**
-- [ ] **Step 4: Run tests and typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `refactor(web): remove Hoard, season, ranks, referral and verify screens`
+- [x] **Step 1: Write the failing tests** in `test/hud.test.tsx`: the HUD renders no button named Hoard, Season, Ranks or Referral; the gold pill has no "sell … today" sub-label.
+- [x] **Step 2: Run `pnpm --filter @wyrmhaven/web test`** — expected: FAIL.
+- [x] **Step 3: Remove the panels, pages, routes, HUD buttons, hoard placement/rendering and `lastSp`; delete the obsolete tests and e2e spec.**
+- [x] **Step 4: Run tests and typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `refactor(web): remove Hoard, season, ranks, referral and verify screens`
 
 ### Task A6: M0 verification
 
-- [ ] **Step 1: `pnpm -r typecheck && pnpm test`** — expected: every package green. Record counts.
-- [ ] **Step 2: `pnpm playtest`**, sign in with the test wallet, collect gold, plant and harvest, breed and hatch** — expected: no console errors; state resets once (R2).
-- [ ] **Step 3: Commit nothing; note the counts in the final report.**
+- [x] **Step 1: `pnpm -r typecheck && pnpm test`** — expected: every package green. Record counts.
+- [x] **Step 2: `pnpm playtest`**, sign in with the test wallet, collect gold, plant and harvest, breed and hatch** — expected: no console errors; state resets once (R2).
+- [x] **Step 3: Commit nothing; note the counts in the final report.**
 
 ---
 
@@ -210,11 +210,11 @@ export function phaseOf(day: number, preset: Preset): Phase
 export function finalsLockAtMs(launchAtMs: number, preset: Preset): number // end of the last finals day
 export function shutdownAtMs(launchAtMs: number, preset: Preset): number   // end of settlement
 ```
-- [ ] **Step 1: Write the failing tests**: `FLASH_14` equals the §7.2 column (`goldMult 10, cropYieldMult 12, cropTimerDiv 2, timerDiv 6, xpMult 12, healPctPerMin 6, arenaEnergyRegenMs 3_600_000`), `FLASH_28` the other column; phases: flash14 rush `[1,4]`, endgame `[5,12]`, finals `[13,14]`, settlement `[15,21]`; flash28 `[1,7]`, `[8,25]`, `[26,28]`, `[29,35]`; `gameDay(0, 0) === 1`, `gameDay(0, 86_400_000) === 2`, `gameDay(10, 0) === 0`; `phaseOf(13, FLASH_14) === 'finals'`, `phaseOf(22, FLASH_14) === 'closed'`; `finalsLockAtMs(0, FLASH_14) === 14 * 86_400_000`.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- presets game-clock` — expected: FAIL (module not found).
-- [ ] **Step 3: Implement the two files and thread `preset` through `ActionCtx` and `applyAction`** (handlers get it; nothing reads it yet).
-- [ ] **Step 4: Run tests** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): Flash-14/28 presets and the game clock (GDD §7.2, §1.5)`
+- [x] **Step 1: Write the failing tests**: `FLASH_14` equals the §7.2 column (`goldMult 10, cropYieldMult 12, cropTimerDiv 2, timerDiv 6, xpMult 12, healPctPerMin 6, arenaEnergyRegenMs 3_600_000`), `FLASH_28` the other column; phases: flash14 rush `[1,4]`, endgame `[5,12]`, finals `[13,14]`, settlement `[15,21]`; flash28 `[1,7]`, `[8,25]`, `[26,28]`, `[29,35]`; `gameDay(0, 0) === 1`, `gameDay(0, 86_400_000) === 2`, `gameDay(10, 0) === 0`; `phaseOf(13, FLASH_14) === 'finals'`, `phaseOf(22, FLASH_14) === 'closed'`; `finalsLockAtMs(0, FLASH_14) === 14 * 86_400_000`.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- presets game-clock` — expected: FAIL (module not found).
+- [x] **Step 3: Implement the two files and thread `preset` through `ActionCtx` and `applyAction`** (handlers get it; nothing reads it yet).
+- [x] **Step 4: Run tests** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): Flash-14/28 presets and the game clock (GDD §7.2, §1.5)`
 
 ### Task B2: server game clock and `/game` (§1.5, A12)
 
@@ -226,11 +226,11 @@ export function shutdownAtMs(launchAtMs: number, preset: Preset): number   // en
 **Interfaces:**
 - Produces: `GameInfo { launchAtMs: number; preset: PresetId; day: number; phase: Phase; commitHash: \`0x${string}\`; revealedSecret: \`0x${string}\` | null }`. `GET /game` returns it. When `LAUNCH_AT` is unset the launch time is the `game` row's `created_at` (dev default) and the row stores `launch_at` (add the column in `0007`).
 
-- [ ] **Step 1: Write the failing test**: with the test clock at `launchAt + 5 days`, `GET /game` returns `day 6`, `phase 'endgame'`, `preset 'flash14'`; `/me` carries the same `game`.
-- [ ] **Step 2: Run** — expected: FAIL (404).
-- [ ] **Step 3: Implement** the route, `gameInfo(db, clock, config)`, and the preset pass-through.
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(server): game clock, preset config and GET /game (GDD §1.5, A12)`
+- [x] **Step 1: Write the failing test**: with the test clock at `launchAt + 5 days`, `GET /game` returns `day 6`, `phase 'endgame'`, `preset 'flash14'`; `/me` carries the same `game`.
+- [x] **Step 2: Run** — expected: FAIL (404).
+- [x] **Step 3: Implement** the route, `gameInfo(db, clock, config)`, and the preset pass-through.
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(server): game clock, preset config and GET /game (GDD §1.5, A12)`
 
 ### Task B3: ten elements, the damage matrix and the rename (§2.1–2.3, §3.3, §3.5, A3)
 
@@ -256,11 +256,11 @@ export const DAMAGE_MATRIX: Record<Element, Record<Element, Mult>>   // derived 
 ```
 Rules in `elementMultiplier`: `physical` → 1; same element → 0; move strong against defender → 2; defender strong against move → 0.5, **except** dark/light both ways → 2 (§2.1); else 1.
 
-- [ ] **Step 1: Write the failing test** `elements-matrix.test.ts` holding the **literal §2.2 table** (10 rows × 10 columns plus the Physical row) and asserting `DAMAGE_MATRIX[atk][def]` equals every cell, `elementMultiplier('physical', e) === 1` for all `e`, `elementMultiplier(e, e) === 0`, `isOpposite('flame','ice') && isOpposite('ice','flame')`, `OPPOSITE_PAIRS.length === 4`, `highestTier(['terra','war']) === 'C'`, each element has exactly 2 strengths and exactly 2 weaknesses (count of 2s per row and per column, excluding dark/light which have 2 strengths and 2 weaknesses too but only one 0.5).
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement `data/elements.ts` and `elements.ts`; rename ids everywhere; rename art files and manifest keys with a script run once (`node -e` or PowerShell), not by hand; regenerate `fallback.ts` colours for 10 elements (War: dark red).**
-- [ ] **Step 4: `pnpm -r test && pnpm -r typecheck`** — expected: PASS (battle tests update their expected multipliers: 0× now exists).
-- [ ] **Step 5: Commit** — `feat: ten GDD elements with the §2.2 damage matrix; rename fire/water/earth to flame/sea/terra (A3)`
+- [x] **Step 1: Write the failing test** `elements-matrix.test.ts` holding the **literal §2.2 table** (10 rows × 10 columns plus the Physical row) and asserting `DAMAGE_MATRIX[atk][def]` equals every cell, `elementMultiplier('physical', e) === 1` for all `e`, `elementMultiplier(e, e) === 0`, `isOpposite('flame','ice') && isOpposite('ice','flame')`, `OPPOSITE_PAIRS.length === 4`, `highestTier(['terra','war']) === 'C'`, each element has exactly 2 strengths and exactly 2 weaknesses (count of 2s per row and per column, excluding dark/light which have 2 strengths and 2 weaknesses too but only one 0.5).
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement `data/elements.ts` and `elements.ts`; rename ids everywhere; rename art files and manifest keys with a script run once (`node -e` or PowerShell), not by hand; regenerate `fallback.ts` colours for 10 elements (War: dark red).**
+- [x] **Step 4: `pnpm -r test && pnpm -r typecheck`** — expected: PASS (battle tests update their expected multipliers: 0× now exists).
+- [x] **Step 5: Commit** — `feat: ten GDD elements with the §2.2 damage matrix; rename fire/water/earth to flame/sea/terra (A3)`
 
 ### Task B4: five rarities, stat curve, breed timers, hatch XP, sell Gold (§2.4, §3.5, §4.3, §5.1, A9)
 
@@ -285,11 +285,11 @@ export const SELL_GOLD: Record<Rarity, number | null>         // 100, 500, 2500,
 ```
 `RARITY` (the old record) is deleted.
 
-- [ ] **Step 1: Write the failing tests**: `hpAt('legendary', 1) === 2800`, `hpAt('legendary', 20) === 8256`, `hpAt('common', 10) === 3077`, `hpAt('rare', 40) === 10000`, `atkAt('legendary', 20) === 3303`, `atkAt('common', 40) === 3200`, `atkAt('uncommon', 1) === 720`; `breedTimerMs('common', ['terra'], FLASH_14) === 5_000`, `breedTimerMs('common', ['dark'], FLASH_14) === 600_000`, `breedTimerMs('uncommon', ['terra','ice'], FLASH_14) === 600_000`, `breedTimerMs('rare', ['war'], FLASH_14) === 4_800_000`, `breedTimerMs('epic', ['electric'], FLASH_14) === 10_800_000`, `breedTimerMs('legendary', ['terra'], FLASH_14) === 28_800_000`, `breedTimerMs('epic', ['electric'], FLASH_28) === 16_200_000`.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement the data files; delete `RARITY`; update callers** (hatch time = breed time: `collectEgg` uses `breedTimerMs` too, §3.5).
-- [ ] **Step 4: Run all game-core tests + typecheck** — expected: PASS (battle tests re-pin numbers from the new stats).
-- [ ] **Step 5: Commit** — `feat(game-core): five rarities, §2.4 stat curve, §3.5 breed timers, hatch XP and sell values`
+- [x] **Step 1: Write the failing tests**: `hpAt('legendary', 1) === 2800`, `hpAt('legendary', 20) === 8256`, `hpAt('common', 10) === 3077`, `hpAt('rare', 40) === 10000`, `atkAt('legendary', 20) === 3303`, `atkAt('common', 40) === 3200`, `atkAt('uncommon', 1) === 720`; `breedTimerMs('common', ['terra'], FLASH_14) === 5_000`, `breedTimerMs('common', ['dark'], FLASH_14) === 600_000`, `breedTimerMs('uncommon', ['terra','ice'], FLASH_14) === 600_000`, `breedTimerMs('rare', ['war'], FLASH_14) === 4_800_000`, `breedTimerMs('epic', ['electric'], FLASH_14) === 10_800_000`, `breedTimerMs('legendary', ['terra'], FLASH_14) === 28_800_000`, `breedTimerMs('epic', ['electric'], FLASH_28) === 16_200_000`.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement the data files; delete `RARITY`; update callers** (hatch time = breed time: `collectEgg` uses `breedTimerMs` too, §3.5).
+- [x] **Step 4: Run all game-core tests + typecheck** — expected: PASS (battle tests re-pin numbers from the new stats).
+- [x] **Step 5: Commit** — `feat(game-core): five rarities, §2.4 stat curve, §3.5 breed timers, hatch XP and sell values`
 
 ### Task B5: feeding, level caps and evolution stages (§4.1, §4.2 caps, §4.3 feed XP)
 
@@ -314,11 +314,11 @@ export function feedXp(food: number): number             // max(1, floor(food / 
 ```
 `feed` handler: fails `LEVEL_CAP` when `d.level >= levelCap(s.roostTier)`, `INSUFFICIENT_FOOD` when `s.food < foodPerFeed(d.level)`; otherwise spends the food, `feeds + 1`; at `FEEDS_PER_LEVEL` the dragon gains a level and `feeds` resets to 0; awards `feedXp(cost)` (collect-before-change still applies).
 
-- [ ] **Step 1: Write the failing tests**: `foodPerFeed(1) === 5`, `foodPerFeed(3) === 8` (the §4.1 row "3 to 4"), `foodPerFeed(6) === 13`, `foodPerFeed(9) === 22`, `foodPerFeed(14) === 54`, `foodPerFeed(19) === 134`, `foodPerFeed(24) === 332`, `foodPerFeed(29) === 825`, `foodPerFeed(39) === 5104`, `foodForLevel(39) === 20416`, `totalFoodTo(40) === 122460` and `Math.abs(totalFoodTo(40) - 122382) / 122382 < 0.001`; `stageOf(3) === 'baby'`, `stageOf(4) === 'juvenile'`, `stageOf(7) === 'adult'`; `levelCap(0) === 7`, `levelCap(5) === 40`; feed action: four feeds at Lv 1 cost 20 Food total and reach Lv 2 with `feeds 0`; the third feed leaves `feeds 3`; a Lv 7 dragon with `roostTier 0` → `LEVEL_CAP`; feeding with exactly `foodPerFeed` Food leaves 0 Food; XP after one Lv 1 feed is +1.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement**; delete `foodToNextLevel`, `effLevel` (replaced in B6).
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): 4 feeds per level, §4.1 food curve, Roost level caps and evolution stages`
+- [x] **Step 1: Write the failing tests**: `foodPerFeed(1) === 5`, `foodPerFeed(3) === 8` (the §4.1 row "3 to 4"), `foodPerFeed(6) === 13`, `foodPerFeed(9) === 22`, `foodPerFeed(14) === 54`, `foodPerFeed(19) === 134`, `foodPerFeed(24) === 332`, `foodPerFeed(29) === 825`, `foodPerFeed(39) === 5104`, `foodForLevel(39) === 20416`, `totalFoodTo(40) === 122460` and `Math.abs(totalFoodTo(40) - 122382) / 122382 < 0.001`; `stageOf(3) === 'baby'`, `stageOf(4) === 'juvenile'`, `stageOf(7) === 'adult'`; `levelCap(0) === 7`, `levelCap(5) === 40`; feed action: four feeds at Lv 1 cost 20 Food total and reach Lv 2 with `feeds 0`; the third feed leaves `feeds 3`; a Lv 7 dragon with `roostTier 0` → `LEVEL_CAP`; feeding with exactly `foodPerFeed` Food leaves 0 Food; XP after one Lv 1 feed is +1.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement**; delete `foodToNextLevel`, `effLevel` (replaced in B6).
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): 4 feeds per level, §4.1 food curve, Roost level caps and evolution stages`
 
 ### Task B6: habitats on GDD data (§5.1, §5.2, A5, R3, R4, R7)
 
@@ -349,11 +349,11 @@ export function habitatCapacity(level: number): number
 ```
 A hybrid's income element is its primary (`species.elements[0]`, §5.1); it may live in any habitat of its elements (`canLiveIn`). `StoreItem` adds `{ kind: 'habitatL5'; habitatId }` priced `HABITAT_L5_USD_MICRO[tier]` (requires level 4, instant) and `{ kind: 'goldenAerie'; placement }` priced `GOLDEN_AERIE.usdMicro` (creates a level-5 habitat with `element: 'aerie'`, instant). `placeBuilding` for a habitat charges `HABITATS[el].buildGold`, requires `s.level >= unlockPl` (`LEVEL_TOO_LOW`), and starts a build of `habitatBuildMs`. `maxHabitats`, `habitatBuildCost`, `HABITAT_LEVELS`, `NEXUS_*` are deleted (§5: land is the only cap).
 
-- [ ] **Step 1: Write the failing tests**: `HABITATS.terra` equals `{ base 18, inc 12, capL1 8000, capL2 28000, buildGold 500, upgradeL2Gold 10000, unlockPl 1 }` and `HABITATS.war` `{ base 7, inc 4, capL1 33000, capL2 115000, buildGold 250000, upgradeL2Gold 750000, unlockPl 18 }`; `habitatCapClassic('terra', 3) === 98000`, `habitatCapClassic('terra', 4) === 343200`, `habitatCapClassic('terra', 5) === 1_200_000`, `habitatCap('terra', 1, FLASH_14) === 80_000`, `habitatCapClassic('aerie', 5) === 99_000`; `habitatUpgradeGold('terra', 3) === 40_000`, `habitatUpgradeGold('terra', 4) === 160_000`; `goldPerMinuteX20('terra','common',1,FLASH_14) === 3600` (18 gold/min × 10 × 20); `goldPerMinuteX20('terra','common',5,FLASH_14) === 13200` (66/min ×10); `goldPerMinuteX20('terra','common',15,FLASH_14) === 31200` (18+108+30 = 156 × 10 × 20); `goldPerMinuteX20('flame','legendary',40,FLASH_28)` equals `25 × (14 + 90 + 150) × 6 = 38100`; `storedGold` of two Lv 5 Commons in a Terra L1 after 60 min in Flash-14 = `min(80000, 60 × 2 × 13200 / 20) = 79200`, after 600 min = 80000 (Review Focus 1); `habitatBuildMs('dark', FLASH_14) === 2_400_000`; `habitatUpgradeMs(2, FLASH_14) === 600_000`; buying `habitatL5` on a Tier C habitat charges 4,000,000 micro-USD and sets level 5; `goldenAerie` creates `{ element: 'aerie', level: 5 }` holding 6 dragons of any element.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement**; the §5.2 "Sprinter vs Vault" claim (two Lv 5 Commons in Terra ≈ 136k/day with hourly check-ins) becomes a sanity test: `24 × storedGold(...60 min...)` in classic terms is between 130k and 140k.
-- [ ] **Step 4: Run tests + typecheck across the workspace** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): §5.2 habitat table, §5.1 income, caps, costs, A5 timers, Golden Aerie`
+- [x] **Step 1: Write the failing tests**: `HABITATS.terra` equals `{ base 18, inc 12, capL1 8000, capL2 28000, buildGold 500, upgradeL2Gold 10000, unlockPl 1 }` and `HABITATS.war` `{ base 7, inc 4, capL1 33000, capL2 115000, buildGold 250000, upgradeL2Gold 750000, unlockPl 18 }`; `habitatCapClassic('terra', 3) === 98000`, `habitatCapClassic('terra', 4) === 343200`, `habitatCapClassic('terra', 5) === 1_200_000`, `habitatCap('terra', 1, FLASH_14) === 80_000`, `habitatCapClassic('aerie', 5) === 99_000`; `habitatUpgradeGold('terra', 3) === 40_000`, `habitatUpgradeGold('terra', 4) === 160_000`; `goldPerMinuteX20('terra','common',1,FLASH_14) === 3600` (18 gold/min × 10 × 20); `goldPerMinuteX20('terra','common',5,FLASH_14) === 13200` (66/min ×10); `goldPerMinuteX20('terra','common',15,FLASH_14) === 31200` (18+108+30 = 156 × 10 × 20); `goldPerMinuteX20('flame','legendary',40,FLASH_28)` equals `25 × (14 + 90 + 150) × 6 = 38100`; `storedGold` of two Lv 5 Commons in a Terra L1 after 60 min in Flash-14 = `min(80000, 60 × 2 × 13200 / 20) = 79200`, after 600 min = 80000 (Review Focus 1); `habitatBuildMs('dark', FLASH_14) === 2_400_000`; `habitatUpgradeMs(2, FLASH_14) === 600_000`; buying `habitatL5` on a Tier C habitat charges 4,000,000 micro-USD and sets level 5; `goldenAerie` creates `{ element: 'aerie', level: 5 }` holding 6 dragons of any element.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement**; the §5.2 "Sprinter vs Vault" claim (two Lv 5 Commons in Terra ≈ 136k/day with hourly check-ins) becomes a sanity test: `24 × storedGold(...60 min...)` in classic terms is between 130k and 140k.
+- [x] **Step 4: Run tests + typecheck across the workspace** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): §5.2 habitat table, §5.1 income, caps, costs, A5 timers, Golden Aerie`
 
 ### Task B7: farms and crops on GDD data (§5.3, §7.2)
 
@@ -378,11 +378,11 @@ export function cropUnlocked(crop: CropId, playerLevel: number): boolean
 ```
 `plant` fails `LEVEL_TOO_LOW` for a locked crop. `placeBuilding { kind: 'farm' }` requires `s.farms.length < MAX_FARMS` and `s.level >= FARM_UNLOCK_PL[s.farms.length]`, charges `farmBuildGold(n)`, builds for `FIRST_FARM_CLASSIC_MS / timerDiv`. Harvest XP stays as today until M3 (Review Focus 5 pins readiness time, not XP).
 
-- [ ] **Step 1: Write the failing tests**: `CROPS.warlordPepper` = `{ tier 6, unlockPl 15, growClassicMs 86_400_000, gold 20_000, food 2_600 }`; `CROPS.dragonBush` = `{ tier 1, unlockPl 1, growClassicMs 30_000, gold 50, food 5 }`; `cropGrowMs('dragonBush', FLASH_14) === 15_000`, `cropGrowMs('emberWheat', FLASH_28) === 200_000`; `cropFood('seaMelon', 1, FLASH_14) === 1440`, `cropFood('seaMelon', 5, FLASH_14) === 2880`, `cropFood('seaMelon', 2, FLASH_28) === 1200`; `farmBuildGold(1) === 1000`, `farmBuildGold(4) === 27_000`; a PL 2 player cannot plant `emberWheat` (`LEVEL_TOO_LOW`); a PL 3 player with 1 farm can place the 2nd farm, a PL 3 player with 2 farms cannot (`LEVEL_TOO_LOW`); harvest of `dragonBush` planted at `t` is `NOT_READY` at `t + 14_999` and ready at `t + 15_000` (Review Focus 5).
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement**; delete the old `CROPS`, `MAX_PLOTS`, `plotCost`, `FARM_PLOT_BUILD_MS`.
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): §5.3 crops, farm levels, farm unlocks and costs`
+- [x] **Step 1: Write the failing tests**: `CROPS.warlordPepper` = `{ tier 6, unlockPl 15, growClassicMs 86_400_000, gold 20_000, food 2_600 }`; `CROPS.dragonBush` = `{ tier 1, unlockPl 1, growClassicMs 30_000, gold 50, food 5 }`; `cropGrowMs('dragonBush', FLASH_14) === 15_000`, `cropGrowMs('emberWheat', FLASH_28) === 200_000`; `cropFood('seaMelon', 1, FLASH_14) === 1440`, `cropFood('seaMelon', 5, FLASH_14) === 2880`, `cropFood('seaMelon', 2, FLASH_28) === 1200`; `farmBuildGold(1) === 1000`, `farmBuildGold(4) === 27_000`; a PL 2 player cannot plant `emberWheat` (`LEVEL_TOO_LOW`); a PL 3 player with 1 farm can place the 2nd farm, a PL 3 player with 2 farms cannot (`LEVEL_TOO_LOW`); harvest of `dragonBush` planted at `t` is `NOT_READY` at `t + 14_999` and ready at `t + 15_000` (Review Focus 5).
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement**; delete the old `CROPS`, `MAX_PLOTS`, `plotCost`, `FARM_PLOT_BUILD_MS`.
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): §5.3 crops, farm levels, farm unlocks and costs`
 
 ### Task B8: speed-up price, start state, state version (§3.6, R1, R2, R12)
 
@@ -393,11 +393,11 @@ export function cropUnlocked(crop: CropId, playerLevel: number): boolean
 **Interfaces:**
 - Produces: `skipPriceMicroUsd(remainingMs: number): number` = `Math.round(100_000 × (remainingMs / 3_600_000) ** 0.68)`, minimum 1 when `remainingMs > 0`. `newPlayer(nowMs)`: gold 1000, food 50, level 1, `roostTier 0`, dragons `d1` (`terra`, Lv 1, feeds 0, in `h1`) and `d2` (`flame`, in `h2`), habitats `h1 terra L1` and `h2 flame L1`, one farm L1, hatchery L1, one nest L1 (M2 renames it), `version: STATE_VERSION`, `tutorial` reduced to `{ breedDone: false, hatchDone: false }` (M3 Goals replace it).
 
-- [ ] **Step 1: Write the failing tests**: `skipPriceMicroUsd(600_000)` rounds to $0.03 (`Math.round(x / 10_000) === 3`), 1 h → 100_000, 3 h → $0.21, 8 h → $0.41, 24 h → $0.87 (same rounding to cents); `skipPriceMicroUsd(0) === 0`; `newPlayer(0)` has the R1 contents; a `startBreed` by two Lv 4 Basics takes `breedTimerMs(...)` and not 15 s.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): §3.6 speed-up curve, GDD start state (R1), tutorial timers removed`
+- [x] **Step 1: Write the failing tests**: `skipPriceMicroUsd(600_000)` rounds to $0.03 (`Math.round(x / 10_000) === 3`), 1 h → 100_000, 3 h → $0.21, 8 h → $0.41, 24 h → $0.87 (same rounding to cents); `skipPriceMicroUsd(0) === 0`; `newPlayer(0)` has the R1 contents; a `startBreed` by two Lv 4 Basics takes `breedTimerMs(...)` and not 15 s.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): §3.6 speed-up curve, GDD start state (R1), tutorial timers removed`
 
 ### Task B9: habitat panel, Gold badges and coin burst (§1.3, §5.2, UI direction)
 
@@ -408,11 +408,11 @@ export function cropUnlocked(crop: CropId, playerLevel: number): boolean
 - Consumes: `storedGold`, `habitatCap`, `habitatCapacity`, `goldPerMinuteX20`, `stageOf` from game-core; `preset` from `/me.game.preset` via a `usePreset()` hook in `apps/web/src/state/preset.ts` (`PRESETS[me.data.game.preset]`).
 - Produces: `IslandObject.badge?: 'gold' | 'full' | { timer: number }`; `HabitatPanel` shows: element icon, `Level n · x/y dragons`, `Gold/min` (sum ÷ 20, one decimal), `stored / cap`, a `Collect` button (disabled "Nothing to collect yet"), FULL label at cap, resident list (name, level, stage) each opening the dragon panel, `Upgrade` via `UpgradeSection`, `Move a dragon here` list.
 
-- [ ] **Step 1: Write the failing tests**: `buildIslandModel` marks a habitat with stored gold `badge: 'gold'` and one at cap `badge: 'full'`; `HabitatPanel` renders "FULL" and "80,000 / 80,000" for a capped Terra L1 under Flash-14 and "1,320 gold/min" for two Lv 5 Commons (each `13200 / 20` = 660 gold/min in Flash-14).
-- [ ] **Step 2: Run `pnpm --filter @wyrmhaven/web test`** — expected: FAIL.
-- [ ] **Step 3: Implement**; 44 px badge hit area.
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(web): habitat panel with Gold/min, cap and FULL; tap-to-collect gold badges`
+- [x] **Step 1: Write the failing tests**: `buildIslandModel` marks a habitat with stored gold `badge: 'gold'` and one at cap `badge: 'full'`; `HabitatPanel` renders "FULL" and "80,000 / 80,000" for a capped Terra L1 under Flash-14 and "1,320 gold/min" for two Lv 5 Commons (each `13200 / 20` = 660 gold/min in Flash-14).
+- [x] **Step 2: Run `pnpm --filter @wyrmhaven/web test`** — expected: FAIL.
+- [x] **Step 3: Implement**; 44 px badge hit area.
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(web): habitat panel with Gold/min, cap and FULL; tap-to-collect gold badges`
 
 ### Task B10: farm crop picker and timers (§5.3, UI direction)
 
@@ -422,11 +422,11 @@ export function cropUnlocked(crop: CropId, playerLevel: number): boolean
 **Interfaces:**
 - Produces: tapping an empty farm opens a crop list: rows `name · grow time · cost Gold · yield Food` using `cropGrowMs`/`cropFood` for the active preset; locked crops greyed with `Level n`; a planted farm shows the growing timer and a `Harvest · n food` button when ready; `Skip · $x` from `skipPriceMicroUsd`.
 
-- [ ] **Step 1: Write the failing test**: the picker lists six crops in tier order with `Dragon Bush · 15s · 50 gold → 60 food` for Flash-14 farm L1 and `Ember Wheat` disabled with reason `Level 3` for a PL 1 player.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(web): farm crop picker with time, cost and yield; growing and ready states`
+- [x] **Step 1: Write the failing test**: the picker lists six crops in tier order with `Dragon Bush · 15s · 50 gold → 60 food` for Flash-14 farm L1 and `Ember Wheat` disabled with reason `Level 3` for a PL 1 player.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(web): farm crop picker with time, cost and yield; growing and ready states`
 
 ### Task B11: dragon panel with 4-pip feeding and stages (§4.1, §2.4, UI direction)
 
@@ -436,11 +436,11 @@ export function cropUnlocked(crop: CropId, playerLevel: number): boolean
 **Interfaces:**
 - Produces: panel shows element icons (primary first), rarity, `Level n · Baby/Juvenile/Adult`, `Gold/min`, `HP x · ATK y` from `hpAt`/`atkAt`, a Feed button `Feed · n food` with a 4-pip progress row (`feeds`/4), which reads `Upgrade Roost` and is disabled when `level >= levelCap(roostTier)` (Review Focus 2), a `Move` button opening a habitat picker limited to habitats the dragon can live in with a free slot (`moveDragon`), and `Sell · n gold` (hidden for Legendary).
 
-- [ ] **Step 1: Write the failing tests**: a Lv 1 dragon with `feeds 2` renders two filled pips and `Feed · 5 food`; a Lv 7 dragon with `roostTier 0` renders a disabled `Upgrade Roost` button; a Lv 5 dragon renders "Juvenile"; `dragonKey` returns the hatchling key for Lv 2 and the dragon key for Lv 8.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(web): dragon panel with element icons, 4-pip feeding, stats, stage and Move`
+- [x] **Step 1: Write the failing tests**: a Lv 1 dragon with `feeds 2` renders two filled pips and `Feed · 5 food`; a Lv 7 dragon with `roostTier 0` renders a disabled `Upgrade Roost` button; a Lv 5 dragon renders "Juvenile"; `dragonKey` returns the hatchling key for Lv 2 and the dragon key for Lv 8.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(web): dragon panel with element icons, 4-pip feeding, stats, stage and Move`
 
 ### Task B12: HUD bottom bar, Shop tabs and the Terminal clock (UI direction, §1.5)
 
@@ -453,11 +453,11 @@ export function cropUnlocked(crop: CropId, playerLevel: number): boolean
 - Consumes: `GameInfo` from `/me.game`; `finalsLockAtMs`, `shutdownAtMs`, `phaseOf`.
 - Produces: `TerminalClock({ game, nowMs })` renders `Finals lock in 3d 04:12:55` during rush/endgame, `Finals end in …` during finals, `Redemption ends in …` during settlement, `Launch in …` before launch, always visible at the top centre under the pills.
 
-- [ ] **Step 1: Write the failing tests**: bottom bar has exactly the seven names in order; Wings/Quests/Inbox are disabled; `TerminalClock` with `launchAtMs 0`, `nowMs 86_400_000 × 10 + 3_600_000` and Flash-14 renders `Finals lock in 3d 23:00:00`; the Food pill's "+" opens the Shop with the Store tab selected.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement**; every bar button ≥ 44 px (CSS, existing `hud-round` size).
-- [ ] **Step 4: Run tests + typecheck + `pnpm --filter @wyrmhaven/web test:e2e`** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(web): genre bottom bar, Shop with Build/Store tabs, Terminal countdown`
+- [x] **Step 1: Write the failing tests**: bottom bar has exactly the seven names in order; Wings/Quests/Inbox are disabled; `TerminalClock` with `launchAtMs 0`, `nowMs 86_400_000 × 10 + 3_600_000` and Flash-14 renders `Finals lock in 3d 23:00:00`; the Food pill's "+" opens the Shop with the Store tab selected.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement**; every bar button ≥ 44 px (CSS, existing `hud-round` size).
+- [x] **Step 4: Run tests + typecheck + `pnpm --filter @wyrmhaven/web test:e2e`** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(web): genre bottom bar, Shop with Build/Store tabs, Terminal countdown`
 
 ### Task B13: art list for the PixelLab thread
 
@@ -465,18 +465,18 @@ export function cropUnlocked(crop: CropId, playerLevel: number): boolean
 - Create: `docs/art/gdd-m1-art-list.md`
 - Modify: `apps/web/src/art/fromManifest.ts` (keys `habitat.war`, `dragon.war`, `hatchling.war`, `egg.war`, `icon.war.16/32`, `juvenile.<species>`, `building.goldenAerie`, `crop.<cropId>` for the six crops, `fx.coins`)
 
-- [ ] **Step 1: Write the list** with the same table format as `docs/art/hud-art-list.md`: key, size, frames/fps, prompt notes (War = crimson/iron, Golden Aerie = gold re-skin of the Nexus at the same size, juvenile = 40×40 between hatchling 32 and adult 48, six crops at 16×16 with 3 growth frames + sway loop, `fx.coins` 32×32 8 frames 12 fps one-shot).
-- [ ] **Step 2: Add the manifest keys to `fromManifest.ts` with drawn fallbacks**; run `pnpm --filter @wyrmhaven/web test` — expected: PASS (art tests allow missing keys).
-- [ ] **Step 3: Commit** — `docs(art): M1 art list (War element, juveniles, Golden Aerie, GDD crops, coin burst)`
+- [x] **Step 1: Write the list** with the same table format as `docs/art/hud-art-list.md`: key, size, frames/fps, prompt notes (War = crimson/iron, Golden Aerie = gold re-skin of the Nexus at the same size, juvenile = 40×40 between hatchling 32 and adult 48, six crops at 16×16 with 3 growth frames + sway loop, `fx.coins` 32×32 8 frames 12 fps one-shot).
+- [x] **Step 2: Add the manifest keys to `fromManifest.ts` with drawn fallbacks**; run `pnpm --filter @wyrmhaven/web test` — expected: PASS (art tests allow missing keys).
+- [x] **Step 3: Commit** — `docs(art): M1 art list (War element, juveniles, Golden Aerie, GDD crops, coin burst)`
 
 Then message the art thread (standing permission) with the file path; art lands on `main` as a manifest commit.
 
 ### Task B14: M1 verification and report
 
-- [ ] **Step 1: `pnpm -r typecheck && pnpm test && pnpm --filter @wyrmhaven/web test:e2e`** — expected: green; record counts.
-- [ ] **Step 2: `pnpm playtest`** and play the loop: collect until FULL, plant Dragon Bush, harvest, feed four times to Lv 2, build a Sea habitat at PL 3 (use `/e2e/grant` to set level), buy a Golden Aerie with granted DRIS, check the Terminal clock; take `docs/art/m1-island.png`, `m1-habitat.png`, `m1-farm.png`, `m1-dragon.png`, `m1-shop.png` at 390×844 (phone) and one desktop shot.
-- [ ] **Step 3: Write `/mnt/project-files/gdd/2026-10-30-m1-report.md`**: what works, what does not, what could not be verified (art pending), test counts, deferred items for M2.
-- [ ] **Step 4: Commit screenshots** — `docs: M1 playtest screenshots`
+- [x] **Step 1: `pnpm -r typecheck && pnpm test && pnpm --filter @wyrmhaven/web test:e2e`** — expected: green; record counts.
+- [x] **Step 2: `pnpm playtest`** and play the loop: collect until FULL, plant Dragon Bush, harvest, feed four times to Lv 2, build a Sea habitat at PL 3 (use `/e2e/grant` to set level), buy a Golden Aerie with granted DRIS, check the Terminal clock; take `docs/art/m1-island.png`, `m1-habitat.png`, `m1-farm.png`, `m1-dragon.png`, `m1-shop.png` at 390×844 (phone) and one desktop shot.
+- [x] **Step 3: Write `/mnt/project-files/gdd/2026-10-30-m1-report.md`**: what works, what does not, what could not be verified (art pending), test counts, deferred items for M2.
+- [x] **Step 4: Commit screenshots** — `docs: M1 playtest screenshots`
 
 ---
 

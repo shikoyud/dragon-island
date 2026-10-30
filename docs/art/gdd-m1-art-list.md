@@ -58,13 +58,13 @@ Six crops, each a 16x16 sheet with 3 growth frames (sprout, growing, ripe) plus 
 | `crop.warlordPepper` | 16x16 | 3 | 0 | Warlord Pepper: crimson pepper with a dark iron-grey cap |
 | `crop.<cropId>.sway` | 16x16 | 4 | 4 | Ripe-stage sway loop for each of the six crops (six sheets); same ripe art as frame 2 of the growth sheet, gently swaying; frame 0 equals the ripe frame |
 
-**Stopgap going away.** Task B7 added `CROP_ART_KEY` in `apps/web/src/art/fromManifest.ts`, which maps the new crops to the old v1 keys (`crop.sprout`, `crop.bushel`, `crop.harvest`, `crop.bounty`) because the v1 art predates the GDD crops. The code now prefers `crop.<cropId>` (and `crop.<cropId>.sway`) per crop whenever the manifest has it, so the mapping is only used for crops without art, and it goes away when all six `crop.<cropId>` sheets land.
+All six `crop.<cropId>` sheets (and `.sway` loops) have landed; the code reads them directly.
 
 ## Effects
 
 | Key | Frame (px) | Frames | fps | Description |
 |---|---|---|---|---|
-| `fx.coins` | 32x32 | 8 | 12 | Gold coin burst: coins pop up from the centre, arc and fade; played once (one-shot). The key and a drawn fallback (a small heap of coins) are wired; the web code does not play it yet (Task B9 only tweens the gold badge) |
+| `fx.coins` | 32x32 | 8 | 12 | Gold coin burst: coins pop up from the centre, arc and fade; played once (one-shot) when a gold badge is tapped; a drawn fallback (a small heap of coins) exists |
 
 ## Delivered (2026-10-30)
 
@@ -77,5 +77,3 @@ All keys above are in `apps/web/public/art/v1/manifest.json` (prompts and job de
 | `building.goldenAerie` | bounding box identical to `building.nexus` (x 2-78, y 10-64) |
 | `crop.<cropId>` | 3 growth frames, as listed; the v1 stand-ins were 4, so `apps/web/test/art.test.ts` now expects 3 |
 | `fx.coins` | frame 0 already shows the coins in a low arc, so it reads alone under reduced motion. Play it one-shot, as `IslandScene` does `fx.hatch` |
-
-`CROP_ART_KEY` in `apps/web/src/art/fromManifest.ts` can go now that all six crops have art.
