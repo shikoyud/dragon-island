@@ -50,7 +50,7 @@ export interface PlayerState {
   constructions: Construction[]
   farms: FarmPlot[]
   tutorial: { breedDone: boolean; hatchDone: boolean }
-  /** True once the scripted first hybrid has been bred (ง3.5). */
+  /** True once the scripted first hybrid has been bred (ยง3.5). */
   firstHybridDone: boolean
   nextId: number
   /** Saved 3-dragon team other players attack; cleared if a member is sold. */

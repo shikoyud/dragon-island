@@ -7,7 +7,7 @@ import type { Rng } from './rng'
 
 export interface BreedContext {
   activeLegendaries: readonly string[]
-  /** ง3.5: the player has not yet bred their first hybrid (callers pass `!firstHybridDone`). */
+  /** ยง3.5: the player has not yet bred their first hybrid (callers pass `!firstHybridDone`). */
   firstHybridPending: boolean
 }
 export interface PoolEntry { species: Species; weight: number }
@@ -44,7 +44,7 @@ export function breedingPool(a: Species, b: Species, ctx: BreedContext, c: Catal
       if (basic && !picked.includes(basic)) picked.push(basic)
     }
   }
-  // ง3.5: while the first hybrid is pending, a pool holding a hybrid is restricted to hybrids.
+  // ยง3.5: while the first hybrid is pending, a pool holding a hybrid is restricted to hybrids.
   const isHybrid = (s: Species) => s.elements.length >= 2 && s.rarity !== 'legendary'
   const pool = ctx.firstHybridPending && picked.some(isHybrid) ? picked.filter(isHybrid) : picked
   return pool

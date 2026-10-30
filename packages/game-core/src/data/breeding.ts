@@ -13,7 +13,7 @@ export const BREED_WEIGHT: Record<Rarity, number> = {
   legendary: 40,
 }
 
-/** �3.5, R25: the scripted first hybrid takes one real minute to breed and to hatch, under both presets, with no building reduction. */
+/** §3.5, R25: the scripted first hybrid takes one real minute to breed and to hatch, under both presets, with no building reduction. */
 export const FIRST_HYBRID_MS = 60_000
 
 /** M2 Q3 (a): a Basic costs its habitat's build Gold (same Player Level unlock, §4.4). */

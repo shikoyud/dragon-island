@@ -193,7 +193,7 @@ describe('rollOffspring', () => {
   })
 })
 
-describe('first hybrid pending (ง3.5)', () => {
+describe('first hybrid pending (ยง3.5)', () => {
   const pend = (...ids: string[]): BreedContext => ({ activeLegendaries: ids, firstHybridPending: true })
   it('Terra x Flame is restricted to terra-flame and flame-terra at 50 % each, Legendary or not', () => {
     for (const ctx of [pend(), pend('magma-sovereign')]) {
