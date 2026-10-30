@@ -76,7 +76,7 @@ describe('UpgradeSection', () => {
 
     setState({ ...base, gold: 4_000, constructions: [{ kind: 'upgrade', building: h1, readyAtMs: 600_000 }] })
     r.rerender(<UpgradeSection building={h1} nowMs={0} />)
-    expect(screen.getByRole('button', { name: /Skip · \$0\.02957/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Skip · \$0\.03$/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Upgrade to/ })).toBeNull()
     expect(action).not.toHaveBeenCalled()
 
@@ -155,11 +155,11 @@ describe('Finish button and upgrades that keep working', () => {
   it('plots under upgrade can be planted but unfinished ones cannot', () => {
     const farm0 = { type: 'farm' as const, index: 0 }
     const up = harness({ ...base, constructions: [{ kind: 'upgrade', building: farm0, readyAtMs: 99 }] })
-    const r = up.wrap(<FarmPanel nowMs={0} />)
-    expect(screen.getAllByRole('button', { name: /^plant$/i })[0]).toBeEnabled()
+    const r = up.wrap(<FarmPanel index={0} nowMs={0} />)
+    expect(screen.getByRole('button', { name: /Dragon Bush/ })).toBeEnabled()
     r.unmount()
-    harness({ ...base, constructions: [{ kind: 'build', building: farm0, readyAtMs: 99 }] }).wrap(<FarmPanel nowMs={0} />)
-    expect(screen.getAllByRole('button', { name: /^plant$/i })[0]).toBeDisabled()
+    harness({ ...base, constructions: [{ kind: 'build', building: farm0, readyAtMs: 99 }] }).wrap(<FarmPanel index={0} nowMs={0} />)
+    expect(screen.getByRole('button', { name: /Dragon Bush/ })).toBeDisabled()
   })
 })
 

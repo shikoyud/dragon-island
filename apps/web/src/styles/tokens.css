@@ -48,6 +48,9 @@ canvas, .sprite, img.pixel { image-rendering: pixelated; image-rendering: crisp-
 }
 .panel .btn { min-height: 44px; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Crop picker rows: full-width tap targets, 44 px tall at least. */
+.crop-list .action-button, .crop-list .btn { display: block; width: 100%; }
+.crop-list .btn { min-height: 44px; text-align: left; }
 .btn--ghost { background: transparent; }
 .btn--primary { background: var(--accent); color: #1b1300; border-color: #b89a1a; }
 .btn--danger { background: var(--danger); border-color: #9a3a1e; }

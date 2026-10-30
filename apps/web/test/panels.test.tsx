@@ -1,8 +1,9 @@
 import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { harness } from './harness'
+import { createBridge } from '../src/game/bridge'
+import { harness, TestHost } from './harness'
 import { BreedPanel } from '../src/panels/BreedPanel'
 import { DragonPanel } from '../src/panels/DragonPanel'
 import { FarmPanel } from '../src/panels/FarmPanel'
@@ -11,7 +12,7 @@ import { NestsPanel } from '../src/panels/NestsPanel'
 import { ResourcesBar } from '../src/panels/ResourcesBar'
 import { StorePanel } from '../src/panels/StorePanel'
 import { StartPlacingProvider } from '../src/state/startPlacing'
-import { formatGold, formatMicroUsd, formatWei } from '../src/ui/Money'
+import { formatDuration, formatGold, formatMicroUsd, formatSkipPrice, formatWei } from '../src/ui/Money'
 
 const base = newPlayer(0)
 const level = (s: PlayerState, id: string, lvl: number): PlayerState =>
@@ -26,6 +27,25 @@ describe('Money formatting', () => {
     expect(formatWei(10n ** 18n * 5n)).toBe('5')
     expect(formatWei(1_234_500_000_000_000_000n)).toBe('1.2345')
     expect(formatWei(123456789012345678901234567890n)).toBe('123,456,789,012.3456')
+  })
+
+  it('shows a skip price rounded to the nearest cent, never below $0.01', () => {
+    expect(formatSkipPrice(29_570)).toBe('$0.03')
+    expect(formatSkipPrice(62_417)).toBe('$0.06')
+    expect(formatSkipPrice(1)).toBe('$0.01')
+    expect(formatSkipPrice(0)).toBe('$0.01')
+    expect(formatSkipPrice(1_234_567)).toBe('$1.23')
+    expect(formatSkipPrice(1_235_000)).toBe('$1.24')
+    expect(formatSkipPrice(1_234_567_000_000)).toBe('$1,234,567.00')
+  })
+
+  it('formats durations as 15s, 2m 30s, 1h', () => {
+    expect(formatDuration(15_000)).toBe('15s')
+    expect(formatDuration(150_000)).toBe('2m 30s')
+    expect(formatDuration(900_000)).toBe('15m')
+    expect(formatDuration(3_600_000)).toBe('1h')
+    expect(formatDuration(5_400_000)).toBe('1h 30m')
+    expect(formatDuration(43_200_000)).toBe('12h')
   })
 })
 
@@ -145,25 +165,84 @@ describe('NestsPanel and FarmPanel', () => {
     const s = { ...base, nests: [{ ...base.nests[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001 } }], hatchery: [{ speciesId: 'sea', readyAtMs: 0 }] }
     const { wrap, action } = harness(s)
     wrap(<NestsPanel nowMs={0} />)
-    expect(screen.getByRole('button', { name: /skip.*\$0\.062417/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /skip.*\$0\.06$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /collect egg/i })).toBeDisabled()
     await userEvent.click(screen.getByRole('button', { name: /^hatch$/i }))
     expect(action).toHaveBeenCalledWith({ type: 'hatch', slot: 0 }, expect.any(String))
   })
 
-  it('plants and harvests when ready', async () => {
-    const { wrap, action } = harness(base)
-    wrap(<FarmPanel nowMs={0} />)
-    await userEvent.selectOptions(screen.getAllByLabelText(/crop/i)[0]!, 'dragonBush')
-    await userEvent.click(screen.getAllByRole('button', { name: /^plant$/i })[0]!)
-    expect(action).toHaveBeenCalledWith({ type: 'plant', plot: 0, crop: 'dragonBush' }, expect.any(String))
+  it('lists the six crops in tier order with time, cost and yield, and locks what the player cannot plant', () => {
+    const { wrap } = harness(base)
+    wrap(<FarmPanel index={0} nowMs={0} />)
+    const rows = within(screen.getByRole('list', { name: /crops/i })).getAllByRole('button')
+    expect(rows.map(b => b.textContent?.split(' · ').slice(0, 3).join(' · '))).toEqual([
+      'Dragon Bush · 15s · 50 gold → 60 food',
+      'Ember Wheat · 2m 30s · 250 gold → 360 food',
+      'Sea Melon · 15m · 1,000 gold → 1,440 food',
+      'Thunder Pumpkin · 1h · 3,000 gold → 4,320 food',
+      'Frost Berries · 4h · 8,000 gold → 12,000 food',
+      'Warlord Pepper · 12h · 20,000 gold → 31,200 food',
+    ])
+    expect(rows[0]).toBeEnabled()
+    const wheat = screen.getByRole('button', { name: /Ember Wheat/ })
+    expect(wheat).toBeDisabled()
+    expect(wheat).toHaveAccessibleDescription('Level 3')
+    for (const b of rows) expect(b.closest('li')).not.toBeNull()
+  })
 
-    const growing = { ...base, farms: [{ ...base.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 60_000 }] }
-    const h2 = harness(growing, 30_000)
-    h2.wrap(<FarmPanel nowMs={30_000} />)
-    const harvest = screen.getAllByRole('button', { name: /harvest/i })[0]!
-    expect(harvest).toBeDisabled()
-    expect(screen.getByText('30s')).toBeInTheDocument()
+  it('disables an unaffordable unlocked crop with the reason', () => {
+    const { wrap } = harness({ ...base, level: 15, gold: 40 })
+    wrap(<FarmPanel index={0} nowMs={0} />)
+    const bush = screen.getByRole('button', { name: /Dragon Bush/ })
+    expect(bush).toBeDisabled()
+    expect(bush).toHaveAccessibleDescription('Not enough gold')
+  })
+
+  it('plants the tapped crop on this panel\'s farm', async () => {
+    const two = { ...base, farms: [base.farms[0]!, { ...base.farms[0]!, level: 2 }] }
+    const { wrap, action } = harness(two)
+    wrap(<FarmPanel index={1} nowMs={0} />)
+    expect(screen.getAllByRole('region')).toHaveLength(1) // one farm per panel, not a plot list
+    await userEvent.click(screen.getByRole('button', { name: /Dragon Bush/ }))
+    expect(action).toHaveBeenCalledWith({ type: 'plant', plot: 1, crop: 'dragonBush' }, expect.any(String))
+  })
+
+  it('cannot plant on a farm still being built', () => {
+    const farm0 = { type: 'farm' as const, index: 0 }
+    harness({ ...base, constructions: [{ kind: 'build', building: farm0, readyAtMs: 99 }] }).wrap(<FarmPanel index={0} nowMs={0} />)
+    const bush = screen.getByRole('button', { name: /Dragon Bush/ })
+    expect(bush).toBeDisabled()
+    expect(bush).toHaveAccessibleDescription('Still being built')
+  })
+
+  it('shows the growing timer and a rounded Skip price, with no crop list and no Harvest yet', () => {
+    const growing = { ...base, farms: [{ ...base.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 600_000 }] }
+    harness(growing).wrap(<FarmPanel index={0} nowMs={0} />)
+    expect(screen.getByText(/Dragon Bush/)).toBeInTheDocument()
+    expect(screen.getByText('10m')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Skip · $0.03' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /harvest/i })).toBeNull()
+    expect(screen.queryByRole('list', { name: /crops/i })).toBeNull()
+  })
+
+  it('offers Harvest with the yield once ripe, and sends it', async () => {
+    const ripe = { ...base, farms: [{ ...base.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 15_000 }] }
+    const { wrap, action } = harness(ripe)
+    wrap(<FarmPanel index={0} nowMs={15_000} />)
+    const harvest = screen.getByRole('button', { name: 'Harvest · 60 food' })
+    expect(harvest).toBeEnabled()
+    expect(screen.queryByRole('button', { name: /skip/i })).toBeNull()
+    await userEvent.click(harvest)
+    expect(action).toHaveBeenCalledWith({ type: 'harvest', plot: 0 }, expect.any(String))
+  })
+
+  it('opens from the island with the tapped farm\'s index', () => {
+    const two = { ...base, farms: [base.farms[0]!, { ...base.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 0 }] }
+    const bridge = createBridge()
+    harness(two).wrap(<TestHost bridge={bridge} />)
+    act(() => bridge.emit({ type: 'select', target: { kind: 'farm', plot: 1 } }))
+    expect(screen.getByRole('button', { name: /Harvest/ })).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: /crops/i })).toBeNull()
   })
 })
 

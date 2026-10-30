@@ -1,7 +1,7 @@
 import { getSpecies, hatcherySlots, isUnfinished, LAUNCH_CATALOG, priceMicroUsd } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
-import { formatMicroUsd } from '../ui/Money'
+import { formatSkipPrice } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { isReady, Timer } from '../ui/Timer'
 import { UpgradeSection } from './UpgradeSection'
@@ -33,7 +33,7 @@ export function NestsPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
                     </ActionButton>
                     {price !== null && (
                       <ActionButton id={`skip-nest-${i}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'nest', index: i } })}>
-                        Skip · {formatMicroUsd(price)}
+                        Skip · {formatSkipPrice(price)}
                       </ActionButton>
                     )}
                   </>
@@ -57,7 +57,7 @@ export function NestsPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
               </ActionButton>
               {price !== null && (
                 <ActionButton id={`skip-hatch-${slot}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'hatchery', index: slot } })}>
-                  Skip · {formatMicroUsd(price)}
+                  Skip · {formatSkipPrice(price)}
                 </ActionButton>
               )}
             </li>

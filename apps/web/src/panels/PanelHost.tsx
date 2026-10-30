@@ -60,7 +60,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
     case 'nest':
     case 'hatchery':
     case 'hatcheryBuilding': return <NestsPanel nowMs={nowMs} onClose={close} />
-    case 'farm': return <FarmPanel nowMs={nowMs} onClose={close} />
+    case 'farm': return <FarmPanel index={t.plot} nowMs={nowMs} onClose={close} />
     case 'obstacle': return <ObstaclePanel obstacleId={t.id} nowMs={nowMs} onClose={close} />
     case 'expandSign': return <ExpandSignPanel onClose={close} />
     default: return null

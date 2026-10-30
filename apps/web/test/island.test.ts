@@ -94,6 +94,13 @@ describe('island model', () => {
     expect(crop.badge).toBe('8s') // 7.5 s left of the 15 s Flash-14 grow time
   })
 
+  it('badges a ripe crop "ripe" (not the generic "ready" of eggs)', () => {
+    const s = { ...newPlayer(0), farms: [{ ...newPlayer(0).farms[0]!, crop: 'dragonBush' as const, readyAtMs: 15_000 }] }
+    expect(model(s, 14_999).objects.find(o => o.id === 'crop:0')!.badge).toBe('1s')
+    expect(model(s, 15_000).objects.find(o => o.id === 'crop:0')!.badge).toBe('ripe')
+    expect(model(s, 99_000).objects.find(o => o.id === 'crop:0')!.badge).toBe('ripe')
+  })
+
   it('draws back to front by col + row + size (isometric depth), a habitat before its own dragons', () => {
     const ids = model(newPlayer(0)).objects.map(o => o.id)
     const at = (id: string) => ids.indexOf(id)

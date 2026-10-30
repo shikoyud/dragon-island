@@ -241,7 +241,7 @@ export function buildIslandModel(
       // A ripe crop sways when the art has the loop.
       const sway = fraction >= 1 ? art.building.cropSway[plot.crop] : undefined
       const look = sway ? { key: textureKey(`crop.${plot.crop}.sway`), sprite: sway } : { key: textureKey(`crop.${plot.crop}`), sprite, ...growth }
-      group.push({ id: `crop:${i}`, ...look, x: a.x, y: a.y - 10, target: { kind: 'farm', plot: i }, badge: timerLabel(plot.readyAtMs, nowMs) })
+      group.push({ id: `crop:${i}`, ...look, x: a.x, y: a.y - 10, target: { kind: 'farm', plot: i }, badge: nowMs >= plot.readyAtMs ? 'ripe' : timerLabel(plot.readyAtMs, nowMs) })
     }
     add(plot.placement, FOOTPRINT.farm, group)
     markers.farms.push({ plot: i, crop: plot.crop })
