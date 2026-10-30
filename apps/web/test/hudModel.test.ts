@@ -1,4 +1,4 @@
-import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
+import { hatcherySlots, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { attentionItems, MAX_ATTENTION, xpFraction } from '../src/hud/hudModel'
 
@@ -28,7 +28,7 @@ describe('HUD model', () => {
   })
 
   it('lists eggs in breeders and hatchery, ripe crops, and hatchlings with no room', () => {
-    const s = base()
+    const s = { ...base(), hatcheryLevel: 3 } // room for the egg, the hatching egg and the stranded hatchling
     s.breeders[0]!.egg = { speciesId: 'flame', readyAtMs: 1_000, hatchMs: 1 }
     s.hatchery = [{ speciesId: 'sea', readyAtMs: 90_000 }] as PlayerState['hatchery']
     s.farms[0] = { ...s.farms[0]!, crop: 'dragonBush', readyAtMs: 500 }
@@ -42,6 +42,18 @@ describe('HUD model', () => {
     expect(byId['noRoom']).toMatchObject({ ready: true, label: expect.stringMatching(/no room/i), panel: { kind: 'hatcheryBuilding' } })
     expect(items.length).toBeLessThanOrEqual(MAX_ATTENTION)
     expect(items.some(i => i.id === 'quests')).toBe(false)
+  })
+
+  it('names the Hatchery for a finished egg when it is full, with no Collect action', () => {
+    const s = base()
+    s.breeders[0]!.egg = { speciesId: 'flame', readyAtMs: 1_000, hatchMs: 1 }
+    const slots = hatcherySlots(s.hatcheryLevel, s.hatcheryFifthSlot)
+    s.hatchery = Array.from({ length: slots }, () => ({ speciesId: 'sea', readyAtMs: 9_000_000 })) as PlayerState['hatchery']
+    const item = attentionItems(s, 2_000).find(i => i.id === 'breeder:0')!
+    expect(item.label).toMatch(/hatchery/i)
+    expect(item.label).not.toMatch(/flame/i)
+    expect(item.action).toBeUndefined()
+    expect(item.panel).toEqual({ kind: 'hatcheryBuilding' })
   })
 
   it('keeps at most MAX_ATTENTION items', () => {

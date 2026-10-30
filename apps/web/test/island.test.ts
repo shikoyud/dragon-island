@@ -1,4 +1,4 @@
-import { cropGrowMs, DEFAULT_PRESET, getSpecies, goldPerMinuteX20, habitatCap, LAUNCH_CATALOG, newPlayer, outerObstacles, residents, storedGold, type Dragon } from '@wyrmhaven/game-core'
+import { cropGrowMs, DEFAULT_PRESET, getSpecies, goldPerMinuteX20, habitatCap, hatcherySlots, LAUNCH_CATALOG, newPlayer, outerObstacles, residents, storedGold, type Dragon } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
@@ -157,6 +157,18 @@ describe('island model', () => {
     const crop = objects.find(o => o.id === 'crop:0')!
     expect(crop.scale).toBeCloseTo(0.75, 5) // half grown
     expect(crop.badge).toBe('8s') // 7.5 s left of the 15 s Flash-14 grow time
+  })
+
+  it('badges a finished breeder egg "ready" with a free Hatchery slot and "hatchery full" without (R18, R20)', () => {
+    const p = newPlayer(0)
+    const done = { ...p, breeders: [{ ...p.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 1_000, hatchMs: 1 } }] }
+    const free = model(done, 2_000).objects.find(o => o.id === 'egg:0')!
+    expect(free.badge).toBe('ready')
+    expect(free.key).toBe(textureKey('egg.flame')) // the primary element's egg, never the species (R20)
+    const slots = hatcherySlots(done.hatcheryLevel, done.hatcheryFifthSlot)
+    const full = { ...done, hatchery: Array.from({ length: slots }, () => ({ speciesId: 'sea', readyAtMs: 9_000_000 })) }
+    expect(model(full, 2_000).objects.find(o => o.id === 'egg:0')!.badge).toBe('hatchery full')
+    expect(model(full, 500).objects.find(o => o.id === 'egg:0')!.badge).toBe('1s') // unfinished keeps its timer
   })
 
   it('badges a ripe crop "ripe" (not the generic "ready" of eggs)', () => {

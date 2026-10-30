@@ -1,6 +1,6 @@
 import {
   constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize,
-  DEFAULT_PRESET, dragonRateX20, habitatCap, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
+  DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
   type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
@@ -58,6 +58,14 @@ export function timerLabel(readyAtMs: number, nowMs: number): string {
   if (s < 60) return `${s}s`
   if (s < 3600) return `${Math.ceil(s / 60)}m`
   return `${Math.ceil(s / 3600)}h`
+}
+
+/** True when a finished egg could move to the Hatchery now (R18). */
+export const hatcheryHasRoom = (s: PlayerState): boolean => hatcheryUsed(s) < hatcherySlots(s.hatcheryLevel, s.hatcheryFifthSlot)
+
+/** Badge of an egg in a breeder: its timer, then 'ready', or 'hatchery full' when it is done but has nowhere to go. */
+export function eggBadge(s: PlayerState, readyAtMs: number, nowMs: number): string {
+  return readyAtMs <= nowMs && !hatcheryHasRoom(s) ? 'hatchery full' : timerLabel(readyAtMs, nowMs)
 }
 
 /** The GOLD badge waits for this share of the habitat's cap, if that is less than a minute of its residents' income (M1 Q1). */
@@ -228,7 +236,7 @@ export function buildIslandModel(
     }]
     if (breeder.egg) {
       const el = getSpecies(catalog, breeder.egg.speciesId).elements[0]!
-      group.push({ id: `egg:${index}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], x: a.x, y: a.y - 9, scale: NEST_EGG_SCALE, target: { kind: 'breeder', index }, badge: timerLabel(breeder.egg.readyAtMs, nowMs) })
+      group.push({ id: `egg:${index}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], x: a.x, y: a.y - 9, scale: NEST_EGG_SCALE, target: { kind: 'breeder', index }, badge: eggBadge(state, breeder.egg.readyAtMs, nowMs) })
     }
     add(breeder.placement, FOOTPRINT.breeder, group)
     markers.breeders.push({ index, egg: breeder.egg !== null })

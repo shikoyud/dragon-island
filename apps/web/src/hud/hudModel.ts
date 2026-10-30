@@ -1,6 +1,7 @@
 import { xpToNext, type BreederKind, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import type { Target } from '../game/bridge'
+import { hatcheryHasRoom } from '../game/islandModel'
 
 /** Pure numbers and lists the HUD shows; no React, so they are tested directly. */
 
@@ -67,6 +68,11 @@ export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
   s.breeders.forEach((b, i) => {
     if (!b.egg) return
     const ready = b.egg.readyAtMs <= nowMs
+    if (ready && !hatcheryHasRoom(s)) {
+      // Finished, but the Hatchery is full: say where the egg is stuck; Collect would fail with HATCHERY_FULL.
+      items.push({ id: `breeder:${i}`, label: 'Egg waiting: Hatchery full', ready, readyAtMs: b.egg.readyAtMs, panel: { kind: 'hatcheryBuilding' } })
+      return
+    }
     items.push({ id: `breeder:${i}`, label: `Egg in ${breederName(b.kind)}`, ready, readyAtMs: b.egg.readyAtMs, panel: { kind: 'breeder', index: i }, ...(ready ? { action: { type: 'collectEgg', breeder: i } as ClientAction } : {}) })
   })
   if (s.hatchery.length > 0) {
