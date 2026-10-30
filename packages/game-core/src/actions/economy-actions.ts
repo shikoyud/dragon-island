@@ -54,14 +54,14 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
   }
 }
 
-function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, preset: Preset): PlayerState {
+function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, preset: Preset, day: number): PlayerState {
   switch (item.kind) {
     case 'skip': {
       const at = <T extends { readyAtMs: number } | null>(xs: T[]) =>
         xs.map((x, i) => i === item.index && x ? { ...x, readyAtMs: nowMs } : x)
       if (item.target === 'breeder') return { ...s, breeders: s.breeders.map((b, i) => i === item.index && b.egg ? { ...b, egg: { ...b.egg, readyAtMs: nowMs } } : b) }
       if (item.target === 'construction') {
-        return completeConstruction({ ...s, constructions: at(s.constructions) }, item.index, c, nowMs, preset)
+        return completeConstruction({ ...s, constructions: at(s.constructions) }, item.index, c, nowMs, preset, day)
       }
       if (item.target === 'hatchery') return { ...s, hatchery: at(s.hatchery) }
       return { ...s, farms: at(s.farms) }
@@ -93,5 +93,5 @@ export const buy: Handler<'buy'> = (s, a, ctx) => {
   if (error) return failure(error)
   const microUsd = priceMicroUsd(a.item, s, ctx.nowMs)
   if (microUsd === null) return failure('NOT_FOUND')
-  return success(applyItem(a.item, s, ctx.nowMs, ctx.catalog, ctx.preset), [{ type: 'charge', microUsd }])
+  return success(applyItem(a.item, s, ctx.nowMs, ctx.catalog, ctx.preset, ctx.day), [{ type: 'charge', microUsd }])
 }

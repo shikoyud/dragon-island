@@ -24,5 +24,5 @@ export const harvest: Handler<'harvest'> = (s, a, ctx) => {
   if (ctx.nowMs < plot.readyAtMs) return failure('NOT_READY')
   const farms = s.farms.map((p, i) => i === a.plot ? { ...p, crop: null, readyAtMs: 0 } : p)
   const next = { ...s, food: s.food + cropFood(plot.crop, plot.level, ctx.preset), farms }
-  return success(addXp(next, CROPS[plot.crop].tier * HARVEST_XP_PER_TIER, ctx.preset))
+  return success(addXp(next, CROPS[plot.crop].tier * HARVEST_XP_PER_TIER, ctx.preset, ctx.day))
 }

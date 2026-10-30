@@ -100,7 +100,7 @@ export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {
 }
 
 /** Applies construction `index` (which must be ready); shared by finishConstruction and the construction skip. */
-export function completeConstruction(s: PlayerState, index: number, c: Catalog, nowMs: number, preset: Preset): PlayerState {
+export function completeConstruction(s: PlayerState, index: number, c: Catalog, nowMs: number, preset: Preset, day: number): PlayerState {
   const con = s.constructions[index]!
   const rest = { ...s, constructions: s.constructions.filter((_, i) => i !== index) }
   if (con.kind === 'build') return rest
@@ -109,7 +109,7 @@ export function completeConstruction(s: PlayerState, index: number, c: Catalog, 
     const cleared = { ...rest, islands: { ...rest.islands, obstacles: rest.islands.obstacles.filter(x => x.id !== con.obstacleId) } }
     if (!o) return cleared
     const reward = clearReward(o)
-    return addXp({ ...cleared, food: cleared.food + reward.food }, reward.xp, preset)
+    return addXp({ ...cleared, food: cleared.food + reward.food }, reward.xp, preset, day)
   }
   const ref = con.building
   switch (ref.type) {
@@ -127,5 +127,5 @@ export const finishConstruction: Handler<'finishConstruction'> = (s, a, ctx) => 
   const con = s.constructions[a.index]
   if (!con) return failure('NOT_FOUND')
   if (ctx.nowMs < con.readyAtMs) return failure('NOT_READY')
-  return success(completeConstruction(s, a.index, ctx.catalog, ctx.nowMs, ctx.preset))
+  return success(completeConstruction(s, a.index, ctx.catalog, ctx.nowMs, ctx.preset, ctx.day))
 }

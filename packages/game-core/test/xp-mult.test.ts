@@ -18,9 +18,9 @@ const run = (st: PlayerState, a: Action, t: number, preset: Preset = FLASH_14) =
 
 describe('addXp applies the preset multiplier (R27)', () => {
   it('multiplies by xpMult', () => {
-    expect(addXp(base, 1, FLASH_14).xp).toBe(12)
-    expect(addXp(base, 1, FLASH_28).xp).toBe(8)
-    expect(addXp(base, 5, FLASH_14)).toMatchObject({ level: 2, xp: 10 })
+    expect(addXp(base, 1, FLASH_14, 1).xp).toBe(12)
+    expect(addXp(base, 1, FLASH_28, 1).xp).toBe(8)
+    expect(addXp(base, 5, FLASH_14, 1)).toMatchObject({ level: 2, xp: 10 })
   })
 })
 

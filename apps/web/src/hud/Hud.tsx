@@ -115,9 +115,9 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
       <header className="hud-top" ref={top}>
         <div className="hud-avatar">
           <span className="hud-avatar__badge" aria-label={`Level ${s.level}`}>{s.level}</span>
-          <div className="hud-xp" role="progressbar" aria-label="Experience" aria-valuemin={0} aria-valuemax={xpToNext(s.level)} aria-valuenow={s.xp}>
+          <div className="hud-xp" role="progressbar" aria-label="Experience" aria-valuemin={0} aria-valuemax={Number.isFinite(xpToNext(s.level)) ? xpToNext(s.level) : s.xp} aria-valuenow={s.xp}>
             <span className="hud-xp__fill" style={{ width: `${Math.round(xpFraction(s) * 100)}%` }} />
-            <span className="hud-xp__text">{formatGold(s.xp)} / {formatGold(xpToNext(s.level))} XP</span>
+            <span className="hud-xp__text">{Number.isFinite(xpToNext(s.level)) ? `${formatGold(s.xp)} / ${formatGold(xpToNext(s.level))} XP` : 'MAX'}</span>
           </div>
         </div>
         <div className="hud-pills" role="status" aria-label="Resources">

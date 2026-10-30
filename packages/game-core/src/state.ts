@@ -27,7 +27,7 @@ export type Construction =
   | { kind: 'clear'; obstacleId: string; readyAtMs: number }
 
 /** Bumped when the saved shape changes; there is no save migration (R2). */
-export const STATE_VERSION = 3
+export const STATE_VERSION = 4
 
 export interface PlayerState {
   version: number

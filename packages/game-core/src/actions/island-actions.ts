@@ -59,7 +59,7 @@ export const feed: Handler<'feed'> = (s, a, ctx) => {
       return x.feeds + 1 >= FEEDS_PER_LEVEL ? { ...x, level: x.level + 1, feeds: 0 } : { ...x, feeds: x.feeds + 1 }
     }),
   }
-  return success(addXp(fed, feedXp(cost), ctx.preset))
+  return success(addXp(fed, feedXp(cost), ctx.preset, ctx.day))
 }
 
 /** A player always keeps two dragons so they can breed. */

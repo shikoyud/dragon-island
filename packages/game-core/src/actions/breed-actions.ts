@@ -43,7 +43,7 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
     tutorial: { ...s.tutorial, breedDone: true },
     firstHybridDone: s.firstHybridDone || scripted,
   }
-  return success(addXp(next, START_BREED_XP, ctx.preset))
+  return success(addXp(next, START_BREED_XP, ctx.preset, ctx.day))
 }
 
 /** The Dragon Book with `speciesId` added once (R22). */
@@ -108,5 +108,5 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
     discovered: discover(s.discovered, egg.speciesId),
     nextId: s.nextId + 1,
   }
-  return success(addXp(next, HATCH_XP[species.rarity], ctx.preset))
+  return success(addXp(next, HATCH_XP[species.rarity], ctx.preset, ctx.day))
 }

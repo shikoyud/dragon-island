@@ -7,7 +7,8 @@ import { hatcheryHasRoom } from '../game/islandModel'
 
 /** How far the player is towards the next level, 0..1. */
 export function xpFraction(s: PlayerState): number {
-  return Math.min(1, Math.max(0, s.xp / xpToNext(s.level)))
+  const need = xpToNext(s.level)
+  return Number.isFinite(need) ? Math.min(1, Math.max(0, s.xp / need)) : 1
 }
 
 /** Something waiting for the player, shown as a shortcut in the HUD's left column. */
