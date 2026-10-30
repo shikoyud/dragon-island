@@ -1,4 +1,4 @@
-import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
+import { cropFood, DEFAULT_PRESET, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -234,6 +234,31 @@ describe('NestsPanel and FarmPanel', () => {
     expect(screen.queryByRole('button', { name: /skip/i })).toBeNull()
     await userEvent.click(harvest)
     expect(action).toHaveBeenCalledWith({ type: 'harvest', plot: 0 }, expect.any(String))
+  })
+
+  it('scales yield with the farm level: a level-5 farm shows 120 food in the picker and on Harvest', () => {
+    const l5 = (crop: 'dragonBush' | null) => ({ ...base, farms: [{ ...base.farms[0]!, level: 5, crop, readyAtMs: 0 }] })
+    const r = harness(l5(null)).wrap(<FarmPanel index={0} nowMs={0} />)
+    expect(screen.getByRole('button', { name: /^Dragon Bush · 15s · 50 gold → 120 food/ })).toBeInTheDocument()
+    r.unmount()
+    harness(l5('dragonBush')).wrap(<FarmPanel index={0} nowMs={0} />)
+    expect(screen.getByRole('button', { name: 'Harvest · 120 food' })).toBeInTheDocument()
+  })
+
+  it('harvests at the farm level it has now, not the level it was planted at', () => {
+    const planted = { ...base.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 0 }
+    const r = harness({ ...base, farms: [planted] }).wrap(<FarmPanel index={0} nowMs={0} />)
+    expect(screen.getByRole('button', { name: 'Harvest · 60 food' })).toBeInTheDocument()
+    r.unmount()
+    const upgraded = { ...planted, level: 3 }
+    harness({ ...base, farms: [upgraded] }).wrap(<FarmPanel index={0} nowMs={0} />)
+    expect(screen.getByRole('button', { name: `Harvest · ${cropFood('dragonBush', 3, DEFAULT_PRESET)} food` })).toBeInTheDocument()
+    expect(cropFood('dragonBush', 3, DEFAULT_PRESET)).toBe(90)
+  })
+
+  it('uses the Flash-28 preset from /me for time and yield', () => {
+    harness(base, 0, 'flash28').wrap(<FarmPanel index={0} nowMs={0} />)
+    expect(screen.getByRole('button', { name: /^Dragon Bush · 20s · 50 gold → 40 food/ })).toBeInTheDocument()
   })
 
   it('opens from the island with the tapped farm\'s index', () => {

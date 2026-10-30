@@ -13,10 +13,10 @@ import type { DialogKey } from '../src/hud/Hud'
 import { PanelHost, useDialog } from '../src/panels/PanelHost'
 
 /** Renders panels against a fake API whose /me state can be swapped mid-test with `setState`. */
-export function harness(state: PlayerState, nowMs = 0) {
+export function harness(state: PlayerState, nowMs = 0, preset?: 'flash14' | 'flash28') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const setMe = (s: PlayerState) =>
-    qc.setQueryData(ME_KEY, { playerId: 'p1', address: '0xabc', state: s, balanceWei: 10n ** 18n * 5n, earningUnlocked: false, banned: false })
+    qc.setQueryData(ME_KEY, { playerId: 'p1', address: '0xabc', state: s, balanceWei: 10n ** 18n * 5n, earningUnlocked: false, banned: false, ...(preset ? { game: { preset } } : {}) })
   setMe(state)
   sessionStore.set({ token: 't', playerId: 'p1', address: '0xabc' })
   const action = vi.fn(async () => ({ state, effects: [] }))
