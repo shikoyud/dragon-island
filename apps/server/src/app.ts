@@ -21,6 +21,8 @@ import { prune } from './jobs/prune'
 import { actionRoutes } from './routes/actions'
 import { adminRoutes, type JobRegistry } from './routes/admin'
 import { e2eRoutes } from './routes/e2e'
+import { gameRoutes } from './routes/game'
+import { gameInfo } from './services/game'
 import { authRoutes } from './routes/auth'
 import { pvpRoutes } from './routes/pvp'
 import { withdrawRoutes } from './routes/withdraw'
@@ -78,12 +80,13 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const onStateReset = (playerId: string) => app.log.warn({ playerId }, 'player state reset: stored version differs (R2)')
   deps.onStateReset = onStateReset
   const actionDeps: ActionDeps = {
-    db, clock, catalog: deps.catalog, price: deps.price,
+    db, clock, catalog: deps.catalog, preset: config.PRESET, price: deps.price,
     resolveOffer, settleDefence, peekOfferOpponent, onStateReset,
   }
   authRoutes(app, deps)
   actionRoutes(app, deps, actionDeps)
   pvpRoutes(app, deps)
+  gameRoutes(app, deps)
   withdrawRoutes(app, deps, withdrawDeps)
 
   const chain = deps.chain
@@ -131,6 +134,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
       earningUnlocked: p.earningUnlocked,
       banned: p.bannedAt !== null,
       termsRequired: termsRequired(config, p),
+      game: await gameInfo(db, clock, config),
     }
   })
 

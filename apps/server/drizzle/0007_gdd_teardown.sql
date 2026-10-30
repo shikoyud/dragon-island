@@ -3,7 +3,8 @@ CREATE TABLE "game" (
 	"secret_hex" text NOT NULL,
 	"commit_hash" text NOT NULL,
 	"revealed" boolean DEFAULT false NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"launch_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 DROP INDEX "action_log_season_player_idx";--> statement-breakpoint

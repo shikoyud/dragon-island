@@ -1,5 +1,5 @@
 import {
-  applyAction, createRng, utcDay, type Action, type Catalog, type OpponentSnapshot, type PlayerState,
+  PRESETS, applyAction, createRng, utcDay, type Action, type Catalog, type OpponentSnapshot, type PlayerState, type PresetId,
 } from '@wyrmhaven/game-core'
 import type { ActionRequest, ActionResponse, ClientAction, ErrorResponse } from '@wyrmhaven/shared'
 import { and, eq } from 'drizzle-orm'
@@ -18,6 +18,8 @@ export interface ActionDeps {
   db: Db
   clock: Clock
   catalog: Catalog
+  /** Soft-economy preset id (config PRESET); applyAction gets PRESETS[preset]. */
+  preset: PresetId
   /** R2: called with the player id when a stored state of another version is replaced by a fresh one. */
   onStateReset?: (playerId: string) => void
   price: PriceSource
@@ -88,7 +90,7 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       }
     }
 
-    const result = applyAction(state, action, nowMs, createRng(seed32), deps.catalog)
+    const result = applyAction(state, action, nowMs, createRng(seed32), deps.catalog, PRESETS[deps.preset])
     const day = utcDay(nowMs)
 
     let status: number
