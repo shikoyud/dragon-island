@@ -1,7 +1,8 @@
 import { activeLegendaries, breedValidity, rollOffspring } from '../breeding'
-import { hatcherySlots, nestBreedMs } from '../buildings'
+import { breederBreedMs, hatcherySlots } from '../buildings'
 import { getSpecies } from '../catalog'
 import { isUnfinished } from '../construction'
+import { BREEDER_LEVELS } from '../data/breeding-buildings'
 import { breedTimerMs } from '../data/breeding-timers'
 import { BREED_MIN_LEVEL } from '../data/dragon-levels'
 import { HATCH_XP, START_BREED_XP } from '../data/xp'
@@ -17,17 +18,20 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const pb = s.dragons.find(d => d.id === a.parentB)
   if (!pa || !pb || pa.id === pb.id) return failure('INVALID_PARENTS')
   if (pa.level < BREED_MIN_LEVEL || pb.level < BREED_MIN_LEVEL) return failure('LEVEL_TOO_LOW')
+  if (s.level < BREEDER_LEVELS.mountain[0]!.minPl) return failure('LEVEL_TOO_LOW')
   const sa = getSpecies(ctx.catalog, pa.speciesId), sb = getSpecies(ctx.catalog, pb.speciesId)
   const invalid = breedValidity(sa, sb)
   if (invalid) return failure(invalid)
-  const nest = s.nests.findIndex(n => n.egg === null)
-  if (nest < 0) return failure('NO_FREE_NEST')
+  // A finished egg waiting for a Hatchery slot keeps its building blocked (§5.4); a new building does nothing yet.
+  const index = s.breeders.findIndex((b, i) => b.egg === null && !isUnfinished(s, { type: 'breeder', index: i }))
+  if (index < 0) return failure('NO_FREE_BREEDER')
 
   const child = rollOffspring(sa, sb, { activeLegendaries: activeLegendaries(ctx.day, ctx.preset) }, ctx.catalog, ctx.rng)
-  const readyAtMs = ctx.nowMs + nestBreedMs(breedTimerMs(child.rarity, child.elements, ctx.preset), s.nests[nest]!.level)
+  const hatchMs = breedTimerMs(child.rarity, child.elements, ctx.preset)
+  const readyAtMs = ctx.nowMs + breederBreedMs(hatchMs, s.breeders[index]!)
   const next = {
     ...s,
-    nests: s.nests.map((n, i) => i === nest ? { ...n, egg: { speciesId: child.id, readyAtMs } } : n),
+    breeders: s.breeders.map((b, i) => i === index ? { ...b, egg: { speciesId: child.id, readyAtMs, hatchMs } } : b),
     tutorial: { ...s.tutorial, breedDone: true },
   }
   return success(addXp(next, START_BREED_XP))
@@ -39,17 +43,16 @@ export function hatcheryUsed(s: { hatchery: readonly unknown[]; dragons: readonl
 }
 
 export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
-  if (a.nest < 0 || a.nest >= s.nests.length) return failure('NOT_FOUND')
-  const egg = s.nests[a.nest]!.egg
-  if (!egg) return failure('NEST_EMPTY')
+  if (a.breeder < 0 || a.breeder >= s.breeders.length) return failure('NOT_FOUND')
+  const egg = s.breeders[a.breeder]!.egg
+  if (!egg) return failure('BREEDER_EMPTY')
   if (ctx.nowMs < egg.readyAtMs) return failure('NOT_READY')
-  if (hatcheryUsed(s) >= hatcherySlots(s.hatcheryLevel)) return failure('HATCHERY_FULL')
-  const species = getSpecies(ctx.catalog, egg.speciesId)
-  const readyAtMs = ctx.nowMs + breedTimerMs(species.rarity, species.elements, ctx.preset)
+  if (hatcheryUsed(s) >= hatcherySlots(s.hatcheryLevel, s.hatcheryFifthSlot)) return failure('HATCHERY_FULL')
   return success({
     ...s,
-    nests: s.nests.map((n, i) => i === a.nest ? { ...n, egg: null } : n),
-    hatchery: [...s.hatchery, { speciesId: egg.speciesId, readyAtMs }],
+    breeders: s.breeders.map((b, i) => i === a.breeder ? { ...b, egg: null } : b),
+    // The hatch timer starts now, when the egg reaches its slot (§5.4).
+    hatchery: [...s.hatchery, { speciesId: egg.speciesId, readyAtMs: ctx.nowMs + egg.hatchMs }],
     tutorial: { ...s.tutorial, hatchDone: true },
   })
 }

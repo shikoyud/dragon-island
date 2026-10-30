@@ -27,16 +27,16 @@ describe('HUD model', () => {
     expect(items[1]).toMatchObject({ id: 'construction:0', ready: false, readyAtMs: 60_000, panel: { kind: 'farm', plot: 1 } })
   })
 
-  it('lists eggs in nests and hatchery, ripe crops, and hatchlings with no room', () => {
+  it('lists eggs in breeders and hatchery, ripe crops, and hatchlings with no room', () => {
     const s = base()
-    s.nests[0]!.egg = { speciesId: 'flame', readyAtMs: 1_000 }
+    s.breeders[0]!.egg = { speciesId: 'flame', readyAtMs: 1_000, hatchMs: 1 }
     s.hatchery = [{ speciesId: 'sea', readyAtMs: 90_000 }] as PlayerState['hatchery']
     s.farms[0] = { ...s.farms[0]!, crop: 'dragonBush', readyAtMs: 500 }
     s.farms[1] = { ...s.farms[1]!, crop: 'dragonBush', readyAtMs: 800 }
     s.dragons.push({ ...s.dragons[0]!, id: 'd9', habitatId: null })
     const items = attentionItems(s, 2_000)
     const byId = Object.fromEntries(items.map(i => [i.id, i]))
-    expect(byId['nest:0']).toMatchObject({ ready: true, action: { type: 'collectEgg', nest: 0 } })
+    expect(byId['breeder:0']).toMatchObject({ ready: true, label: 'Egg in Breeding Mountain', action: { type: 'collectEgg', breeder: 0 }, panel: { kind: 'breeder', index: 0 } })
     expect(byId['crops']).toMatchObject({ ready: true, label: expect.stringMatching(/2 crops/i), action: { type: 'harvest', plot: 0 } })
     expect(byId['hatchery']).toMatchObject({ ready: false, readyAtMs: 90_000 })
     expect(byId['noRoom']).toMatchObject({ ready: true, label: expect.stringMatching(/no room/i), panel: { kind: 'hatcheryBuilding' } })

@@ -34,7 +34,7 @@ export interface IslandMarkers {
   habitats: string[]
   dragons: string[]
   waiting: { id: string; noRoom: boolean }[]
-  nests: { index: number; egg: boolean }[]
+  breeders: { index: number; egg: boolean }[]
   hatchery: { slot: number }[]
   farms: { plot: number; crop: string | null }[]
   obstacles: string[]
@@ -108,6 +108,8 @@ const decorationLook = (art: GameArtSet, kind: DecorationKind) => ({
   key: textureKey(`decoration.${kind}`),
   sprite: art.decoration[kind],
 })
+/** Mountain and Grove share the old nest sprite until their art lands (M2 Task 11). */
+const breederLook = (art: GameArtSet) => ({ key: textureKey('building.nest'), sprite: art.building.nest })
 const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), sprite: art.building.nexus })
 /** The Golden Aerie: its own sprite when the manifest has one, else the Nexus sprite. */
 const aerieLook = (art: GameArtSet) => (art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art))
@@ -124,7 +126,7 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
         return { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
       }
       case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
-      case 'nest': return { key: textureKey('building.nest'), sprite: art.building.nest }
+      case 'breeder': return breederLook(art)
       case 'hatchery': return { key: textureKey('building.hatchery'), sprite: art.building.hatchery }
       case 'decoration': {
         const d = state.decorations.find(x => x.id === t.id)
@@ -135,6 +137,7 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
   switch (what.kind) {
     case 'habitat': return { key: textureKey(`habitat.${what.element}`), sprite: art.habitat[what.element] }
     case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
+    case 'grove': return breederLook(art)
     case 'decoration': return decorationLook(art, what.decoration)
     case 'goldenAerie': return aerieLook(art)
   }
@@ -157,7 +160,7 @@ export function buildIslandModel(
 ): IslandModel {
   const objects: IslandObject[] = []
   const markers: IslandMarkers = {
-    habitats: [], dragons: [], waiting: [], nests: [], hatchery: [], farms: [],
+    habitats: [], dragons: [], waiting: [], breeders: [], hatchery: [], farms: [],
     obstacles: [], decorations: [], constructions: 0, ghost: null, sign: null,
   }
   if (!state) return { objects, markers }
@@ -216,19 +219,19 @@ export function buildIslandModel(
     add(h.placement, FOOTPRINT.habitat, group)
   }
 
-  state.nests.forEach((nest, index) => {
-    if (nest.placement.island !== view) return
-    const a = anchor(nest.placement.col, nest.placement.row, FOOTPRINT.nest)
+  state.breeders.forEach((breeder, index) => {
+    if (breeder.placement.island !== view) return
+    const a = anchor(breeder.placement.col, breeder.placement.row, FOOTPRINT.breeder)
     const group: IslandObject[] = [{
-      id: `nest:${index}`, key: textureKey('building.nest'), sprite: art.building.nest, ...a,
-      target: { kind: 'nest', index }, ...look({ type: 'nest', index }, nest.placement),
+      id: `breeder:${index}`, ...breederLook(art), ...a,
+      target: { kind: 'breeder', index }, ...look({ type: 'breeder', index }, breeder.placement),
     }]
-    if (nest.egg) {
-      const el = getSpecies(catalog, nest.egg.speciesId).elements[0]!
-      group.push({ id: `egg:${index}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], x: a.x, y: a.y - 9, scale: NEST_EGG_SCALE, target: { kind: 'nest', index }, badge: timerLabel(nest.egg.readyAtMs, nowMs) })
+    if (breeder.egg) {
+      const el = getSpecies(catalog, breeder.egg.speciesId).elements[0]!
+      group.push({ id: `egg:${index}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], x: a.x, y: a.y - 9, scale: NEST_EGG_SCALE, target: { kind: 'breeder', index }, badge: timerLabel(breeder.egg.readyAtMs, nowMs) })
     }
-    add(nest.placement, FOOTPRINT.nest, group)
-    markers.nests.push({ index, egg: nest.egg !== null })
+    add(breeder.placement, FOOTPRINT.breeder, group)
+    markers.breeders.push({ index, egg: breeder.egg !== null })
   })
 
   if (state.hatcheryPlacement.island === view) {
@@ -245,7 +248,7 @@ export function buildIslandModel(
     })
     for (const d of state.dragons.filter(x => x.habitatId === null)) {
       const el = getSpecies(catalog, d.speciesId).elements[0]!
-      const at = hatcherySpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel) - 1))
+      const at = hatcherySpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel, state.hatcheryFifthSlot) - 1))
       group.push({ id: `dragon:${d.id}`, key: textureKey(`hatchling.${el}`), sprite: art.hatchling[el], ...at, scale: HATCHERY_ITEM_SCALE, target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
       markers.waiting.push({ id: d.id, noRoom: true })

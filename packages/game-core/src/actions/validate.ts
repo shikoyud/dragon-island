@@ -44,7 +44,7 @@ export function isValidAction(a: unknown): a is Action {
     case 'startBreed':
       return isId(x['parentA']) && isId(x['parentB'])
     case 'collectEgg':
-      return isIndex(x['nest'])
+      return isIndex(x['breeder'])
     case 'hatch':
       return isIndex(x['slot'])
     case 'buy':
@@ -74,7 +74,8 @@ function isPlaceable(v: unknown): boolean {
   const b = v as Record<string, unknown>
   switch (b['kind']) {
     case 'habitat': return (ELEMENTS as readonly unknown[]).includes(b['element'])
-    case 'farm': return true
+    case 'farm':
+    case 'grove': return true
     case 'decoration': return typeof b['decoration'] === 'string' && Object.hasOwn(DECORATIONS, b['decoration'])
     default: return false
   }
@@ -85,7 +86,7 @@ function isBuildingRef(v: unknown): boolean {
   switch (t['type']) {
     case 'habitat': return isId(t['id'])
     case 'farm':
-    case 'nest': return isIndex(t['index'])
+    case 'breeder': return isIndex(t['index'])
     case 'hatchery': return true
     default: return false
   }
@@ -97,7 +98,7 @@ function isMovable(v: unknown): boolean {
     case 'habitat':
     case 'decoration': return isId(t['id'])
     case 'farm':
-    case 'nest': return isIndex(t['index'])
+    case 'breeder': return isIndex(t['index'])
     case 'hatchery': return true
     default: return false
   }
@@ -124,12 +125,14 @@ function isStoreItem(v: unknown): boolean {
   const item = v as Record<string, unknown>
   switch (item['kind']) {
     case 'skip':
-      return ['nest', 'hatchery', 'farm', 'construction'].includes(item['target'] as string) && isIndex(item['index'])
+      return ['breeder', 'hatchery', 'farm', 'construction'].includes(item['target'] as string) && isIndex(item['index'])
     case 'foodPack':
+    case 'hatcheryL5':
       return true
     case 'habitatL5':
       return isId(item['habitatId'])
     case 'farmL5':
+    case 'groveL3':
       return isIndex(item['index'])
     case 'goldenAerie':
       return isPlacement(item['placement'])

@@ -30,8 +30,8 @@ test.beforeEach(async ({ page, request }) => {
 })
 
 test('a click on a cell centre is that cell, and on a building selects it', async ({ page }) => {
-  // Free grass cells of the starting island (the habitats cover (0..9, 0..4), the hatchery and nest the bottom-left).
-  for (const [col, row] of [[6, 6], [11, 11], [8, 9], [7, 11]] as const) {
+  // Free grass cells of the starting island (the habitats cover (0..9, 0..4), the hatchery (0..3, 8..11) and the Mountain (4..8, 7..11)).
+  for (const [col, row] of [[6, 6], [11, 11], [10, 9], [9, 11]] as const) {
     const p = await cellPoint(page, col, row)
     await page.evaluate(() => { window.__seen!.length = 0 })
     await page.mouse.click(p.x, p.y)
@@ -45,9 +45,9 @@ test('a click on a cell centre is that cell, and on a building selects it', asyn
 test('clicks still land on the right cell after the page layout shifts the canvas', async ({ page }) => {
   // The canvas moves on the page (something above it grew) without changing size, so Phaser sees no resize.
   await page.evaluate(() => { (document.querySelector('.game-canvas') as HTMLElement).style.transform = 'translate(13px, 37px)' })
-  const p = await cellPoint(page, 8, 9)
+  const p = await cellPoint(page, 10, 9)
   await page.mouse.click(p.x, p.y)
-  await expect.poll(() => page.evaluate(() => window.__seen!)).toContainEqual({ type: 'cell', col: 8, row: 9 })
+  await expect.poll(() => page.evaluate(() => window.__seen!)).toContainEqual({ type: 'cell', col: 10, row: 9 })
 })
 
 test('wheel zoom stays anchored on the pointer and a drag pans without a jump', async ({ page }) => {

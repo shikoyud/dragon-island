@@ -12,7 +12,7 @@ export function levelOf(s: PlayerState, b: BuildingRef): number {
   switch (b.type) {
     case 'habitat': return s.habitats.find(h => h.id === b.id)?.level ?? 1
     case 'farm': return s.farms[b.index]?.level ?? 1
-    case 'nest': return s.nests[b.index]?.level ?? 1
+    case 'breeder': return s.breeders[b.index]?.level ?? 1
     case 'hatchery': return s.hatcheryLevel
   }
 }

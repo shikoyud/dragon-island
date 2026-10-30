@@ -44,7 +44,9 @@ describe('island model', () => {
     const { markers, objects } = model(newPlayer(0))
     expect(markers.habitats).toEqual(['h1', 'h2'])
     expect(markers.dragons).toEqual(['d1', 'd2'])
-    expect(markers.nests).toEqual([{ index: 0, egg: false }])
+    expect(markers.breeders).toEqual([{ index: 0, egg: false }])
+    // The Mountain stands on its 5x5 footprint at (4, 7), still drawn with the nest sprite until its art lands (Task 11).
+    expect(objects.find(o => o.id === 'breeder:0')).toMatchObject({ key: textureKey('building.nest'), x: -24, y: 84, target: { kind: 'breeder', index: 0 } })
     expect(markers.hatchery).toEqual([])
     expect(markers.farms).toHaveLength(1)
     expect(objects.find(o => o.id === 'habitat:h1')!.key).toBe(textureKey('habitat.terra'))
@@ -58,10 +60,10 @@ describe('island model', () => {
     const { objects } = model(newPlayer(0), 600_000)
     expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('gold')
     expect(model(newPlayer(0), 0).objects.find(o => o.id === 'habitat:h1')!.badge).toBeUndefined()
-    const withEgg = model({ ...newPlayer(0), nests: [{ ...newPlayer(0).nests[0]!, egg: { speciesId: 'flame', readyAtMs: 15_000 } }] }, 1_000)
+    const withEgg = model({ ...newPlayer(0), breeders: [{ ...newPlayer(0).breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 15_000, hatchMs: 1 } }] }, 1_000)
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.badge).toBe('14s')
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.scale).toBe(NEST_EGG_SCALE) // sits inside the 32x32 nest
-    expect(withEgg.markers.nests).toEqual([{ index: 0, egg: true }])
+    expect(withEgg.markers.breeders).toEqual([{ index: 0, egg: true }])
     expect(timerLabel(0, 5)).toBe('ready')
     expect(timerLabel(3_600_000 * 4, 0)).toBe('4h')
     expect(timerLabel(90_000, 0)).toBe('2m')
@@ -206,7 +208,7 @@ describe('island model', () => {
     for (const o of objects) bridge.emit({ type: 'select', target: o.target })
     expect(seen).toContainEqual({ kind: 'habitat', id: 'h1' })
     expect(seen).toContainEqual({ kind: 'dragon', id: 'd1' })
-    expect(seen).toContainEqual({ kind: 'nest', index: 0 })
+    expect(seen).toContainEqual({ kind: 'breeder', index: 0 })
     expect(seen).toContainEqual({ kind: 'farm', plot: 0 })
   })
 
@@ -231,14 +233,21 @@ describe('island model', () => {
     const s = newPlayer(0)
     const bad = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 2, col: 0, row: 0, facing: 0 })
     expect(bad.markers.ghost).toEqual({ legal: false, col: 0, row: 0, size: 2 })
-    const good = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 2, col: 6, row: 8, facing: 1 })
+    const good = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 2, col: 9, row: 8, facing: 1 })
     expect(good.objects.find(o => o.id === 'ghost')).toMatchObject({ tint: 'ok', flipX: true })
-    expect(good.markers.ghost).toEqual({ legal: true, col: 6, row: 8, size: 2 })
+    expect(good.markers.ghost).toEqual({ legal: true, col: 9, row: 8, size: 2 })
     expect(good.objects.at(-1)!.id).toBe('ghost')
   })
 
+  it('draws the Grove ghost with the nest sprite until its own art lands, on a 5x5 footprint', () => {
+    const s = { ...newPlayer(0), islands: { ...newPlayer(0).islands, homeStep: 1 } }
+    const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'grove' }, size: 5, col: 9, row: 7, facing: 0 })
+    expect(m.markers.ghost).toEqual({ legal: true, col: 9, row: 7, size: 5 })
+    expect(m.objects.find(o => o.id === 'ghost')!.key).toBe(textureKey('building.nest'))
+  })
+
   it('draws the Golden Aerie ghost with the Nexus sprite until its own art lands', () => {
-    const s = newPlayer(0)
+    const s = { ...newPlayer(0), islands: { ...newPlayer(0).islands, homeStep: 1 } } // the starting island has no free 5x5 spot
     const spot = nearestLegalCell(s, { kind: 'goldenAerie' }, 'home', { col: 4, row: 4 })!
     const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'goldenAerie' }, size: 5, ...spot, facing: 0 })
     expect(m.markers.ghost).toEqual({ legal: true, ...spot, size: 5 })

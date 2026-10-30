@@ -10,7 +10,7 @@ import type { StoreItem } from '../store'
 export type TeamIds = [string, string, string]
 
 export type Placeable =
-  | { kind: 'habitat'; element: Element } | { kind: 'farm' } | { kind: 'decoration'; decoration: DecorationId }
+  | { kind: 'habitat'; element: Element } | { kind: 'farm' } | { kind: 'grove' } | { kind: 'decoration'; decoration: DecorationId }
 export type MovableRef = BuildingRef | { type: 'decoration'; id: string }
 
 export type Action =
@@ -29,7 +29,7 @@ export type Action =
   | { type: 'plant'; plot: number; crop: CropId }
   | { type: 'harvest'; plot: number }
   | { type: 'startBreed'; parentA: string; parentB: string }
-  | { type: 'collectEgg'; nest: number }
+  | { type: 'collectEgg'; breeder: number }
   | { type: 'hatch'; slot: number }
   | { type: 'buy'; item: StoreItem }
   | { type: 'setDefenceTeam'; dragonIds: TeamIds }
@@ -42,7 +42,7 @@ export type Action =
   | { type: 'pveBattle'; stage: number; team: TeamIds; moves: PlayerMove[] }
 
 export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'INSUFFICIENT_GOLD' | 'INSUFFICIENT_FOOD' | 'MAX_LEVEL' | 'LEVEL_CAP'
-  | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'OPPOSITE_BASICS' | 'NO_FREE_NEST' | 'NEST_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'
+  | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'OPPOSITE_BASICS' | 'NO_FREE_BREEDER' | 'BREEDER_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'
   | 'NO_HABITAT_SLOT' | 'ELEMENT_MISMATCH' | 'MAX_PLOTS' | 'PLOT_BUSY' | 'PLOT_EMPTY'
   | 'LAST_DRAGONS' | 'NOT_SELLABLE' | 'NOTHING_TO_SKIP'
   | 'INVALID_TEAM' | 'NO_DEFENCE_TEAM' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'

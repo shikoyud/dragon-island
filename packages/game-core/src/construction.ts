@@ -9,7 +9,7 @@ export function sameBuilding(a: BuildingRef, b: BuildingRef): boolean {
   switch (a.type) {
     case 'habitat': return a.id === (b as typeof a).id
     case 'farm': return a.index === (b as typeof a).index
-    case 'nest': return a.index === (b as typeof a).index
+    case 'breeder': return a.index === (b as typeof a).index
     default: return true
   }
 }

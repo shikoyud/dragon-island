@@ -3,9 +3,9 @@ import { openPanel, resetPlayer, signIn } from './helpers'
 
 test('breeds, collects the egg, hatches a third dragon', async ({ page, request }) => {
   await signIn(page)
-  // Two Terra Basics at level 4 (breeding needs ≥ 4). Terra x Terra can only give a Terra Basic, whose real timer
-  // is 5 s at Flash-14 for the egg and again for the hatch (there are no tutorial timers any more).
-  await resetPlayer(request, { food: 1_000, dragons: [
+  // PL 2 and two Terra Basics at level 4 (breeding needs both, §5.4). Terra x Terra can only give a Terra Basic, whose
+  // real timer is 5 s at Flash-14 for the egg and again for the hatch (there are no tutorial timers any more).
+  await resetPlayer(request, { level: 2, food: 1_000, dragons: [
     { id: 'd1', speciesId: 'terra', level: 4, feeds: 0, habitatId: 'h1' },
     { id: 'd2', speciesId: 'terra', level: 4, feeds: 0, habitatId: 'h1' },
   ] })

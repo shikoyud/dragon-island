@@ -26,7 +26,12 @@ const payloads: unknown[] = [
   { type: 'moveBuilding', target: { type: 'hoard' }, placement: PL },
   { type: 'moveBuilding', target: { type: 'decoration', id: 'dec1' }, placement: PL },
   { type: 'moveBuilding', target: { type: 'farm', index: 1 }, placement: PL },
-  { type: 'moveBuilding', target: { type: 'nest', index: -1 }, placement: PL },
+  { type: 'moveBuilding', target: { type: 'breeder', index: -1 }, placement: PL },
+  { type: 'moveBuilding', target: { type: 'breeder', index: 0 }, placement: PL },
+  { type: 'moveBuilding', target: { type: 'nest', index: 0 }, placement: PL },
+  { type: 'placeBuilding', building: { kind: 'grove' }, placement: PL },
+  { type: 'startUpgrade', building: { type: 'breeder', index: 0 } },
+  { type: 'startUpgrade', building: { type: 'nest', index: 0 } },
   { type: 'moveBuilding', target: { type: 'habitat', id: '' }, placement: PL },
   { type: 'moveBuilding', target: { type: 'obstacle', id: 'o1' }, placement: PL },
   { type: 'removeDecoration', id: 'dec1' },
@@ -51,8 +56,9 @@ const payloads: unknown[] = [
   { type: 'harvest', plot: 7 },
   { type: 'harvest', plot: Number.NaN },
   { type: 'startBreed', parentA: 'd1', parentB: 'd2' },
+  { type: 'collectEgg', breeder: 0 },
+  { type: 'collectEgg', breeder: '0' },
   { type: 'collectEgg', nest: 0 },
-  { type: 'collectEgg', nest: '0' },
   { type: 'hatch', slot: 0 },
   { type: 'sellGold', gold: 100 },
   { type: 'sellGold', gold: '100' },
@@ -65,7 +71,12 @@ const payloads: unknown[] = [
   { type: 'buy', item: { kind: 'goldenAerie', placement: PL } },
   { type: 'buy', item: { kind: 'goldenAerie', placement: { ...PL, facing: 4 } } },
   { type: 'buy', item: { kind: 'goldenAerie' } },
+  { type: 'buy', item: { kind: 'skip', target: 'breeder', index: 0 } },
   { type: 'buy', item: { kind: 'skip', target: 'nest', index: 0 } },
+  { type: 'buy', item: { kind: 'hatcheryL5' } },
+  { type: 'buy', item: { kind: 'groveL3', index: 1 } },
+  { type: 'buy', item: { kind: 'groveL3', index: -1 } },
+  { type: 'buy', item: { kind: 'groveL3' } },
   { type: 'buy', item: { kind: 'skip', target: 'construction', index: 1 } },
   { type: 'buy', item: { kind: 'skip', target: 'bank', index: 0 } },
   { type: 'buy', item: { kind: 'nest', placement: PL } },
@@ -116,7 +127,8 @@ describe('M0 teardown', () => {
     expect(storeItemSchema.safeParse({ kind: 'oddsBoost' }).success).toBe(false)
     expect(storeItemSchema.safeParse({ kind: 'hoard' }).success).toBe(false)
     expect(storeItemSchema.safeParse({ kind: 'foodPack' }).success).toBe(true)
-    expect(storeItemSchema.safeParse({ kind: 'skip', target: 'nest', index: 0 }).success).toBe(true)
+    expect(storeItemSchema.safeParse({ kind: 'skip', target: 'breeder', index: 0 }).success).toBe(true)
+    expect(storeItemSchema.safeParse({ kind: 'skip', target: 'nest', index: 0 }).success).toBe(false)
     expect(clientActionSchema.safeParse({ type: 'moveBuilding', target: { type: 'hoard' }, placement: PL }).success).toBe(false)
   })
 })

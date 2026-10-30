@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DECORATIONS, decorationRefund } from '../src/decorations'
-import { hatcherySlots, nestBreedMs, upgradeInfo } from '../src/buildings'
+import { upgradeInfo } from '../src/buildings'
 import { canLiveIn } from '../src/habitat'
 import { FLASH_14 } from '../src/data/presets'
 import { newPlayer } from '../src/state'
@@ -13,10 +13,6 @@ describe('buildings', () => {
     expect(upgradeInfo(newPlayer(0), { type: 'habitat', id: 'h2' }, FLASH_14)).toEqual({ cost: 20_000, timerMs: 600_000, minLevel: 1 })
     expect(upgradeInfo({ ...newPlayer(0), habitats: newPlayer(0).habitats.map(h => ({ ...h, level: 5 })) }, { type: 'habitat', id: 'h2' }, FLASH_14)).toBeNull()
     expect(upgradeInfo(newPlayer(0), { type: 'farm', index: 0 }, FLASH_14)).toEqual({ cost: 15_000, timerMs: 600_000, minLevel: 1 })
-    expect(upgradeInfo(newPlayer(0), { type: 'nest', index: 0 }, FLASH_14)).toEqual({ cost: 15_000, timerMs: 7_200_000, minLevel: 12 })
-    expect(upgradeInfo(newPlayer(0), { type: 'hatchery' }, FLASH_14)).toEqual({ cost: 12_000, timerMs: 7_200_000, minLevel: 8 })
-    expect([hatcherySlots(1), hatcherySlots(3)]).toEqual([3, 5])
-    expect(nestBreedMs(43_200_000, 3)).toBe(34_560_000)
   })
   it('farm upgrades go L2 to L4 for Gold with no level gate; L4 has no Gold upgrade (the store sells L5)', () => {
     const at = (level: number) => ({ ...newPlayer(0), farms: newPlayer(0).farms.map(f => ({ ...f, level })) })

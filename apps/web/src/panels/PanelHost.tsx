@@ -58,7 +58,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
     case 'habitat': return <HabitatPanel habitatId={t.id} nowMs={nowMs} onClose={close} onOpenDragon={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} />
     case 'dragon': return <DragonPanel dragonId={t.id} onClose={close} />
     case 'decoration': return <DecorationPanel decorationId={t.id} onClose={close} />
-    case 'nest':
+    case 'breeder':
     case 'hatchery':
     case 'hatcheryBuilding': return <NestsPanel nowMs={nowMs} onClose={close} />
     case 'farm': return <FarmPanel index={t.plot} nowMs={nowMs} onClose={close} />

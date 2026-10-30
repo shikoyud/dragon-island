@@ -20,8 +20,8 @@ describe('ShopPanel Build tab', () => {
     const onPlace = vi.fn()
     const { wrap } = harness({ ...base, level: 3 })
     wrap(<ShopPanel onPlace={onPlace} view="home" nowMs={0} />)
-    for (const c of ['habitats', 'farming', 'decorations']) expect(screen.getByTestId(`shop-${c}`)).toBeInTheDocument()
-    for (const c of ['breeding', 'hoard']) expect(screen.queryByTestId(`shop-${c}`)).toBeNull()
+    for (const c of ['habitats', 'breeding', 'farming', 'decorations']) expect(screen.getByTestId(`shop-${c}`)).toBeInTheDocument()
+    expect(screen.queryByTestId('shop-hoard')).toBeNull()
     const hay = screen.getByRole('button', { name: /Hay cart/ })
     expect(hay).toBeDisabled()
     expect(hay).toHaveAccessibleDescription(/Level 6/)
@@ -51,6 +51,26 @@ describe('ShopPanel Build tab', () => {
     expect(onPlace).toHaveBeenLastCalledWith({ kind: 'habitat', element: 'terra' }, 5)
     await userEvent.click(within(screen.getByTestId('shop-farming')).getByRole('button'))
     expect(onPlace).toHaveBeenLastCalledWith({ kind: 'farm' }, 2)
+  })
+
+  it('sells one Grove from PL 12 (§5.4)', async () => {
+    const grove = () => within(screen.getByTestId('shop-breeding')).getByRole('button', { name: /Breeding Grove · 400,000 gold/ })
+    const low = harness({ ...base, level: 11, gold: 1_000_000 }).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
+    expect(grove()).toBeDisabled()
+    expect(grove()).toHaveAccessibleDescription('Level 12')
+    low.unmount()
+    const poor = harness({ ...base, level: 12, gold: 399_999 }).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
+    expect(grove()).toHaveAccessibleDescription('Not enough gold')
+    poor.unmount()
+    const onPlace = vi.fn()
+    const ok = harness({ ...base, level: 12, gold: 400_000 }).wrap(<ShopPanel onPlace={onPlace} view="home" nowMs={0} />)
+    await userEvent.click(grove())
+    expect(onPlace).toHaveBeenCalledWith({ kind: 'grove' }, 5)
+    ok.unmount()
+    const placement = base.breeders[0]!.placement
+    harness({ ...base, level: 12, gold: 400_000, breeders: [...base.breeders, { kind: 'grove', egg: null, level: 1, placement }] }).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
+    expect(grove()).toBeDisabled()
+    expect(grove()).toHaveAccessibleDescription('Already built')
   })
 
   it('shows Dawnspire-only items greyed off the Dawnspire, enabled on it', () => {
@@ -214,16 +234,16 @@ describe('UpgradeSection', () => {
       return text
     }
     expect(why({ ...base, gold: 10 })).toBe('Not enough gold')
-    expect(why({ ...base, gold: 99_999 }, { type: 'nest', index: 0 })).toBe('Needs player level 12')
+    expect(why({ ...base, gold: 99_999 }, { type: 'breeder', index: 0 })).toBe('Needs player level 10')
     const c1 = { kind: 'upgrade', building: { type: 'farm', index: 0 }, readyAtMs: 9 } as const
     const c2 = { kind: 'upgrade', building: { type: 'farm', index: 1 }, readyAtMs: 9 } as const
     expect(why({ ...base, gold: 25_000, constructions: [c1, c2] })).toBe('Both builders are busy')
   })
 
   it('shows Max level at the top', () => {
-    const { wrap } = harness({ ...base, hatcheryLevel: 3 })
+    const { wrap } = harness({ ...base, hatcheryLevel: 4 })
     wrap(<UpgradeSection building={{ type: 'hatchery' }} nowMs={0} />)
-    expect(screen.getByText('Level 3')).toBeInTheDocument()
+    expect(screen.getByText('Level 4')).toBeInTheDocument()
     expect(screen.getByText('Max level')).toBeInTheDocument()
   })
 
@@ -269,11 +289,11 @@ describe('Finish button and upgrades that keep working', () => {
 })
 
 describe('NestsPanel upgrades', () => {
-  it('has an upgrade section for the hatchery and each nest', () => {
-    const { wrap } = harness({ ...base, level: 12, gold: 100_000 })
+  it('has an upgrade section for the hatchery and each breeder', () => {
+    const { wrap } = harness({ ...base, level: 12, gold: 200_000 })
     wrap(<NestsPanel nowMs={0} />)
     const ups = screen.getAllByRole('button', { name: /Upgrade to 2/ })
-    expect(ups.map(b => b.textContent)).toEqual([expect.stringContaining('15,000 gold · 2h'), expect.stringContaining('12,000 gold · 2h')])
+    expect(ups.map(b => b.textContent)).toEqual([expect.stringContaining('150,000 gold · 10m'), expect.stringContaining('2,000 gold · 10m')])
     ups.forEach(b => expect(b).toBeEnabled())
   })
 })

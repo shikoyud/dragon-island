@@ -21,11 +21,11 @@ export function BreedPanel({ onClose }: { onClose?: () => void }) {
   const pb = s.dragons.find(d => d.id === b)
   const ready = pa && pb && pa.id !== pb.id
   const lowLevel = ready && (pa.level < BREED_MIN_LEVEL || pb.level < BREED_MIN_LEVEL)
-  const nestFree = s.nests.some((n, i) => n.egg === null && !isUnfinished(s, { type: 'nest', index: i }))
+  const breederFree = s.breeders.some((n, i) => n.egg === null && !isUnfinished(s, { type: 'breeder', index: i }))
   const day = gameDay(me.data?.game?.launchAtMs ?? 0, Date.now())
   const odds = ready && !lowLevel ? breedingOdds(getSpecies(catalog, pa.speciesId), getSpecies(catalog, pb.speciesId), { activeLegendaries: activeLegendaries(day, preset) }, catalog) : null
   const rows = odds ? Object.entries(odds).sort((x, y) => y[1] - x[1]) : []
-  const reason = !ready ? 'Pick two different dragons' : lowLevel ? `Both parents must be level ${BREED_MIN_LEVEL}` : !nestFree ? 'Every nest is busy' : ''
+  const reason = !ready ? 'Pick two different dragons' : lowLevel ? `Both parents must be level ${BREED_MIN_LEVEL}` : !breederFree ? 'Every breeding building is busy' : ''
 
   const options = s.dragons.map(d => (
     <option key={d.id} value={d.id}>{d.id} · {getSpecies(catalog, d.speciesId).name} L{d.level}</option>
@@ -52,7 +52,7 @@ export function BreedPanel({ onClose }: { onClose?: () => void }) {
         <ActionButton
           id="breed"
           primary
-          disabled={pending || !ready || Boolean(lowLevel) || !nestFree}
+          disabled={pending || !ready || Boolean(lowLevel) || !breederFree}
           reason={reason}
           onClick={() => ready && void run({ type: 'startBreed', parentA: pa.id, parentB: pb.id })}
         >

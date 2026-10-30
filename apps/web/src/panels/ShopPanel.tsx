@@ -1,9 +1,10 @@
 import {
-  DECORATIONS, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, FARM_UNLOCK_PL, farmBuildGold, MAX_FARMS, priceMicroUsd,
+  BREEDER_LEVELS, DECORATIONS, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, FARM_UNLOCK_PL, farmBuildGold, MAX_FARMS, priceMicroUsd,
   type DecorationId, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem,
 } from '@wyrmhaven/game-core'
 import { useState, type ReactNode } from 'react'
 import type { Placing } from '../game/bridge'
+import { breederName } from '../hud/hudModel'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatGold, formatMicroUsd, formatSkipPrice } from '../ui/Money'
@@ -68,6 +69,8 @@ function BuildTab({ s, onPlace, view }: { s: PlayerState; onPlace: ShopPanelProp
     s.level < minLevel ? `Level ${minLevel}` : other ?? (s.gold < cost ? 'Not enough gold' : undefined)
 
   const plots = s.farms.length
+  const grove = BREEDER_LEVELS.grove[0]!
+  const groveBuilt = s.breeders.some(b => b.kind === 'grove')
   return (
     <>
       {section('habitats', 'Habitats', <>
@@ -77,6 +80,8 @@ function BuildTab({ s, onPlace, view }: { s: PlayerState; onPlace: ShopPanelProp
             gold(buildGold, unlockPl), { kind: 'habitat', element: el }, FOOTPRINT.habitat)
         })}
       </>)}
+      {section('breeding', 'Breeding', card('grove', breederName('grove'), `${formatGold(grove.gold!)} gold`,
+        gold(grove.gold!, grove.minPl, groveBuilt ? 'Already built' : undefined), { kind: 'grove' }, FOOTPRINT.breeder))}
       {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_FARMS ? 'maximum' : `${formatGold(farmBuildGold(plots + 1))} gold`,
         plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), FARM_UNLOCK_PL[plots]!), { kind: 'farm' }, FOOTPRINT.farm))}
       {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {
@@ -97,7 +102,7 @@ function runningTimers(s: PlayerState): TimerRow[] {
   s.constructions.forEach((c, i) => rows.push({
     id: `construction-${i}`, label: c.kind === 'build' ? 'Building' : 'Upgrade', target: 'construction', index: i, readyAtMs: c.readyAtMs,
   }))
-  s.nests.forEach((n, i) => { if (n.egg) rows.push({ id: `nest-${i}`, label: `Nest ${i + 1} egg`, target: 'nest', index: i, readyAtMs: n.egg.readyAtMs }) })
+  s.breeders.forEach((b, i) => { if (b.egg) rows.push({ id: `breeder-${i}`, label: `${breederName(b.kind)} egg`, target: 'breeder', index: i, readyAtMs: b.egg.readyAtMs }) })
   s.hatchery.forEach((e, i) => { if (e) rows.push({ id: `hatch-${i}`, label: `Hatchery egg ${i + 1}`, target: 'hatchery', index: i, readyAtMs: e.readyAtMs }) })
   s.farms.forEach((f, i) => { if (f.crop !== null) rows.push({ id: `farm-${i}`, label: `Farm plot ${i + 1}`, target: 'farm', index: i, readyAtMs: f.readyAtMs }) })
   return rows

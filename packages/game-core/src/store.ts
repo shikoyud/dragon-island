@@ -1,3 +1,4 @@
+import { GROVE_L3, HATCHERY_FIFTH_SLOT } from './data/breeding-buildings'
 import { ELEMENT_TIER } from './data/elements'
 import { FARM_L5_USD_MICRO, FARM_MAX_LEVEL } from './data/farms'
 import { GOLDEN_AERIE, HABITAT_L5_USD_MICRO, HABITAT_MAX_LEVEL } from './data/habitats'
@@ -13,10 +14,13 @@ export type StoreItem =
   | { kind: 'farmL5'; index: number }
   /** A level 5 habitat that takes any element, placed where the player chooses (§5.2). */
   | { kind: 'goldenAerie'; placement: Placement }
+  /** The fifth Hatchery slot: once, at any Hatchery level (§5.4, Q5 a). */
+  | { kind: 'hatcheryL5' }
+  /** Grove level 2 to level 3, instant (§5.4). */
+  | { kind: 'groveL3'; index: number }
 
-export type SkipTarget = 'nest' | 'hatchery' | 'farm' | 'construction'
+export type SkipTarget = 'breeder' | 'hatchery' | 'farm' | 'construction'
 
-export const MAX_NESTS = 4
 export const FOOD_PACK = 1_000
 
 /** One Golden Aerie per player (M1 Q2). */
@@ -25,7 +29,7 @@ export const ownsAerie = (s: PlayerState): boolean => s.habitats.some(h => h.ele
 /** Ready time of a skip target, or `null` if the slot holds nothing. */
 export function skipTargetReadyAt(s: PlayerState, target: SkipTarget, index: number): number | null {
   if (target === 'construction') return s.constructions[index]?.readyAtMs ?? null
-  if (target === 'nest') return s.nests[index]?.egg?.readyAtMs ?? null
+  if (target === 'breeder') return s.breeders[index]?.egg?.readyAtMs ?? null
   if (target === 'hatchery') return s.hatchery[index]?.readyAtMs ?? null
   const plot = s.farms[index]
   return plot && plot.crop !== null ? plot.readyAtMs : null
@@ -51,5 +55,11 @@ export function priceMicroUsd(item: StoreItem, s: PlayerState, nowMs: number): n
     }
     case 'goldenAerie':
       return ownsAerie(s) ? null : GOLDEN_AERIE.usdMicro
+    case 'hatcheryL5':
+      return !s.hatcheryFifthSlot && s.level >= HATCHERY_FIFTH_SLOT.minPl ? HATCHERY_FIFTH_SLOT.usdMicro : null
+    case 'groveL3': {
+      const g = s.breeders[item.index]
+      return g && g.kind === 'grove' && g.level === GROVE_L3.level - 1 && s.level >= GROVE_L3.minPl ? GROVE_L3.usdMicro : null
+    }
   }
 }

@@ -248,20 +248,20 @@ describe('BreedPanel', () => {
     expect(action).toHaveBeenCalledWith({ type: 'startBreed', parentA: 'd1', parentB: 'd2' }, expect.any(String))
   })
 
-  it('disables breeding without a free nest or with low-level parents', async () => {
-    const busy = { ...level(level(base, 'd1', 4), 'd2', 4), nests: [{ ...base.nests[0]!, egg: { speciesId: 'flame', readyAtMs: 99 } }] }
+  it('disables breeding without a free breeder or with low-level parents', async () => {
+    const busy = { ...level(level(base, 'd1', 4), 'd2', 4), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 99, hatchMs: 1 } }] }
     const { wrap } = harness(busy)
     wrap(<BreedPanel />)
     await userEvent.selectOptions(screen.getByLabelText(/first parent/i), 'd1')
     await userEvent.selectOptions(screen.getByLabelText(/second parent/i), 'd2')
     expect(screen.getByRole('button', { name: /^breed$/i })).toBeDisabled()
-    expect(screen.getByText(/every nest is busy/i)).toBeInTheDocument()
+    expect(screen.getByText(/every breeding building is busy/i)).toBeInTheDocument()
   })
 })
 
 describe('NestsPanel and FarmPanel', () => {
-  it('shows nest timers, collects ready eggs and prices skips', async () => {
-    const s = { ...base, nests: [{ ...base.nests[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001 } }], hatchery: [{ speciesId: 'sea', readyAtMs: 0 }] }
+  it('shows breeder timers, collects ready eggs and prices skips', async () => {
+    const s = { ...base, breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001, hatchMs: 1 } }], hatchery: [{ speciesId: 'sea', readyAtMs: 0 }] }
     const { wrap, action } = harness(s)
     wrap(<NestsPanel nowMs={0} />)
     expect(screen.getByRole('button', { name: /skip.*\$0\.06$/i })).toBeInTheDocument()

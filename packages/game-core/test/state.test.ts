@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { occupants, overlaps, placementError } from '../src/island'
-import { HATCHERY_SLOTS, newPlayer, STATE_VERSION } from '../src/state'
+import { newPlayer, STATE_VERSION } from '../src/state'
 
 describe('newPlayer', () => {
   it('matches the spec §9 starting state', () => {
-    expect(HATCHERY_SLOTS).toBe(3)
     expect(newPlayer(0)).toEqual({
       gold: 1000, food: 50, xp: 0, level: 1, roostTier: 0,
       dragons: [{ id: 'd1', speciesId: 'terra', level: 1, feeds: 0, habitatId: 'h1' }, { id: 'd2', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h2' }],
       habitats: [{ id: 'h1', element: 'terra', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 0, row: 0, facing: 0 } }, { id: 'h2', element: 'flame', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 5, row: 0, facing: 0 } }],
-      nests: [{ egg: null, level: 1, placement: { island: 'home', col: 4, row: 8, facing: 0 } }], hatchery: [],
-      hatcheryLevel: 1, hatcheryPlacement: { island: 'home', col: 0, row: 8, facing: 0 },
+      breeders: [{ kind: 'mountain', egg: null, level: 1, placement: { island: 'home', col: 4, row: 7, facing: 0 } }], hatchery: [],
+      hatcheryLevel: 1, hatcheryFifthSlot: false, hatcheryPlacement: { island: 'home', col: 0, row: 8, facing: 0 },
       decorations: [], islands: { homeStep: 0, unlocked: ['home'], obstacles: [] }, constructions: [],
       farms: [{ crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 10, row: 0, facing: 0 } }],
       version: 3,
@@ -24,7 +23,7 @@ describe('newPlayer', () => {
     expect(s.habitats.map(h => h.placement)).toEqual([
       { island: 'home', col: 0, row: 0, facing: 0 }, { island: 'home', col: 5, row: 0, facing: 0 }])
     expect(s.farms.map(f => [f.level, f.placement.col, f.placement.row])).toEqual([[1, 10, 0]])
-    expect(s.nests).toEqual([{ egg: null, level: 1, placement: { island: 'home', col: 4, row: 8, facing: 0 } }])
+    expect(s.breeders).toEqual([{ kind: 'mountain', egg: null, level: 1, placement: { island: 'home', col: 4, row: 7, facing: 0 } }])
     expect([s.hatcheryLevel, s.hatcheryPlacement]).toEqual([1, { island: 'home', col: 0, row: 8, facing: 0 }])
     expect(s.islands).toEqual({ homeStep: 0, unlocked: ['home'], obstacles: [] })
     expect([s.constructions, s.decorations]).toEqual([[], []])
