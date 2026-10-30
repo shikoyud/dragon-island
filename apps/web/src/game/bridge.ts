@@ -15,9 +15,17 @@ export type Target =
   | { kind: 'cell'; col: number; row: number }
   | { kind: 'empty' }
 
+/** The Golden Aerie: a Store purchase (§5.2) placed like a habitat; the charge is sent with its placement on Confirm. */
+export interface AerieOffer { kind: 'goldenAerie' }
+
+/** What the grid rules judge for a thing being placed: the Aerie is a habitat-sized building. */
+export function placementSubject(what: Placing['what']): Placeable | { kind: 'move'; target: MovableRef } {
+  return what.kind === 'goldenAerie' ? { kind: 'habitat', element: 'terra' } : what
+}
+
 /** A building being placed or moved: the ghost the island scene draws under the pointer. */
 export interface Placing {
-  what: Placeable | { kind: 'move'; target: MovableRef }
+  what: Placeable | AerieOffer | { kind: 'move'; target: MovableRef }
   size: Footprint
   col: number
   row: number

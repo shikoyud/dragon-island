@@ -4,7 +4,7 @@ import type { Sprite } from '../art/types'
 
 export type IconName =
   | 'food' | 'gold' | 'dris' | 'xp' | 'timer' | 'build' | 'map' | 'settings'
-  | 'dragons' | 'breed' | 'battle' | 'store' | 'admin' | 'quests'
+  | 'dragons' | 'breed' | 'battle' | 'store' | 'admin' | 'quests' | 'wings' | 'inbox'
 
 /** HUD art from the manifest (`art.hud`), keyed `icon.<name>.16` / `icon.<name>.32`; provided once by the App. */
 export const HudArtContext = createContext<Record<string, Sprite>>({})
@@ -31,6 +31,8 @@ const GLYPHS: Record<IconName, string[]> = {
   store: ['............', 'kkkkkkkkkkkk', 'kRRWWRRWWRRk', 'kRRWWRRWWRRk', '.kkkkkkkkkk.', '.kTTTTTTTTk.', '.kTkkTTkkTk.', '.kTkWTTkWTk.', '.kTkkTTkkTk.', '.kTTTTTTTTk.', '.kkkkkkkkkk.', '............'],
   admin: ['............', '.kkkkkkkkkk.', '.kSSSSSSSSk.', '.kSSSkkSSSk.', '.kSSkYYkSSk.', '.kSSkYYkSSk.', '..kSSkkSSk..', '..kSSSSSSk..', '...kSSSSk...', '....kSSk....', '.....kk.....', '............'],
   quests: ['............', '.kkkkkkkkk..', '.kTTTTTTTk..', '.kTkkkkkTk..', '.kTTTTTTTk..', '.kTkkkkTTk..', '.kTTTTTGGk..', '.kTkkTGGTk..', '.kTGTGGTTk..', '.kTTGGTTTk..', '.kkkkkkkkk..', '............'],
+  wings: ['............', 'kk........kk', 'kBkk....kkBk', 'kBBBk..kBBBk', 'kBbBBkkBBbBk', '.kBbBBBBbBk.', '..kBBBBBBk..', '...kBBBBk...', '....kBBk....', '.....kk.....', '............', '............'],
+  inbox: ['............', '............', 'kkkkkkkkkkkk', 'kWkWWWWWWkWk', 'kWWkWWWWkWWk', 'kWWWkWWkWWWk', 'kWWWWkkWWWWk', 'kWWWWWWWWWWk', 'kWWWWWWWWWWk', 'kkkkkkkkkkkk', '............', '............'],
 }
 
 /**

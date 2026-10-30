@@ -4,10 +4,10 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { messageFor } from '../src/api/errors'
 import { createBridge } from '../src/game/bridge'
-import { BuildShopPanel } from '../src/panels/BuildShopPanel'
 import { FarmPanel } from '../src/panels/FarmPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
 import { NestsPanel } from '../src/panels/NestsPanel'
+import { ShopPanel } from '../src/panels/ShopPanel'
 import { UpgradeSection } from '../src/panels/UpgradeSection'
 import { StartPlacingProvider } from '../src/state/startPlacing'
 import { harness, TestHost } from './harness'
@@ -15,11 +15,11 @@ import { harness, TestHost } from './harness'
 const base = newPlayer(0)
 const h1 = { type: 'habitat', id: 'h1' } as const
 
-describe('BuildShopPanel', () => {
+describe('ShopPanel Build tab', () => {
   it('lists categories, locks by level and starts placement', async () => {
     const onPlace = vi.fn()
     const { wrap } = harness({ ...base, level: 3 })
-    wrap(<BuildShopPanel onPlace={onPlace} view="home" />)
+    wrap(<ShopPanel onPlace={onPlace} view="home" nowMs={0} />)
     for (const c of ['habitats', 'farming', 'decorations']) expect(screen.getByTestId(`shop-${c}`)).toBeInTheDocument()
     for (const c of ['breeding', 'hoard']) expect(screen.queryByTestId(`shop-${c}`)).toBeNull()
     const hay = screen.getByRole('button', { name: /Hay cart/ })
@@ -32,13 +32,13 @@ describe('BuildShopPanel', () => {
 
   it('has no habitat count limit', () => {
     const { wrap } = harness({ ...base, level: 7 })
-    wrap(<BuildShopPanel onPlace={vi.fn()} view="home" />)
+    wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
     expect(screen.getByRole('button', { name: /terra habitat/i })).toBeEnabled()
   })
 
   it('locks a habitat below its unlock player level and names the level', () => {
     const { wrap } = harness({ ...base, level: 3, gold: 1_000_000 })
-    wrap(<BuildShopPanel onPlace={vi.fn()} view="home" />)
+    wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
     expect(screen.getByRole('button', { name: /electric habitat/i })).toHaveAccessibleDescription('Level 6')
     expect(screen.getByRole('button', { name: /sea habitat/i })).toBeEnabled()
   })
@@ -46,7 +46,7 @@ describe('BuildShopPanel', () => {
   it('starts habitats and farm plots with their footprints', async () => {
     const onPlace = vi.fn()
     const { wrap } = harness({ ...base, level: 5, gold: 100_000 })
-    wrap(<BuildShopPanel onPlace={onPlace} view="home" />)
+    wrap(<ShopPanel onPlace={onPlace} view="home" nowMs={0} />)
     await userEvent.click(screen.getByRole('button', { name: /terra habitat/i }))
     expect(onPlace).toHaveBeenLastCalledWith({ kind: 'habitat', element: 'terra' }, 5)
     await userEvent.click(within(screen.getByTestId('shop-farming')).getByRole('button'))
@@ -55,15 +55,113 @@ describe('BuildShopPanel', () => {
 
   it('shows Dawnspire-only items greyed off the Dawnspire, enabled on it', () => {
     const rich = { ...base, level: 45, gold: 5_000_000 }
-    const r = harness(rich).wrap(<BuildShopPanel onPlace={vi.fn()} view="home" />)
+    const r = harness(rich).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
     for (const name of [/Star pool/, /Dawn obelisk/, /Dragon colossus/]) {
       const b = screen.getByRole('button', { name })
       expect(b).toBeDisabled()
       expect(b).toHaveAccessibleDescription('Dawnspire only')
     }
     r.unmount()
-    harness(rich).wrap(<BuildShopPanel onPlace={vi.fn()} view="dawnspire" />)
+    harness(rich).wrap(<ShopPanel onPlace={vi.fn()} view="dawnspire" nowMs={0} />)
     expect(screen.getByRole('button', { name: /Star pool/ })).toBeEnabled()
+  })
+})
+
+const l4 = (): PlayerState => ({
+  ...base,
+  habitats: base.habitats.map(h => (h.id === 'h1' ? { ...h, level: 4 } : h)),
+  farms: base.farms.map((f, i) => (i === 0 ? { ...f, level: 4 } : f)),
+})
+
+describe('ShopPanel tabs', () => {
+  it('has Build and Store tabs, Build first', async () => {
+    harness(base).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
+    const tabs = screen.getAllByRole('tab')
+    expect(tabs.map(t => t.textContent)).toEqual(['Build', 'Store'])
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByTestId('shop-habitats')).toBeInTheDocument()
+    await userEvent.click(tabs[1]!)
+    expect(tabs[1]).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByTestId('shop-habitats')).toBeNull()
+    expect(screen.getByRole('button', { name: /food pack/i })).toBeInTheDocument()
+  })
+
+  it('opens on the Store tab when asked', () => {
+    harness(base).wrap(<ShopPanel tab="store" onPlace={vi.fn()} view="home" nowMs={0} />)
+    expect(screen.getByRole('tab', { name: 'Store' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByTestId('shop-habitats')).toBeNull()
+  })
+
+  it('opens on the Store tab from a shop dialog key with tab: store', () => {
+    harness(base).wrap(<TestHost bridge={createBridge()} initial={{ kind: 'panel', id: 'shop', tab: 'store' }} />)
+    expect(screen.getByRole('tab', { name: 'Store' })).toHaveAttribute('aria-selected', 'true')
+  })
+})
+
+describe('ShopPanel Store tab', () => {
+  const store = (s: PlayerState, extra: Partial<Parameters<typeof ShopPanel>[0]> = {}) => {
+    const onPlace = vi.fn()
+    const h = harness(s)
+    h.wrap(<ShopPanel tab="store" onPlace={onPlace} view="home" nowMs={0} {...extra} />)
+    return { ...h, onPlace }
+  }
+
+  it('prices the food pack in USD and buys it', async () => {
+    const { action } = store(base)
+    expect(screen.getByRole('button', { name: /food pack/i })).toHaveTextContent('$0.50')
+    await userEvent.click(screen.getByRole('button', { name: /food pack/i }))
+    expect(action).toHaveBeenCalledWith({ type: 'buy', item: { kind: 'foodPack' } }, expect.any(String))
+  })
+
+  it('lists only level 4 habitats and farms with their L5 price, and buys them', async () => {
+    const { action } = store(l4())
+    const hab = screen.getByRole('button', { name: /level 5.*terra habitat/i })
+    expect(hab).toHaveTextContent('$1.50')
+    const farm = screen.getByRole('button', { name: /level 5.*farm plot 1/i })
+    expect(farm).toHaveTextContent('$2.00')
+    expect(screen.queryByRole('button', { name: /level 5.*(flame|sea) habitat/i })).toBeNull()
+    await userEvent.click(hab)
+    expect(action).toHaveBeenLastCalledWith({ type: 'buy', item: { kind: 'habitatL5', habitatId: 'h1' } }, expect.any(String))
+    await userEvent.click(farm)
+    expect(action).toHaveBeenLastCalledWith({ type: 'buy', item: { kind: 'farmL5', index: 0 } }, expect.any(String))
+  })
+
+  it('offers no L5 upgrades when nothing is at level 4', () => {
+    store(base)
+    expect(screen.queryByRole('button', { name: /level 5/i })).toBeNull()
+  })
+
+  it('starts placing the Golden Aerie for $5.00', async () => {
+    const { onPlace, action } = store(base)
+    const aerie = screen.getByRole('button', { name: /golden aerie/i })
+    expect(aerie).toHaveTextContent('$5.00')
+    await userEvent.click(aerie)
+    expect(onPlace).toHaveBeenCalledWith({ kind: 'goldenAerie' }, 5)
+    expect(action).not.toHaveBeenCalled() // paid on Confirm, not here
+  })
+
+  it('lists running timers with a skip price and buys the skip', async () => {
+    const s = { ...base, constructions: [{ kind: 'upgrade' as const, building: h1, readyAtMs: 600_000 }] }
+    const { action } = store(s)
+    await userEvent.click(screen.getByRole('button', { name: /Skip.*\$0\.03/ }))
+    expect(action).toHaveBeenCalledWith({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, expect.any(String))
+  })
+})
+
+describe('UpgradeSection level 5', () => {
+  it('points an L4 habitat and an L4 farm to the Store, and a true L5 says Max level', () => {
+    const s = l4()
+    const a = harness(s).wrap(<UpgradeSection building={h1} nowMs={0} />)
+    expect(screen.getByText('Level 5 in the Store')).toBeInTheDocument()
+    expect(screen.queryByText('Max level')).toBeNull()
+    a.unmount()
+    const b = harness(s).wrap(<UpgradeSection building={{ type: 'farm', index: 0 }} nowMs={0} />)
+    expect(screen.getByText('Level 5 in the Store')).toBeInTheDocument()
+    b.unmount()
+    const l5 = { ...s, habitats: s.habitats.map(h => (h.id === 'h1' ? { ...h, level: 5 } : h)) }
+    harness(l5).wrap(<UpgradeSection building={h1} nowMs={0} />)
+    expect(screen.getByText('Max level')).toBeInTheDocument()
+    expect(screen.queryByText('Level 5 in the Store')).toBeNull()
   })
 })
 
@@ -196,9 +294,9 @@ describe('PanelHost targets', () => {
     expect(await screen.findByRole('region', { name: /nests/i })).toBeInTheDocument()
   })
 
-  it('opens the Build shop as a named panel', () => {
+  it('opens the Shop as a named panel on its Build tab', () => {
     const { wrap } = harness(base)
-    wrap(<TestHost bridge={createBridge()} initial={{ kind: 'panel', id: 'build' }} />)
+    wrap(<TestHost bridge={createBridge()} initial={{ kind: 'panel', id: 'shop' }} />)
     expect(screen.getByTestId('shop-habitats')).toBeInTheDocument()
   })
 })

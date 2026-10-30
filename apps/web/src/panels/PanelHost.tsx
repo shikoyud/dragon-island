@@ -7,7 +7,6 @@ import { useStartPlacing } from '../state/startPlacing'
 import { SignIn } from '../wallet/SignIn'
 import { BattleHub } from './BattleHub'
 import { BreedPanel } from './BreedPanel'
-import { BuildShopPanel } from './BuildShopPanel'
 import { DecorationPanel } from './DecorationPanel'
 import { DragonPanel } from './DragonPanel'
 import { DragonsPanel } from './DragonsPanel'
@@ -17,7 +16,7 @@ import { HabitatPanel } from './HabitatPanel'
 import { IslandMapPanel } from './IslandMapPanel'
 import { NestsPanel } from './NestsPanel'
 import { ObstaclePanel } from './ObstaclePanel'
-import { StorePanel } from './StorePanel'
+import { ShopPanel } from './ShopPanel'
 import { WalletPanel } from './WalletPanel'
 
 /** The one open dialog; a click on something in the island scene opens its panel (replacing what was open). */
@@ -43,12 +42,14 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
   if (!dialog) return null
   if (dialog.kind === 'panel') {
     switch (dialog.id) {
-      case 'build': return <BuildShopPanel view={bridge.view} onPlace={(what, size) => { onOpen(null); startPlacing(what, size) }} onClose={close} />
+      case 'shop': return <ShopPanel key={dialog.tab ?? 'build'} tab={dialog.tab} nowMs={nowMs} view={bridge.view} onPlace={(what, size) => { onOpen(null); startPlacing(what, size) }} onClose={close} />
       case 'map': return <IslandMapPanel view={bridge.view} onView={id => { bridge.setView(id); close() }} onClose={close} art={bridge.art} />
       case 'breed': return <BreedPanel onClose={close} />
-      case 'store': return <StorePanel nowMs={nowMs} onClose={close} />
-      case 'dragons': return <DragonsPanel onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
+      case 'book': return <DragonsPanel onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
       case 'battle': return <BattleHub nowMs={nowMs} onPve={onPve} onPvp={onPvp} onClose={close} />
+      case 'wings':
+      case 'quests':
+      case 'inbox': return null // not built until a later milestone; the bar buttons are disabled
       case 'settings': return <div className="settings-dialog"><WalletPanel onClose={close} /><div className="settings-dialog__account"><SignIn /></div></div>
     }
   }
@@ -69,6 +70,6 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
 
 /** Accessible name of the dialog around a panel. */
 export function dialogLabel(dialog: DialogKey): string {
-  if (dialog.kind === 'panel') return dialog.id.charAt(0).toUpperCase() + dialog.id.slice(1)
+  if (dialog.kind === 'panel') return dialog.id === 'book' ? 'Dragon Book' : dialog.id.charAt(0).toUpperCase() + dialog.id.slice(1)
   return dialog.target.kind
 }

@@ -1,6 +1,6 @@
 import { islandSize, placementRuleError, type Facing, type Footprint, type IslandId, type Placement, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
-import type { Placing } from '../game/bridge'
+import { placementSubject, type Placing } from '../game/bridge'
 
 export type PlacingEvent =
   | {
@@ -29,9 +29,10 @@ export function placingAction(s: PlayerState, view: IslandId, p: Placing): Clien
   const placement: Placement = { island: view, col: p.col, row: p.row, facing: p.facing }
   const w = p.what
   // The same grid and island rules the server runs; level, gold and limits are the handlers' to judge.
-  if (placementRuleError(s, w, placement) !== null) return null
+  if (placementRuleError(s, placementSubject(w), placement) !== null) return null
   switch (w.kind) {
     case 'move': return { type: 'moveBuilding', target: w.target, placement }
+    case 'goldenAerie': return { type: 'buy', item: { kind: 'goldenAerie', placement } }
     default: return { type: 'placeBuilding', building: w, placement }
   }
 }
@@ -43,7 +44,7 @@ export function nearestLegalCell(s: PlayerState, what: Placing['what'], island: 
   let bestD = Infinity
   for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
     const d = (col - near.col) ** 2 + (row - near.row) ** 2
-    if (d >= bestD || placementRuleError(s, what, { island, col, row, facing: 0 }) !== null) continue
+    if (d >= bestD || placementRuleError(s, placementSubject(what), { island, col, row, facing: 0 }) !== null) continue
     best = { col, row }
     bestD = d
   }

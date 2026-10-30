@@ -10,7 +10,7 @@ import { FarmPanel } from '../src/panels/FarmPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
 import { NestsPanel } from '../src/panels/NestsPanel'
 import { ResourcesBar } from '../src/panels/ResourcesBar'
-import { StorePanel } from '../src/panels/StorePanel'
+import { ShopPanel } from '../src/panels/ShopPanel'
 import { StartPlacingProvider } from '../src/state/startPlacing'
 import { formatDuration, formatGold, formatMicroUsd, formatPerMinuteX20, formatSkipPrice, formatWei } from '../src/ui/Money'
 
@@ -367,12 +367,11 @@ describe('NestsPanel and FarmPanel', () => {
   })
 })
 
-describe('StorePanel', () => {
+describe('ShopPanel Store tab food pack', () => {
   it('prices items in USD from game-core and buys', async () => {
     const { wrap, action } = harness(base)
-    wrap(<StorePanel nowMs={0} />)
+    wrap(<ShopPanel tab="store" nowMs={0} view="home" onPlace={() => {}} />)
     expect(screen.getByRole('button', { name: /food pack/i })).toHaveTextContent('$0.50')
-    expect(screen.getAllByRole('button')).toHaveLength(1) // the food pack is the only store item
     expect(screen.queryByRole('button', { name: /nest|hoard|boost/i })).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: /food pack/i }))
     expect(action).toHaveBeenCalledWith({ type: 'buy', item: { kind: 'foodPack' } }, expect.any(String))

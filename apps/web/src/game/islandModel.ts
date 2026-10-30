@@ -5,7 +5,7 @@ import {
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
-import type { Placing, Target } from './bridge'
+import { placementSubject, type Placing, type Target } from './bridge'
 import { anchor, depthOrder, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, NEST_EGG_SCALE } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
@@ -117,6 +117,7 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
     case 'habitat': return { key: textureKey(`habitat.${what.element}`), sprite: art.habitat[what.element] }
     case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
     case 'decoration': return decorationLook(art, what.decoration)
+    case 'goldenAerie': return nexusLook(art) // until the Aerie has its own art
   }
 }
 
@@ -283,7 +284,7 @@ export function buildIslandModel(
 
   if (placing) {
     const placement: Placement = { island: view, col: placing.col, row: placing.row, facing: placing.facing }
-    const legal = placementRuleError(state, placing.what, placement) === null
+    const legal = placementRuleError(state, placementSubject(placing.what), placement) === null
     objects.push({
       id: 'ghost', ...ghostLook(state, art, placing.what), ...anchor(placing.col, placing.row, placing.size),
       target: { kind: 'cell', col: placing.col, row: placing.row }, tint: legal ? 'ok' : 'bad', ...flip(placing.facing),

@@ -21,8 +21,8 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows isl
   await expect(page.getByRole('status', { name: /resources/i })).toContainText('50,000')
   await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: { state: unknown } }).__bridge?.state))
 
-  // Build -> Farm plot -> ghost on the free cell (6,8) -> Confirm.
-  await openPanel(page, 'Build')
+  // Shop (Build tab) -> Farm plot -> ghost on the free cell (6,8) -> Confirm.
+  await openPanel(page, 'Shop')
   await page.locator('#shop-farm').click()
   await bridge(page, b => b.emit({ type: 'cell', col: 6, row: 8 }))
   const placement = page.getByRole('toolbar', { name: /placement/i })

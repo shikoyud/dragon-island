@@ -1,4 +1,4 @@
-import { constructionFor, MAX_BUILDERS, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
+import { constructionFor, MAX_BUILDERS, priceMicroUsd, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
 import { timerLabel } from '../game/islandModel'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -16,6 +16,10 @@ export function levelOf(s: PlayerState, b: BuildingRef): number {
     case 'hatchery': return s.hatcheryLevel
   }
 }
+
+/** Level 4 habitats and farms stop here: level 5 is an instant Store purchase (§5.2, §5.3). A true level 5 is Max level. */
+const pointsToStore = (s: PlayerState, b: BuildingRef): boolean =>
+  (b.type === 'habitat' || b.type === 'farm') && levelOf(s, b) === 4 && priceMicroUsd(b.type === 'habitat' ? { kind: 'habitatL5', habitatId: b.id } : { kind: 'farmL5', index: b.index }, s, 0) !== null
 
 const idOf = (b: BuildingRef): string => (b.type === 'habitat' ? b.id : b.type === 'hatchery' ? 'hatchery' : `${b.type}-${b.index}`)
 
@@ -53,7 +57,7 @@ export function UpgradeSection({ building, nowMs }: { building: BuildingRef; now
         >
           Upgrade to {level + 1} · {formatGold(info.cost)} gold · {timerLabel(info.timerMs, 0)}
         </ActionButton>
-      ) : <span>Max level</span>}
+      ) : <span>{pointsToStore(s, building) ? 'Level 5 in the Store' : 'Max level'}</span>}
       <MoveTurn target={building} />
     </div>
   )

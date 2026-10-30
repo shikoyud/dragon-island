@@ -6,6 +6,7 @@ import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
 import { badgeY, buildIslandModel, dragonKey, timerLabel } from '../src/game/islandModel'
 import { NEST_EGG_SCALE } from '../src/game/layout'
+import { nearestLegalCell } from '../src/state/placing'
 
 const C = LAUNCH_CATALOG
 const model = (state: Parameters<typeof buildIslandModel>[0], nowMs = 0) => buildIslandModel(state, FALLBACK_ART, C, nowMs, 'home', null)
@@ -200,6 +201,14 @@ describe('island model', () => {
     expect(good.objects.find(o => o.id === 'ghost')).toMatchObject({ tint: 'ok', flipX: true })
     expect(good.markers.ghost).toEqual({ legal: true, col: 6, row: 8, size: 2 })
     expect(good.objects.at(-1)!.id).toBe('ghost')
+  })
+
+  it('draws the Golden Aerie ghost with the Nexus sprite until its own art lands', () => {
+    const s = newPlayer(0)
+    const spot = nearestLegalCell(s, { kind: 'goldenAerie' }, 'home', { col: 4, row: 4 })!
+    const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'goldenAerie' }, size: 5, ...spot, facing: 0 })
+    expect(m.markers.ghost).toEqual({ legal: true, ...spot, size: 5 })
+    expect(m.objects.find(o => o.id === 'ghost')!.key).toContain('building.nexus')
   })
 
   it('ignores the mover itself when previewing a move', () => {

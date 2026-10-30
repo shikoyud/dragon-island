@@ -9,10 +9,11 @@ import { useMe } from '../state/me'
 import { formatGold, formatWei } from '../ui/Money'
 import { attentionItems, xpFraction, type AttentionItem } from './hudModel'
 import { Icon, type IconName } from './Icon'
+import { TerminalClock } from './TerminalClock'
 
-export type PanelId = 'build' | 'map' | 'breed' | 'store' | 'dragons' | 'battle' | 'settings'
-/** What the one dialog shows: a named panel, or the panel of something clicked on the island. */
-export type DialogKey = { kind: 'panel'; id: PanelId } | { kind: 'target'; target: Target }
+export type PanelId = 'shop' | 'breed' | 'book' | 'battle' | 'wings' | 'quests' | 'inbox' | 'map' | 'settings'
+/** What the one dialog shows: a named panel (the Shop can open on its Store tab), or the panel of something clicked on the island. */
+export type DialogKey = { kind: 'panel'; id: PanelId; tab?: 'build' | 'store' } | { kind: 'target'; target: Target }
 
 /** The operator console keeps its token in this tab's sessionStorage; only then does the HUD offer the Admin button. */
 const hasAdminToken = (): boolean => { try { return Boolean(sessionStorage.getItem(ADMIN_TOKEN_KEY)) } catch { return false } }
@@ -20,11 +21,16 @@ const hasAdminToken = (): boolean => { try { return Boolean(sessionStorage.getIt
 const isPanel = (open: DialogKey | null, id: PanelId) => open?.kind === 'panel' && open.id === id
 
 /** A round HUD button: icon in a plate, label under it (or only for screen readers), optional badge. */
-function RoundButton({ icon, label, onClick, active, badge, size = 'large', showLabel = true }: {
-  icon: IconName; label: string; onClick: () => void; active?: boolean; badge?: ReactNode; size?: 'large' | 'small'; showLabel?: boolean
+const COMING_LATER = 'Coming in a later milestone'
+
+function RoundButton({ icon, label, onClick, active, badge, size = 'large', showLabel = true, disabledReason }: {
+  icon: IconName; label: string; onClick?: () => void; active?: boolean; badge?: ReactNode; size?: 'large' | 'small'; showLabel?: boolean
+  /** Makes the button inert and says why (as its tooltip and accessible description). */
+  disabledReason?: string
 }) {
   return (
-    <button type="button" className={`hud-round hud-round--${size}${active ? ' hud-round--active' : ''}`} aria-label={label} aria-pressed={active} onClick={onClick}>
+    <button type="button" className={`hud-round hud-round--${size}${active ? ' hud-round--active' : ''}`} aria-label={label} aria-pressed={active} onClick={onClick}
+      disabled={disabledReason !== undefined} title={disabledReason}>
       <span className="hud-round__plate"><Icon name={icon} size={size === 'large' ? 28 : 22} /></span>
       {badge !== undefined && badge !== null && <span className="hud-round__badge">{badge}</span>}
       {showLabel && <span className="hud-round__label" aria-hidden="true">{label}</span>}
@@ -102,6 +108,7 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
   if (!data) return null
   const s = data.state
   const panel = (id: PanelId) => () => onOpen({ kind: 'panel', id })
+  const openStore = () => onOpen({ kind: 'panel', id: 'shop', tab: 'store' })
 
   return (
     <div className="hud">
@@ -114,11 +121,12 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
           </div>
         </div>
         <div className="hud-pills" role="status" aria-label="Resources">
-          <Pill icon="food" label="Food" value={formatGold(s.food)} plusLabel="Buy food" onPlus={panel('store')} />
-          <Pill icon="gold" label="Gold" value={formatGold(s.gold)} plusLabel="Get gold" onPlus={panel('store')} />
+          <Pill icon="food" label="Food" value={formatGold(s.food)} plusLabel="Buy food" onPlus={openStore} />
+          <Pill icon="gold" label="Gold" value={formatGold(s.gold)} plusLabel="Get gold" onPlus={openStore} />
           <Pill icon="dris" label="DRIS" value={`${formatWei(BigInt(data.balanceWei), 18, 2)}`} plusLabel="Add DRIS" onPlus={panel('settings')} />
         </div>
         <RoundButton icon="settings" label="Settings" size="small" showLabel={false} active={isPanel(open, 'settings')} onClick={panel('settings')} />
+        {data.game && <TerminalClock game={data.game} nowMs={nowMs} />}
       </header>
 
       {!battle && <>
@@ -136,11 +144,13 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
       <div className="hud-bottom" ref={foot}>
         {bottom ?? (
           <nav className="hud-bar" aria-label="Main menu">
-            <RoundButton icon="dragons" label="Dragons" active={isPanel(open, 'dragons')} onClick={panel('dragons')} />
+            <RoundButton icon="store" label="Shop" active={placing || isPanel(open, 'shop')} onClick={panel('shop')} />
             <RoundButton icon="breed" label="Breed" active={isPanel(open, 'breed')} onClick={panel('breed')} />
+            <RoundButton icon="dragons" label="Dragon Book" active={isPanel(open, 'book')} onClick={panel('book')} />
             <RoundButton icon="battle" label="Battle" active={isPanel(open, 'battle')} onClick={panel('battle')} />
-            <RoundButton icon="build" label="Build" active={placing || isPanel(open, 'build')} onClick={panel('build')} />
-            <RoundButton icon="store" label="Store" active={isPanel(open, 'store')} onClick={panel('store')} />
+            <RoundButton icon="wings" label="Wings" disabledReason={COMING_LATER} />
+            <RoundButton icon="quests" label="Quests" disabledReason={COMING_LATER} />
+            <RoundButton icon="inbox" label="Inbox" disabledReason={COMING_LATER} />
           </nav>
         )}
       </div>

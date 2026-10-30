@@ -41,4 +41,14 @@ describe('placing', () => {
     expect(placingAction(s, 'home', { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 5, col: 0, row: 1, facing: 0 })).toEqual({ type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: { island: 'home', col: 0, row: 1, facing: 0 } })
     expect(placingAction(s, 'isle2', { what: { kind: 'farm' }, size: 2, col: 1, row: 1, facing: 0 })).toBeNull()
   })
+
+  it('placing the Golden Aerie buys it with the placement, on a free habitat-sized spot', () => {
+    const s = newPlayer(0)
+    const spot = nearestLegalCell(s, { kind: 'goldenAerie' }, 'home', { col: 4, row: 4 })!
+    expect(spot).not.toBeNull()
+    expect(placingAction(s, 'home', { what: { kind: 'goldenAerie' }, size: 5, ...spot, facing: 2 })).toEqual({
+      type: 'buy', item: { kind: 'goldenAerie', placement: { island: 'home', ...spot, facing: 2 } },
+    })
+    expect(placingAction(s, 'home', { what: { kind: 'goldenAerie' }, size: 5, col: 0, row: 0, facing: 0 })).toBeNull()
+  })
 })

@@ -8,7 +8,7 @@ import { ApiProvider } from '../src/api/ApiProvider'
 import { ApiError, type Api } from '../src/api/client'
 import { sessionStore } from '../src/api/session'
 import { VaultProvider, type VaultAdapter } from '../src/chain/vault'
-import { StorePanel } from '../src/panels/StorePanel'
+import { ShopPanel } from '../src/panels/ShopPanel'
 import { WalletPanel } from '../src/panels/WalletPanel'
 import { useAction } from '../src/state/actions'
 import { useBattle } from '../src/state/battle'
@@ -37,7 +37,7 @@ describe('C1: action errors surface as toasts from any panel', () => {
     const unhandled = vi.fn()
     process.on('unhandledRejection', unhandled)
     const h = harness(newPlayer(0), api)
-    h.render(<StorePanel nowMs={0} />)
+    h.render(<ShopPanel tab="store" nowMs={0} view="home" onPlace={() => {}} />)
     await userEvent.click(screen.getByRole('button', { name: /food pack/i }))
     const alerts = await screen.findAllByRole('alert')
     expect(alerts).toHaveLength(1)
