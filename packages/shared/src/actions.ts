@@ -33,7 +33,6 @@ const movableRefSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('farm'), index }),
   z.object({ type: z.literal('nest'), index }),
   z.object({ type: z.literal('hatchery') }),
-  z.object({ type: z.literal('hoard') }),
   z.object({ type: z.literal('decoration'), id }),
 ])
 
@@ -43,11 +42,7 @@ const movesSchema = z.array(playerMoveSchema).max(90)
 
 export const storeItemSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('skip'), target: z.enum(['nest', 'hatchery', 'farm', 'construction']), index }),
-  z.object({ kind: z.literal('nest'), placement: placementSchema }),
   z.object({ kind: z.literal('foodPack') }),
-  z.object({ kind: z.literal('levelUp'), dragonId: id }),
-  z.object({ kind: z.literal('oddsBoost') }),
-  z.object({ kind: z.literal('hoard'), placement: placementSchema.optional() }),
 ])
 
 export const opponentSnapshotSchema = z.object({
@@ -75,7 +70,6 @@ const common = [
   z.object({ type: z.literal('startBreed'), parentA: id, parentB: id }),
   z.object({ type: z.literal('collectEgg'), nest: index }),
   z.object({ type: z.literal('hatch'), slot: index }),
-  z.object({ type: z.literal('sellGold'), gold: z.number() }),
   z.object({ type: z.literal('buy'), item: storeItemSchema }),
   z.object({ type: z.literal('setDefenceTeam'), dragonIds: teamIdsSchema }),
   z.object({ type: z.literal('pveBattle'), stage: z.number().int(), team: teamIdsSchema, moves: movesSchema }),

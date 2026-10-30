@@ -1,6 +1,6 @@
 import { isValidAction } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
-import { actionSchema, clientActionSchema } from '../src/actions'
+import { actionSchema, clientActionSchema, storeItemSchema } from '../src/actions'
 
 const TEAM = ['d1', 'd2', 'd3']
 const PL = { island: 'home', col: 6, row: 7, facing: 0 }
@@ -97,5 +97,16 @@ describe('clientActionSchema', () => {
     expect(clientActionSchema.safeParse({ type: 'pvpBattle', team: TEAM, opponent: bot, moves }).success).toBe(false)
     expect(clientActionSchema.safeParse({ type: 'pvpBattle', offerId: '', team: TEAM, moves }).success).toBe(false)
     expect(clientActionSchema.safeParse({ type: 'collectGold', habitatId: 'h1' }).success).toBe(true)
+  })
+})
+
+describe('M0 teardown', () => {
+  it('rejects sellGold, oddsBoost and hoard on the wire', () => {
+    expect(clientActionSchema.safeParse({ type: 'sellGold', gold: 1 }).success).toBe(false)
+    expect(storeItemSchema.safeParse({ kind: 'oddsBoost' }).success).toBe(false)
+    expect(storeItemSchema.safeParse({ kind: 'hoard' }).success).toBe(false)
+    expect(storeItemSchema.safeParse({ kind: 'foodPack' }).success).toBe(true)
+    expect(storeItemSchema.safeParse({ kind: 'skip', target: 'nest', index: 0 }).success).toBe(true)
+    expect(clientActionSchema.safeParse({ type: 'moveBuilding', target: { type: 'hoard' }, placement: PL }).success).toBe(false)
   })
 })
