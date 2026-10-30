@@ -112,6 +112,25 @@ describe('Legendary events (§3.2, §8.4)', () => {
     expect(activeLegendaries(25, FLASH_28)).toEqual([])
   })
 
+  it('every window is open on from..to and closed on from-1 and to+1, under both presets', () => {
+    const table: [string, typeof FLASH_14, number, number][] = [
+      ['magma-sovereign', FLASH_14, 1, 4], ['glacier-warlord', FLASH_14, 5, 8], ['radiant-aegis', FLASH_14, 9, 12],
+      ['magma-sovereign', FLASH_28, 1, 7], ['glacier-warlord', FLASH_28, 8, 15], ['radiant-aegis', FLASH_28, 16, 24],
+    ]
+    for (const [id, preset, from, to] of table) {
+      for (const day of [from - 1, from, to, to + 1]) {
+        const inside = day >= from && day <= to
+        expect(activeLegendaries(day, preset).includes(id), `${id} ${preset.id} day ${day}`).toBe(inside)
+      }
+    }
+  })
+
+  it('floor guard with an active Legendary: Terra-Flame x Flame-Terra with Magma', () => {
+    const w = weights('terra-flame', 'flame-terra', only('magma-sovereign'))
+    expect(w).toEqual({ terra: 1000, flame: 1000, 'terra-flame': 200, 'flame-terra': 200, 'magma-sovereign': 40 })
+    expect(total(w)).toBe(2440)
+  })
+
   it('adds a 40 weight Legendary only while active and only when its elements fit', () => {
     const w = weights('terra', 'flame', only('magma-sovereign'))
     expect(w['magma-sovereign']).toBe(40)

@@ -194,6 +194,22 @@ describe('POST /actions', () => {
     expect(spy.mock.calls[1]![6]).toBe(1)
   })
 
+  it('passes the game day from LAUNCH_AT when it is set, ignoring the game row', async () => {
+    const launch = 10 * 86_400_000
+    const t2 = await testApp({ price: new FixedPriceSource(50_000n), config: { ...t.deps.config, LAUNCH_AT: new Date(launch).toISOString() } }, launch)
+    try {
+      const { token: tok2 } = await t2.login(wallet(TEST_KEYS.alice))
+      const spy = vi.mocked(applyAction)
+      spy.mockClear()
+      t2.clock.set(launch + 2 * 86_400_000 + 5) // LAUNCH_AT + 2 days: game day 3
+      const r = await t2.app.inject({ method: 'POST', url: '/actions', headers: bearer(tok2), payload: { action: { type: 'collectGold', habitatId: 'h1' }, idempotencyKey: crypto.randomUUID() } })
+      expect(r.statusCode).toBe(200)
+      expect(spy.mock.calls[0]![6]).toBe(3)
+    } finally {
+      await t2.close()
+    }
+  })
+
   it('runs a startBreed action without a seasons table and logs no season_id', async () => {
     const tables = await t.db.execute(sql`select table_name from information_schema.tables where table_schema = 'public'`)
     expect(JSON.stringify(tables)).not.toContain('seasons')

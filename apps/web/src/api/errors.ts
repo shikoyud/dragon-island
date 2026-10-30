@@ -9,6 +9,7 @@ export const errorMessages: Record<string, string> = {
   LEVEL_CAP: 'Upgrade your Roost to raise this dragon further.',
   LEVEL_TOO_LOW: 'Your level is too low for that yet.',
   INVALID_PARENTS: 'Pick two different dragons you own.',
+  OPPOSITE_BASICS: "Opposite Basics can't breed. Use a hybrid that carries one of them.",
   NO_FREE_NEST: 'Every nest is busy.',
   NEST_EMPTY: 'That nest is empty.',
   NOT_READY: 'Not ready yet.',

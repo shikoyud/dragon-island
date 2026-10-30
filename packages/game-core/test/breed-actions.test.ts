@@ -17,7 +17,6 @@ const withParents = (a: string, b: string): PlayerState =>
   ({ ...s4, dragons: [{ ...s4.dragons[0]!, speciesId: a }, { ...s4.dragons[1]!, speciesId: b }] })
 const run = (st: PlayerState, a: Action, t: number, seed = 1) => applyAction(st, a, t, createRng(seed), LAUNCH_CATALOG)
 const breed: Action = { type: 'startBreed', parentA: 'd1', parentB: 'd2' }
-const rarityOf = (id: string) => getSpecies(LAUNCH_CATALOG, id).rarity
 const egg = (speciesId: string, readyAtMs: number): Egg => ({ speciesId, readyAtMs })
 const nest = (e: Egg | null = null): Nest => ({ egg: e, level: 1, placement: { island: 'home', col: 0, row: 0, facing: 0 } })
 
@@ -73,9 +72,14 @@ describe('startBreed', () => {
     expect(ok(run(st, breed, 0)).nests[0]!.egg).not.toBeNull()
   })
 
-  it('has no pity state and one rng.int per breed', () => {
+  it('has no pity state and draws exactly one rng.int per breed', () => {
+    let ints = 0, nexts = 0
+    const base = createRng(1)
+    const counting = { next: () => { nexts++; return base.next() }, int: (n: number) => { ints++; return base.int(n) } }
+    const r = ok(applyAction(s4, breed, 0, counting, LAUNCH_CATALOG))
+    expect(r).not.toHaveProperty('pity')
     expect(s).not.toHaveProperty('pity')
-    expect(ok(run(s4, breed, 0))).not.toHaveProperty('pity')
+    expect([ints, nexts]).toEqual([1, 0])
   })
 
   describe('Legendary events', () => {
@@ -97,13 +101,9 @@ describe('startBreed', () => {
       // Timer comes from the offspring.
       const child = getSpecies(LAUNCH_CATALOG, 'magma-sovereign')
       expect(egg4.readyAtMs).toBe(breedTimerMs(child.rarity, child.elements, FLASH_14))
-      // Day 5: the pool has no Legendary, so even the largest roll cannot hit it.
-      for (const seed of [1, 2, 3, 4, 5]) {
-        const off = ok(applyAction(tf, breed, 0, createRng(seed), LAUNCH_CATALOG, FLASH_14, 5))
-        expect(off.nests[0]!.egg!.speciesId).not.toBe('magma-sovereign')
-      }
-      const huge = { next: () => 0.999999, int: (n: number) => n - 1 }
-      expect(ok(applyAction(tf, breed, 0, huge, LAUNCH_CATALOG, FLASH_14, 5)).nests[0]!.egg!.speciesId).not.toBe('magma-sovereign')
+      // Day 5: the same roll (1200, Magma's slot on day 4) lands on the next species of the day-5 pool, which is Terra.
+      const off = ok(applyAction(tf, breed, 0, forcing(4, 'magma-sovereign'), LAUNCH_CATALOG, FLASH_14, 5))
+      expect(off.nests[0]!.egg!.speciesId).toBe('terra')
     })
 
     it('an egg bred on the last event day still hatches after the event ends (day 6)', () => {
@@ -116,9 +116,9 @@ describe('startBreed', () => {
       expect(hatched.dragons.some(d => d.speciesId === 'magma-sovereign')).toBe(true)
     })
 
-    it('defaults to day 1, where no Legendary is active', () => {
-      const huge = { next: () => 0.999999, int: (n: number) => n - 1 }
-      expect(ok(applyAction(tf, breed, 0, huge, LAUNCH_CATALOG)).nests[0]!.egg!.speciesId).not.toBe('magma-sovereign')
+    it('defaults to day 1, which is inside the Magma window', () => {
+      const r = ok(applyAction(tf, breed, 0, forcing(1, 'magma-sovereign'), LAUNCH_CATALOG))
+      expect(r.nests[0]!.egg!.speciesId).toBe('magma-sovereign')
     })
   })
 })
