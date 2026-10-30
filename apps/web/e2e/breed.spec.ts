@@ -36,7 +36,10 @@ test('lists the scripted first hybrids, breeds, moves the egg to the Hatchery an
     const hatch = page.getByRole('button', { name: /^hatch$/i })
     await expect(hatch).toBeEnabled()
     await hatch.click()
-    await expect(page.getByText(/no eggs hatching/i)).toBeVisible()
+    // The hatched dragon moved into a habitat, so the slot is free again; the toast names the species.
+    await expect(page.getByRole('region', { name: 'Hatchery · 0/1' })).toBeVisible()
+    await expect(page.getByText('Empty')).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: /^Hatched / })).toBeVisible()
 
     // The new dragon (d3) is now part of the state: it appears in the Arena team picker.
     await openPanel(page, 'Arena')

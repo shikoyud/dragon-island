@@ -368,6 +368,53 @@ describe('HatcheryPanel and FarmPanel', () => {
     expect(action).toHaveBeenCalledWith({ type: 'hatch', slot: 0 }, expect.any(String))
   })
 
+  const waiting = { id: 'd9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }
+
+  it('titles the Hatchery used/slots and lists an egg without its species, a waiting dragon and empty slots (R20)', async () => {
+    const s = { ...base, hatcheryLevel: 2, hatchery: [{ speciesId: 'sea', readyAtMs: 1_800_001 }], dragons: [...base.dragons, waiting] }
+    const { wrap } = harness(s)
+    const onOpenDragon = vi.fn()
+    wrap(<HatcheryPanel nowMs={0} onOpenDragon={onOpenDragon} />)
+    expect(screen.getByRole('region', { name: 'Hatchery · 2/2' })).toBeInTheDocument()
+    const egg = screen.getByTestId('hatchery-slot-0')
+    expect(egg).toHaveTextContent(/^Egg · /)
+    expect(egg).not.toHaveTextContent(/sea/i)
+    const dragon = screen.getByTestId('hatchery-slot-1')
+    expect(dragon).toHaveTextContent('Flame')
+    expect(dragon).toHaveTextContent('Needs a habitat')
+    await userEvent.click(within(dragon).getByRole('button', { name: /flame/i }))
+    expect(onOpenDragon).toHaveBeenCalledWith('d9')
+  })
+
+  it('shows Empty for a free slot', () => {
+    harness({ ...base, hatcheryLevel: 2, hatchery: [] }).wrap(<HatcheryPanel nowMs={0} />)
+    expect(screen.getByRole('region', { name: 'Hatchery · 0/2' })).toBeInTheDocument()
+    expect(screen.getAllByText('Empty')).toHaveLength(2)
+  })
+
+  it('names the species in a toast after hatching', async () => {
+    const s = { ...base, hatchery: [{ speciesId: 'sea', readyAtMs: 0 }] }
+    const { wrap, action } = harness(s)
+    wrap(<HatcheryPanel nowMs={0} />)
+    await userEvent.click(screen.getByRole('button', { name: /^hatch$/i }))
+    expect(action).toHaveBeenCalledWith({ type: 'hatch', slot: 0 }, expect.any(String))
+    expect(await screen.findByRole('status')).toHaveTextContent('Hatched Sea')
+  })
+
+  it('points to the Store for the fifth slot from PL 15 until it is bought, and counts it in the title (Q5 a)', () => {
+    const early = harness({ ...base, level: 14 }).wrap(<HatcheryPanel nowMs={0} />)
+    expect(screen.queryByText('Fifth slot in the Store')).toBeNull()
+    early.unmount()
+    const open = harness({ ...base, level: 15 }).wrap(<HatcheryPanel nowMs={0} />)
+    expect(screen.getByText('Fifth slot in the Store')).toBeInTheDocument()
+    open.unmount()
+    const bought = { ...base, level: 15, hatcheryLevel: 1, hatcheryFifthSlot: true, hatchery: [{ speciesId: 'sea', readyAtMs: 99 }] }
+    harness(bought).wrap(<HatcheryPanel nowMs={0} />)
+    expect(screen.getByRole('region', { name: 'Hatchery · 1/2' })).toBeInTheDocument()
+    expect(screen.queryByText('Fifth slot in the Store')).toBeNull()
+    expect(screen.getAllByText('Empty')).toHaveLength(1)
+  })
+
   it('lists the six crops in tier order with time, cost and yield, and locks what the player cannot plant', () => {
     const { wrap } = harness(base)
     wrap(<FarmPanel index={0} nowMs={0} />)

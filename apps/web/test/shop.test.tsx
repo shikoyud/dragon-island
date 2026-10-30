@@ -1,5 +1,5 @@
 import { applyAction, createRng, LAUNCH_CATALOG, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
-import { screen, within } from '@testing-library/react'
+import { cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { messageFor } from '../src/api/errors'
@@ -255,6 +255,29 @@ describe('ShopPanel Store tab', () => {
   it('offers no L5 upgrades when nothing is at level 4', () => {
     store(base)
     expect(screen.queryByRole('button', { name: /level 5/i })).toBeNull()
+  })
+
+  it('lists the Hatchery fifth slot and Grove level 3 under Level 5 upgrades only when priced, and buys them', async () => {
+    const grove = { ...base.breeders[0]!, kind: 'grove' as const, level: 2 }
+    const { action } = store({ ...base, level: 25, breeders: [grove] })
+    const level5 = screen.getByTestId('shop-level5')
+    expect(within(level5).getByRole('heading')).toHaveTextContent('Level 5 upgrades')
+    const slot = within(level5).getByRole('button', { name: 'Hatchery · 5th slot · $3.00' })
+    const l3 = within(level5).getByRole('button', { name: 'Grove · Level 3 · $3.50' })
+    await userEvent.click(slot)
+    expect(action).toHaveBeenLastCalledWith({ type: 'buy', item: { kind: 'hatcheryL5' } }, expect.any(String))
+    await userEvent.click(l3)
+    expect(action).toHaveBeenLastCalledWith({ type: 'buy', item: { kind: 'groveL3', index: 0 } }, expect.any(String))
+  })
+
+  it('hides the fifth slot below PL 15 and once it is bought, and Grove level 3 unless the Grove is level 2', () => {
+    store({ ...base, level: 14, breeders: [{ ...base.breeders[0]!, kind: 'grove' as const, level: 2 }] })
+    expect(screen.queryByRole('button', { name: /5th slot/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Grove · Level 3/ })).toBeNull()
+    cleanup()
+    store({ ...base, level: 15, hatcheryFifthSlot: true, breeders: [{ ...base.breeders[0]!, kind: 'grove' as const, level: 2 }] })
+    expect(screen.queryByRole('button', { name: /5th slot/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Grove · Level 3/ })).toBeNull()
   })
 
   it('starts placing the Golden Aerie for $5.00', async () => {

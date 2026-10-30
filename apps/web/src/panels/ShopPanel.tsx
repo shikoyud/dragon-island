@@ -145,6 +145,8 @@ function StoreTab({ s, nowMs, onPlace, room }: { s: PlayerState; nowMs: number; 
   const timers = runningTimers(s).filter(t => price({ kind: 'skip', target: t.target, index: t.index }) !== null)
   const habitats = s.habitats.filter(h => price({ kind: 'habitatL5', habitatId: h.id }) !== null)
   const farms = s.farms.map((f, index) => ({ f, index })).filter(({ index }) => price({ kind: 'farmL5', index }) !== null)
+  const slotPrice = price({ kind: 'hatcheryL5' })
+  const groves = s.breeders.map((b, index) => ({ b, index })).filter(({ index }) => price({ kind: 'groveL3', index }) !== null)
 
   return (
     <>
@@ -168,9 +170,26 @@ function StoreTab({ s, nowMs, onPlace, room }: { s: PlayerState; nowMs: number; 
           </ActionButton>
         </li>
       ))}
-      {section('level5', 'Level 5 upgrades', habitats.length + farms.length === 0
+      {section('level5', 'Level 5 upgrades', habitats.length + farms.length + groves.length === 0 && slotPrice === null
         ? <li><small>Level 4 habitats and farm plots can be upgraded to level 5 here, instantly.</small></li>
         : <>
+          {slotPrice !== null && (
+            <li>
+              <ActionButton id="buy-hatchery-l5" disabled={pending} onClick={() => buy({ kind: 'hatcheryL5' })}>
+                Hatchery · 5th slot · {formatMicroUsd(slotPrice)}
+              </ActionButton>
+            </li>
+          )}
+          {groves.map(({ index }) => {
+            const item: StoreItem = { kind: 'groveL3', index }
+            return (
+              <li key={`grove-${index}`}>
+                <ActionButton id={`buy-grove-l3-${index}`} disabled={pending} onClick={() => buy(item)}>
+                  Grove · Level 3 · {formatMicroUsd(price(item)!)}
+                </ActionButton>
+              </li>
+            )
+          })}
           {habitats.map(h => {
             const item: StoreItem = { kind: 'habitatL5', habitatId: h.id }
             return (
