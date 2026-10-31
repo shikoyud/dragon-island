@@ -76,6 +76,7 @@ test.describe('on a phone', () => {
     await bench.getByRole('button', { name: 'Back' }).click()
     await expect(moves(page)).toHaveCount(4)
     await swap.click()
+    await page.waitForTimeout(300) // past the double-tap guard
     await bench.getByRole('button', { name: /L\d/ }).and(page.locator(':enabled')).first().click()
     await expect(bench).toBeHidden()
 

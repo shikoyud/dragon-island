@@ -1,7 +1,8 @@
 import { BOSS_NODE, THREE_STAR_TURNS, TRIAL_CHAPTERS, type BattleState, type Fighter, type PlayerMove, type Side } from '@wyrmhaven/game-core'
 import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { messageFor } from '../api/errors'
 import type { Bridge } from '../game/bridge'
-import { battleLine, battleView, pipState, turnLabel, type BattleView } from '../game/battleModel'
+import { battleLine, battleView, INPUT_GUARD_MS, pipState, turnLabel, type BattleView } from '../game/battleModel'
 import { BATTLE_CONTROLS_H, battleStage } from '../game/layout'
 import { Icon } from '../hud/Icon'
 import { moveCard, pvpForfeitCost, TRIAL_ABANDON_COST, useBattlePlayback, type BattleHook } from '../state/battle'
@@ -20,6 +21,9 @@ function useStageBox() {
   }, [])
   return box
 }
+
+/** A send with no answer after this long offers Leave as well: a fetch can hang for minutes on a bad network. */
+export const SEND_PATIENCE_MS = 5_000
 
 const hpText = (hp: number, max: number): string => `${formatGold(hp)} / ${formatGold(max)}`
 
@@ -102,37 +106,66 @@ function Bench({ state, mode, onPick, onBack }: { state: BattleState; mode: 'swa
   )
 }
 
+/** The one thing left to do on a screen that can't go on: go back. A Trial still active is on the Trials banner. */
+function LeaveButton({ onLeave }: { onLeave: () => void }) {
+  return <button type="button" className="btn battle__tap" onClick={onLeave}>Leave</button>
+}
+
 /**
  * The portrait battle screen (R80): React's plates over the scene's stage, the controls under it, the same column on any
  * screen. The truth is `battlePreview`, recomputed from the moves; what shows is `battleView` at the event being played, so
  * neither HP nor the buttons can spoil a hit. Memoised, and a clock tick changes none of its props: battles have no clock.
+ * The HUD is gone during a battle, so every state here has its own way out: Exit while it can be fought, Continue after a
+ * result, Leave when the server refused, can't be reached, or there's no battle to draw.
  */
 export const BattlePanel = memo(function BattlePanel({ battle, bridge, onClose }: { battle: BattleHook; bridge: Bridge; onClose: () => void }) {
   const { shown, busy, sendFailed, retry } = useBattlePlayback(battle, bridge)
   const box = useStageBox()
   const [sheet, setSheet] = useState(false)
   const [confirm, setConfirm] = useState(false)
+  const [exitFailed, setExitFailed] = useState(false)
   const { preview, setup, result } = battle
   // During playback the buttons stay on the state the player chose from: the future isn't theirs to read yet.
-  const settled = useRef<BattleState | null>(null)
-  if (preview && (!busy || !settled.current)) settled.current = preview.state
+  const [settled, setSettled] = useState(preview?.state ?? null)
+  if (preview && !busy && settled !== preview.state) setSettled(preview.state)
+  const lastInput = useRef(-Infinity)
+  const illegal = preview?.done?.ok === false
   const over = Boolean(preview?.done)
+  // Exit is for a fight that can still be given up: not one that's decided, unless its list was illegal and it can't be sent.
+  const canExit = Boolean(preview) && !result && (!over || illegal)
 
-  const onKey = useCallback((e: KeyboardEvent) => {
-    if (e.key !== 'Escape') return
-    setSheet(open => {
-      if (!open) setConfirm(true)
-      return false
-    })
-  }, [])
+  const [slowSend, setSlowSend] = useState(false)
+  const saving = over && !illegal && !busy && !result && !sendFailed
   useEffect(() => {
-    if (over || result) return
+    setSlowSend(false)
+    if (!saving) return
+    const t = setTimeout(() => setSlowSend(true), SEND_PATIENCE_MS)
+    return () => clearTimeout(t)
+  }, [saving])
+
+  useEffect(() => {
+    if (!canExit) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (sheet) setSheet(false)
+      else setConfirm(true)
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [over, result, onKey])
+  }, [canExit, sheet])
   const cancelConfirm = useCallback(() => setConfirm(false), [])
 
-  if (!preview || !setup) return null
+  if (!setup) return null
+  if (!preview) {
+    return (
+      <section className="battle" aria-label="Battle">
+        <div className="battle__controls battle__sending" style={{ width: `min(100%, ${Math.min(box.w, 480)}px)` }}>
+          <p role="alert">This battle can't go on: your team has changed.</p>
+          <LeaveButton onLeave={onClose} />
+        </div>
+      </section>
+    )
+  }
   const state = preview.state
   const view = battleView(state, shown)
   const trial = setup.mode === 'pve' ? setup.trial : null
@@ -142,19 +175,28 @@ export const BattlePanel = memo(function BattlePanel({ battle, bridge, onClose }
   // A Boss node's slot 0 is the Boss.
   const bossUp = trial?.node === BOSS_NODE && view.active.defender === 0
   const line = view.last ? battleLine(state, view.last) : ''
-  const shownState = settled.current ?? state
+  const shownState = settled ?? state
   const replacing = !busy && !preview.done && state.awaiting === 'replace'
   const canSwap = shownState.sides.attacker.team.some((f, i) => f.hp > 0 && i !== shownState.sides.attacker.active)
 
+  const tooSoon = () => performance.now() - lastInput.current < INPUT_GUARD_MS
   const choose = (m: PlayerMove) => {
-    if (busy) return
+    if (busy || tooSoon()) return
+    lastInput.current = performance.now()
     setSheet(false)
     battle.choose(m)
   }
+  const openSheet = () => {
+    lastInput.current = performance.now()
+    setSheet(true)
+  }
   const abandon = () => {
-    void battle.abandon().then(ok => {
+    setExitFailed(false)
+    void battle.abandon().then(outcome => {
       setConfirm(false)
-      if (ok && trial) onClose()
+      if (outcome === 'failed') setExitFailed(true)
+      // A forfeit's result shows here; a Trial's has no battle to report, and a refusal has nothing to show.
+      else if (outcome === 'gone' || trial) onClose()
     })
   }
 
@@ -166,7 +208,10 @@ export const BattlePanel = memo(function BattlePanel({ battle, bridge, onClose }
       <div className="battle__stage" style={stageStyle}>
         <header className="battle__head">
           <h2 className="battle__title">{title}</h2>
-          {!over && !result && <button type="button" className="btn btn--ghost battle__tap battle__exit" aria-label="Exit battle" onClick={() => setConfirm(true)}>Exit</button>}
+          <span className="battle__head-actions">
+            {canExit && exitFailed && <LeaveButton onLeave={onClose} />}
+            {canExit && <button type="button" className="btn btn--ghost battle__tap battle__exit" aria-label="Exit battle" onClick={() => setConfirm(true)}>Exit</button>}
+          </span>
         </header>
         <Plate label="Enemy" state={state} side="defender" view={view} boss={bossUp} />
         <Plate label="Yours" state={state} side="attacker" view={view} boss={false} />
@@ -183,22 +228,32 @@ export const BattlePanel = memo(function BattlePanel({ battle, bridge, onClose }
             <BattleResult result={result} />
             <button type="button" className="btn btn--primary battle__tap" autoFocus onClick={onClose}>Continue</button>
           </div>
-        ) : preview.done && !preview.done.ok ? (
+        ) : illegal ? (
           <p role="alert">This battle can't go on. Exit to abandon it.</p>
         ) : over && !busy ? (
-          sendFailed
-            ? <div className="battle__sending"><p>The result didn't reach the server.</p><button type="button" className="btn btn--primary battle__tap" disabled={battle.pending} onClick={retry}>Try again</button></div>
-            : <p className="battle__sending">Saving the result</p>
+          sendFailed ? (
+            <div className="battle__sending">
+              <p role="alert">{battle.refused ? messageFor(battle.refused.code) : "The result didn't reach the server."}</p>
+              {/* A 409 will say the same forever; anything else may pass, and the same key makes trying again safe. */}
+              {battle.refused?.status !== 409 && <button type="button" className="btn btn--primary battle__tap" disabled={battle.pending} onClick={retry}>Try again</button>}
+              <LeaveButton onLeave={onClose} />
+            </div>
+          ) : (
+            <div className="battle__sending">
+              <p>Saving the result</p>
+              {slowSend && <LeaveButton onLeave={onClose} />}
+            </div>
+          )
         ) : replacing ? (
           <Bench state={state} mode="replace" onPick={choose} />
         ) : sheet && !busy ? (
           <Bench state={state} mode="swap" onPick={choose} onBack={() => setSheet(false)} />
         ) : (
-          <Moves state={shownState} disabled={busy || battle.pending} onMove={choose} onSwap={() => setSheet(true)} canSwap={canSwap} />
+          <Moves state={shownState} disabled={busy || battle.pending} onMove={choose} onSwap={openSheet} canSwap={canSwap} />
         )}
       </div>
 
-      {confirm && <AbandonConfirm cost={trial ? TRIAL_ABANDON_COST : pvpForfeitCost(battle.trophies)} pending={battle.pending} onConfirm={abandon} onCancel={cancelConfirm} />}
+      {confirm && canExit && <AbandonConfirm cost={trial ? TRIAL_ABANDON_COST : pvpForfeitCost(battle.trophies)} pending={battle.pending} onConfirm={abandon} onCancel={cancelConfirm} />}
     </section>
   )
 })

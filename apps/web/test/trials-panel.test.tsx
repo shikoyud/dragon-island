@@ -10,6 +10,7 @@ import { useEffect, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiProvider } from '../src/api/ApiProvider'
 import type { Api } from '../src/api/client'
+import { ApiError } from '../src/api/client'
 import { errorMessages, messageFor } from '../src/api/errors'
 import { sessionStore } from '../src/api/session'
 import { createBridge } from '../src/game/bridge'
@@ -39,6 +40,7 @@ function harness(state: PlayerState, api: Record<string, unknown> = {}) {
   const fake = {
     action: vi.fn(async (a: { type: string }) => ({ state: a.type === 'startTrial' ? withActive : state, effects: [] })),
     pveSeed: vi.fn(async () => ({ seedHex: SEED_HEX })),
+    me: vi.fn(async () => qc.getQueryData(ME_KEY)),
     ...api,
   }
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -386,15 +388,41 @@ describe('useBattle, PvE', () => {
     expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull()
   })
 
+  it('a draft with no active Trial to match is cleared, for this player only', async () => {
+    localStorage.setItem(trialDraftKey('p1', 2), '[]x')
+    localStorage.setItem(trialDraftKey('p1', 3), JSON.stringify([STRIKE]))
+    localStorage.setItem(trialDraftKey('p2', 2), JSON.stringify([STRIKE]))
+    localStorage.setItem('dris.trialTeam.p1', '[]')
+    const h = harness(withActive)
+    renderHook(() => useBattle(), { wrapper: h.wrapper })
+    expect(localStorage.getItem(trialDraftKey('p1', 2))).toBeNull()
+    expect(localStorage.getItem(trialDraftKey('p1', 3))).not.toBeNull()
+    expect(localStorage.getItem(trialDraftKey('p2', 2))).not.toBeNull()
+    expect(localStorage.getItem('dris.trialTeam.p1')).toBe('[]')
+    act(() => { h.qc.setQueryData(ME_KEY, (old: { state: PlayerState }) => ({ ...old, state: base })) })
+    await waitFor(() => expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull())
+  })
+
+  it('a move made after the Trial ended elsewhere does not write its draft back', async () => {
+    const h = harness(withActive)
+    const { result } = renderHook(() => useBattle(), { wrapper: h.wrapper })
+    await act(async () => { await result.current.resumeTrial() })
+    act(() => { h.qc.setQueryData(ME_KEY, (old: { state: PlayerState }) => ({ ...old, state: base })) })
+    await waitFor(() => expect(result.current.setup).not.toBeNull())
+    act(() => result.current.choose(STRIKE))
+    expect(result.current.moves).toEqual([STRIKE])
+    expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull()
+  })
+
   it('abandoning sends abandonTrial and clears the draft', async () => {
     const h = harness(withActive)
     const { result } = renderHook(() => useBattle(), { wrapper: h.wrapper })
     await act(async () => { await result.current.resumeTrial() })
     act(() => result.current.choose(STRIKE))
     expect(localStorage.getItem(trialDraftKey('p1', 3))).not.toBeNull()
-    let ok = false
-    await act(async () => { ok = await result.current.abandon() })
-    expect(ok).toBe(true)
+    let out = ''
+    await act(async () => { out = await result.current.abandon() })
+    expect(out).toBe('settled')
     expect(h.api.action).toHaveBeenLastCalledWith({ type: 'abandonTrial' }, expect.any(String))
     expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull()
   })
@@ -439,6 +467,33 @@ describe('useBattle, PvE', () => {
       await userEvent.click(ask.getByRole('button', { name: 'Abandon' }))
       expect(api.action).toHaveBeenCalledWith({ type: 'abandonTrial' }, expect.any(String))
       await waitFor(() => expect(onClose).toHaveBeenCalled())
+    })
+
+    const refused = () => { throw new ApiError(409, 'NO_ACTIVE_TRIAL') }
+
+    it('a Trial settled elsewhere: finishTrial refused, /me refetched and the draft gone, Leave goes back', async () => {
+      localStorage.setItem(trialDraftKey('p1', 3), JSON.stringify(complete()))
+      const onClose = vi.fn()
+      const h = mount(withActive, onClose)
+      h.api.action.mockImplementation(async () => refused())
+      h.api.me.mockImplementation(async () => ({ ...(h.qc.getQueryData(ME_KEY) as object), state: base }))
+      const out = await screen.findByRole('button', { name: 'Leave' })
+      expect(within(screen.getByRole('region', { name: 'Battle' })).getByRole('alert')).toHaveTextContent(messageFor('NO_ACTIVE_TRIAL'))
+      expect(screen.queryByRole('button', { name: /try again/i })).toBeNull()
+      await waitFor(() => expect(h.api.me).toHaveBeenCalled())
+      await waitFor(() => expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull())
+      await userEvent.click(out)
+      expect(onClose).toHaveBeenCalled()
+    })
+
+    it('Exit on a Trial that is already over closes and drops the draft', async () => {
+      const onClose = vi.fn()
+      const h = await screenFor(active, onClose)
+      h.api.action.mockImplementation(async () => refused())
+      await userEvent.click(screen.getByRole('button', { name: /exit/i }))
+      await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Abandon' }))
+      await waitFor(() => expect(onClose).toHaveBeenCalled())
+      expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull()
     })
 
     it('a draft that is already done sends finishTrial once on resume, then shows stars', async () => {

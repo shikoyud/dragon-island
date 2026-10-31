@@ -288,6 +288,7 @@
 .battle__stage { position: absolute; }
 .battle__head { position: absolute; top: 4px; left: 8px; right: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .battle__title { margin: 0; font-size: 12px; min-width: 0; text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink); }
+.battle__head-actions { display: flex; flex: none; gap: 6px; }
 .battle__tap { min-height: 44px; }
 .battle__exit { flex: none; min-width: 64px; background: var(--glass); border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--border); }
 

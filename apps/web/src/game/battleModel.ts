@@ -2,6 +2,8 @@ import { stageOf, TURN_LIMIT, type BattleEvent, type BattleState, type Element, 
 
 /** The next event after your action shows this long after the last one (§6.1 alternates; R80). None with reduced motion. */
 export const PLAYBACK_STEP_MS = 600
+/** A tap this soon after a move, or after opening the bench, is the same finger again: dropped. Moves are final, and what's under it may have changed. */
+export const INPUT_GUARD_MS = 250
 
 /** The events `next` adds to `prev`, in order. A shorter log (nothing the machine produces) has nothing to play. */
 export function playbackQueue(prev: readonly BattleEvent[], next: readonly BattleEvent[]): BattleEvent[] {
