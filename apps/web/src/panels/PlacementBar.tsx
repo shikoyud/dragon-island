@@ -15,7 +15,7 @@ export function PlacementBar({ legal, pending, islands = [], onIsland, onTurn, o
           className="btn"
           aria-label={`Move to ${c.name}`}
           aria-pressed={c.current}
-          disabled={!c.room}
+          disabled={!c.room || pending}
           title={c.room ? undefined : `No room on ${c.name}`}
           onClick={() => onIsland?.(c.island)}
         >
@@ -24,7 +24,7 @@ export function PlacementBar({ legal, pending, islands = [], onIsland, onTurn, o
       ))}
       <button type="button" className="btn" onClick={onTurn}>Turn</button>
       <button type="button" className="btn btn--primary" disabled={!legal || pending} onClick={onConfirm}>Confirm</button>
-      <button type="button" className="btn" onClick={onCancel}>Cancel</button>
+      <button type="button" className="btn" disabled={pending} onClick={onCancel}>Cancel</button>
       {!legal && <small>Can't build here</small>}
     </div>
   )

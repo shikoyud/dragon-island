@@ -52,6 +52,8 @@ export type GameEvent =
   | { type: 'map'; open: boolean }
   /** The level-up screen opened: the island plays `fx.levelUp` once if the art has it. */
   | { type: 'levelUp' }
+  /** The level-up screen closed: a play still waiting for the island to wake is dropped. */
+  | { type: 'levelUpClosed' }
   | { type: 'ready' }
 
 type Handler<T extends GameEvent['type']> = (e: Extract<GameEvent, { type: T }>) => void

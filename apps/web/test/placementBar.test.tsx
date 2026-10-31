@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { PlacementBar } from '../src/panels/PlacementBar'
@@ -30,6 +32,20 @@ describe('PlacementBar', () => {
     const full = screen.getByRole('button', { name: 'Move to Frostspire' }) as HTMLButtonElement
     expect(full.disabled).toBe(true)
     expect(full.title).toBe('No room on Frostspire')
+  })
+
+  it('locks the Island buttons and Cancel while a request is pending', () => {
+    const islands = [
+      { island: 'home', name: 'Home Isle', current: true, room: true },
+      { island: 'isle2', name: 'Ember Reach', current: false, room: true },
+    ] as const
+    render(<PlacementBar legal pending islands={islands} onTurn={vi.fn()} onConfirm={vi.fn()} onCancel={vi.fn()} onIsland={vi.fn()} />)
+    for (const name of ['Move to Home Isle', 'Move to Ember Reach', 'Cancel', 'Confirm']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('styles the pressed Island button so the current island shows', () => {
+    const css = readFileSync(resolve(__dirname, '../src/styles/hud.css'), 'utf8')
+    expect(css).toMatch(/\.placement-bar \.btn\[aria-pressed="true"\]\s*\{[^}]*(background|border|outline|box-shadow)/)
   })
 
   it('has no Island buttons without choices', () => {

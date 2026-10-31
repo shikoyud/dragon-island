@@ -155,6 +155,20 @@ describe('the scene switch', () => {
       expect(played(sprites)).toBe(1)
     })
 
+    it('a level gained with the Map open, whose screen is closed there, plays nothing on return', async () => {
+      const { bridge, game } = await boot(WITH_FX)
+      games.push(game)
+      await shown(game, 'island')
+      const sprites = vi.spyOn((game.scene.getScene('island') as Phaser.Scene).add, 'sprite')
+      bridge.setMapOpen(true)
+      await shown(game, 'map')
+      bridge.emit({ type: 'levelUp' }) // the screen opens over the Map
+      bridge.emit({ type: 'levelUpClosed' }) // and is dismissed there
+      bridge.setMapOpen(false)
+      await shown(game, 'island')
+      expect(played(sprites)).toBe(0)
+    })
+
     it('plays at once on an island that is awake', async () => {
       const { bridge, game } = await boot(WITH_FX)
       games.push(game)

@@ -132,6 +132,28 @@ describe('moving between plots and islands (R57)', () => {
     expect(p).toMatchObject(nearestLegalCell(two, h1, 'isle2', { col: 0, row: 0 })!)
   })
 
+  it('Cancel goes back to Home after the view was changed elsewhere (bridge.setView), and a second start keeps that origin', () => {
+    const bridge = createBridge()
+    const { result } = renderHook(() => usePlacing(bridge))
+    const start = { type: 'start' as const, what: h1, size: 4 as const, island: 'home' as const, from: { island: 'home' as const, col: 13, row: 8, facing: 0 as const } }
+    act(() => result.current.dispatch(start))
+    act(() => bridge.setView('isle2'))
+    act(() => result.current.dispatch({ type: 'cancel' }))
+    expect(result.current.view).toBe('home')
+    // A second start while placing must not take the view it finds (isle2) as the way back.
+    act(() => result.current.dispatch(start))
+    act(() => bridge.setView('isle2'))
+    act(() => result.current.dispatch(start))
+    act(() => result.current.dispatch({ type: 'cancel' }))
+    expect(result.current.view).toBe('home')
+    // And after a finished placement the origin is forgotten: a later cancel does not jump the view.
+    act(() => result.current.dispatch(start))
+    act(() => result.current.dispatch({ type: 'done' }))
+    act(() => bridge.setView('isle3'))
+    act(() => result.current.dispatch({ type: 'cancel' }))
+    expect(result.current.view).toBe('isle3')
+  })
+
   it('Cancel puts the view back where the move started; a finished move stays on its new island', () => {
     const bridge = createBridge()
     const { result } = renderHook(() => usePlacing(bridge))

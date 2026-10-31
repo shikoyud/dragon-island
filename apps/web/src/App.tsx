@@ -65,7 +65,7 @@ function Game() {
   useEffect(() => { if (battle.error) toasts.error(battle.error) }, [battle.error, toasts])
   useEffect(() => { if (me.error) toasts.error(me.error) }, [me.error, toasts])
   const levelUpOpen = levelUp !== null
-  useEffect(() => { if (levelUpOpen) bridge.emit({ type: 'levelUp' }) }, [bridge, levelUpOpen])
+  useEffect(() => { bridge.emit({ type: levelUpOpen ? 'levelUp' : 'levelUpClosed' }) }, [bridge, levelUpOpen])
   // A panel over the Map closes back to the Map; the Map closes to the island.
   const mapPanelOpen = dialog?.kind === 'target' && dialog.target.kind === 'mapIsland'
   const close = useCallback(() => setDialog(mapPanelOpen ? { kind: 'panel', id: 'map' } : null), [setDialog, mapPanelOpen])
@@ -81,6 +81,13 @@ function Game() {
     return () => window.removeEventListener('keydown', onKey)
   }, [mapBare, setDialog])
   const skin = useMemo(() => hudSkin(art.hud), [art])
+  // The Island buttons scan every unlocked island for room: only when the state, the thing being placed or the view changes.
+  const stateNow = me.data?.state
+  const placingWhat = placing?.what
+  const islandChoices = useMemo(
+    () => (stateNow && placingWhat ? placementIslands(stateNow, placingWhat, view) : []),
+    [stateNow, placingWhat, view],
+  )
 
   const signedIn = Boolean(session && me.data)
   if (!signedIn || !me.data) {
@@ -137,7 +144,7 @@ function Game() {
             onOpen={setDialog}
             placing={placing !== null}
             bottom={placing ? (
-              <PlacementBar legal={ghostAction !== null} pending={pending} islands={placementIslands(state, placing.what, view)} onIsland={island => moveToIsland(state, island)} onTurn={() => dispatch({ type: 'turn' })} onConfirm={confirmPlacing} onCancel={() => dispatch({ type: 'cancel' })} />
+              <PlacementBar legal={ghostAction !== null} pending={pending} islands={islandChoices} onIsland={island => moveToIsland(state, island)} onTurn={() => dispatch({ type: 'turn' })} onConfirm={confirmPlacing} onCancel={() => dispatch({ type: 'cancel' })} />
             ) : undefined}
           />
           {content && <Dialog label={content.label} onClose={content.onClose} modal={content.modal ?? true}>{content.node}</Dialog>}

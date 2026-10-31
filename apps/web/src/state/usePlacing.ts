@@ -19,7 +19,8 @@ export function usePlacing(bridge: Bridge): {
   const origin = useRef<IslandId | null>(null)
 
   const dispatch = useCallback((e: PlacingEvent) => {
-    if (e.type === 'start') origin.current = bridge.view
+    // A second start while placing (another Shop card) keeps the first one's origin: the view may have moved since.
+    if (e.type === 'start' && origin.current === null) origin.current = bridge.view
     const next = placingReducer(bridge.placing, e)
     if (next !== bridge.placing) bridge.setPlacing(next)
     if (e.type === 'cancel' && origin.current && origin.current !== bridge.view) bridge.setView(origin.current)

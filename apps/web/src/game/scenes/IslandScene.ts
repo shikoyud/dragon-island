@@ -98,6 +98,7 @@ export class IslandScene extends Phaser.Scene {
         if (this.sys.isSleeping()) this.levelUpOnWake = true
         else this.playLevelUp()
       }),
+      this.bridge.on('levelUpClosed', () => { this.levelUpOnWake = false }),
     ]
     const cellToScreen = (col: number, row: number) => this.toScreen(cellCentre(col, row))
     const focusCell = () => {
