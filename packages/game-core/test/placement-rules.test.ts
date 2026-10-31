@@ -18,7 +18,7 @@ describe('placementRuleError', () => {
     expect(placementRuleError(s, { kind: 'habitat', element: 'terra' }, P(8, 8))).toBe('OVERLAP')
     expect(placementRuleError(s, { kind: 'habitat', element: 'terra' }, P(29, 8))).toBe('OUT_OF_BOUNDS')
     expect(placementRuleError(s, { kind: 'habitat', element: 'terra' }, P(0, 0))).toBe('NOT_OWNED')
-    expect(placementRuleError(s, { kind: 'decoration', decoration: 'stonePath' }, P(23, 23))).toBeNull()
+    expect(placementRuleError(s, { kind: 'decoration', decoration: 'stonePath' }, P(22, 12))).toBeNull()
     expect(placementRuleError(s, { kind: 'habitat', element: 'terra' }, { ...dp })).toBe('ISLAND_LOCKED')
   })
   it("Warlord's Crown decorations only go there", () => {

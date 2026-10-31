@@ -29,5 +29,13 @@ export const HOME_BUY_ORDER: readonly number[] = [4, 8, 7, 11, 1, 2, 13, 14, 0, 
 
 /** A free cell on a new player's Home that fits any footprint. */
 export const FREE: Placement = freeCell(newPlayer(0), FOOTPRINT.breeder)
-/** A second one, clear of `FREE`, for tests that place two things. */
-export const FREE_2: Placement = { ...FREE, col: FREE.col + FOOTPRINT.breeder }
+/** A second one, clear of `FREE`, for tests that place two things. It fits a 4x4 (the Start has no second free 5x5, R50). */
+export const FREE_2: Placement = (() => {
+  const s = newPlayer(0)
+  for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) {
+    const p: Placement = { island: 'home', col, row, facing: 0 }
+    const apart = col >= FREE.col + FOOTPRINT.breeder || FREE.col >= col + FOOTPRINT.habitat || row >= FREE.row + FOOTPRINT.breeder || FREE.row >= row + FOOTPRINT.habitat
+    if (apart && placementError(s, p, FOOTPRINT.habitat) === null) return p
+  }
+  throw new Error('no second free 4x4 cell')
+})()

@@ -21,9 +21,9 @@ describe('the start (§5.5, R50)', () => {
   it('owns the centre 2x2 of Home, on a new state version', () => {
     expect(base.islands.plots.home).toEqual([5, 6, 9, 10])
     expect(base.islands.unlocked).toEqual(['home'])
-    expect(base.islands.obstacles).toEqual([])
+    expect(base.islands.obstacles).toHaveLength(21)
     expect(base.islands).not.toHaveProperty('homeStep')
-    expect(STATE_VERSION).toBe(8)
+    expect(STATE_VERSION).toBe(9)
   })
   it('places the buildings on the fixed table', () => {
     expect(base.habitats.map(h => [h.element, h.placement])).toEqual([['terra', P(8, 8)], ['flame', P(12, 8)]])
@@ -33,7 +33,7 @@ describe('the start (§5.5, R50)', () => {
   })
   it('nothing overlaps and everything stands on owned land', () => {
     const occ = occupants(base, 'home')
-    expect(occ).toHaveLength(5)
+    expect(occ).toHaveLength(5 + 21)
     occ.forEach((a, i) => occ.slice(i + 1).forEach(b => expect(overlaps(a, b)).toBe(false)))
     for (const o of occ) expect(ownsFootprint(base, P(o.col, o.row), o.size)).toBe(true)
   })
@@ -68,7 +68,8 @@ describe('placement on owned land (R43)', () => {
     expect(placementError(base, P(0, 0), FOOTPRINT.habitat, { type: 'habitat', id: 'h1' })).toBe('NOT_OWNED')
   })
   it('straddling two owned plots is legal once the plot is bought', () => {
-    const a = ok(buy({ ...base, level: 2 }, 7))
+    const bought = ok(buy({ ...base, level: 2 }, 7))
+    const a = { ...bought, islands: { ...bought.islands, obstacles: [] } } // the plot's own spawns are not the point here
     expect(placementError(a, P(21, 12), FOOTPRINT.habitat)).toBeNull()
     expect(ok(run({ ...a, gold: 10_000 }, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: P(21, 12) })).habitats).toHaveLength(3)
   })

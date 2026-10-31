@@ -3,7 +3,7 @@ import { isUnlocked } from './data/unlocks'
 import { ROOST_FOOTPRINT } from './data/roost'
 import type { BuildingRef, IslandId, Placement, PlayerState } from './state'
 import { DECORATIONS } from './decorations'
-import { OBSTACLES } from './obstacles'
+import { OBSTACLES } from './data/obstacles'
 import { ISLAND_TILES, ownsFootprint } from './plots'
 
 export const CELL_PX = 16

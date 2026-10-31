@@ -1,4 +1,5 @@
-import { HOME_START } from './data/island-start'
+import { HOME_OBSTACLES, HOME_START } from './data/island-start'
+import type { SpeedUpToken } from './data/speedups'
 import type { Element } from './elements'
 import { STARTING_PLOTS } from './plots'
 import { utcDay, type DayCounter } from './time'
@@ -22,7 +23,7 @@ export interface Breeder { kind: BreederKind; egg: BreederEgg | null; level: num
 export interface FarmPlot { crop: CropId | null; readyAtMs: number; level: number; placement: Placement }
 export type DecorationId = 'stonePath' | 'picketFence' | 'flowerPatch' | 'emberLantern' | 'driftwoodBench' | 'hayCart' | 'shellFountain' | 'crystalCluster' | 'eggTotem' | 'moonwell' | 'boneArch' | 'skyShrine' | 'dawnObelisk' | 'starPool' | 'dragonColossus'
 export interface Decoration { id: string; kind: DecorationId; placement: Placement }
-export type ObstacleKind = 'bush' | 'rock' | 'tree' | 'boulder' | 'ruin'
+export type ObstacleKind = 'ancientTree' | 'boulder' | 'largeRock' | 'tree' | 'smallRock' | 'bush'
 export interface Obstacle { id: string; kind: ObstacleKind; island: IslandId; col: number; row: number }
 export type BuildingRef = { type: 'habitat'; id: string } | { type: 'farm'; index: number } | { type: 'breeder'; index: number } | { type: 'hatchery' } | { type: 'roost' }
 export type Construction =
@@ -30,7 +31,7 @@ export type Construction =
   | { kind: 'clear'; obstacleId: string; readyAtMs: number }
 
 /** Bumped when the saved shape changes; there is no save migration (R2). */
-export const STATE_VERSION = 8
+export const STATE_VERSION = 9
 
 /** Counters the Goals read (§1.4, R37); each rises only when its action succeeds. */
 export interface GoalStats { collects: number; harvests: number; feeds: number; breeds: number; hatches: number }
@@ -57,6 +58,8 @@ export interface PlayerState {
   /** `plots`: owned plot indices per island (§5.5), absent until the island opens. */
   islands: { unlocked: IslandId[]; plots: Partial<Record<IslandId, number[]>>; obstacles: Obstacle[] }
   constructions: Construction[]
+  /** Speed-up tokens a clear dropped (§5.6), by size; Task 4 spends them. */
+  speedUps: Record<SpeedUpToken, number>
   farms: FarmPlot[]
   /** Index of the Goal waiting to be claimed; the Goals' count means all are done (R36). */
   goalIndex: number
@@ -94,8 +97,9 @@ export function newPlayer(nowMs: number): PlayerState {
     hatcheryFifthSlot: false,
     hatcheryPlacement: home(HOME_START.hatchery),
     decorations: [],
-    islands: { unlocked: ['home'], plots: { home: [...STARTING_PLOTS] }, obstacles: [] },
+    islands: { unlocked: ['home'], plots: { home: [...STARTING_PLOTS] }, obstacles: HOME_OBSTACLES.map(o => ({ ...o })) },
     constructions: [],
+    speedUps: { '15m': 0, '1h': 0, '3h': 0 },
     farms: [{ crop: null, readyAtMs: 0, level: 1, placement: home(HOME_START.farm) }],
     goalIndex: 0,
     goalStats: { collects: 0, harvests: 0, feeds: 0, breeds: 0, hatches: 0 },

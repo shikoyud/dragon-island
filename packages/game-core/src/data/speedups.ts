@@ -6,6 +6,10 @@ export const SKIP_BASE_MICRO_USD = 100_000
 export const SKIP_EXPONENT = 0.68
 const HOUR_MS = 3_600_000
 
+/** §5.6 speed-up tokens a clear can drop; M4 Q2 (a): each takes its real hours off a running timer. */
+export type SpeedUpToken = '15m' | '1h' | '3h'
+export const SPEEDUP_TOKEN_MS: Record<SpeedUpToken, number> = { '15m': 900_000, '1h': 3_600_000, '3h': 10_800_000 }
+
 /** Micro-USD to skip `remainingMs` of any timer: 0 when nothing remains, otherwise at least 1. */
 export function skipPriceMicroUsd(remainingMs: number): number {
   if (remainingMs <= 0) return 0

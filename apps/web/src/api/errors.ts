@@ -48,6 +48,7 @@ export const errorMessages: Record<string, string> = {
   PLOT_NOT_ADJACENT: 'A new plot must touch land you own.',
   OVERLAP: 'Something is already there.',
   BUILDERS_BUSY: 'Both builders are busy. Finish or skip a build first.',
+  CLEARS_BUSY: 'Two clears are already running. Finish or skip one first.',
   ISLAND_LOCKED: 'Buy that island’s Bridge first.',
   WRONG_ISLAND: `That belongs on its own island: ${ISLANDS.isle6.name} for its decorations, ${ISLANDS.home.name} for the Hatchery.`,
   UNDER_CONSTRUCTION: 'That building is still being built.',

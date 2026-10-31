@@ -83,4 +83,4 @@ export const SLOT_SIZES = {
 export type SlotName = keyof typeof SLOT_SIZES
 
 /** Pixel edge of a base-building object with a footprint of `cells` x `cells` (16 px per cell). */
-export const footprintPx = (cells: 1 | 2 | 3): { w: number; h: number } => ({ w: cells * 16, h: cells * 16 })
+export const footprintPx = (cells: number): { w: number; h: number } => ({ w: cells * 16, h: cells * 16 })

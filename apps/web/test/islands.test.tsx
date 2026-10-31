@@ -6,10 +6,11 @@ import { artSetFromManifest } from '../src/art/fromManifest'
 import { createBridge } from '../src/game/bridge'
 import { MapIslandPanel } from '../src/panels/MapIslandPanel'
 import { ObstaclePanel } from '../src/panels/ObstaclePanel'
+import { upgradeBlockReason } from '../src/panels/UpgradeSection'
 import { harness, TestHost } from './harness'
 
 const base = newPlayer(0)
-const rock: Obstacle = { id: 'home-s1-rock', kind: 'rock', island: 'home', col: 20, row: 12 }
+const rock: Obstacle = { id: 'home-s1-rock', kind: 'smallRock', island: 'home', col: 20, row: 12 }
 const withRock = (over: Partial<PlayerState> = {}): PlayerState => ({
   ...base, gold: 1_000, islands: { ...base.islands, obstacles: [rock] }, ...over,
 })
@@ -35,16 +36,35 @@ describe('ObstaclePanel', () => {
   it('clears for gold and shows rewards', async () => {
     const h = harness(withRock())
     h.wrap(<ObstaclePanel obstacleId="home-s1-rock" nowMs={0} />)
-    expect(screen.getByText(/\+480 XP/)).toBeInTheDocument() // 40 classic XP x the Flash-14 multiplier
-    expect(screen.getByText(/\+0 food/)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /Clear · 250 gold · 5m/ }))
+    expect(screen.getByText(/\+300 XP/)).toBeInTheDocument() // 25 classic XP x the Flash-14 multiplier
+    expect(screen.getByText('10 % chance: 100–300 gold')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Clear · 500 gold · 50s/ }))
     expect(h.action).toHaveBeenCalledWith({ type: 'clearObstacle', obstacleId: 'home-s1-rock' }, expect.any(String))
+  })
+
+  it('shows an Ancient Tree\'s cost, timer, XP and drop (§5.6)', () => {
+    const tree: Obstacle = { id: 'big', kind: 'ancientTree', island: 'home', col: 20, row: 20 }
+    harness({ ...base, gold: 100_000, islands: { ...base.islands, obstacles: [tree] } }).wrap(<ObstaclePanel obstacleId="big" nowMs={0} />)
+    expect(screen.getByRole('button', { name: 'Clear · 25,000 gold · 40m' })).toBeEnabled()
+    expect(screen.getByText('Reward: +15,000 XP')).toBeInTheDocument()
+    expect(screen.getByText('10 % chance: 3 h speed-up')).toBeInTheDocument()
+  })
+
+  it('says two clears are running, and builds say nothing of clears', () => {
+    const second: Obstacle = { ...rock, id: 'second', col: 22 }
+    const third: Obstacle = { ...rock, id: 'third', col: 12 }
+    const running = [{ kind: 'clear' as const, obstacleId: 'home-s1-rock', readyAtMs: 9 }, { kind: 'clear' as const, obstacleId: 'second', readyAtMs: 9 }]
+    const s = withRock({ islands: { ...base.islands, obstacles: [rock, second, third] }, constructions: running })
+    harness(s).wrap(<ObstaclePanel obstacleId="third" nowMs={0} />)
+    expect(screen.getByRole('button', { name: /Clear · 500 gold/ })).toBeDisabled()
+    expect(screen.getByText('Two clears are running')).toBeInTheDocument()
+    expect(upgradeBlockReason(s, 1, 100)).toBe('')
   })
 
   it('disables Clear without gold and explains', () => {
     const { wrap } = harness(withRock({ gold: 10 }))
     wrap(<ObstaclePanel obstacleId="home-s1-rock" nowMs={0} />)
-    expect(screen.getByRole('button', { name: /Clear · 250 gold/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Clear · 500 gold/ })).toBeDisabled()
     expect(screen.getByText('Not enough gold')).toBeInTheDocument()
   })
 
@@ -68,6 +88,6 @@ describe('PanelHost targets', () => {
     const { wrap } = harness(withRock({ level: 2 }))
     wrap(<TestHost bridge={bridge} />)
     bridge.emit({ type: 'select', target: { kind: 'obstacle', id: 'home-s1-rock' } })
-    expect(await screen.findByRole('button', { name: /Clear · 250 gold/ })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /Clear · 500 gold/ })).toBeInTheDocument()
   })
 })

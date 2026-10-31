@@ -3,11 +3,12 @@ import { GROVE_L3, HATCHERY_FIFTH_SLOT } from '../data/breeding-buildings'
 import { FARM_MAX_LEVEL } from '../data/farms'
 import { HABITAT_MAX_LEVEL } from '../data/habitats'
 import type { Preset } from '../data/presets'
-import { isUnderConstruction, MAX_BUILDERS, startConstruction } from '../construction'
+import { activeBuilds, isUnderConstruction, MAX_BUILDERS, startConstruction } from '../construction'
 import { ASCENSION_TIER, ROOST_TIERS } from '../data/roost'
 import { payBuildXp } from '../progression'
 import { spendGold } from '../wallet'
 import { placementRuleError } from '../placement-rules'
+import type { Rng } from '../rng'
 import type { PlayerState } from '../state'
 import { FOOD_PACK, ownsAerie, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
 import { completeConstruction } from './build-actions'
@@ -63,19 +64,19 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
       if (s.roostTier !== ASCENSION_TIER - 1) return 'INVALID_ACTION'
       if (!isUnlocked('roost:5', s.level)) return 'LEVEL_TOO_LOW'
       if (s.gold < ROOST_TIERS[ASCENSION_TIER - 1]!.gold) return 'INSUFFICIENT_GOLD'
-      return s.constructions.length >= MAX_BUILDERS ? 'BUILDERS_BUSY' : null
+      return activeBuilds(s) >= MAX_BUILDERS ? 'BUILDERS_BUSY' : null
     }
   }
 }
 
-function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, preset: Preset, day: number): PlayerState {
+function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, preset: Preset, day: number, rng: Rng): PlayerState {
   switch (item.kind) {
     case 'skip': {
       const at = <T extends { readyAtMs: number } | null>(xs: T[]) =>
         xs.map((x, i) => i === item.index && x ? { ...x, readyAtMs: nowMs } : x)
       if (item.target === 'breeder') return { ...s, breeders: s.breeders.map((b, i) => i === item.index && b.egg ? { ...b, egg: { ...b.egg, readyAtMs: nowMs } } : b) }
       if (item.target === 'construction') {
-        return completeConstruction({ ...s, constructions: at(s.constructions) }, item.index, c, nowMs, preset, day)
+        return completeConstruction({ ...s, constructions: at(s.constructions) }, item.index, c, nowMs, preset, day, rng)
       }
       if (item.target === 'hatchery') return { ...s, hatchery: at(s.hatchery) }
       return { ...s, farms: at(s.farms) }
@@ -114,5 +115,5 @@ export const buy: Handler<'buy'> = (s, a, ctx) => {
   if (error) return failure(error)
   const microUsd = priceMicroUsd(a.item, s, ctx.nowMs)
   if (microUsd === null) return failure('NOT_FOUND')
-  return success(applyItem(a.item, s, ctx.nowMs, ctx.catalog, ctx.preset, ctx.day), [{ type: 'charge', microUsd }])
+  return success(applyItem(a.item, s, ctx.nowMs, ctx.catalog, ctx.preset, ctx.day, ctx.rng), [{ type: 'charge', microUsd }])
 }

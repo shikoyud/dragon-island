@@ -6,7 +6,9 @@ import { hasLegalCell, nearestLegalCell, placementStart, placingAction } from '.
 const midFor = (size: number) => ({ col: 16 - Math.floor((size - 1) / 2), row: 16 - Math.floor((size - 1) / 2) })
 
 describe('the default cell leaves room for a habitat (final fix 2)', () => {
-  const rich = { ...newPlayer(0), level: 12, gold: 1_000_000_000 }
+  // The tests carve their own free land, so Home's starting obstacles (R50) are cleared.
+  const start = newPlayer(0)
+  const rich = { ...start, islands: { ...start.islands, obstacles: [] }, level: 12, gold: 1_000_000_000 }
   const sea = { kind: 'habitat', element: 'sea' } as const
 
   it('the fresh island has a habitat spot', () => {

@@ -55,7 +55,8 @@ describe('art v1 manifest', () => {
     fit('building.farmPlot', art.building.farmPlot, 32, 32)
     fit('building.nest', art.building.nest, 32, 32)
     for (const id of Object.keys(DECORATIONS) as DecorationId[]) fit(id, art.decoration[id], DECORATIONS[id].size * 16, DECORATIONS[id].size * 16)
-    for (const k of Object.keys(OBSTACLES) as ObstacleKind[]) fit(k, art.obstacle[k], OBSTACLES[k].size * 16, OBSTACLES[k].size * 16)
+    // v1 has no art of its own for the §5.6 kinds yet: each shows the nearest old sprite, which keeps its own size.
+    for (const k of Object.keys(OBSTACLES) as ObstacleKind[]) expect(art.obstacle[k].src, k).not.toBe('')
     fit('island.locked', art.island.locked, 16, 16)
     fit('island.sign', art.island.sign, 32, 32)
     for (const id of ISLAND_ORDER) fit(`map.${id}`, art.map[id], 32, 32)
@@ -122,7 +123,7 @@ describe('artSetFromManifest', () => {
     } }, LAUNCH_CATALOG)
     expect(a.building.nexus.src).toBe('/art/v2/nexus.png')
     expect(a.decoration.moonwell.src).toBe('/art/v2/moonwell.png')
-    expect(a.obstacle.ruin.src).toBe('/art/v2/ruin.png')
+    expect(a.obstacle.largeRock.src).toBe('/art/v2/ruin.png') // the nearest old sprite until obstacle.largeRock lands
     expect(a.island.locked.src).toBe('/art/v2/locked.png')
     expect(a.island.sign.src).toBe('/art/v2/sign.png')
     expect(a.map.isle6.src).toBe('/art/v2/map-dawn.png')

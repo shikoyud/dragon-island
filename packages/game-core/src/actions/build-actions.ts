@@ -12,7 +12,8 @@ import { farmBuildGold } from '../farm'
 import { placementRuleError } from '../placement-rules'
 import type { PlayerState } from '../state'
 import { earnGold, spendGold } from '../wallet'
-import { clearReward } from '../obstacles'
+import { clearReward, rollDrop } from '../obstacles'
+import type { Rng } from '../rng'
 import { addXp, payBuildXp } from '../progression'
 import { collectHabitat } from './island-actions'
 import { failure, success, type Handler } from './types'
@@ -118,7 +119,7 @@ export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {
 }
 
 /** Applies construction `index` (which must be ready); shared by finishConstruction and the construction skip. */
-export function completeConstruction(s: PlayerState, index: number, c: Catalog, nowMs: number, preset: Preset, day: number): PlayerState {
+export function completeConstruction(s: PlayerState, index: number, c: Catalog, nowMs: number, preset: Preset, day: number, rng: Rng): PlayerState {
   const con = s.constructions[index]!
   const rest = { ...s, constructions: s.constructions.filter((_, i) => i !== index) }
   if (con.kind === 'build') return con.building.type === 'roost' ? { ...rest, roostTier: ROOST_TIERS[0]!.tier } : rest
@@ -126,8 +127,15 @@ export function completeConstruction(s: PlayerState, index: number, c: Catalog, 
     const o = rest.islands.obstacles.find(x => x.id === con.obstacleId)
     const cleared = { ...rest, islands: { ...rest.islands, obstacles: rest.islands.obstacles.filter(x => x.id !== con.obstacleId) } }
     if (!o) return cleared
-    const reward = clearReward(o)
-    return addXp({ ...cleared, food: cleared.food + reward.food }, reward.xp, preset, day)
+    // R54: the drop rolls here, so every path that completes a clear pays it once.
+    const drop = rollDrop(o.kind, rng)
+    const dropped: PlayerState = {
+      ...cleared,
+      gold: cleared.gold + (drop.gold ?? 0),
+      food: cleared.food + (drop.food ?? 0),
+      speedUps: drop.token ? { ...cleared.speedUps, [drop.token]: cleared.speedUps[drop.token] + 1 } : cleared.speedUps,
+    }
+    return addXp(dropped, clearReward(o).xp, preset, day)
   }
   const ref = con.building
   switch (ref.type) {
@@ -146,5 +154,5 @@ export const finishConstruction: Handler<'finishConstruction'> = (s, a, ctx) => 
   const con = s.constructions[a.index]
   if (!con) return failure('NOT_FOUND')
   if (ctx.nowMs < con.readyAtMs) return failure('NOT_READY')
-  return success(completeConstruction(s, a.index, ctx.catalog, ctx.nowMs, ctx.preset, ctx.day))
+  return success(completeConstruction(s, a.index, ctx.catalog, ctx.nowMs, ctx.preset, ctx.day, ctx.rng))
 }

@@ -1,4 +1,4 @@
-import { constructionFor, GROVE_L3, MAX_BUILDERS, priceMicroUsd, unlockPl, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
+import { activeBuilds, constructionFor, GROVE_L3, MAX_BUILDERS, priceMicroUsd, unlockPl, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
 import { timerLabel } from '../game/islandModel'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -35,7 +35,7 @@ function topLevelNote(s: PlayerState, b: BuildingRef): string {
 export function upgradeBlockReason(s: PlayerState, minLevel: number, cost: number): string {
   return s.level < minLevel ? `Needs player level ${minLevel}`
     : s.gold < cost ? 'Not enough gold'
-    : s.constructions.length >= MAX_BUILDERS ? 'Both builders are busy' : ''
+    : activeBuilds(s) >= MAX_BUILDERS ? 'Both builders are busy' : ''
 }
 
 const idOf = (b: BuildingRef): string => (b.type === 'habitat' ? b.id : b.type === 'hatchery' || b.type === 'roost' ? b.type : `${b.type}-${b.index}`)

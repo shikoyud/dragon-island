@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { occupants, overlaps, placementError } from '../src/island'
+import { HOME_OBSTACLES } from '../src/data/island-start'
 import { newPlayer, STATE_VERSION } from '../src/state'
 
 describe('newPlayer', () => {
@@ -10,9 +11,9 @@ describe('newPlayer', () => {
       habitats: [{ id: 'h1', element: 'terra', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 8, row: 8, facing: 0 } }, { id: 'h2', element: 'flame', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 12, row: 8, facing: 0 } }],
       breeders: [{ kind: 'mountain', egg: null, level: 1, placement: { island: 'home', col: 8, row: 12, facing: 0 } }], hatchery: [],
       hatcheryLevel: 1, hatcheryFifthSlot: false, hatcheryPlacement: { island: 'home', col: 16, row: 8, facing: 0 },
-      decorations: [], islands: { unlocked: ['home'], plots: { home: [5, 6, 9, 10] }, obstacles: [] }, constructions: [],
+      decorations: [], islands: { unlocked: ['home'], plots: { home: [5, 6, 9, 10] }, obstacles: HOME_OBSTACLES }, constructions: [], speedUps: { '15m': 0, '1h': 0, '3h': 0 },
       farms: [{ crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 20, row: 8, facing: 0 } }],
-      version: 8, firstHybridDone: false, discovered: ['terra', 'flame'],
+      version: 9, firstHybridDone: false, discovered: ['terra', 'flame'],
       goalIndex: 0, goalStats: { collects: 0, harvests: 0, feeds: 0, breeds: 0, hatches: 0 }, nextId: 3,
       defenceTeam: null, trophies: 0, pvp: { day: 0, count: 0 }, pve: { cleared: 0, replays: { day: 0, count: 0 } },
     })
@@ -25,7 +26,7 @@ describe('newPlayer', () => {
     expect(s.farms.map(f => [f.level, f.placement.col, f.placement.row])).toEqual([[1, 20, 8]])
     expect(s.breeders).toEqual([{ kind: 'mountain', egg: null, level: 1, placement: { island: 'home', col: 8, row: 12, facing: 0 } }])
     expect([s.hatcheryLevel, s.hatcheryPlacement]).toEqual([1, { island: 'home', col: 16, row: 8, facing: 0 }])
-    expect(s.islands).toEqual({ unlocked: ['home'], plots: { home: [5, 6, 9, 10] }, obstacles: [] })
+    expect(s.islands).toEqual({ unlocked: ['home'], plots: { home: [5, 6, 9, 10] }, obstacles: HOME_OBSTACLES })
     expect([s.constructions, s.decorations]).toEqual([[], []])
     expect(s).not.toHaveProperty('tutorial')
   })
@@ -33,7 +34,7 @@ describe('newPlayer', () => {
   it('lays the starting buildings out without overlap, on legal cells (R1, R9)', () => {
     const s = newPlayer(0)
     const occ = occupants(s, 'home')
-    expect(occ).toHaveLength(5)
+    expect(occ).toHaveLength(5 + HOME_OBSTACLES.length)
     for (const o of occ) {
       expect(placementError(s, { island: 'home', col: o.col, row: o.row, facing: 0 }, o.size, o.ref)).toBeNull()
     }
@@ -60,7 +61,7 @@ describe('newPlayer', () => {
   it('new players carry the state version and no removed fields', () => {
     const s = newPlayer(0)
     expect(s.version).toBe(STATE_VERSION)
-    expect(STATE_VERSION).toBe(8)
+    expect(STATE_VERSION).toBe(9)
     expect(s).not.toHaveProperty('hoardLevel')
     expect(s).not.toHaveProperty('eligibleGold')
     expect(s).not.toHaveProperty('ledger')

@@ -6,7 +6,7 @@ const P = (col: number, row: number) => ({ island: 'home' as const, col, row, fa
 
 describe('island geometry', () => {
   it('lists the starting occupants', () => {
-    const o = occupants(newPlayer(0), 'home')
+    const o = occupants(newPlayer(0), 'home').filter(x => x.ref.type !== 'obstacle')
     expect(o).toHaveLength(5)
     expect(o.find(x => x.ref.type === 'hatchery')).toEqual({ ref: { type: 'hatchery' }, col: 16, row: 8, size: 4 })
   })

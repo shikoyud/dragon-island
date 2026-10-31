@@ -14,7 +14,7 @@ import { createRng, type Rng } from '../src/rng'
 import { newPlayer, type Breeder, type Dragon, type PlayerState } from '../src/state'
 import { priceMicroUsd, type StoreItem } from '../src/store'
 import { err, ok } from './helpers'
-import { FREE, FREE_2 } from './helpers/land'
+import { FREE, freeCell, withAllLand } from './helpers/land'
 
 const P = (col: number, row: number) => ({ island: 'home' as const, col, row, facing: 0 as const })
 const base = newPlayer(0)
@@ -221,8 +221,10 @@ describe('placing the Grove', () => {
 
   it('a second Grove fails MAX_LEVEL', () => {
     const a = ok(run(ready(12, 2_000_000), place))
-    expect(placementRuleError(a, { kind: 'grove' }, FREE_2)).toBeNull()
-    err(run(a, { ...place, placement: FREE_2 } as Action), 'MAX_LEVEL')
+    const more = withAllLand(a) // the Start has no second free 5x5
+    const second = freeCell(more, 5)
+    expect(placementRuleError(more, { kind: 'grove' }, second)).toBeNull()
+    err(run(more, { ...place, placement: second } as Action), 'MAX_LEVEL')
   })
 
   it('refuses short Gold and busy builders', () => {
@@ -234,7 +236,7 @@ describe('placing the Grove', () => {
   it('takes a 5x5 footprint and is a valid action', () => {
     expect(placementRuleError(base, { kind: 'grove' }, P(28, 12))).toBe('OUT_OF_BOUNDS')
     expect(placementRuleError(base, { kind: 'grove' }, P(20, 12))).toBe('NOT_OWNED')
-    expect(placementRuleError(base, { kind: 'grove' }, P(19, 12))).toBeNull()
+    expect(placementRuleError(base, { kind: 'grove' }, P(14, 12))).toBeNull()
     expect(placementRuleError(base, { kind: 'grove' }, P(9, 12))).toBe('OVERLAP')
     expect(isValidAction(place)).toBe(true)
   })

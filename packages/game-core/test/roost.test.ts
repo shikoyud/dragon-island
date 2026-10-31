@@ -69,7 +69,7 @@ describe('placing the Roost', () => {
 
   it('too little Gold, busy builders, a second Roost, and bad cells', () => {
     err(run({ ...base, level: 5, gold: 4_999 }, place), 'INSUFFICIENT_GOLD')
-    const busy = { ...base, level: 5, gold: 9_999, constructions: [{ kind: 'clear' as const, obstacleId: 'x', readyAtMs: 9 }, { kind: 'clear' as const, obstacleId: 'y', readyAtMs: 9 }] }
+    const busy = { ...base, level: 5, gold: 9_999, constructions: [0, 1].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 9 })) }
     err(run(busy, place), 'BUILDERS_BUSY')
     err(run(roosted(1), { ...place, placement: FREE_2 }), 'MAX_LEVEL')
     err(run({ ...base, level: 5, gold: 5_000 }, { ...place, placement: P(8, 8) }), 'OVERLAP')
@@ -171,7 +171,7 @@ describe('Ascension (Tier 5, R35)', () => {
     err(run(roosted(4, { level: 29 }), ascend), 'LEVEL_TOO_LOW')
     err(run(roosted(4, { gold: 9_999_999 }), ascend), 'INSUFFICIENT_GOLD')
     err(run(roosted(5), ascend), 'MAX_LEVEL')
-    const full = roosted(4, { constructions: [{ kind: 'clear', obstacleId: 'x', readyAtMs: 9 }, { kind: 'clear', obstacleId: 'y', readyAtMs: 9 }] })
+    const full = roosted(4, { constructions: [0, 1].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 9 })) })
     err(run(full, ascend), 'BUILDERS_BUSY')
   })
 

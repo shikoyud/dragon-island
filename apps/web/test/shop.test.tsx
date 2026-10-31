@@ -137,7 +137,9 @@ describe('ShopPanel Dragons section (buy a Basic)', () => {
 })
 
 /** Every free cell on an island taken by a 1-cell decoration: a state with truly no room for anything. */
-const fill = (s: PlayerState, island: IslandId, keep?: (col: number, row: number) => boolean): PlayerState => {
+/** Covers every free tile of `island` with decorations except where `keep` says; its obstacles go first, since the tests are about room. */
+const fill = (start: PlayerState, island: IslandId, keep?: (col: number, row: number) => boolean): PlayerState => {
+  const s = { ...start, islands: { ...start.islands, obstacles: start.islands.obstacles.filter(o => o.island !== island) } }
   const decorations = [...s.decorations]
   for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) {
     if (keep?.(col, row)) continue
@@ -530,6 +532,6 @@ describe('error copy', () => {
     expect(messageFor('OVERLAP')).toBe('Something is already there.')
     expect(messageFor('OUT_OF_BOUNDS')).toBe('That spot is off the island.')
     expect(messageFor('BUILDERS_BUSY')).toBe('Both builders are busy. Finish or skip a build first.')
-    for (const c of ['ISLAND_LOCKED', 'WRONG_ISLAND', 'UNDER_CONSTRUCTION', 'NOT_OWNED', 'PLOT_OWNED', 'PLOT_NOT_ADJACENT']) expect(messageFor(c)).not.toBe(c)
+    for (const c of ['CLEARS_BUSY', 'ISLAND_LOCKED', 'WRONG_ISLAND', 'UNDER_CONSTRUCTION', 'NOT_OWNED', 'PLOT_OWNED', 'PLOT_NOT_ADJACENT']) expect(messageFor(c)).not.toBe(c)
   })
 })
