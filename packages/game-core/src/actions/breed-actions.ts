@@ -7,7 +7,7 @@ import { FIRST_HYBRID_MS, basicPriceGold } from '../data/breeding'
 import { BREED_MIN_LEVEL } from '../data/dragon-levels'
 import { HATCH_XP, START_BREED_XP } from '../data/xp'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
-import { addXp } from '../progression'
+import { addXp, breedXpApplies } from '../progression'
 import { spendGold } from '../wallet'
 import { collectHabitat } from './island-actions'
 import type { Element } from '../elements'
@@ -36,13 +36,14 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const scripted = bctx.firstHybridPending && child.elements.length >= 2 && child.rarity !== 'legendary'
   const hatchMs = scripted ? FIRST_HYBRID_MS : breedTimerMs(child.rarity, child.elements, ctx.preset)
   const readyAtMs = ctx.nowMs + (scripted ? FIRST_HYBRID_MS : breederBreedMs(hatchMs, s.breeders[index]!))
+  const pays = breedXpApplies(sa, sb, child)
   const next = {
     ...s,
-    breeders: s.breeders.map((b, i) => i === index ? { ...b, egg: { speciesId: child.id, readyAtMs, hatchMs } } : b),
+    breeders: s.breeders.map((b, i) => i === index ? { ...b, egg: { speciesId: child.id, readyAtMs, hatchMs, xpFree: !pays } } : b),
     goalStats: { ...s.goalStats, breeds: s.goalStats.breeds + 1 },
     firstHybridDone: s.firstHybridDone || scripted,
   }
-  return success(addXp(next, START_BREED_XP, ctx.preset, ctx.day))
+  return success(pays ? addXp(next, START_BREED_XP, ctx.preset, ctx.day) : next)
 }
 
 /** The Dragon Book with `speciesId` added once (R22). */
@@ -65,7 +66,7 @@ export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
     ...s,
     breeders: s.breeders.map((b, i) => i === a.breeder ? { ...b, egg: null } : b),
     // The hatch timer starts now, when the egg reaches its slot (§5.4).
-    hatchery: [...s.hatchery, { speciesId: egg.speciesId, readyAtMs: ctx.nowMs + egg.hatchMs }],
+    hatchery: [...s.hatchery, { speciesId: egg.speciesId, readyAtMs: ctx.nowMs + egg.hatchMs, xpFree: egg.xpFree }],
   })
 }
 
@@ -107,6 +108,7 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
     nextId: s.nextId + 1,
     goalStats: { ...collected.goalStats, hatches: collected.goalStats.hatches + 1 },
   }
+  if (egg.xpFree) return success(next)
   // R30: a species new to the Dragon Book pays double.
   const firstTime = !s.discovered.includes(egg.speciesId)
   return success(addXp(next, HATCH_XP[species.rarity] * (firstTime ? 2 : 1), ctx.preset, ctx.day))

@@ -304,7 +304,7 @@ describe('BreedPanel', () => {
   })
 
   it('disables breeding when every building is busy, naming no species in the egg state', async () => {
-    const busy = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: QUIET + 99_000, hatchMs: 1 } }] }
+    const busy = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: QUIET + 99_000, hatchMs: 1, xpFree: false } }] }
     const { wrap } = harness(busy, 0, undefined, GAME)
     wrap(<BreedPanel nowMs={QUIET} />)
     await pick('d1', 'd2')
@@ -342,7 +342,7 @@ describe('BreedPanel', () => {
   })
 
   it('moves a finished egg to the Hatchery on a tap', async () => {
-    const s = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 5_000 } }] }
+    const s = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 5_000, xpFree: false } }] }
     const { wrap, action } = harness(s, QUIET, undefined, GAME)
     wrap(<BreedPanel nowMs={QUIET} />)
     const row = screen.getByTestId('breeder-0')
@@ -353,7 +353,7 @@ describe('BreedPanel', () => {
   })
 
   it('disables Move to Hatchery with a reason when the Hatchery is full', () => {
-    const s = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 5_000 } }], hatchery: [{ speciesId: 'sea', readyAtMs: 99 }] }
+    const s = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 5_000, xpFree: false } }], hatchery: [{ speciesId: 'sea', readyAtMs: 99 }] }
     const { wrap } = harness(s, QUIET, undefined, GAME)
     wrap(<BreedPanel nowMs={QUIET} />)
     const row = screen.getByTestId('breeder-0')

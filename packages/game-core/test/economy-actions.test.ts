@@ -23,7 +23,7 @@ describe('buy', () => {
   })
 
   it('skips timers', () => {
-    const st = { ...p0, breeders: [{ ...p0.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001, hatchMs: 1 } }] }
+    const st = { ...p0, breeders: [{ ...p0.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 1_800_001, hatchMs: 1, xpFree: false } }] }
     const r = run(st, buy({ kind: 'skip', target: 'breeder', index: 0 }))
     expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: skipPriceMicroUsd(1_800_001) }])
     expect(ok(r).breeders[0]!.egg!.readyAtMs).toBe(0)

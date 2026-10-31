@@ -3,7 +3,8 @@ import { utcDay, type DayCounter } from './time'
 
 export type CropId = 'dragonBush' | 'emberWheat' | 'seaMelon' | 'thunderPumpkin' | 'frostBerries' | 'warlordPepper'
 
-export interface Egg { speciesId: string; readyAtMs: number }
+/** `xpFree`: bred from Commons alone, hatches for no XP (Q1 a). */
+export interface Egg { speciesId: string; readyAtMs: number; xpFree?: boolean }
 /** `habitatId: null` = hatched and waiting in the hatchery. */
 export interface Dragon { id: string; speciesId: string; level: number; /** Feeds toward the next level, 0..3 (§4.1). */ feeds: number; habitatId: string | null }
 
@@ -13,8 +14,8 @@ export interface Placement { island: IslandId; col: number; row: number; facing:
 export type HabitatElement = Element | 'aerie' // 'aerie' = the Golden Aerie (any element, §5.2)
 export interface Habitat { id: string; element: HabitatElement; level: number; lastCollectedMs: number; placement: Placement }
 export type BreederKind = 'mountain' | 'grove'
-/** `hatchMs` is the unreduced time the egg takes once it reaches the Hatchery (§5.4). */
-export interface BreederEgg { speciesId: string; readyAtMs: number; hatchMs: number }
+/** `hatchMs` is the unreduced time the egg takes once it reaches the Hatchery (§5.4). `xpFree`: see Egg. */
+export interface BreederEgg { speciesId: string; readyAtMs: number; hatchMs: number; xpFree: boolean }
 export interface Breeder { kind: BreederKind; egg: BreederEgg | null; level: number; placement: Placement }
 export interface FarmPlot { crop: CropId | null; readyAtMs: number; level: number; placement: Placement }
 export type DecorationId = 'stonePath' | 'picketFence' | 'flowerPatch' | 'emberLantern' | 'driftwoodBench' | 'hayCart' | 'shellFountain' | 'crystalCluster' | 'eggTotem' | 'moonwell' | 'boneArch' | 'skyShrine' | 'dawnObelisk' | 'starPool' | 'dragonColossus'
@@ -27,7 +28,7 @@ export type Construction =
   | { kind: 'clear'; obstacleId: string; readyAtMs: number }
 
 /** Bumped when the saved shape changes; there is no save migration (R2). */
-export const STATE_VERSION = 6
+export const STATE_VERSION = 7
 
 /** Counters the Goals read (§1.4, R37); each rises only when its action succeeds. */
 export interface GoalStats { collects: number; harvests: number; feeds: number; breeds: number; hatches: number }

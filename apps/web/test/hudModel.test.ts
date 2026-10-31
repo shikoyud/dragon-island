@@ -29,7 +29,7 @@ describe('HUD model', () => {
 
   it('lists eggs in breeders and hatchery, ripe crops, and hatchlings with no room', () => {
     const s = { ...base(), hatcheryLevel: 3 } // room for the egg, the hatching egg and the stranded hatchling
-    s.breeders[0]!.egg = { speciesId: 'flame', readyAtMs: 1_000, hatchMs: 1 }
+    s.breeders[0]!.egg = { speciesId: 'flame', readyAtMs: 1_000, hatchMs: 1, xpFree: false }
     s.hatchery = [{ speciesId: 'sea', readyAtMs: 90_000 }] as PlayerState['hatchery']
     s.farms[0] = { ...s.farms[0]!, crop: 'dragonBush', readyAtMs: 500 }
     s.farms[1] = { ...s.farms[1]!, crop: 'dragonBush', readyAtMs: 800 }
@@ -46,7 +46,7 @@ describe('HUD model', () => {
 
   it('names the Hatchery for a finished egg when it is full, with no Collect action', () => {
     const s = base()
-    s.breeders[0]!.egg = { speciesId: 'flame', readyAtMs: 1_000, hatchMs: 1 }
+    s.breeders[0]!.egg = { speciesId: 'flame', readyAtMs: 1_000, hatchMs: 1, xpFree: false }
     const slots = hatcherySlots(s.hatcheryLevel, s.hatcheryFifthSlot)
     s.hatchery = Array.from({ length: slots }, () => ({ speciesId: 'sea', readyAtMs: 9_000_000 })) as PlayerState['hatchery']
     const item = attentionItems(s, 2_000).find(i => i.id === 'breeder:0')!

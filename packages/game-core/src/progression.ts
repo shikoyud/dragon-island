@@ -1,5 +1,6 @@
 import type { Preset } from './data/presets'
-import { BUILD_XP_GOLD_PER_XP, BUILD_XP_MIN, XP_TO_NEXT } from './data/xp'
+import type { Species } from './catalog'
+import { BUILD_XP_GOLD_PER_XP, BUILD_XP_MIN, XP_LEVEL_LIMITS, XP_TO_NEXT } from './data/xp'
 import type { PlayerState } from './state'
 
 export const MAX_PLAYER_LEVEL = 50
@@ -16,11 +17,22 @@ export function cumulativeXp(level: number): number {
   return total
 }
 
-/** The only place levels rise. `day` is for the later level-up hooks (M3 Task 8). XP keeps accumulating at max level. */
-export function settleLevels(s: PlayerState, _preset: Preset, _day: number): PlayerState {
+/** Highest level game day `day` allows (§7.2, Q1 c), or null once Rush is over (R40). */
+export function levelLimit(day: number, preset: Preset): number | null {
+  return XP_LEVEL_LIMITS[preset.id].find(([lastDay]) => day <= lastDay)?.[1] ?? null
+}
+
+/** Q1 (a): a breed pays no XP when both parents and the child are Common. A hybrid, or a Common from a hybrid parent, pays. */
+export function breedXpApplies(a: Species, b: Species, child: Species): boolean {
+  return !(a.rarity === 'common' && b.rarity === 'common' && child.rarity === 'common')
+}
+
+/** The only place levels rise. It stops at the day's limit and keeps the XP (R40). XP keeps accumulating at max level. */
+export function settleLevels(s: PlayerState, preset: Preset, day: number): PlayerState {
+  const top = levelLimit(day, preset) ?? MAX_PLAYER_LEVEL
   let level = s.level
   let xp = s.xp
-  while (level < MAX_PLAYER_LEVEL && xp >= xpToNext(level)) {
+  while (level < top && xp >= xpToNext(level)) {
     xp -= xpToNext(level)
     level++
   }

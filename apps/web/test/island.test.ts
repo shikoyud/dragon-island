@@ -60,7 +60,7 @@ describe('island model', () => {
     const { objects } = model(newPlayer(0), 600_000)
     expect(objects.find(o => o.id === 'habitat:h1')!.badge).toBe('gold')
     expect(model(newPlayer(0), 0).objects.find(o => o.id === 'habitat:h1')!.badge).toBeUndefined()
-    const withEgg = model({ ...newPlayer(0), breeders: [{ ...newPlayer(0).breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 15_000, hatchMs: 1 } }] }, 1_000)
+    const withEgg = model({ ...newPlayer(0), breeders: [{ ...newPlayer(0).breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 15_000, hatchMs: 1, xpFree: false } }] }, 1_000)
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.badge).toBe('14s')
     expect(withEgg.objects.find(o => o.id === 'egg:0')!.scale).toBe(NEST_EGG_SCALE) // sits inside the 32x32 nest
     expect(withEgg.markers.breeders).toEqual([{ index: 0, egg: true }])
@@ -161,7 +161,7 @@ describe('island model', () => {
 
   it('badges a finished breeder egg "ready" with a free Hatchery slot and "hatchery full" without (R18, R20)', () => {
     const p = newPlayer(0)
-    const done = { ...p, breeders: [{ ...p.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 1_000, hatchMs: 1 } }] }
+    const done = { ...p, breeders: [{ ...p.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 1_000, hatchMs: 1, xpFree: false } }] }
     const free = model(done, 2_000).objects.find(o => o.id === 'egg:0')!
     expect(free.badge).toBe('ready')
     expect(free.key).toBe(textureKey('egg.flame')) // the primary element's egg, never the species (R20)

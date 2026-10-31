@@ -51,7 +51,7 @@ describe('ObstaclePanel shows the XP it awards (item 7)', () => {
 })
 
 describe('Move to Hatchery (items 8, 15)', () => {
-  const doneEgg = { speciesId: 'flame', readyAtMs: 0, hatchMs: 1 }
+  const doneEgg = { speciesId: 'flame', readyAtMs: 0, hatchMs: 1, xpFree: false }
   it('does not claim the Hatchery is full while an action is merely pending', async () => {
     const h = harness({ ...base, breeders: [{ ...base.breeders[0]!, egg: doneEgg }] }, 0, undefined, GAME)
     h.action.mockImplementation(() => new Promise(() => {}))
@@ -148,7 +148,7 @@ describe('BreedPanel buildings (item 15)', () => {
   it('counts an unfinished Grove as busy', async () => {
     const grove = { kind: 'grove' as const, egg: null, level: 1, placement: { island: 'home' as const, col: 9, row: 7, facing: 0 as const } }
     const s = breeding({
-      breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: QUIET + 99_000, hatchMs: 1 } }, grove],
+      breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: QUIET + 99_000, hatchMs: 1, xpFree: false } }, grove],
       constructions: [{ kind: 'build', building: { type: 'breeder', index: 1 }, readyAtMs: QUIET + 99_000 }],
     })
     harness(s, QUIET, undefined, GAME).wrap(<BreedPanel nowMs={QUIET} />)
@@ -207,7 +207,7 @@ describe('timers do not round a minute up to two (item 22)', () => {
   })
 
   it('reads Egg 1m in the panel while the client clock lags', () => {
-    const s = { ...base, breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 61_500, hatchMs: 1 } }] }
+    const s = { ...base, breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 61_500, hatchMs: 1, xpFree: false } }] }
     harness(s, 0, undefined, GAME).wrap(<BreedPanel nowMs={0} />)
     expect(within(screen.getByTestId('breeder-0')).getByText('1m')).toBeInTheDocument()
   })

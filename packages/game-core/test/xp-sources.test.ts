@@ -54,7 +54,7 @@ describe('build XP is paid when the Gold is spent (R31)', () => {
   })
   it('a War habitat (250,000 Gold) at PL 18 is capped at xpToNext(18) and levels up once', () => {
     const st: PlayerState = { ...base, level: 18, gold: 250_000 }
-    const a = ok(run(st, { type: 'placeBuilding', building: { kind: 'habitat', element: 'war' }, placement: P(7, 7) }))
+    const a = ok(applyAction(st, { type: 'placeBuilding', building: { kind: 'habitat', element: 'war' }, placement: P(7, 7) }, 0, createRng(1), LAUNCH_CATALOG, FLASH_14, 3))
     expect(a).toMatchObject({ level: 19, xp: 0 })
   })
   it('Farm 2 (3,000 Gold) awards 150', () => {

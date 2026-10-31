@@ -154,7 +154,7 @@ describe('Tiers 2 to 4 are Gold upgrades', () => {
 
 describe('Ascension (Tier 5, R35)', () => {
   it('Review Focus 2: at PL 30, Tier 4, 10M Gold it charges 2,000,000 micro-USD, spends the Gold, starts the build', () => {
-    const r = run(roosted(4, { gold: 10_000_000 }), ascend)
+    const r = applyAction(roosted(4, { gold: 10_000_000 }), ascend, 0, createRng(1), LAUNCH_CATALOG, FLASH_14, 5) // after Rush: no day limit
     if (!r.ok) throw new Error(r.error)
     expect(r.effects).toEqual([{ type: 'charge', microUsd: 2_000_000 }])
     expect(r.state.gold).toBe(0)

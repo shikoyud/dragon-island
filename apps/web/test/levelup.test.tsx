@@ -1,4 +1,4 @@
-import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
+import { applyAction, createRng, FLASH_14, LAUNCH_CATALOG, newPlayer, xpToNext, type PlayerState } from '@wyrmhaven/game-core'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
@@ -102,6 +102,29 @@ describe('level-up screen (R38)', () => {
     h.wrap(<Host />)
     expect(screen.getByRole('progressbar', { name: 'Experience' })).toHaveTextContent('50 / 175 XP')
     expect(xpFraction(at(2, 9_999))).toBe(1)
+  })
+
+  it('at the day limit the XP bar says so, full, instead of its numbers', () => {
+    const h = harness(at(12, xpToNext(12) + 40))
+    h.wrap(<Host />)
+    const bar = screen.getByRole('progressbar', { name: 'Experience' })
+    expect(bar).toHaveTextContent('Daily level limit · more tomorrow')
+    expect(bar).toHaveAttribute('aria-valuenow', String(xpToNext(12)))
+    expect(bar.querySelector('.hud-xp__fill')).toHaveStyle({ width: '100%' })
+  })
+
+  it('Review Focus 5: banked XP paying on the first action of the next day is one level-up screen', async () => {
+    const banked = xpToNext(12) + xpToNext(13) + xpToNext(14) + 7
+    const h = harness(at(12, banked))
+    h.wrap(<Host />)
+    expect(screen.queryByRole('dialog', { name: 'Level up' })).toBeNull()
+    const next = applyAction(at(12, banked), { type: 'collectGold', habitatId: 'h1' }, 0, createRng(1), LAUNCH_CATALOG, FLASH_14, 2)
+    if (!next.ok) throw new Error(next.error)
+    h.setState(next.state)
+    const d = await screen.findByRole('dialog', { name: 'Level up' })
+    expect(within(d).getByRole('heading')).toHaveTextContent('Level 12 → 15')
+    expect(screen.getAllByRole('dialog', { name: 'Level up' })).toHaveLength(1)
+    expect(screen.getByRole('progressbar', { name: 'Experience' })).toHaveTextContent(`7 / ${xpToNext(15).toLocaleString('en-US')} XP`)
   })
 
   it('plays fx.levelUp once when the screen opens (onShown)', () => {

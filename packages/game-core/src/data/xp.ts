@@ -1,5 +1,6 @@
-// GDD §4.3 (Player XP), classic values before the preset XP multiplier.
+// GDD §4.3 (Player XP), classic values before the preset XP multiplier; §7.2 (level by day), M3 Q1 (c), R40.
 import type { Rarity } from '../rarity'
+import type { PresetId } from './presets'
 
 /** §4.3 "Hatch an egg": C 10, U 30, R 80, E 200, L 500. */
 export const HATCH_XP: Record<Rarity, number> = {
@@ -26,3 +27,9 @@ export const XP_TO_NEXT: readonly number[] = [
   24179, 25601, 27058, 28552, 30082, 31646, 33246, 34881, 36550, 38255,
   39993, 41766, 43573, 45414, 47289, 49197, 51139, 53114, 55122,
 ]
+
+/** §7.2 Player Level column, Q1 (c), R40: `[lastDay, maxLevel]` rows through Rush. XP above the day's limit is banked. */
+export const XP_LEVEL_LIMITS: Record<PresetId, readonly (readonly [number, number])[]> = {
+  flash14: [[1, 12], [2, 18], [3, 25], [4, 30]],
+  flash28: [[2, 12], [3, 18], [5, 25], [7, 30]],
+}

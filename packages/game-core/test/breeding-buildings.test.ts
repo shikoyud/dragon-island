@@ -26,7 +26,7 @@ const breed: Action = { type: 'startBreed', parentA: 'd1', parentB: 'd2' }
 const buy = (item: StoreItem): Action => ({ type: 'buy', item })
 const mountain = (over: Partial<Breeder> = {}): Breeder => ({ ...base.breeders[0]!, ...over })
 const grove = (over: Partial<Breeder> = {}): Breeder => ({ kind: 'grove', egg: null, level: 1, placement: P(7, 7), ...over })
-const finished = { speciesId: 'flame', readyAtMs: 0, hatchMs: 777 }
+const finished = { speciesId: 'flame', readyAtMs: 0, hatchMs: 777, xpFree: false }
 const counting = () => {
   const c = { calls: 0, rng: { next: () => { c.calls++; return 0 }, int: () => { c.calls++; return 0 } } as Rng }
   return c
@@ -123,15 +123,15 @@ describe('startBreed on breeders', () => {
     for (const e of pool) { if (e.species.id === 'terra-flame') break; roll += e.weight }
     const st = { ...parents('terra', 'flame'), breeders: [mountain({ level: 3 })] }
     const laid = ok(applyAction(st, breed, 5_000, { next: () => 0, int: () => roll }, LAUNCH_CATALOG, FLASH_14, 1))
-    expect(laid.breeders[0]!.egg).toEqual({ speciesId: 'terra-flame', readyAtMs: 5_000 + 1_920_000, hatchMs: 2_400_000 })
+    expect(laid.breeders[0]!.egg).toEqual({ speciesId: 'terra-flame', readyAtMs: 5_000 + 1_920_000, hatchMs: 2_400_000, xpFree: false })
     const at = 5_000 + 1_920_000
     const moved = ok(applyAction(laid, { type: 'collectEgg', breeder: 0 }, at, createRng(1), LAUNCH_CATALOG, FLASH_14, 1))
-    expect(moved.hatchery).toEqual([{ speciesId: 'terra-flame', readyAtMs: at + 2_400_000 }])
+    expect(moved.hatchery).toEqual([{ speciesId: 'terra-flame', readyAtMs: at + 2_400_000, xpFree: false }])
     expect(moved.breeders[0]!.egg).toBeNull()
   })
 
   describe('Review Focus 3: an unfinished Grove takes no egg', () => {
-    const busy = mountain({ egg: { speciesId: 'flame', readyAtMs: 99_999, hatchMs: 1 } })
+    const busy = mountain({ egg: { speciesId: 'flame', readyAtMs: 99_999, hatchMs: 1, xpFree: false } })
     const building: PlayerState = {
       ...parents('terra', 'flame', 12), gold: 777, breeders: [busy, grove()],
       constructions: [{ kind: 'build', building: { type: 'breeder', index: 1 }, readyAtMs: 1_000 }],
@@ -160,7 +160,7 @@ describe('startBreed on breeders', () => {
 })
 
 describe('Review Focus 1: a full Hatchery leaves the egg in its building', () => {
-  const egg = { speciesId: 'terra-flame', readyAtMs: 100, hatchMs: 2_400_000 }
+  const egg = { speciesId: 'terra-flame', readyAtMs: 100, hatchMs: 2_400_000, xpFree: false }
   const waiting: Dragon = { id: 'd9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }
   const full: PlayerState = {
     ...parents('terra', 'flame'), breeders: [mountain({ egg })], hatchery: [{ speciesId: 'flame', readyAtMs: 50 }],
@@ -179,7 +179,7 @@ describe('Review Focus 1: a full Hatchery leaves the egg in its building', () =>
       expect(freed.breeders[0]!.egg).toEqual(egg)
       const moved = ok(run(freed, { type: 'collectEgg', breeder: 0 }, 400))
       expect(moved.breeders[0]!.egg).toBeNull()
-      expect(moved.hatchery.at(-1)).toEqual({ speciesId: 'terra-flame', readyAtMs: 400 + 2_400_000 })
+      expect(moved.hatchery.at(-1)).toEqual({ speciesId: 'terra-flame', readyAtMs: 400 + 2_400_000, xpFree: false })
       expect(ok(run(moved, breed, 400)).breeders[0]!.egg).not.toBeNull()
     })
   }
@@ -346,8 +346,8 @@ describe('store', () => {
   })
 
   it('skips an egg in a breeder, keeping its hatch time', () => {
-    const st = { ...base, breeders: [mountain({ egg: { speciesId: 'flame', readyAtMs: 1_800_001, hatchMs: 42 } })] }
+    const st = { ...base, breeders: [mountain({ egg: { speciesId: 'flame', readyAtMs: 1_800_001, hatchMs: 42, xpFree: false } })] }
     const r = ok(run(st, buy({ kind: 'skip', target: 'breeder', index: 0 })))
-    expect(r.breeders[0]!.egg).toEqual({ speciesId: 'flame', readyAtMs: 0, hatchMs: 42 })
+    expect(r.breeders[0]!.egg).toEqual({ speciesId: 'flame', readyAtMs: 0, hatchMs: 42, xpFree: false })
   })
 })

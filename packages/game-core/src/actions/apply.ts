@@ -11,6 +11,7 @@ import { claimGoal } from './goal-actions'
 import { finishConstruction, moveBuilding, placeBuilding, removeDecoration, startUpgrade } from './build-actions'
 import { clearObstacle, expandIsland, unlockIsland } from './island-unlock-actions'
 import { collectGold, feed, moveDragon, sellDragon } from './island-actions'
+import { settleLevels } from '../progression'
 import { failure, type Action, type ActionCtx, type ActionResult } from './types'
 import { isValidAction } from './validate'
 
@@ -20,6 +21,12 @@ export function applyAction(
 ): ActionResult {
   if (!isValidAction(a)) return failure('INVALID_ACTION')
   const ctx: ActionCtx = { nowMs, rng, catalog, preset, day }
+  const r = dispatch(s, a, ctx)
+  // Banked XP pays on the next day's first action, even one that awards no XP (R40).
+  return r.ok ? { ...r, state: settleLevels(r.state, preset, day) } : r
+}
+
+function dispatch(s: PlayerState, a: Action, ctx: ActionCtx): ActionResult {
   switch (a.type) {
     case 'collectGold': return collectGold(s, a, ctx)
     case 'claimGoal': return claimGoal(s, a, ctx)

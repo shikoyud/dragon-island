@@ -19,7 +19,7 @@ const withParents = (a: string, b: string): PlayerState =>
 const run = (st: PlayerState, a: Action, t: number, seed = 1) => applyAction(st, a, t, createRng(seed), LAUNCH_CATALOG)
 const breed: Action = { type: 'startBreed', parentA: 'd1', parentB: 'd2' }
 const egg = (speciesId: string, readyAtMs: number): Egg => ({ speciesId, readyAtMs })
-const inBreeder = (speciesId: string, readyAtMs: number, hatchMs = 1): BreederEgg => ({ speciesId, readyAtMs, hatchMs })
+const inBreeder = (speciesId: string, readyAtMs: number, hatchMs = 1): BreederEgg => ({ speciesId, readyAtMs, hatchMs, xpFree: false })
 const breeder = (e: BreederEgg | null = null): Breeder => ({ kind: 'mountain', egg: e, level: 1, placement: { island: 'home', col: 0, row: 0, facing: 0 } })
 
 describe('startBreed', () => {
@@ -35,7 +35,8 @@ describe('startBreed', () => {
     const child = getSpecies(LAUNCH_CATALOG, e.speciesId)
     expect(e.readyAtMs).not.toBe(1_000 + 15_000)
     expect(e.readyAtMs).toBe(1_000 + breedTimerMs(child.rarity, child.elements, FLASH_14))
-    expect(a.xp).toBe(START_BREED_XP * 12) // 60, PL 2 needs 200
+    expect(child.rarity).toBe('common')
+    expect(a.xp).toBe(0) // Commons alone pay nothing (Q1 a)
     err(run(a, breed, 0), 'NO_FREE_BREEDER')
   })
 
@@ -194,7 +195,7 @@ describe('collectEgg', () => {
     err(run(laid, { type: 'collectEgg', breeder: 0 }, ready - 1), 'NOT_READY')
     const a = ok(run(laid, { type: 'collectEgg', breeder: 0 }, ready))
     expect(a.breeders[0]!.egg).toBeNull()
-    expect(a.hatchery).toEqual([egg(sp.id, ready + breedTimerMs(sp.rarity, sp.elements, FLASH_14))])
+    expect(a.hatchery).toEqual([{ ...egg(sp.id, ready + breedTimerMs(sp.rarity, sp.elements, FLASH_14)), xpFree: true }])
     err(run(a, { type: 'collectEgg', breeder: 0 }, ready), 'BREEDER_EMPTY')
     err(run(a, { type: 'collectEgg', breeder: 4 }, ready), 'NOT_FOUND')
   })

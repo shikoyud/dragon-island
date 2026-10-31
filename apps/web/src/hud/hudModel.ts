@@ -12,6 +12,18 @@ export function xpFraction(s: PlayerState): number {
   return Number.isFinite(need) ? Math.min(1, Math.max(0, s.xp / need)) : 1
 }
 
+/** More XP than the level needs: it stopped at the day's limit, and the rest pays on the next day's first action (R40). */
+export function xpBanked(s: PlayerState): boolean {
+  return s.xp >= xpToNext(s.level)
+}
+
+/** The XP bar's words. */
+export function xpBarText(s: PlayerState, format: (n: number) => string): string {
+  const need = xpToNext(s.level)
+  if (!Number.isFinite(need)) return 'MAX'
+  return xpBanked(s) ? 'Daily level limit · more tomorrow' : `${format(s.xp)} / ${format(need)} XP`
+}
+
 const ISLAND_NAMES: Record<string, string> = { isle2: 'Second island', isle3: 'Third island', isle4: 'Fourth island', isle5: 'Fifth island', dawnspire: 'Dawnspire' }
 
 /** One unlock key in plain words; null for what the level-up screen leaves out (`wings`, and `home:n`, which is one shared line). */

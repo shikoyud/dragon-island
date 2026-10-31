@@ -7,7 +7,7 @@ import { TOKEN_KEY as ADMIN_TOKEN_KEY } from '../pages/Admin'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatGold, formatWei } from '../ui/Money'
-import { attentionItems, goalClaimable, xpFraction, type AttentionItem } from './hudModel'
+import { attentionItems, goalClaimable, xpBarText, xpFraction, type AttentionItem } from './hudModel'
 import { Icon, type IconName } from './Icon'
 import { TerminalClock } from './TerminalClock'
 
@@ -115,9 +115,9 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
       <header className="hud-top" ref={top}>
         <div className="hud-avatar">
           <span className="hud-avatar__badge" aria-label={`Level ${s.level}`}>{s.level}</span>
-          <div className="hud-xp" role="progressbar" aria-label="Experience" aria-valuemin={0} aria-valuemax={Number.isFinite(xpToNext(s.level)) ? xpToNext(s.level) : s.xp} aria-valuenow={s.xp}>
+          <div className="hud-xp" role="progressbar" aria-label="Experience" aria-valuemin={0} aria-valuemax={Number.isFinite(xpToNext(s.level)) ? xpToNext(s.level) : s.xp} aria-valuenow={Number.isFinite(xpToNext(s.level)) ? Math.min(s.xp, xpToNext(s.level)) : s.xp}>
             <span className="hud-xp__fill" style={{ width: `${Math.round(xpFraction(s) * 100)}%` }} />
-            <span className="hud-xp__text">{Number.isFinite(xpToNext(s.level)) ? `${formatGold(s.xp)} / ${formatGold(xpToNext(s.level))} XP` : 'MAX'}</span>
+            <span className="hud-xp__text">{xpBarText(s, formatGold)}</span>
           </div>
         </div>
         <div className="hud-pills" role="status" aria-label="Resources">
