@@ -21,7 +21,7 @@ describe('malformed actions are rejected, never applied', () => {
   })
 
   it('rejects non-integer indexes', () => {
-    const laid = { ...s, breeders: [{ ...s.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 1 } }], hatchery: [{ speciesId: 'flame', readyAtMs: 0 }] }
+    const laid = { ...s, breeders: [{ ...s.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 1, xpFree: false } }], hatchery: [{ speciesId: 'flame', readyAtMs: 0 }] }
     err(raw(laid, { type: 'collectEgg', breeder: '0' }), 'INVALID_ACTION')
     err(raw(laid, { type: 'hatch', slot: '0' }), 'INVALID_ACTION')
     err(raw(laid, { type: 'hatch', slot: 0.5 }), 'INVALID_ACTION')

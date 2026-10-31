@@ -2983,6 +2983,62 @@
       "frames": 1,
       "fps": 0,
       "top": 5
+    },
+    "building.roost.1": {
+      "file": "roost-1.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "building.roost.2": {
+      "file": "roost-2.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "building.roost.3": {
+      "file": "roost-3.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "building.roost.4": {
+      "file": "roost-4.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "building.roost.5": {
+      "file": "roost-5.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "fx.levelUp": {
+      "file": "fx-level-up.png",
+      "w": 64,
+      "h": 64,
+      "frames": 8,
+      "fps": 12,
+      "top": 0
+    },
+    "ui.goal": {
+      "file": "ui-goal.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
     }
   }
 }

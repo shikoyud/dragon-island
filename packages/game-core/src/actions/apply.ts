@@ -7,9 +7,11 @@ import { pveBattle, pvpBattle, setDefenceTeam } from './battle-actions'
 import { buyBasic, collectEgg, hatch, startBreed } from './breed-actions'
 import { buy } from './economy-actions'
 import { harvest, plant } from './farm-actions'
+import { claimGoal } from './goal-actions'
 import { finishConstruction, moveBuilding, placeBuilding, removeDecoration, startUpgrade } from './build-actions'
 import { clearObstacle, expandIsland, unlockIsland } from './island-unlock-actions'
 import { collectGold, feed, moveDragon, sellDragon } from './island-actions'
+import { settleLevels } from '../progression'
 import { failure, type Action, type ActionCtx, type ActionResult } from './types'
 import { isValidAction } from './validate'
 
@@ -19,8 +21,16 @@ export function applyAction(
 ): ActionResult {
   if (!isValidAction(a)) return failure('INVALID_ACTION')
   const ctx: ActionCtx = { nowMs, rng, catalog, preset, day }
+  // Banked XP pays before the action is judged, so a first action on a new day sees the new level (R41);
+  // and again after it, for what the action itself awarded.
+  const r = dispatch(settleLevels(s, preset, day), a, ctx)
+  return r.ok ? { ...r, state: settleLevels(r.state, preset, day) } : r
+}
+
+function dispatch(s: PlayerState, a: Action, ctx: ActionCtx): ActionResult {
   switch (a.type) {
     case 'collectGold': return collectGold(s, a, ctx)
+    case 'claimGoal': return claimGoal(s, a, ctx)
     case 'placeBuilding': return placeBuilding(s, a, ctx)
     case 'moveBuilding': return moveBuilding(s, a, ctx)
     case 'removeDecoration': return removeDecoration(s, a, ctx)

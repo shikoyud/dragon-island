@@ -6,7 +6,6 @@ export interface CropSpec {
   tier: 1 | 2 | 3 | 4 | 5 | 6
   name: string
   /** Player level that unlocks planting it. */
-  unlockPl: number
   growClassicMs: number
   /** Gold to plant. */
   gold: number
@@ -16,12 +15,12 @@ export interface CropSpec {
 
 /** §5.3 crop table, T1 to T6. */
 export const CROPS: Record<CropId, CropSpec> = {
-  dragonBush: { tier: 1, name: 'Dragon Bush', unlockPl: 1, growClassicMs: 30_000, gold: 50, food: 5 },
-  emberWheat: { tier: 2, name: 'Ember Wheat', unlockPl: 3, growClassicMs: 300_000, gold: 250, food: 30 },
-  seaMelon: { tier: 3, name: 'Sea Melon', unlockPl: 5, growClassicMs: 1_800_000, gold: 1_000, food: 120 },
-  thunderPumpkin: { tier: 4, name: 'Thunder Pumpkin', unlockPl: 8, growClassicMs: 7_200_000, gold: 3_000, food: 360 },
-  frostBerries: { tier: 5, name: 'Frost Berries', unlockPl: 12, growClassicMs: 28_800_000, gold: 8_000, food: 1_000 },
-  warlordPepper: { tier: 6, name: 'Warlord Pepper', unlockPl: 15, growClassicMs: 86_400_000, gold: 20_000, food: 2_600 },
+  dragonBush: { tier: 1, name: 'Dragon Bush', growClassicMs: 30_000, gold: 50, food: 5 },
+  emberWheat: { tier: 2, name: 'Ember Wheat', growClassicMs: 300_000, gold: 250, food: 30 },
+  seaMelon: { tier: 3, name: 'Sea Melon', growClassicMs: 1_800_000, gold: 1_000, food: 120 },
+  thunderPumpkin: { tier: 4, name: 'Thunder Pumpkin', growClassicMs: 7_200_000, gold: 3_000, food: 360 },
+  frostBerries: { tier: 5, name: 'Frost Berries', growClassicMs: 28_800_000, gold: 8_000, food: 1_000 },
+  warlordPepper: { tier: 6, name: 'Warlord Pepper', growClassicMs: 86_400_000, gold: 20_000, food: 2_600 },
 }
 
 export interface FarmLevelSpec {
@@ -44,8 +43,7 @@ export const FARM_LEVELS: readonly FarmLevelSpec[] = [
   { yieldPct: 200, upgradeGold: null, upgradeUsdMicro: 2_000_000, classicMs: 0 },
 ]
 
-/** Player level that unlocks farm n + 1 (§5.3: PL 1, 3, 4, 7, then one every 5 PL, up to 8). */
-export const FARM_UNLOCK_PL: readonly number[] = [1, 3, 4, 7, 10, 15, 20, 25]
+/** Farms per player (§5.3); their unlock levels are `farm:n` in data/unlocks.ts. */
 export const MAX_FARMS = 8
 
 /** Every crop, T1 to T6. */

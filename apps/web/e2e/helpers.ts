@@ -59,6 +59,8 @@ export async function signIn(page: Page, opts: { fresh?: boolean } = {}) {
  * Farm. Any dialog already open is closed first (its scrim covers the HUD).
  */
 export async function openPanel(page: Page, label: string) {
+  // A level-up screen (R38) sits over everything until the player continues. It opens after /me lands, so wait for the HUD first.
+  await dismissLevelUp(page)
   if (await page.getByTestId('dialog-scrim').isVisible().catch(() => false)) await page.keyboard.press('Escape')
   const main = (name: string) => page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).click()
   const side = (name: string) => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name, exact: true }).click()
@@ -82,6 +84,18 @@ export async function openPanel(page: Page, label: string) {
     default:
       return main(label)
   }
+}
+
+/**
+ * A spec that grants a higher level and reloads is a returning player whose stored level is behind (R38): the level-up
+ * screen opens over the island. Closes it so clicks reach the canvas and the panels.
+ */
+export async function dismissLevelUp(page: Page) {
+  await expect(page.getByRole('progressbar', { name: 'Experience' })).toBeVisible()
+  const continueButton = page.getByRole('dialog', { name: 'Level up' }).getByRole('button', { name: 'Continue' })
+  // The screen opens a render after /me settles, so poll briefly rather than check once.
+  const shown = await continueButton.waitFor({ state: 'visible', timeout: 1_000 }).then(() => true, () => false)
+  if (shown) await continueButton.click()
 }
 
 export const flameTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))

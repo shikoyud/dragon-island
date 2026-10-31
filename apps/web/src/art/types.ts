@@ -29,6 +29,8 @@ export interface GameArtSet {
     breeder: { mountain: Record<number, Sprite>; grove: Record<number, Sprite> }
     /** Per-level Hatchery sheets (`building.hatchery.<1..4>`), only for levels the manifest has; the rest fall back (lower level, then `hatchery`). */
     hatcheryLevel: Record<number, Sprite>
+    /** Per-tier Dragon Roost sheets (`building.roost.<1..5>`), only for tiers the manifest has; the rest fall back (lower tier, then `nest`). */
+    roostTier: Record<number, Sprite>
     farmPlot: Sprite
     cropStage: Record<CropId, Sprite>
     /** Ripe-stage sway loop per crop, when the manifest has one (else the last growth frame stays still). */
@@ -47,7 +49,7 @@ export interface GameArtSet {
   /** Island map icons. */
   map: Record<IslandId, Sprite>
   /** Effects: a loop over buildings under construction, a one-shot burst where an egg hatches. */
-  fx: { construction: Sprite; hatch: Sprite; /** Gold coin burst, one-shot, on a tapped gold badge. */ coins: Sprite }
+  fx: { construction: Sprite; hatch: Sprite; /** Gold coin burst, one-shot, on a tapped gold badge. */ coins: Sprite; /** Level-up burst, one-shot; optional, the screen alone marks a level without it. */ levelUp?: Sprite }
   /** Isometric ground tiles; null (or empty) until the art exists, and the island scene draws placeholders. */
   ground: { grass: Sprite[]; fog: Sprite | null; water: Sprite | null; cliffSw: Sprite | null; cliffSe: Sprite | null }
   /** HUD art present in the manifest (icon.<name>.16/.32, ui.*), by manifest key; absent keys use drawn placeholders. */

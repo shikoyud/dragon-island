@@ -18,9 +18,9 @@ const run = (st: PlayerState, a: Action, t: number, preset: Preset = FLASH_14) =
 
 describe('addXp applies the preset multiplier (R27)', () => {
   it('multiplies by xpMult', () => {
-    expect(addXp(base, 1, FLASH_14).xp).toBe(12)
-    expect(addXp(base, 1, FLASH_28).xp).toBe(8)
-    expect(addXp(base, 5, FLASH_14)).toMatchObject({ level: 2, xp: 10 })
+    expect(addXp(base, 1, FLASH_14, 1).xp).toBe(12)
+    expect(addXp(base, 1, FLASH_28, 1).xp).toBe(8)
+    expect(addXp(base, 5, FLASH_14, 1)).toMatchObject({ level: 2, xp: 10 })
   })
 })
 
@@ -43,11 +43,11 @@ describe('xpMult on every award', () => {
   })
 
   it('starting a breed awards 5 x xpMult and hatching a Rare 80 x xpMult', () => {
-    const st: PlayerState = { ...maxed, firstHybridDone: true, dragons: base.dragons.map(d => ({ ...d, level: 4 })) }
+    const st: PlayerState = { ...maxed, firstHybridDone: true, dragons: base.dragons.map((d, i) => ({ ...d, level: 4, speciesId: i === 1 ? 'terra-flame' : d.speciesId })) }
     expect(ok(run(st, { type: 'startBreed', parentA: 'd1', parentB: 'd2' }, 0)).xp).toBe(START_BREED_XP * 12)
     const r = ok(run({ ...maxed, hatchery: [{ speciesId: 'terra-flame', readyAtMs: 0 }] }, { type: 'hatch', slot: 0 }, 0))
     expect(HATCH_XP.rare).toBe(80)
-    expect(r.xp).toBe(960)
+    expect(r.xp).toBe(1_920) // first terra-flame in the Book: R30 doubles 960
   })
 
   it('collecting Gold awards no XP', () => {

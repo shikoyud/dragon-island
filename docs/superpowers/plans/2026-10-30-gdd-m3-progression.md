@@ -47,7 +47,7 @@ Each Dragon Bush also yields 60 Food, worth up to 72 more XP when fed. Removing 
 - Original art and names only (CLAUDE.md). Goal text is ours; shiko may edit it.
 - Conventional commits, one commit per task, TDD: failing test first, and run it.
 - Mobile-first portrait layout; every tap target at least 44 px.
-- No save migration: `STATE_VERSION` becomes 4 and old saves reset (R2).
+- No save migration: `STATE_VERSION` bumps on each shape change on this branch (7 at the end; the plan first said 4), so a stale local save resets rather than misbehaves (R2).
 - Do not touch `contracts/`. Do not start PixelLab generation; Task 9 only writes the list. Run e2e through a temporary `channel: 'chrome'` config unless Playwright's browser has been installed; don't commit that config.
 
 ## Review Focus
@@ -88,7 +88,7 @@ docs/superpowers/reports/2026-10-30-m3-report.md
 ### Task 1: The §4.3 XP curve (§4.3, §7.2, R28, R29)
 
 **Files:**
-- Modify: `packages/game-core/src/data/xp.ts`, `src/progression.ts`, `src/state.ts` (`STATE_VERSION = 4`), `src/actions/apply.ts`, `test/progression.test.ts`, `test/xp-mult.test.ts`, `apps/web/src/hud/hudModel.ts`, tests that pin levels
+- Modify: `packages/game-core/src/data/xp.ts`, `src/progression.ts`, `src/state.ts` (`STATE_VERSION` bumped; it rises on each shape change on this branch), `src/actions/apply.ts`, `test/progression.test.ts`, `test/xp-mult.test.ts`, `apps/web/src/hud/hudModel.ts`, tests that pin levels
 
 **Interfaces:**
 - Produces:
@@ -102,11 +102,11 @@ export function settleLevels(s: PlayerState, preset: Preset, day: number): Playe
 ```
 - The curve is not multiplied by the preset: §4.3 multiplies awards (R29). `addXp` gains `day` so Task 8 has it; until Task 8 `day` is unused beyond being passed.
 
-- [ ] **Step 1: Write the failing tests**: `xpToNext(1) === 50`, `xpToNext(2) === 175`, `xpToNext(10) === 3155`. `cumulativeXp(5) === 1194`, `(10) === 9741`, `(15) === 31864`, `(20) === 73067`, `(30) === 232934`, each within 0.1 % of §4.3's table (9,742, 31,862, 73,062, 232,892). Every entry of `XP_TO_NEXT` equals `Math.ceil(50 * pl ** 1.8)`. Several level-ups from one large award keep the remainder.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- progression` — expected: FAIL.
-- [ ] **Step 3: Implement**; generate the literal table once with a throwaway script. Re-pin tests that assumed `50 × L²`; the R27 PL 2 test still holds at 50 XP.
-- [ ] **Step 4: Run** every package's tests and `pnpm -r typecheck` — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): §4.3 XP curve as a literal table`
+- [x] **Step 1: Write the failing tests**: `xpToNext(1) === 50`, `xpToNext(2) === 175`, `xpToNext(10) === 3155`. `cumulativeXp(5) === 1194`, `(10) === 9741`, `(15) === 31864`, `(20) === 73067`, `(30) === 232934`, each within 0.1 % of §4.3's table (9,742, 31,862, 73,062, 232,892). Every entry of `XP_TO_NEXT` equals `Math.ceil(50 * pl ** 1.8)`. Several level-ups from one large award keep the remainder.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- progression` — expected: FAIL.
+- [x] **Step 3: Implement**; generate the literal table once with a throwaway script. Re-pin tests that assumed `50 × L²`; the R27 PL 2 test still holds at 50 XP.
+- [x] **Step 4: Run** every package's tests and `pnpm -r typecheck` — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): §4.3 XP curve as a literal table`
 
 ### Task 2: The §4.3 source table (§4.3, Q2)
 
@@ -117,11 +117,11 @@ export function settleLevels(s: PlayerState, preset: Preset, day: number): Playe
 - Produces: `BUILD_XP_GOLD_PER_XP = 20`, `BUILD_XP_MIN = 5` in `data/xp.ts`; `buildXp(goldSpent: number, s: PlayerState): number` = `max(BUILD_XP_MIN, floor(goldSpent / 20))`, capped at `xpToNext(s.level)` and awarded with no `xpMult` (Q2 a). `addRawXp(s, xp, preset, day)` awards without the multiplier.
 - Sources after this task: harvest tier × 2; feed 1 per 10 Food, min 1; start a breed 5; hatch by rarity, doubled when the species isn't yet in `discovered`; build, upgrade or expand per R31; Goal rewards (Task 5); collect 0. PvE and obstacle XP stay as they are until M5 and M4.
 
-- [ ] **Step 1: Write the failing tests** under Flash-14: hatching a first Rare awards 80 × 2 × 12 = 1,920; a second one 960. A Common already discovered: 120. `buyBasic` awards 0 XP. Building a Sea habitat (5,000 Gold) at PL 3 awards 250 XP (not 3,000). War habitat (250,000 Gold) at PL 18: 12,500 capped at `xpToNext(18)` = 9,088. Farm 2 (3,000 Gold) awards 150. An expansion for 1,000 Gold awards 50. A decoration awards 0 (R31). A premium item (`farmL5`, `goldenAerie`) awards 0. Collect Gold awards 0.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement**; award at the moment Gold is spent (R31).
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): §4.3 XP sources: first-time hatch, build XP`
+- [x] **Step 1: Write the failing tests** under Flash-14: hatching a first Rare awards 80 × 2 × 12 = 1,920; a second one 960. A Common already discovered: 120. `buyBasic` awards 0 XP. Building a Sea habitat (5,000 Gold) at PL 3 awards 250 XP (not 3,000). War habitat (250,000 Gold) at PL 18: 12,500 capped at `xpToNext(18)` = 9,088. Farm 2 (3,000 Gold) awards 150. An expansion for 1,000 Gold awards 50. A decoration awards 0 (R31). A premium item (`farmL5`, `goldenAerie`) awards 0. Collect Gold awards 0.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement**; award at the moment Gold is spent (R31).
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): §4.3 XP sources: first-time hatch, build XP`
 
 ### Task 3: One unlock table behind every gate (§4.4, §5.3, §5.4, §5.5, R32)
 
@@ -143,11 +143,11 @@ export function unlocksAt(level: number): readonly UnlockKey[]   // for the leve
 ```
 - Removes `HABITATS[e].unlockPl`, `CROPS[c].unlockPl`, `FARM_UNLOCK_PL`, every `minPl`, `HOME_EXPANSION[].minLevel`, `OUTER_ISLANDS[].minLevel`, `PVE_MIN_PLAYER_LEVEL`. Values per §4.4, §5.4 and §5.5: PvE 4 (today 5); `island:isle2` 12; `island:isle3` 18 (today 20); `island:isle4` 25 (today 30); `island:isle5` 32 (today 40); `island:dawnspire` 40 (today 45); `home:n` keep today's values until M4 (R32). `roost:n` 5, 10, 15, 22, 30. PvP and decorations keep their own gates until M6 and M7.
 
-- [ ] **Step 1: Write the failing tests**: the literal §4.4 table row by row against `unlocksAt(pl)` for PL 1–30, plus farms (§5.3) and Hatchery, Mountain and Grove levels (§5.4). A source-text test: no file in `packages/game-core/src` outside `data/unlocks.ts` and `decorations.ts` contains `minPl`, `unlockPl:` or `minLevel:`. Review Focus 4: for each key, the action is refused with `LEVEL_TOO_LOW` at `pl − 1`, and allowed at `pl` given the Gold and room; the Shop's reason reads `Level n` at `pl − 1` and is gone at `pl`, for one key of each kind.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** Web reasons read `unlockPl`; `bookHints.ts` too.
-- [ ] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
-- [ ] **Step 5: Commit** — `refactor(game-core): §4.4 unlock table is the only level gate`
+- [x] **Step 1: Write the failing tests**: the literal §4.4 table row by row against `unlocksAt(pl)` for PL 1–30, plus farms (§5.3) and Hatchery, Mountain and Grove levels (§5.4). A source-text test: no file in `packages/game-core/src` outside `data/unlocks.ts` and `decorations.ts` contains `minPl`, `unlockPl:` or `minLevel:`. Review Focus 4: for each key, the action is refused with `LEVEL_TOO_LOW` at `pl − 1`, and allowed at `pl` given the Gold and room; the Shop's reason reads `Level n` at `pl − 1` and is gone at `pl`, for one key of each kind.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** Web reasons read `unlockPl`; `bookHints.ts` too.
+- [x] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
+- [x] **Step 5: Commit** — `refactor(game-core): §4.4 unlock table is the only level gate`
 
 ### Task 4: Dragon Roost and Ascension (§4.1, §4.2, §7.4, R33, R34, R35)
 
@@ -166,11 +166,11 @@ export const ROOST_FOOTPRINT = 2    // until M4 (R33)
 ```
 - `roostTier` rises when the construction completes. `ROOST_LEVEL_CAPS` becomes derived from `ROOST_TIERS`. Timers divide by `timerDiv`.
 
-- [ ] **Step 1: Write the failing tests**: every §4.2 row literally, and `levelCap` at each tier. Placing the Roost: PL 4 → `LEVEL_TOO_LOW`; PL 5 with 5,000 Gold builds for 300,000 ms under Flash-14; a second Roost → `MAX_LEVEL`. Review Focus 1: during the Tier 1 build a Lv 7 feed fails `LEVEL_CAP`, after completion it succeeds. Tier 5 under Flash-14: 28,800,000 ms. Review Focus 2: `buy ascension` at PL 30, Tier 4, 10M Gold charges 2,000,000 micro-USD, spends 10M Gold, starts the build; below Tier 4, below PL 30, or with too little Gold fails with no charge; through `/actions` with too little $DRIS the state is unchanged. A second Ascension while building fails. Panel: `Upgrade Roost` on a capped dragon is enabled and opens the Roost (or the Shop before it's built); `RoostPanel` shows `Tier 2 · cap 15`, next tier's cost, and for Tier 5 `10,000,000 gold + $2.00`.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** Art falls back to `building.nest`-style drawn placeholder until Task 9.
-- [ ] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat: Dragon Roost tiers and Ascension (§4.2)`
+- [x] **Step 1: Write the failing tests**: every §4.2 row literally, and `levelCap` at each tier. Placing the Roost: PL 4 → `LEVEL_TOO_LOW`; PL 5 with 5,000 Gold builds for 300,000 ms under Flash-14; a second Roost → `MAX_LEVEL`. Review Focus 1: during the Tier 1 build a Lv 7 feed fails `LEVEL_CAP`, after completion it succeeds. Tier 5 under Flash-14: 28,800,000 ms. Review Focus 2: `buy ascension` at PL 30, Tier 4, 10M Gold charges 2,000,000 micro-USD, spends 10M Gold, starts the build; below Tier 4, below PL 30, or with too little Gold fails with no charge; through `/actions` with too little $DRIS the state is unchanged. A second Ascension while building fails. Panel: `Upgrade Roost` on a capped dragon is enabled and opens the Roost (or the Shop before it's built); `RoostPanel` shows `Tier 2 · cap 15`, next tier's cost, and for Tier 5 `10,000,000 gold + $2.00`.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** Art falls back to `building.nest`-style drawn placeholder until Task 9.
+- [x] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
+- [x] **Step 5: Commit** — `feat: Dragon Roost tiers and Ascension (§4.2)`
 
 ### Task 5: Goals (§1.4, §4.3, §5.7, R36, R37)
 
@@ -208,11 +208,11 @@ export function goalProgress(s: PlayerState, g: GoalRow, c: Catalog): { have: nu
 | 13 | Find 10 species in the Dragon Book | 10 discovered | 300 | 20,000 |
 | 14 | Upgrade the Roost to Tier 2 | Tier 2 | 500 | 40,000 |
 
-- [ ] **Step 1: Write the failing tests**: the rows literally. `claimGoal` on an unmet Goal fails `GOAL_NOT_DONE`. Goal 1 after a collect pays 25 × 12 XP and 200 Gold and advances. Review Focus 3: with Goal 2 already satisfied when Goal 1 is claimed, Goal 2 is claimable at once; a stored replay pays once; after Goal 14, `NO_GOAL`. `goalProgress` reads `1 / 2` part way. Every row's `done` has a state that satisfies it. A fresh Flash-14 player can finish Goals 1–6 through real actions with no grants.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** Remove `tutorial`, `breedDone`, `hatchDone`.
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): sequential Goals replace the tutorial flags (§1.4)`
+- [x] **Step 1: Write the failing tests**: the rows literally. `claimGoal` on an unmet Goal fails `GOAL_NOT_DONE`. Goal 1 after a collect pays 25 × 12 XP and 200 Gold and advances. Review Focus 3: with Goal 2 already satisfied when Goal 1 is claimed, Goal 2 is claimable at once; a stored replay pays once; after Goal 14, `NO_GOAL`. `goalProgress` reads `1 / 2` part way. Every row's `done` has a state that satisfies it. A fresh Flash-14 player can finish Goals 1–6 through real actions with no grants.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** Remove `tutorial`, `breedDone`, `hatchDone`.
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): sequential Goals replace the tutorial flags (§1.4)`
 
 ### Task 6: Quests screen (§1.4)
 
@@ -223,11 +223,11 @@ export function goalProgress(s: PlayerState, g: GoalRow, c: Catalog): { have: nu
 **Interfaces:**
 - Produces: the Quests button is enabled and shows a dot when the current Goal is claimable. `QuestsPanel`: `Goal 4 of 14`, the text, a progress line, rewards as `+50 XP · +500 gold` with XP shown after the multiplier, and `Claim` when done. After Goal 14: `All goals done`. The attention list gains `Goal ready`.
 
-- [ ] **Step 1: Write the failing tests**: bar order unchanged and Quests no longer disabled; a claimable Goal shows the dot and `Claim`; an unmet one shows `0 / 1` with no `Claim`; reward text shows 300 XP for Goal 1 under Flash-14 and 200 under Flash-28; Claim sends `claimGoal`.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(web): Quests screen for Goals`
+- [x] **Step 1: Write the failing tests**: bar order unchanged and Quests no longer disabled; a claimable Goal shows the dot and `Claim`; an unmet one shows `0 / 1` with no `Claim`; reward text shows 300 XP for Goal 1 under Flash-14 and 200 under Flash-28; Claim sends `claimGoal`.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(web): Quests screen for Goals`
 
 ### Task 7: Level-up screen and the XP bar (§4.3, §4.4, R38)
 
@@ -239,11 +239,11 @@ export function goalProgress(s: PlayerState, g: GoalRow, c: Catalog): { have: nu
 - Consumes: `unlocksAt`, `xpToNext`.
 - Produces: `LevelUp({ from, to, onClose })`: `Level 7`, or `Level 7 → 9` for a jump, then a list of what opened, one line per `unlocksAt` key in plain words (`Electric Habitat`, `Farm 4`, `Crop: Thunder Pumpkin`, `Roost Tier 2`). Shown when `/me` or an action reply raises `state.level`, not on the first load, and not during placement or a battle. `xpFraction` clamps at 1, and the XP bar text stays `x / y XP`.
 
-- [ ] **Step 1: Write the failing tests**: an action raising PL 5 to 6 shows `Level 6` and `Electric Habitat`, `Electric Basic`; PL 7 to 9 shows both levels' unlocks once; the first load at PL 9 shows nothing; closing it leaves the HUD intact; during placement it waits until placement ends. The XP bar reads `50 / 175 XP` at PL 2 with 50 XP.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** Plays `fx.levelUp` when the manifest has it.
-- [ ] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(web): level-up screen listing what opened`
+- [x] **Step 1: Write the failing tests**: an action raising PL 5 to 6 shows `Level 6` and `Electric Habitat`, `Electric Basic`; PL 7 to 9 shows both levels' unlocks once; the first load at PL 9 shows nothing; closing it leaves the HUD intact; during placement it waits until placement ends. The XP bar reads `50 / 175 XP` at PL 2 with 50 XP.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** Plays `fx.levelUp` when the manifest has it.
+- [x] **Step 4: Run tests + typecheck + e2e** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(web): level-up screen listing what opened`
 
 ### Task 8: XP farming fix and the simulation (§4.3, §7.2, Q1)
 
@@ -255,15 +255,19 @@ export function goalProgress(s: PlayerState, g: GoalRow, c: Catalog): { have: nu
 - (a) `breedXpApplies(a: Species, b: Species, child: Species): boolean`, false when both parents and the child are Common. Start-breed and hatch XP both follow it. The egg records it (`BreederEgg.xpFree: boolean`) so hatch needs no parents.
 - (b) `XP_LEVEL_LIMITS: Record<PresetId, readonly (readonly [number, number])[]>`, `[lastDay, maxLevel]` rows from §7.2: flash14 `[1,12],[2,18],[3,25],[4,30]`; flash28 `[2,12],[3,18],[5,25],[7,30]`. `levelLimit(day, preset): number | null`. `settleLevels` stops at the limit and keeps the XP; `applyAction` calls it after every successful action, so banked XP pays on the next day's first action. HUD: when banked, the XP bar's text reads `Daily level limit · more tomorrow`.
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   - (a) Terra × Terra after the first hybrid: 0 XP on start and hatch. Terra × Flame rolling a hybrid: 60 on start, hatch XP as usual. Terra × Flame rolling Common: 0. Terra × Sea-Nature giving a Common: normal XP.
   - (b) At Flash-14 Day 1 a player with XP for PL 15 stays PL 12 with the XP kept; the first action of Day 2 raises them to PL 15. Day 5 has no limit. Flash-28 limits by row. Review Focus 5: banked XP across three levels, all paid, none lost.
   - Simulation: `xpBots.ts` drives real `applyAction` calls on a fake clock with `gameDay`, starting from `newPlayer`, granting only Gold and Food. Bots: `breedLoop` (repeats the best breed it can, one building, then two), `harvestLoop` (Dragon Bush on every farm), `harvestAndFeed`. Under (b) or (c), at Flash-14: **each bot reaches PL 20 no earlier than Day 3** and PL 30 no earlier than Day 4 (§4.3). Flash-28: PL 20 no earlier than Day 4. Under (a) alone: pin the measured hours instead, and say in the report that the Day 2–3 target is not met.
   - A casual bot (30 minutes of play, 6 sessions a day) reaches PL 12 by Day 2 and PL 30 by Day 8 at the latest under Flash-14, so the fix doesn't slow normal play past §7.2 by much. Report its real numbers.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement.** Keep the simulation under 30 s; use a coarser step where the result doesn't depend on it.
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): XP farming fix per Q1, pinned by bots playing the real rules`
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement.** Keep the simulation under 30 s; use a coarser step where the result doesn't depend on it.
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): XP farming fix per Q1, pinned by bots playing the real rules`
+
+### Task 8b: Level limits through Endgame (§7.2, R41)
+
+Built from `.superpowers/sdd/2026-10-30-gdd-m3-progression/task-8b-brief.md`; commit `feat(game-core): level limits through Endgame from §7.2 (R41)`.
 
 ### Task 9: Art list for the PixelLab thread
 
@@ -274,21 +278,21 @@ export function goalProgress(s: PlayerState, g: GoalRow, c: Catalog): { have: nu
 **Interfaces:**
 - Produces: keys read when present: `building.roost.<1..5>` at 64×64 (final 4×4 footprint), drawn at a named scale on 2 cells until M4; `fx.levelUp` 64×64, 8 frames, one-shot; `icon.quests.16/32` if the current glyph is replaced; `ui.goal` check mark. Fallbacks: lower tier, then a drawn placeholder. Tier 5 looks visibly ascended.
 
-- [ ] **Step 1: Write the failing test**: Roost at Tier 3 uses `building.roost.3` when present, then `.2`, `.1`, then the placeholder; no request for an absent key.
-- [ ] **Step 2: Run** — expected: FAIL.
-- [ ] **Step 3: Implement; write the list** in the table format of `docs/art/gdd-m2-art-list.md`, with the generation count.
-- [ ] **Step 4: Run tests + typecheck** — expected: PASS.
-- [ ] **Step 5: Commit** — `docs(art): M3 art list; Roost tiers read their sheets`
+- [x] **Step 1: Write the failing test**: Roost at Tier 3 uses `building.roost.3` when present, then `.2`, `.1`, then the placeholder; no request for an absent key.
+- [x] **Step 2: Run** — expected: FAIL.
+- [x] **Step 3: Implement; write the list** in the table format of `docs/art/gdd-m2-art-list.md`, with the generation count.
+- [x] **Step 4: Run tests + typecheck** — expected: PASS.
+- [x] **Step 5: Commit** — `docs(art): M3 art list; Roost tiers read their sheets`
 
 Then send the list's path to the coordinator for the art thread.
 
 ### Task 10: M3 verification and report
 
-- [ ] **Step 1: `pnpm -r typecheck`, each package's tests, and e2e** — expected: green; record counts.
-- [ ] **Step 2: `pnpm playtest`** and a throwaway Playwright spec with console and network listeners: fresh sign-in with no grants through Goals 1–6, watching the level-up screen and the XP bar; Terra × Terra after the first hybrid per Q1; build the Roost at PL 5 from a capped dragon's `Upgrade Roost`, feed past Lv 7 after it finishes; Goals to 14 with grants; Ascension with and without $DRIS; shift `/e2e/clock` across a day limit and see banked XP pay out; check one gate of each kind at its PL boundary. Delete the spec.
-- [ ] **Step 3: Take** `docs/art/m3-quests.png`, `m3-roost.png`, `m3-levelup.png`, `m3-island.png` at 390×844 and `m3-desktop.png` at 1440×900; read each to check it shows what its name says.
-- [ ] **Step 4: Write `docs/superpowers/reports/2026-10-30-m3-report.md`**: what works, what doesn't, what couldn't be verified, test counts, the simulation's numbers, rulings made, deferred items for M4.
-- [ ] **Step 5: Commit** — `docs: M3 report and playtest screenshots`
+- [x] **Step 1: `pnpm -r typecheck`, each package's tests, and e2e** — expected: green; record counts.
+- [x] **Step 2: `pnpm playtest`** and a throwaway Playwright spec with console and network listeners: fresh sign-in with no grants through Goals 1–6, watching the level-up screen and the XP bar; Terra × Terra after the first hybrid per Q1; build the Roost at PL 5 from a capped dragon's `Upgrade Roost`, feed past Lv 7 after it finishes; Goals to 14 with grants; Ascension with and without $DRIS; shift `/e2e/clock` across a day limit and see banked XP pay out; check one gate of each kind at its PL boundary. Delete the spec.
+- [x] **Step 3: Take** `docs/art/m3-quests.png`, `m3-roost.png`, `m3-levelup.png`, `m3-island.png` at 390×844 and `m3-desktop.png` at 1440×900; read each to check it shows what its name says.
+- [x] **Step 4: Write `docs/superpowers/reports/2026-10-30-m3-report.md`**: what works, what doesn't, what couldn't be verified, test counts, the simulation's numbers, rulings made, deferred items for M4.
+- [x] **Step 5: Commit** — `docs: M3 report and playtest screenshots`
 
 ---
 
@@ -310,7 +314,8 @@ Also recorded in `docs/superpowers/specs/2026-10-30-gdd-rulings.md`.
 | R37 | **Goals need a Claim tap**, are checked from state and simple counters, and count progress from the start of the game, so one already met can be claimed at once. | Keeps them pure and forgiving. |
 | R38 | **The level-up screen pays nothing**: it reports new levels and what opened, and combines a jump into one screen. | §4.3 and §4.4 list no level rewards. |
 | R39 | **The maximum Player Level stays 50**, with the curve through PL 49. | §7.2 says "40+"; §5.5's last gate is PL 40. |
-| R40 | **If Q1 (b) or (c):** XP above the day's limit is banked and pays on the first action of the next day. Limits end with Rush. | Nobody loses play; §7.2's Endgame row says only "30+". |
+| R40 | **If Q1 (b) or (c):** XP above the day's limit is banked and pays on the first action of the next day. Limits run per R41. | Nobody loses play; §7.2's Endgame row says only "30+". |
+| R41 | **Level limits run through Endgame** from §7.2's table, replacing R40's "limits end with Rush"; banking stays; no limit from Finals on. | Without it a casual player (6 × 30 min a day) reaches PL 30 at 20 h and PL 40 at 48 h, and banked XP jumped PL 30 to PL 45 on Day 5, against §7.2's PL 32–40 across Days 6–12. |
 
 ## Self-review notes
 

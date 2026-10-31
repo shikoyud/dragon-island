@@ -23,6 +23,7 @@ export function artEntries(art: GameArtSet): Entry[] {
   // Level sheets exist only when the manifest has them, so an absent key never becomes a request or a texture.
   for (const kind of ['mountain', 'grove'] as const) for (const [l, s] of Object.entries(art.building.breeder[kind])) add(`building.${kind}.${l}`, s, 'nest')
   for (const [l, s] of Object.entries(art.building.hatcheryLevel)) add(`building.hatchery.${l}`, s, 'hatchery')
+  for (const [t, s] of Object.entries(art.building.roostTier)) add(`building.roost.${t}`, s, 'hatchery')
   add('building.farmPlot', art.building.farmPlot, 'farmPlot')
   for (const [c, s] of Object.entries(art.building.cropStage)) add(`crop.${c}`, s, 'crop', 'nature')
   for (const [c, s] of Object.entries(art.building.cropSway)) if (s) add(`crop.${c}.sway`, s, 'crop', 'nature')
@@ -42,6 +43,7 @@ export function artEntries(art: GameArtSet): Entry[] {
   add('fx.construction', art.fx.construction, 'fx', 'terra')
   add('fx.hatch', art.fx.hatch, 'fx', 'light')
   add('fx.coins', art.fx.coins, 'fxCoins', 'light')
+  if (art.fx.levelUp) add('fx.levelUp', art.fx.levelUp, 'fx', 'light')
   // Ground tiles load only when they exist: without them the island scene draws its own diamonds.
   const ground = art.ground
   ground.grass.forEach((s, i) => add(`ground.grass.${i}`, s, 'island', 'nature'))

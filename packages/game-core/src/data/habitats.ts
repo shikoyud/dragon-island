@@ -13,22 +13,20 @@ export interface HabitatSpec {
   capL2: number
   buildGold: number
   upgradeL2Gold: number
-  /** Player level that unlocks building it (§5.2, §4.4). */
-  unlockPl: number
 }
 
 /** §5.2 table, classic values. */
 export const HABITATS: Record<Element, HabitatSpec> = {
-  terra: { archetype: 'sprinter', base: 18, inc: 12, capL1: 8_000, capL2: 28_000, buildGold: 500, upgradeL2Gold: 10_000, unlockPl: 1 },
-  flame: { archetype: 'standard', base: 7, inc: 5, capL1: 10_000, capL2: 35_000, buildGold: 2_000, upgradeL2Gold: 20_000, unlockPl: 1 },
-  sea: { archetype: 'standard', base: 10, inc: 7, capL1: 14_000, capL2: 49_000, buildGold: 5_000, upgradeL2Gold: 40_000, unlockPl: 3 },
-  nature: { archetype: 'standard', base: 9, inc: 7, capL1: 18_000, capL2: 64_000, buildGold: 10_000, upgradeL2Gold: 60_000, unlockPl: 3 },
-  electric: { archetype: 'sprinter', base: 15, inc: 10, capL1: 10_000, capL2: 35_000, buildGold: 25_000, upgradeL2Gold: 100_000, unlockPl: 6 },
-  ice: { archetype: 'steady', base: 8, inc: 6, capL1: 23_000, capL2: 83_000, buildGold: 40_000, upgradeL2Gold: 150_000, unlockPl: 8 },
-  metal: { archetype: 'steady', base: 9, inc: 6, capL1: 24_000, capL2: 84_000, buildGold: 60_000, upgradeL2Gold: 200_000, unlockPl: 10 },
-  dark: { archetype: 'vault', base: 6, inc: 4, capL1: 32_000, capL2: 112_000, buildGold: 150_000, upgradeL2Gold: 500_000, unlockPl: 14 },
-  light: { archetype: 'steady', base: 8, inc: 5, capL1: 27_000, capL2: 94_000, buildGold: 200_000, upgradeL2Gold: 600_000, unlockPl: 16 },
-  war: { archetype: 'vault', base: 7, inc: 4, capL1: 33_000, capL2: 115_000, buildGold: 250_000, upgradeL2Gold: 750_000, unlockPl: 18 },
+  terra: { archetype: 'sprinter', base: 18, inc: 12, capL1: 8_000, capL2: 28_000, buildGold: 500, upgradeL2Gold: 10_000 },
+  flame: { archetype: 'standard', base: 7, inc: 5, capL1: 10_000, capL2: 35_000, buildGold: 2_000, upgradeL2Gold: 20_000 },
+  sea: { archetype: 'standard', base: 10, inc: 7, capL1: 14_000, capL2: 49_000, buildGold: 5_000, upgradeL2Gold: 40_000 },
+  nature: { archetype: 'standard', base: 9, inc: 7, capL1: 18_000, capL2: 64_000, buildGold: 10_000, upgradeL2Gold: 60_000 },
+  electric: { archetype: 'sprinter', base: 15, inc: 10, capL1: 10_000, capL2: 35_000, buildGold: 25_000, upgradeL2Gold: 100_000 },
+  ice: { archetype: 'steady', base: 8, inc: 6, capL1: 23_000, capL2: 83_000, buildGold: 40_000, upgradeL2Gold: 150_000 },
+  metal: { archetype: 'steady', base: 9, inc: 6, capL1: 24_000, capL2: 84_000, buildGold: 60_000, upgradeL2Gold: 200_000 },
+  dark: { archetype: 'vault', base: 6, inc: 4, capL1: 32_000, capL2: 112_000, buildGold: 150_000, upgradeL2Gold: 500_000 },
+  light: { archetype: 'steady', base: 8, inc: 5, capL1: 27_000, capL2: 94_000, buildGold: 200_000, upgradeL2Gold: 600_000 },
+  war: { archetype: 'vault', base: 7, inc: 4, capL1: 33_000, capL2: 115_000, buildGold: 250_000, upgradeL2Gold: 750_000 },
 }
 
 /** Dragons a habitat holds; index = level - 1 (§5.2 upgrade path). */

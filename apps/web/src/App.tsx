@@ -8,6 +8,7 @@ import { createBridge } from './game/bridge'
 import { GameCanvas } from './game/GameCanvas'
 import { Dialog } from './hud/Dialog'
 import { Hud, type DialogKey } from './hud/Hud'
+import { LevelUp, useLevelUp } from './hud/LevelUp'
 import { HudArtContext } from './hud/Icon'
 import { hudSkin } from './hud/skin'
 import { Admin } from './pages/Admin'
@@ -18,7 +19,7 @@ import { useAutoFinish } from './panels/useAutoFinish'
 import { useAction } from './state/actions'
 import { useBattle } from './state/battle'
 import { useGameClock } from './state/clock'
-import { useMe } from './state/me'
+import { useMe, useRefreshOnNewDay } from './state/me'
 import { placementStart, placingAction } from './state/placing'
 import { StartPlacingProvider, type StartPlacing } from './state/startPlacing'
 import { usePlacing } from './state/usePlacing'
@@ -55,11 +56,16 @@ function Game() {
   const { placing, view, dispatch } = usePlacing(bridge)
   const { run, pending } = useAction()
   useAutoFinish(nowMs)
+  useRefreshOnNewDay(me.data?.game, nowMs)
+  // Waits out placement and battles; a rise from any source (/me, an action reply) counts, and a returning player's stored level decides the first load.
+  const levelUp = useLevelUp(me.data?.state.level, placing !== null || Boolean(battle.setup), me.data?.playerId)
 
   useEffect(() => { void loadActiveArt().then(setArt) }, [])
   useEffect(() => { bridge.setBattle(battle.preview) }, [bridge, battle.preview])
   useEffect(() => { if (battle.error) toasts.error(battle.error) }, [battle.error, toasts])
   useEffect(() => { if (me.error) toasts.error(me.error) }, [me.error, toasts])
+  const levelUpOpen = levelUp !== null
+  useEffect(() => { if (levelUpOpen) bridge.emit({ type: 'levelUp' }) }, [bridge, levelUpOpen])
   const close = useCallback(() => setDialog(null), [setDialog])
   const skin = useMemo(() => hudSkin(art.hud), [art])
 
@@ -96,10 +102,12 @@ function Game() {
   const startPve = (stage: number, team: TeamIds) => { battle.startPve(stage, team); setDialog(null) }
   const closeBattle = () => { battle.reset(); bridge.setBattle(null) }
 
+  // Escape belongs to the level-up screen while it is up; the panel under it stays open.
+  const underLevelUp = (fn: () => void) => (levelUp ? () => {} : fn)
   const content = battle.setup
-    ? { label: 'Battle', node: <BattlePanel battle={battle} onClose={closeBattle} />, onClose: closeBattle, modal: false }
+    ? { label: 'Battle', node: <BattlePanel battle={battle} onClose={closeBattle} />, onClose: underLevelUp(closeBattle), modal: false }
     : dialog && !placing
-      ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} onPve={startPve} onPvp={startPvp} />, onClose: close }
+      ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} onPve={startPve} onPvp={startPvp} />, onClose: underLevelUp(close) }
       : null
 
   return (
@@ -119,6 +127,7 @@ function Game() {
             ) : undefined}
           />
           {content && <Dialog label={content.label} onClose={content.onClose} modal={content.modal ?? true}>{content.node}</Dialog>}
+          {levelUp && <LevelUp from={levelUp.from} to={levelUp.to} onClose={levelUp.dismiss} />}
           {me.data.termsRequired && <Dialog label="Updated terms" onClose={() => {}}><TermsPrompt version={me.data.termsRequired} /></Dialog>}
         </div>
       </StartPlacingProvider>

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { resetPlayer, signIn } from './helpers'
+import { dismissLevelUp, resetPlayer, signIn } from './helpers'
 
 /**
  * The island canvas, clicked for real: the isometric projection, the camera and the placement ghost. The scene exposes
@@ -23,6 +23,7 @@ test.beforeEach(async ({ page, request }) => {
   await resetPlayer(request, { gold: 50_000, level: 6 })
   await page.reload()
   await page.waitForFunction(() => Boolean(window.__bridge?.cellToScreen && (window.__bridge as unknown as { state: unknown }).state))
+  await dismissLevelUp(page)
   await page.evaluate(() => {
     window.__seen = []
     for (const t of ['cell', 'select']) window.__bridge!.on(t, e => window.__seen!.push(e))

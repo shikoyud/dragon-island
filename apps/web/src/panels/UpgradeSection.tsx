@@ -1,4 +1,4 @@
-import { constructionFor, GROVE_L3, MAX_BUILDERS, priceMicroUsd, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
+import { constructionFor, GROVE_L3, MAX_BUILDERS, priceMicroUsd, unlockPl, upgradeInfo, type BuildingRef, type PlayerState } from '@wyrmhaven/game-core'
 import { timerLabel } from '../game/islandModel'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -14,6 +14,7 @@ export function levelOf(s: PlayerState, b: BuildingRef): number {
     case 'farm': return s.farms[b.index]?.level ?? 1
     case 'breeder': return s.breeders[b.index]?.level ?? 1
     case 'hatchery': return s.hatcheryLevel
+    case 'roost': return s.roostTier
   }
 }
 
@@ -25,12 +26,19 @@ const pointsToStore = (s: PlayerState, b: BuildingRef): boolean =>
 function topLevelNote(s: PlayerState, b: BuildingRef): string {
   if (pointsToStore(s, b)) return 'Level 5 in the Store'
   if (b.type === 'breeder' && s.breeders[b.index]?.kind === 'grove' && levelOf(s, b) === GROVE_L3.level - 1) {
-    return s.level >= GROVE_L3.minPl ? `Level ${GROVE_L3.level} in the Store` : `Level ${GROVE_L3.level} in the Store at player level ${GROVE_L3.minPl}`
+    return s.level >= unlockPl('grove:3') ? `Level ${GROVE_L3.level} in the Store` : `Level ${GROVE_L3.level} in the Store at player level ${unlockPl('grove:3')}`
   }
   return 'Max level'
 }
 
-const idOf = (b: BuildingRef): string => (b.type === 'habitat' ? b.id : b.type === 'hatchery' ? 'hatchery' : `${b.type}-${b.index}`)
+/** Why an upgrade of `cost` Gold that opens at player level `minLevel` cannot start now; '' when it can. Shared with the Roost panel. */
+export function upgradeBlockReason(s: PlayerState, minLevel: number, cost: number): string {
+  return s.level < minLevel ? `Needs player level ${minLevel}`
+    : s.gold < cost ? 'Not enough gold'
+    : s.constructions.length >= MAX_BUILDERS ? 'Both builders are busy' : ''
+}
+
+const idOf = (b: BuildingRef): string => (b.type === 'habitat' ? b.id : b.type === 'hatchery' || b.type === 'roost' ? b.type : `${b.type}-${b.index}`)
 
 /** Level, upgrade (or its timer, skip and manual finish), Move and Turn for one building. */
 export function UpgradeSection({ building, nowMs }: { building: BuildingRef; nowMs: number }) {
@@ -46,9 +54,7 @@ export function UpgradeSection({ building, nowMs }: { building: BuildingRef; now
   const info = upgradeInfo(s, building, preset)
   const id = idOf(building)
 
-  const reason = !info ? '' : s.level < info.minLevel ? `Needs player level ${info.minLevel}`
-    : s.gold < info.cost ? 'Not enough gold'
-    : s.constructions.length >= MAX_BUILDERS ? 'Both builders are busy' : ''
+  const reason = !info ? '' : upgradeBlockReason(s, info.minLevel, info.cost)
 
   return (
     <div className="upgrade-section" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', margin: '6px 0' }}>

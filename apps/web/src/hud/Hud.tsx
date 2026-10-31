@@ -1,13 +1,15 @@
-import { xpToNext } from '@wyrmhaven/game-core'
+import { gameDay, xpToNext } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import type { Bridge, Target } from '../game/bridge'
 import { timerLabel } from '../game/islandModel'
 import { TOKEN_KEY as ADMIN_TOKEN_KEY } from '../pages/Admin'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
+import { useToasts } from '../ui/Toast'
+import { presetOf } from '../state/preset'
 import { formatGold, formatWei } from '../ui/Money'
-import { attentionItems, xpFraction, type AttentionItem } from './hudModel'
+import { attentionItems, goalClaimable, XP_LIMIT_SHORT, xpBarText, xpFraction, type AttentionItem } from './hudModel'
 import { Icon, type IconName } from './Icon'
 import { TerminalClock } from './TerminalClock'
 
@@ -23,14 +25,18 @@ const isPanel = (open: DialogKey | null, id: PanelId) => open?.kind === 'panel' 
 /** A round HUD button: icon in a plate, label under it (or only for screen readers), optional badge. */
 const COMING_LATER = 'Coming in a later milestone'
 
-function RoundButton({ icon, label, onClick, active, badge, size = 'large', showLabel = true, disabledReason }: {
+function RoundButton({ icon, label, onClick, active, badge, size = 'large', showLabel = true, disabledReason, description }: {
   icon: IconName; label: string; onClick?: () => void; active?: boolean; badge?: ReactNode; size?: 'large' | 'small'; showLabel?: boolean
   /** Makes the button inert and says why (as its tooltip and accessible description). */
   disabledReason?: string
+  /** A state the button's name does not carry (Quests: a Goal is ready), read after the name; the name stays the label. */
+  description?: string
 }) {
+  const descId = description ? `hud-desc-${label.replace(/\W+/g, '-').toLowerCase()}` : undefined
   return (
     <button type="button" className={`hud-round hud-round--${size}${active ? ' hud-round--active' : ''}`} aria-label={label} aria-pressed={active} onClick={onClick}
-      disabled={disabledReason !== undefined} title={disabledReason}>
+      disabled={disabledReason !== undefined} title={disabledReason} aria-describedby={descId}>
+      {description && <span id={descId} hidden>{description}</span>}
       <span className="hud-round__plate"><Icon name={icon} size={size === 'large' ? 28 : 22} /></span>
       {badge !== undefined && badge !== null && <span className="hud-round__badge">{badge}</span>}
       {showLabel && <span className="hud-round__label" aria-hidden="true">{label}</span>}
@@ -51,12 +57,12 @@ function Pill({ icon, label, value, sub, plusLabel, onPlus }: { icon: IconName; 
   )
 }
 
-const ACTION_VERB: Partial<Record<ClientAction['type'], string>> = { finishConstruction: 'Finish', collectEgg: 'Collect', harvest: 'Harvest' }
+const ACTION_VERB: Partial<Record<ClientAction['type'], string>> = { finishConstruction: 'Finish', collectEgg: 'Collect', harvest: 'Harvest', claimGoal: 'Claim' }
 
 function Shortcut({ item, nowMs, onOpen }: { item: AttentionItem; nowMs: number; onOpen: (k: DialogKey) => void }) {
   const { run, pending } = useAction()
-  const open = () => onOpen({ kind: 'target', target: item.panel })
-  const icon: IconName = item.id.startsWith('construction') ? 'build' : item.id === 'crops' ? 'food' : 'breed'
+  const open = () => onOpen(item.open ?? { kind: 'target', target: item.panel })
+  const icon: IconName = item.id.startsWith('construction') ? 'build' : item.id === 'crops' ? 'food' : item.id === 'goal' ? 'quests' : 'breed'
   return (
     <li className={`hud-shortcut${item.ready ? ' hud-shortcut--ready' : ''}`}>
       <button type="button" className="hud-shortcut__open" onClick={open}>
@@ -84,6 +90,7 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
   battle?: boolean
 }) {
   const me = useMe()
+  const toasts = useToasts()
   const top = useRef<HTMLElement>(null)
   const foot = useRef<HTMLDivElement>(null)
 
@@ -107,6 +114,9 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
   const data = me.data
   if (!data) return null
   const s = data.state
+  const barText = xpBarText(s, formatGold, data.game ? { preset: presetOf(data), day: gameDay(data.game.launchAtMs, nowMs) } : undefined)
+  // At the day's limit the sentence is too long for the bar on a phone: the bar shows a short label, the sentence stays its title and value text, and a tap shows it.
+  const limited = barText.startsWith(XP_LIMIT_SHORT)
   const panel = (id: PanelId) => () => onOpen({ kind: 'panel', id })
   const openStore = () => onOpen({ kind: 'panel', id: 'shop', tab: 'store' })
 
@@ -115,9 +125,15 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
       <header className="hud-top" ref={top}>
         <div className="hud-avatar">
           <span className="hud-avatar__badge" aria-label={`Level ${s.level}`}>{s.level}</span>
-          <div className="hud-xp" role="progressbar" aria-label="Experience" aria-valuemin={0} aria-valuemax={xpToNext(s.level)} aria-valuenow={s.xp}>
+          <div className={`hud-xp${limited ? ' hud-xp--limit' : ''}`} role="progressbar" aria-label="Experience" aria-valuemin={0} aria-valuemax={Number.isFinite(xpToNext(s.level)) ? xpToNext(s.level) : s.xp} aria-valuenow={Number.isFinite(xpToNext(s.level)) ? Math.min(s.xp, xpToNext(s.level)) : s.xp}
+            {...(limited ? { title: barText, 'aria-valuetext': barText, tabIndex: 0, onClick: () => toasts.info(barText), onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toasts.info(barText) } } } : {})}>
             <span className="hud-xp__fill" style={{ width: `${Math.round(xpFraction(s) * 100)}%` }} />
-            <span className="hud-xp__text">{formatGold(s.xp)} / {formatGold(xpToNext(s.level))} XP</span>
+            {limited
+              ? <>
+                <span className="hud-xp__text hud-xp__text--short" aria-hidden="true">{XP_LIMIT_SHORT}</span>
+                <span className="hud-xp__text hud-xp__text--full">{barText}</span>
+              </>
+              : <span className="hud-xp__text">{barText}</span>}
           </div>
         </div>
         <div className="hud-pills" role="status" aria-label="Resources">
@@ -150,7 +166,9 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
             <RoundButton icon="dragons" label="Dragon Book" active={isPanel(open, 'book')} onClick={panel('book')} />
             <RoundButton icon="battle" label="Battle" active={isPanel(open, 'battle')} onClick={panel('battle')} />
             <RoundButton icon="wings" label="Wings" disabledReason={COMING_LATER} />
-            <RoundButton icon="quests" label="Quests" disabledReason={COMING_LATER} />
+            <RoundButton icon="quests" label="Quests" active={isPanel(open, 'quests')} onClick={panel('quests')}
+              description={goalClaimable(s) ? 'Goal ready' : undefined}
+              badge={goalClaimable(s) ? <span className="hud-dot" aria-hidden="true" /> : undefined} />
             <RoundButton icon="inbox" label="Inbox" disabledReason={COMING_LATER} />
           </nav>
         )}

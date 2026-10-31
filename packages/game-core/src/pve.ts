@@ -6,7 +6,6 @@ import { createRng } from './rng'
 
 export const PVE_STAGES = 30
 export const PVE_REPLAYS_PER_DAY = 10
-export const PVE_MIN_PLAYER_LEVEL = 5
 export const PVP_MIN_PLAYER_LEVEL = 8
 export const PVP_ATTACKS_PER_DAY = 20
 

@@ -79,6 +79,11 @@ export class IslandScene extends Phaser.Scene {
         this.sync()
         if (e.placing) this.reveal(anchor(e.placing.col, e.placing.row, e.placing.size))
       }),
+      this.bridge.on('levelUp', () => {
+        if (!this.alive() || !this.art().fx.levelUp) return
+        const c = this.cameras.main.midPoint
+        this.playOnce('fx.levelUp', { x: c.x, y: c.y })
+      }),
       // Switch to the battle scene while a battle is being built; come back when it is cleared.
       this.bridge.on('battle', e => { if (e.preview && this.alive()) this.scene.switch('battle') }),
     ]
@@ -313,10 +318,10 @@ export class IslandScene extends Phaser.Scene {
   }
 
   /** Plays a one-shot effect at a world point: its sheet once, or a fade for a still; nothing with reduced motion. */
-  private playOnce(path: 'fx.hatch' | 'fx.coins', at: Pos): void {
+  private playOnce(path: 'fx.hatch' | 'fx.coins' | 'fx.levelUp', at: Pos): void {
     if (this.bridge.reducedMotion) return
     const key = textureKey(path)
-    const sprite = path === 'fx.hatch' ? this.art().fx.hatch : this.art().fx.coins
+    const sprite = (path === 'fx.hatch' ? this.art().fx.hatch : path === 'fx.coins' ? this.art().fx.coins : this.art().fx.levelUp)!
     const spr = this.add.sprite(at.x, at.y, key).setOrigin(0.5, 1).setDepth(1)
     if (!playOneShot(spr, key, sprite)) this.tweens.add({ targets: spr, alpha: 0, y: at.y - 8, duration: 700, onComplete: () => spr.destroy() })
   }

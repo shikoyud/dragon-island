@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { getSpecies, isBasic, makeCatalog } from '../src/catalog'
 import { LAUNCH_CATALOG } from '../src/data/launch-catalog'
 import {
-  PVE_MIN_PLAYER_LEVEL, PVE_REPLAYS_PER_DAY, PVE_STAGES, PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL,
+  PVE_REPLAYS_PER_DAY, PVE_STAGES, PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL,
   stageLevel, stageRarity, stageRewards, stageTeam,
 } from '../src/pve'
 import { FIXTURE_CATALOG as C } from './fixtures'
 
 describe('pve campaign', () => {
   it('has the caps and unlock levels', () => {
-    expect([PVE_STAGES, PVE_REPLAYS_PER_DAY, PVE_MIN_PLAYER_LEVEL, PVP_MIN_PLAYER_LEVEL, PVP_ATTACKS_PER_DAY]).toEqual([30, 10, 5, 8, 20])
+    expect([PVE_STAGES, PVE_REPLAYS_PER_DAY, PVP_MIN_PLAYER_LEVEL, PVP_ATTACKS_PER_DAY]).toEqual([30, 10, 8, 20])
   })
 
   it('scales stage level and rarity', () => {

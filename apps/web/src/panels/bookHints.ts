@@ -1,4 +1,4 @@
-import { HABITATS, isOpposite, LEGENDARY_EVENTS, type Catalog, type Element, type Preset, type Species } from '@wyrmhaven/game-core'
+import { isOpposite, LEGENDARY_EVENTS, unlockPl, type Catalog, type Element, type Preset, type Species } from '@wyrmhaven/game-core'
 
 /** Display-cased element name. */
 export const elementName = (e: Element): string => e.charAt(0).toUpperCase() + e.slice(1)
@@ -14,7 +14,7 @@ export function bookHint(sp: Species, preset: Preset, _c: Catalog): string {
     const [from, to] = ev.days[preset.id]
     return `Breeding event, days ${from}–${to}: ${names.join(' and ')} parents`
   }
-  if (sp.elements.length === 1) return `Buy in the Shop at level ${HABITATS[sp.elements[0]!].unlockPl}`
+  if (sp.elements.length === 1) return `Buy in the Shop at level ${unlockPl(`basic:${sp.elements[0]!}`)}`
   if (sp.elements.length === 2) {
     const [a, b] = sp.elements as [Element, Element]
     return isOpposite(a, b)

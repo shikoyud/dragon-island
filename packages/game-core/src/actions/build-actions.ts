@@ -3,15 +3,17 @@ import type { Catalog } from '../catalog'
 import type { Preset } from '../data/presets'
 import { isUnderConstruction, startConstruction } from '../construction'
 import { BREEDER_LEVELS } from '../data/breeding-buildings'
-import { FARM_UNLOCK_PL, FIRST_FARM_CLASSIC_MS, MAX_FARMS } from '../data/farms'
+import { FIRST_FARM_CLASSIC_MS, MAX_FARMS } from '../data/farms'
 import { HABITATS, habitatBuildMs } from '../data/habitats'
+import { ROOST_TIERS } from '../data/roost'
+import { isUnlocked, type UnlockKey } from '../data/unlocks'
 import { DECORATIONS, decorationRefund } from '../decorations'
 import { farmBuildGold } from '../farm'
 import { placementRuleError } from '../placement-rules'
 import type { PlayerState } from '../state'
 import { earnGold, spendGold } from '../wallet'
 import { clearReward } from '../obstacles'
-import { addXp } from '../progression'
+import { addXp, payBuildXp } from '../progression'
 import { collectHabitat } from './island-actions'
 import { failure, success, type Handler } from './types'
 
@@ -20,25 +22,37 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
   const bad = placementRuleError(s, b, a.placement)
   if (bad) return failure(bad)
   if (b.kind === 'decoration' && s.level < DECORATIONS[b.decoration].minLevel) return failure('LEVEL_TOO_LOW')
-  if (b.kind === 'habitat' && s.level < HABITATS[b.element].unlockPl) return failure('LEVEL_TOO_LOW')
+  if (b.kind === 'habitat' && !isUnlocked(`habitat:${b.element}`, s.level)) return failure('LEVEL_TOO_LOW')
   if (b.kind === 'farm' && s.farms.length >= MAX_FARMS) return failure('MAX_PLOTS')
-  if (b.kind === 'farm' && s.level < FARM_UNLOCK_PL[s.farms.length]!) return failure('LEVEL_TOO_LOW')
+  if (b.kind === 'farm' && !isUnlocked(`farm:${s.farms.length + 1}` as UnlockKey, s.level)) return failure('LEVEL_TOO_LOW')
+  if (b.kind === 'roost' && s.roostPlacement !== null) return failure('MAX_LEVEL')
+  if (b.kind === 'roost' && !isUnlocked('roost:1', s.level)) return failure('LEVEL_TOO_LOW')
   const grove = BREEDER_LEVELS.grove[0]!
+  const roost = ROOST_TIERS[0]!
   if (b.kind === 'grove' && s.breeders.some(x => x.kind === 'grove')) return failure('MAX_LEVEL')
-  if (b.kind === 'grove' && s.level < grove.minPl) return failure('LEVEL_TOO_LOW')
+  if (b.kind === 'grove' && !isUnlocked('grove:1', s.level)) return failure('LEVEL_TOO_LOW')
 
   const cost = b.kind === 'decoration' ? DECORATIONS[b.decoration].cost
     : b.kind === 'habitat' ? HABITATS[b.element].buildGold
     : b.kind === 'grove' ? grove.gold!
+    : b.kind === 'roost' ? roost.gold
     : farmBuildGold(s.farms.length + 1)
   const paid = spendGold(s, cost)
   if (!paid) return failure('INSUFFICIENT_GOLD')
+
+  if (b.kind === 'roost') {
+    // The tier rises when the build finishes (R33), so the level cap waits for it.
+    const started = startConstruction(paid, { kind: 'build', building: { type: 'roost' } }, Math.floor(roost.classicMs / ctx.preset.timerDiv), ctx.nowMs)
+    if (!started) return failure('BUILDERS_BUSY')
+    return success(payBuildXp({ ...started, roostPlacement: a.placement }, cost, s, ctx.preset, ctx.day))
+  }
 
   if (b.kind === 'grove') {
     const index = s.breeders.length
     const started = startConstruction(paid, { kind: 'build', building: { type: 'breeder', index } }, Math.floor(grove.classicMs / ctx.preset.timerDiv), ctx.nowMs)
     if (!started) return failure('BUILDERS_BUSY')
-    return success({ ...started, breeders: [...started.breeders, { kind: 'grove', egg: null, level: 1, placement: a.placement }] })
+    const built = { ...started, breeders: [...started.breeders, { kind: 'grove' as const, egg: null, level: 1, placement: a.placement }] }
+    return success(payBuildXp(built, cost, s, ctx.preset, ctx.day))
   }
 
   if (b.kind === 'decoration') {
@@ -52,13 +66,15 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
     const index = s.farms.length
     const started = startConstruction(paid, { kind: 'build', building: { type: 'farm', index } }, Math.floor(FIRST_FARM_CLASSIC_MS / ctx.preset.timerDiv), ctx.nowMs)
     if (!started) return failure('BUILDERS_BUSY')
-    return success({ ...started, farms: [...started.farms, { crop: null, readyAtMs: 0, level: 1, placement: a.placement }] })
+    const built = { ...started, farms: [...started.farms, { crop: null, readyAtMs: 0, level: 1, placement: a.placement }] }
+    return success(payBuildXp(built, cost, s, ctx.preset, ctx.day))
   }
   const id = `h${s.nextId}`
   const started = startConstruction(paid, { kind: 'build', building: { type: 'habitat', id } }, habitatBuildMs(b.element, ctx.preset), ctx.nowMs)
   if (!started) return failure('BUILDERS_BUSY')
   const habitat = { id, element: b.element, level: 1, lastCollectedMs: ctx.nowMs, placement: a.placement }
-  return success({ ...started, habitats: [...started.habitats, habitat], nextId: s.nextId + 1 })
+  const built = { ...started, habitats: [...started.habitats, habitat], nextId: s.nextId + 1 }
+  return success(payBuildXp(built, cost, s, ctx.preset, ctx.day))
 }
 
 export const moveBuilding: Handler<'moveBuilding'> = (s, a) => {
@@ -71,6 +87,7 @@ export const moveBuilding: Handler<'moveBuilding'> = (s, a) => {
     case 'farm': return success({ ...s, farms: s.farms.map((f, i) => i === t.index ? { ...f, placement: p } : f) })
     case 'breeder': return success({ ...s, breeders: s.breeders.map((b, i) => i === t.index ? { ...b, placement: p } : b) })
     case 'hatchery': return success({ ...s, hatcheryPlacement: p })
+    case 'roost': return success({ ...s, roostPlacement: p })
     default: return success({ ...s, decorations: s.decorations.map(d => d.id === t.id ? { ...d, placement: p } : d) })
   }
 }
@@ -86,6 +103,7 @@ export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {
   const exists = ref.type === 'habitat' ? s.habitats.some(h => h.id === ref.id)
     : ref.type === 'farm' ? s.farms[ref.index] !== undefined
     : ref.type === 'breeder' ? s.breeders[ref.index] !== undefined
+    : ref.type === 'roost' ? s.roostPlacement !== null
     : true
   if (!exists) return failure('NOT_FOUND')
   if (isUnderConstruction(s, ref)) return failure('UNDER_CONSTRUCTION')
@@ -96,20 +114,20 @@ export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {
   if (!paid) return failure('INSUFFICIENT_GOLD')
   const started = startConstruction(paid, { kind: 'upgrade', building: ref }, info.timerMs, ctx.nowMs)
   if (!started) return failure('BUILDERS_BUSY')
-  return success(started)
+  return success(payBuildXp(started, info.cost, s, ctx.preset, ctx.day))
 }
 
 /** Applies construction `index` (which must be ready); shared by finishConstruction and the construction skip. */
-export function completeConstruction(s: PlayerState, index: number, c: Catalog, nowMs: number, preset: Preset): PlayerState {
+export function completeConstruction(s: PlayerState, index: number, c: Catalog, nowMs: number, preset: Preset, day: number): PlayerState {
   const con = s.constructions[index]!
   const rest = { ...s, constructions: s.constructions.filter((_, i) => i !== index) }
-  if (con.kind === 'build') return rest
+  if (con.kind === 'build') return con.building.type === 'roost' ? { ...rest, roostTier: ROOST_TIERS[0]!.tier } : rest
   if (con.kind === 'clear') {
     const o = rest.islands.obstacles.find(x => x.id === con.obstacleId)
     const cleared = { ...rest, islands: { ...rest.islands, obstacles: rest.islands.obstacles.filter(x => x.id !== con.obstacleId) } }
     if (!o) return cleared
     const reward = clearReward(o)
-    return addXp({ ...cleared, food: cleared.food + reward.food }, reward.xp, preset)
+    return addXp({ ...cleared, food: cleared.food + reward.food }, reward.xp, preset, day)
   }
   const ref = con.building
   switch (ref.type) {
@@ -120,6 +138,7 @@ export function completeConstruction(s: PlayerState, index: number, c: Catalog, 
     case 'farm': return { ...rest, farms: rest.farms.map((f, i) => i === ref.index ? { ...f, level: f.level + 1 } : f) }
     case 'breeder': return { ...rest, breeders: rest.breeders.map((b, i) => i === ref.index ? { ...b, level: b.level + 1 } : b) }
     case 'hatchery': return { ...rest, hatcheryLevel: rest.hatcheryLevel + 1 }
+    case 'roost': return { ...rest, roostTier: rest.roostTier + 1 }
   }
 }
 
@@ -127,5 +146,5 @@ export const finishConstruction: Handler<'finishConstruction'> = (s, a, ctx) => 
   const con = s.constructions[a.index]
   if (!con) return failure('NOT_FOUND')
   if (ctx.nowMs < con.readyAtMs) return failure('NOT_READY')
-  return success(completeConstruction(s, a.index, ctx.catalog, ctx.nowMs, ctx.preset))
+  return success(completeConstruction(s, a.index, ctx.catalog, ctx.nowMs, ctx.preset, ctx.day))
 }

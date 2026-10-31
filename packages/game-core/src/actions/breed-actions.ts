@@ -2,18 +2,17 @@ import { activeLegendaries, breedValidity, rollOffspring } from '../breeding'
 import { breederBreedMs, hatcherySlots } from '../buildings'
 import { getSpecies, type Catalog } from '../catalog'
 import { isUnfinished } from '../construction'
-import { BREEDER_LEVELS } from '../data/breeding-buildings'
 import { breedTimerMs } from '../data/breeding-timers'
 import { FIRST_HYBRID_MS, basicPriceGold } from '../data/breeding'
-import { HABITATS } from '../data/habitats'
 import { BREED_MIN_LEVEL } from '../data/dragon-levels'
-import { HATCH_XP, START_BREED_XP } from '../data/xp'
+import { FIRST_HATCH_XP_MULT, HATCH_XP, START_BREED_XP } from '../data/xp'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
-import { addXp } from '../progression'
+import { addXp, breedXpApplies } from '../progression'
 import { spendGold } from '../wallet'
 import { collectHabitat } from './island-actions'
 import type { Element } from '../elements'
 import type { Habitat, PlayerState } from '../state'
+import { isUnlocked } from '../data/unlocks'
 import { failure, success, type Handler } from './types'
 
 export { BREED_MIN_LEVEL }
@@ -23,7 +22,7 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const pb = s.dragons.find(d => d.id === a.parentB)
   if (!pa || !pb || pa.id === pb.id) return failure('INVALID_PARENTS')
   if (pa.level < BREED_MIN_LEVEL || pb.level < BREED_MIN_LEVEL) return failure('LEVEL_TOO_LOW')
-  if (s.level < BREEDER_LEVELS.mountain[0]!.minPl) return failure('LEVEL_TOO_LOW')
+  if (!isUnlocked('mountain:1', s.level)) return failure('LEVEL_TOO_LOW')
   const sa = getSpecies(ctx.catalog, pa.speciesId), sb = getSpecies(ctx.catalog, pb.speciesId)
   const invalid = breedValidity(sa, sb)
   if (invalid) return failure(invalid)
@@ -37,13 +36,14 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const scripted = bctx.firstHybridPending && child.elements.length >= 2 && child.rarity !== 'legendary'
   const hatchMs = scripted ? FIRST_HYBRID_MS : breedTimerMs(child.rarity, child.elements, ctx.preset)
   const readyAtMs = ctx.nowMs + (scripted ? FIRST_HYBRID_MS : breederBreedMs(hatchMs, s.breeders[index]!))
+  const pays = breedXpApplies(sa, sb, child)
   const next = {
     ...s,
-    breeders: s.breeders.map((b, i) => i === index ? { ...b, egg: { speciesId: child.id, readyAtMs, hatchMs } } : b),
-    tutorial: { ...s.tutorial, breedDone: true },
+    breeders: s.breeders.map((b, i) => i === index ? { ...b, egg: { speciesId: child.id, readyAtMs, hatchMs, xpFree: !pays } } : b),
+    goalStats: { ...s.goalStats, breeds: s.goalStats.breeds + 1 },
     firstHybridDone: s.firstHybridDone || scripted,
   }
-  return success(addXp(next, START_BREED_XP, ctx.preset))
+  return success(pays ? addXp(next, START_BREED_XP, ctx.preset, ctx.day) : next)
 }
 
 /** The Dragon Book with `speciesId` added once (R22). */
@@ -66,8 +66,7 @@ export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
     ...s,
     breeders: s.breeders.map((b, i) => i === a.breeder ? { ...b, egg: null } : b),
     // The hatch timer starts now, when the egg reaches its slot (§5.4).
-    hatchery: [...s.hatchery, { speciesId: egg.speciesId, readyAtMs: ctx.nowMs + egg.hatchMs }],
-    tutorial: { ...s.tutorial, hatchDone: true },
+    hatchery: [...s.hatchery, { speciesId: egg.speciesId, readyAtMs: ctx.nowMs + egg.hatchMs, xpFree: egg.xpFree }],
   })
 }
 
@@ -79,7 +78,7 @@ export function basicHome(s: PlayerState, catalog: Catalog, element: Element): H
 
 /** M2 Q3, R26: buy a Basic with Gold; it moves into the first finished habitat it can live in with room, at Lv 1. */
 export const buyBasic: Handler<'buyBasic'> = (s, a, ctx) => {
-  if (s.level < HABITATS[a.element].unlockPl) return failure('LEVEL_TOO_LOW')
+  if (!isUnlocked(`basic:${a.element}`, s.level)) return failure('LEVEL_TOO_LOW')
   const home = basicHome(s, ctx.catalog, a.element)
   if (!home) return failure('NO_HABITAT_SLOT')
   const paid = spendGold(s, basicPriceGold(a.element))
@@ -107,6 +106,10 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
     dragons: [...collected.dragons, dragon],
     discovered: discover(s.discovered, egg.speciesId),
     nextId: s.nextId + 1,
+    goalStats: { ...collected.goalStats, hatches: collected.goalStats.hatches + 1 },
   }
-  return success(addXp(next, HATCH_XP[species.rarity], ctx.preset))
+  if (egg.xpFree) return success(next)
+  // R30: a species new to the Dragon Book pays double.
+  const firstTime = !s.discovered.includes(egg.speciesId)
+  return success(addXp(next, HATCH_XP[species.rarity] * (firstTime ? FIRST_HATCH_XP_MULT : 1), ctx.preset, ctx.day))
 }

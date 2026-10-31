@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  applyAction, BREEDER_FOOTPRINT, createRng, FOOTPRINT, HOME_EXPANSION, islandSize, LAUNCH_CATALOG, newPlayer, occupants, placementRuleError,
+  applyAction, BREEDER_FOOTPRINT, createRng, FOOTPRINT, HOME_EXPANSION, isUnlocked, islandSize, LAUNCH_CATALOG, newPlayer, occupants, placementRuleError,
   type Action, type PlacementSubject, type PlayerState,
 } from '../src/index'
 
@@ -49,7 +49,7 @@ describe('breeding buildings keep their 2-cell footprint until M4 (R9, R15 withd
   it('places the Breeding Grove on the home island of a normal PL 12 game', () => {
     // A normal game at PL 12: every expansion it may have bought, a habitat on the only 5x5 spot, obstacles left standing.
     let s: PlayerState = { ...newPlayer(0), level: 12, gold: 2_000_000 }
-    const steps = HOME_EXPANSION.filter(e => e.minLevel <= 12).length
+    const steps = HOME_EXPANSION.filter((_, i) => isUnlocked(`home:${i}`, 12)).length
     for (let i = 0; i < steps; i++) s = run(s, { type: 'expandIsland' })
     s = run(s, { type: 'placeBuilding', building: { kind: 'habitat', element: 'sea' }, placement: { ...P(0, 0), ...legalCells(s, { kind: 'habitat', element: 'sea' })[0]! } })
     expect(s.islands.obstacles.length).toBe(steps * 2)

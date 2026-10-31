@@ -23,6 +23,6 @@ export const harvest: Handler<'harvest'> = (s, a, ctx) => {
   if (plot.crop === null) return failure('PLOT_EMPTY')
   if (ctx.nowMs < plot.readyAtMs) return failure('NOT_READY')
   const farms = s.farms.map((p, i) => i === a.plot ? { ...p, crop: null, readyAtMs: 0 } : p)
-  const next = { ...s, food: s.food + cropFood(plot.crop, plot.level, ctx.preset), farms }
-  return success(addXp(next, CROPS[plot.crop].tier * HARVEST_XP_PER_TIER, ctx.preset))
+  const next = { ...s, food: s.food + cropFood(plot.crop, plot.level, ctx.preset), farms, goalStats: { ...s.goalStats, harvests: s.goalStats.harvests + 1 } }
+  return success(addXp(next, CROPS[plot.crop].tier * HARVEST_XP_PER_TIER, ctx.preset, ctx.day))
 }

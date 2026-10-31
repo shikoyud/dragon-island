@@ -1,5 +1,5 @@
 import { atkAt, cropFood, DEFAULT_PRESET, goldPerMinuteX20, hpAt, makeCatalog, newPlayer, SELL_GOLD, type PlayerState } from '@wyrmhaven/game-core'
-import { act, screen, within } from '@testing-library/react'
+import { act, cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { createBridge } from '../src/game/bridge'
@@ -9,6 +9,7 @@ import { DragonPanel } from '../src/panels/DragonPanel'
 import { FarmPanel } from '../src/panels/FarmPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
 import { HatcheryPanel } from '../src/panels/HatcheryPanel'
+import { QuestsPanel } from '../src/panels/QuestsPanel'
 import { ResourcesBar } from '../src/panels/ResourcesBar'
 import { ShopPanel } from '../src/panels/ShopPanel'
 import { StartPlacingProvider } from '../src/state/startPlacing'
@@ -55,7 +56,7 @@ describe('ResourcesBar', () => {
     wrap(<ResourcesBar />)
     expect(screen.getByText('1,500')).toBeInTheDocument()
     expect(screen.queryByText(/eligible/)).toBeNull()
-    expect(screen.getByText(/10 \/ 200 xp/i)).toBeInTheDocument()
+    expect(screen.getByText(/10 \/ 175 xp/i)).toBeInTheDocument()
     expect(screen.getByText('42')).toBeInTheDocument()
     expect(screen.getByText(/5 DRIS/)).toBeInTheDocument()
   })
@@ -125,7 +126,7 @@ describe('DragonPanel', () => {
   it('feeds and marks max level', async () => {
     const { wrap, action } = harness(level(base, 'd1', 7))
     wrap(<DragonPanel dragonId="d1" />)
-    expect(screen.getByRole('button', { name: /upgrade roost/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /upgrade roost/i })).toBeEnabled()
     const { wrap: wrap2, action: a2 } = harness(base)
     wrap2(<DragonPanel dragonId="d2" />)
     await userEvent.click(screen.getByRole('button', { name: /^feed/i }))
@@ -176,12 +177,15 @@ describe('DragonPanel (B11)', () => {
     expect(screen.getAllByRole('img', { name: /^(flame|sea)$/i }).map(i => i.getAttribute('aria-label'))).toEqual(['flame', 'sea'])
   })
 
-  it('shows a disabled Upgrade Roost, with its reason, at the Roost cap', () => {
+  it('shows an enabled Upgrade Roost at the Roost cap, and a disabled one only at the top tier', () => {
     const { wrap } = harness(level(base, 'd1', 7))
     wrap(<DragonPanel dragonId="d1" />)
-    const up = screen.getByRole('button', { name: /upgrade roost/i })
-    expect(up).toBeDisabled()
-    expect(up).toHaveAccessibleDescription(/Dragon Roost arrives in a later update/i)
+    expect(screen.getByRole('button', { name: /upgrade roost/i })).toBeEnabled()
+    cleanup()
+    harness({ ...level(base, 'd1', 40), roostTier: 5 }).wrap(<DragonPanel dragonId="d1" />)
+    const top = screen.getByRole('button', { name: /upgrade roost/i })
+    expect(top).toBeDisabled()
+    expect(top).toHaveAccessibleDescription(/Max level/i)
     expect(screen.queryByRole('button', { name: /^feed/i })).toBeNull()
   })
 
@@ -300,7 +304,7 @@ describe('BreedPanel', () => {
   })
 
   it('disables breeding when every building is busy, naming no species in the egg state', async () => {
-    const busy = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: QUIET + 99_000, hatchMs: 1 } }] }
+    const busy = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: QUIET + 99_000, hatchMs: 1, xpFree: false } }] }
     const { wrap } = harness(busy, 0, undefined, GAME)
     wrap(<BreedPanel nowMs={QUIET} />)
     await pick('d1', 'd2')
@@ -338,7 +342,7 @@ describe('BreedPanel', () => {
   })
 
   it('moves a finished egg to the Hatchery on a tap', async () => {
-    const s = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 5_000 } }] }
+    const s = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 5_000, xpFree: false } }] }
     const { wrap, action } = harness(s, QUIET, undefined, GAME)
     wrap(<BreedPanel nowMs={QUIET} />)
     const row = screen.getByTestId('breeder-0')
@@ -349,7 +353,7 @@ describe('BreedPanel', () => {
   })
 
   it('disables Move to Hatchery with a reason when the Hatchery is full', () => {
-    const s = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 5_000 } }], hatchery: [{ speciesId: 'sea', readyAtMs: 99 }] }
+    const s = { ...pl2(base), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs: 0, hatchMs: 5_000, xpFree: false } }], hatchery: [{ speciesId: 'sea', readyAtMs: 99 }] }
     const { wrap } = harness(s, QUIET, undefined, GAME)
     wrap(<BreedPanel nowMs={QUIET} />)
     const row = screen.getByTestId('breeder-0')
@@ -526,4 +530,47 @@ describe('ShopPanel Store tab food pack', () => {
   })
 
 
+})
+
+describe('QuestsPanel (§1.4)', () => {
+  const done = (n: number): PlayerState => ({ ...base, goalIndex: n })
+  it('shows an unmet Goal with its progress and no Claim', () => {
+    harness(base).wrap(<QuestsPanel />)
+    expect(screen.getByText('Goal 1 of 14')).toBeInTheDocument()
+    expect(screen.getByText('Collect Gold from a habitat')).toBeInTheDocument()
+    expect(screen.getByText('0 / 1')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Claim' })).toBeNull()
+  })
+
+  it('shows Claim when done, and sends claimGoal', async () => {
+    const h = harness({ ...base, goalStats: { ...base.goalStats, collects: 1 } })
+    h.wrap(<QuestsPanel />)
+    expect(screen.getByText('1 / 1')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Claim' }))
+    expect(h.action).toHaveBeenCalledWith({ type: 'claimGoal' }, expect.any(String))
+  })
+
+  it('shows XP after the preset multiplier: 300 under Flash-14, 200 under Flash-28', () => {
+    harness(base, 0, 'flash14').wrap(<QuestsPanel />)
+    expect(screen.getByText('+300 XP · +200 gold')).toBeInTheDocument()
+    cleanup()
+    harness(base, 0, 'flash28').wrap(<QuestsPanel />)
+    expect(screen.getByText('+200 XP · +200 gold')).toBeInTheDocument()
+  })
+
+  it('counts through the later Goals and ends with All goals done', () => {
+    harness(done(3)).wrap(<QuestsPanel />)
+    expect(screen.getByText('Goal 4 of 14')).toBeInTheDocument()
+    cleanup()
+    harness(done(14)).wrap(<QuestsPanel />)
+    expect(screen.getByText('All goals done')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Claim' })).toBeNull()
+  })
+
+  it('opens where a Goal is done: Goal 2 opens the Farm', async () => {
+    const onOpen = vi.fn()
+    harness(done(1)).wrap(<QuestsPanel onOpen={onOpen} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Go to Farm' }))
+    expect(onOpen).toHaveBeenCalledWith({ kind: 'target', target: { kind: 'farm', plot: 0 } })
+  })
 })

@@ -1,4 +1,4 @@
-import { CROPS, cropFood, cropGrowMs, cropUnlocked, isUnfinished, priceMicroUsd, type CropId } from '@wyrmhaven/game-core'
+import { CROPS, cropFood, cropGrowMs, cropUnlocked, isUnfinished, priceMicroUsd, unlockPl, type CropId } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { usePreset } from '../state/preset'
@@ -43,7 +43,7 @@ export function FarmPanel({ index, nowMs, onClose }: { index: number; nowMs: num
           {CROP_IDS.map(crop => {
             const info = CROPS[crop]
             const locked = !cropUnlocked(crop, s.level)
-            const reason = building ? 'Still being built' : locked ? `Level ${info.unlockPl}` : s.gold < info.gold ? 'Not enough gold' : ''
+            const reason = building ? 'Still being built' : locked ? `Level ${unlockPl(`crop:${crop}`)}` : s.gold < info.gold ? 'Not enough gold' : ''
             return (
               <li key={crop}>
                 <ActionButton id={`plant-${index}-${crop}`} disabled={pending || reason !== ''} reason={reason} onClick={() => void run({ type: 'plant', plot: index, crop })}>

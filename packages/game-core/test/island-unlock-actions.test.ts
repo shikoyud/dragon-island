@@ -41,8 +41,8 @@ describe('island unlock actions', () => {
     expect([b.gold, b.constructions[0]]).toEqual([0, { kind: 'clear', obstacleId: 'home-s1-bush', readyAtMs: 60_000 }])
     err(run(b, { type: 'clearObstacle', obstacleId: 'home-s1-bush' }, 0), 'UNDER_CONSTRUCTION')
     const c = ok(run(b, { type: 'finishConstruction', index: 0 }, 60_000))
-    expect([c.islands.obstacles.map(o => o.id), c.xp, c.food - b.food]).toEqual([['home-s1-rock'], 40, 10])
-    expect(c.level).toBe(3) // 20 classic x 12 = 240 XP from PL 2: 200 to PL 3, 40 over
+    expect([c.islands.obstacles.map(o => o.id), c.xp, c.food - b.food]).toEqual([['home-s1-rock'], 115, 10])
+    expect(c.level).toBe(3) // 50 build XP (R31) + 20 classic x 12 = 290 XP from PL 2: 175 to PL 3, 115 over
   })
   it('validates action shapes', () => {
     err(run(s, { type: 'clearObstacle', obstacleId: '' }, 0), 'INVALID_ACTION')

@@ -4,7 +4,7 @@ import { newPlayer } from '../src/state'
 import { FOOD_PACK, priceMicroUsd } from '../src/store'
 
 const base = newPlayer(0)
-const egg = (readyAtMs: number) => ({ ...newPlayer(0), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs, hatchMs: 1 } }] })
+const egg = (readyAtMs: number) => ({ ...newPlayer(0), breeders: [{ ...base.breeders[0]!, egg: { speciesId: 'flame', readyAtMs, hatchMs: 1, xpFree: false } }] })
 
 describe('priceMicroUsd', () => {
   it('prices every skip by the 3.6 curve on the remaining time', () => {

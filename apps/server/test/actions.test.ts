@@ -1,4 +1,4 @@
-import { applyAction, newPlayer, skipPriceMicroUsd, type PlayerState } from '@wyrmhaven/game-core'
+import { applyAction, cumulativeXp, newPlayer, skipPriceMicroUsd, type PlayerState } from '@wyrmhaven/game-core'
 import { eq, sql } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { actionLog, balances, players, spendBatches } from '../src/db/schema'
@@ -136,6 +136,84 @@ describe('POST /actions', () => {
     expect(await t.db.select().from(spendBatches)).toHaveLength(0)
   })
 
+  it('Ascension charges $2.00 in $DRIS and starts the Tier 5 build, all in one action (R35)', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 10_000_000 })
+    const r = await post({ type: 'buy', item: { kind: 'ascension' } })
+    expect(r.statusCode).toBe(200)
+    expect(r.json().effects).toEqual([{ type: 'charge', microUsd: 2_000_000 }])
+    expect(r.json().state.gold).toBe(0)
+    expect(r.json().state.constructions).toHaveLength(1)
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(60n * E18) // $2.00 at $0.05 is 40 tokens
+  })
+
+  it('Ascension with too little $DRIS rolls the whole action back: Gold, build and balance unchanged', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 10_000_000 })
+    await t.db.update(balances).set({ tokenWei: 39n * E18 })
+    const r = await post({ type: 'buy', item: { kind: 'ascension' } })
+    expect(r.statusCode).toBe(402)
+    expect(r.json()).toEqual({ error: 'INSUFFICIENT_TOKENS' })
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const st = p!.state as PlayerState
+    expect([st.gold, st.constructions, st.roostTier]).toEqual([10_000_000, [], 4])
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(39n * E18)
+    expect(await t.db.select().from(spendBatches)).toHaveLength(0)
+  })
+
+  it('Ascension with 9,999,999 Gold is a 422 INSUFFICIENT_GOLD with no charge', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 9_999_999 })
+    const r = await post({ type: 'buy', item: { kind: 'ascension' } })
+    expect([r.statusCode, r.json()]).toEqual([422, { error: 'INSUFFICIENT_GOLD' }])
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(100n * E18)
+    expect(await t.db.select().from(spendBatches)).toHaveLength(0)
+  })
+
+  it('replaying the same idempotency key after an Ascension charges once', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 10_000_000 })
+    const first = await post({ type: 'buy', item: { kind: 'ascension' } }, 'asc-1')
+    const replay = await post({ type: 'buy', item: { kind: 'ascension' } }, 'asc-1')
+    expect([first.statusCode, replay.statusCode]).toEqual([200, 200])
+    expect(replay.json()).toEqual(first.json())
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(60n * E18)
+    expect(await t.db.select().from(spendBatches)).toHaveLength(1)
+  })
+
+  it('claimGoal posted twice with one idempotency key pays the reward once', async () => {
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const before = p!.state as PlayerState
+    await setState({ goalStats: { ...before.goalStats, collects: 1 } })
+    const first = await post({ type: 'claimGoal' }, 'goal-1')
+    const replay = await post({ type: 'claimGoal' }, 'goal-1')
+    expect([first.statusCode, replay.statusCode]).toEqual([200, 200])
+    expect(replay.json()).toEqual(first.json())
+    expect(first.json().state.gold).toBe(before.gold + 200) // Goal 1: +200 gold
+    const paidXp = first.json().state.xp as number // Goal 1's XP after the server's preset multiplier
+    expect(paidXp).toBeGreaterThan(0)
+    const [after] = await t.db.select().from(players).where(eq(players.id, playerId))
+    expect(after!.state).toMatchObject({ gold: before.gold + 200, xp: paidXp, goalIndex: 1 })
+    expect(await t.db.select().from(actionLog).where(eq(actionLog.idempotencyKey, 'goal-1'))).toHaveLength(1)
+  })
+
+  it('a fresh key while the Ascension builds is a 422 UNDER_CONSTRUCTION with no second charge', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 20_000_000 })
+    expect((await post({ type: 'buy', item: { kind: 'ascension' } })).statusCode).toBe(200)
+    const again = await post({ type: 'buy', item: { kind: 'ascension' } })
+    expect([again.statusCode, again.json()]).toEqual([422, { error: 'UNDER_CONSTRUCTION' }])
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(60n * E18)
+  })
+
+  it('Ascension below Tier 4 is a 422 with no charge', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 3, level: 30, gold: 10_000_000 })
+    const r = await post({ type: 'buy', item: { kind: 'ascension' } })
+    expect([r.statusCode, r.json()]).toEqual([422, { error: 'INVALID_ACTION' }])
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(100n * E18)
+  })
+
   it('GET /me resets a save of another version to a fresh player instead of returning it raw', async () => {
     const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
     await t.db.update(players).set({ state: { ...(p!.state as PlayerState), version: 1, gold: 7 } }).where(eq(players.id, playerId))
@@ -179,6 +257,23 @@ describe('POST /actions', () => {
     expect(r.statusCode).toBeLessThan(500)
     expect(r.json().state).not.toHaveProperty('pity')
     expect(resets()).toHaveLength(2)
+  })
+
+  it('GET /me shows the banked XP the new day releases, with no action, and leaves the stored row alone (R41)', async () => {
+    const bank = cumulativeXp(15) - cumulativeXp(12)
+    await setState({ level: 12, xp: bank })
+    const stored = async () => (await t.db.select().from(players).where(eq(players.id, playerId)))[0]!.state as PlayerState
+    await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) }) // creates the game row at clock 0
+    const day1 = (await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })).json()
+    expect(day1.state).toMatchObject({ level: 12, xp: bank })
+    t.clock.set(86_400_000 + 1_000) // game day 2: limit PL 18
+    const day2 = (await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })).json()
+    expect(day2.game.day).toBe(2)
+    expect(day2.state).toMatchObject({ level: 15, xp: 0 })
+    expect(await stored()).toMatchObject({ level: 12, xp: bank })
+    // The next action pays it for real.
+    expect((await post({ type: 'collectGold', habitatId: 'h1' })).json().state).toMatchObject({ level: 15, xp: 0 })
+    expect(await stored()).toMatchObject({ level: 15, xp: 0 })
   })
 
   it('passes the game day to applyAction, from the game row when LAUNCH_AT is unset', async () => {

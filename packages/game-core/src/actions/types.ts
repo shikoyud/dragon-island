@@ -10,11 +10,12 @@ import type { StoreItem } from '../store'
 export type TeamIds = [string, string, string]
 
 export type Placeable =
-  | { kind: 'habitat'; element: Element } | { kind: 'farm' } | { kind: 'grove' } | { kind: 'decoration'; decoration: DecorationId }
+  | { kind: 'habitat'; element: Element } | { kind: 'farm' } | { kind: 'grove' } | { kind: 'roost' } | { kind: 'decoration'; decoration: DecorationId }
 export type MovableRef = BuildingRef | { type: 'decoration'; id: string }
 
 export type Action =
   | { type: 'collectGold'; habitatId: string }
+  | { type: 'claimGoal' }
   | { type: 'placeBuilding'; building: Placeable; placement: Placement }
   | { type: 'moveBuilding'; target: MovableRef; placement: Placement }
   | { type: 'removeDecoration'; id: string }
@@ -48,7 +49,7 @@ export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'I
   | 'LAST_DRAGONS' | 'NOT_SELLABLE' | 'NOTHING_TO_SKIP'
   | 'INVALID_TEAM' | 'NO_DEFENCE_TEAM' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'
   | 'OUT_OF_BOUNDS' | 'OVERLAP' | 'BUILDERS_BUSY' | 'ISLAND_LOCKED' | 'MAX_ISLAND' | 'WRONG_ISLAND' | 'UNDER_CONSTRUCTION'
-  | 'NO_LEGENDARY' | 'MAX_EXPANSION' | 'AERIE_EXISTS'
+  | 'NO_LEGENDARY' | 'MAX_EXPANSION' | 'AERIE_EXISTS' | 'GOAL_NOT_DONE' | 'NO_GOAL'
 
 /** Side effects the server settles after persisting the new state. */
 export type Effect =

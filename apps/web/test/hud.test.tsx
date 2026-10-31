@@ -1,5 +1,5 @@
 import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
-import { screen, within } from '@testing-library/react'
+import { cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { GameInfo } from '@wyrmhaven/shared'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -65,17 +65,33 @@ describe('HUD', () => {
     expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'book' })
   })
 
-  it('disables Wings, Quests and Inbox with the coming-later note', async () => {
+  it('disables Wings and Inbox with the coming-later note; Quests is enabled', async () => {
     const { onOpen } = renderHud(base())
     const bar = screen.getByRole('navigation', { name: 'Main menu' })
-    for (const name of ['Wings', 'Quests', 'Inbox']) {
+    for (const name of ['Wings', 'Inbox']) {
       const b = within(bar).getByRole('button', { name })
       expect(b).toBeDisabled()
       expect(b).toHaveAccessibleDescription('Coming in a later milestone')
       await userEvent.click(b)
     }
     expect(onOpen).not.toHaveBeenCalled()
-    for (const name of ['Shop', 'Breed', 'Dragon Book', 'Battle']) expect(within(bar).getByRole('button', { name })).toBeEnabled()
+    for (const name of ['Shop', 'Breed', 'Dragon Book', 'Battle', 'Quests']) expect(within(bar).getByRole('button', { name })).toBeEnabled()
+    await userEvent.click(within(bar).getByRole('button', { name: 'Quests' }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'quests' })
+  })
+
+  it('shows a dot on Quests and a Goal ready shortcut only when the current Goal is claimable', async () => {
+    renderHud(base())
+    expect(screen.queryByRole('img', { name: 'Goal ready' })).toBeNull()
+    expect(screen.queryByText('Goal ready')).toBeNull()
+    cleanup()
+    const done = { ...base(), goalStats: { ...base().goalStats, collects: 1 } }
+    const r = renderHud(done)
+    expect(screen.getByRole('button', { name: 'Quests' })).toHaveAccessibleDescription('Goal ready')
+    const list = screen.getByRole('complementary', { name: 'Needs attention' })
+    expect(within(list).getByText('Goal ready')).toBeInTheDocument()
+    await userEvent.click(within(list).getByRole('button', { name: 'Claim' }))
+    expect(r.action).toHaveBeenCalledWith({ type: 'claimGoal' }, expect.any(String))
   })
 
   it('has the island menu on the right (Map; Settings sits in the top bar); Admin only with an operator token in this tab', () => {
