@@ -17,7 +17,7 @@ The battle is a fixed portrait stage of **360 x 420** px (`BATTLE` in `apps/web/
 
 ## Generation budget
 
-PixelLab has about **1,027 generations left**. One "generation" in the table below means one finished sheet or still (a key); it may take several PixelLab calls (a still is usually 1 to 3, a 4 to 6 frame sheet 2 to 5, a Trial Champion sheet up to 8 because three of them must match). Required: **53 keys**. Expected cost is about 3 calls a key, so about **160 plus about 10 extra for the Champion**; the worst case is 5 a key plus 8 for each Champion sheet, about **275**. Count calls as you go and **stop at 750 remaining** unless the owner says otherwise.
+PixelLab has about **1,027 generations left**. One "generation" in the table below means one finished sheet or still (a key); it may take several PixelLab calls (a still is usually 1 to 3, a 4 to 6 frame sheet 2 to 5, a Trial Champion sheet up to 8 because three of them must match). Required: **53 keys**. Expected cost is about 3 calls a key, so about **160 plus about 10 extra for the Champion**. The worst case is 5 calls for each of the 50 other keys plus 8 for each of the 3 Champion sheets: **274** (279 with the optional egg at 5). 1,027 minus 279 is 748, so **stop at 745 remaining** and even the worst case is covered, unless the owner says otherwise. Count calls as you go.
 
 | Priority | Group | Keys | Generations |
 |---|---|---|---|
@@ -59,18 +59,18 @@ One-shots: the game plays the sheet once on the target and removes it. Each is c
 | `fx.crit` | 64x64 | 4 | 14 | A larger, spiky gold-and-white burst for a critical hit; plays on top of `fx.hit`. Drawn at 2x |
 | `fx.immune` | 64x64 | 4 | 14 | A blocked hit: a pale blue-grey ring rippling off a small shield flash, no damage look. Plays instead of `fx.hit` when the target is immune. Drawn at 2x |
 | `fx.ko` | 64x64 | 6 | 14 | A dragon falls: a soft puff of smoke with a few drifting stars. Plays on the target of the knock-out blow while the dragon fades. Drawn at 2x |
-| `fx.swap` | 64x64 | 5 | 14 | A dragon leaves the field: a swirl of small light motes. Plays at the swapping side's feet as the old dragon slides off. Drawn at 2x |
+| `fx.swap` | 64x64 | 5 | 14 | A dragon leaves the field: a swirl of small light motes. Plays centred on the swapping side's body (its feet y minus half its drawn height) as the old dragon slides off. Drawn at 2x |
 
 ## Battle UI
 
-Pieces of the battle screen's React controls, drawn from art when the manifest has them (a CSS look otherwise). The nine-sliced pieces keep the 2 px border they already have, so the layout never moves: **corners are 2 px, edges repeat, the centre stretches**.
+Pieces of the battle screen's React controls, drawn from art when the manifest has them (a CSS look otherwise). The nine-sliced pieces keep the 2 px border they already have, so the layout never moves: **corners are 2 px and the edges and centre stretch** (CSS `border-image` with `stretch`, so nothing repeats): keep the edges and centre flat, with no pattern that a stretch would smear.
 
 | Key | Frame (px) | Frames | fps | Description |
 |---|---|---|---|---|
-| `ui.battle.hpFrame` | 16x16 | 1 | 0 | The HP plate (the glass panel with the dragon's name, HP bar and bench pips). Nine-slice: 2 px dark outline and 1 px inner highlight, a flat dark blue-grey centre with about 70 % opacity so the backdrop shows. Text and the HP bar sit on the centre, so keep it plain |
+| `ui.battle.hpFrame` | 16x16 | 1 | 0 | The HP plate (the glass panel with the dragon's name, HP bar and bench pips). Nine-slice: a 2 px outer slice holding a 1 px dark outline and a 1 px inner highlight inside it (both must fit within the 2 px corner slice), a flat dark blue-grey centre with about 70 % opacity so the backdrop shows. Text and the HP bar sit on the centre, so keep it plain |
 | `ui.battle.moveButton` | 16x16 | 1 | 0 | A move button (2x2 grid under the stage). Nine-slice, same rule: a raised 2 px bevel, flat centre in a warm mid-dark tone that white 11 px text reads on. Disabled buttons are dimmed by the game |
 | `ui.battle.swap` | 16x16 | 1 | 0 | The Swap button, same rule, in a cooler tone than the move buttons so it reads as a different action |
-| `ui.battle.turn` | 96x16 | 1 | 0 | The turn banner behind "Turn n / 12" and the star goal. **Stretched** to the line's width (about 330 x 16), so the middle 80 px is a flat, repeating band and only the 8 px ends carry detail |
+| `ui.battle.turn` | 96x16 | 1 | 0 | The turn banner behind "Turn n / 12" and the star goal. **Stretched whole** (`center / 100% 100%`, not sliced) to the line's width (about 330 x 16), a bit over 3x horizontally, so it must be a flat bar with no detail worth keeping: a plain band with a 1 px outline and at most a soft vertical gradient |
 | `ui.star` | 12x12 | 1 | 0 | A filled gold star for Trial results and node stars |
 | `ui.star.empty` | 12x12 | 1 | 0 | The same star, empty: a dark outline and a dim blue-grey fill |
 | `ui.tier.1`, `ui.tier.2`, `ui.tier.3` | 12x12 | 1 | 0 | Move tier pips shown before "Tier 1/2/3" on a move button: one, two and three small gems or flames in a row. Tell them apart by shape and count, not by colour alone |
