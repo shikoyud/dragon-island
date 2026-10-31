@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { resetPlayer, signIn } from './helpers'
+import { dismissLevelUp, resetPlayer, signIn } from './helpers'
 
 type TestBridge = {
   emit(e: unknown): void
@@ -11,6 +11,7 @@ const bridge = <T>(page: Page, fn: (b: TestBridge) => T) =>
 const ready = async (page: Page) => {
   await page.reload()
   await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: { state: unknown } }).__bridge?.state))
+  await dismissLevelUp(page)
 }
 
 test('builds the Roost, skips the build, reads its tier, then Ascends through the paid path', async ({ page, request }) => {

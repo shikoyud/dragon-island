@@ -87,5 +87,15 @@ export async function openPanel(page: Page, label: string) {
   }
 }
 
-export const flameTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))
+/**
+ * A spec that grants a higher level and reloads is a returning player whose stored level is behind (R38): the level-up
+ * screen opens over the island. Closes it so clicks reach the canvas and the panels.
+ */
+export async function dismissLevelUp(page: Page) {
+  await expect(page.getByRole('progressbar', { name: 'Experience' })).toBeVisible()
+  const continueButton = page.getByRole('dialog', { name: 'Level up' }).getByRole('button', { name: 'Continue' })
+  if (await continueButton.isVisible().catch(() => false)) await continueButton.click()
+}
+
+export const flameTeam =(level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))
 export const seaTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'sea', level, feeds: 0, habitatId: 'h2' }))
