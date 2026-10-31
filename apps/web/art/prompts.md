@@ -210,3 +210,29 @@ Tier 1: "isometric game building filling the whole canvas width, dragon roost: a
 Tier 2: "the same dragon roost, same stone base, same angle: the nest deeper and wider, a dark wooden rim around the nest, add a second carved perch post on the left side, a small red banner hanging from the right post". Tier 3: "the same dragon roost, keep the big round nest exactly as wide and visible: taller stone plinth as wide as before with carved steps at the front, a narrow thatched straw awning spanning between the tops of the two back posts, leaning over only the back of the nest, no front posts, two crimson banners"; asking for a canopy on the posts instead gives a wishing well that hides the nest. Tier 4: "the same dragon roost, keep the same plinth, steps and big round nest fully visible: the back canopy is now built of grey stone slabs on dark timber beams, the beam ends curve upward like dragon horns, bronze bands on the posts and bronze trim along the plinth, warm orange light glowing in the middle of the nest, crimson banners with gold edge"; without "in the middle of" the nest turns into a lava pool. Tier 5: "the same dragon roost, same plinth shape, steps and round nest, now ascended: all stone becomes pale ivory marble with gold trim, posts and horns become white and gold, canopy of pale gold-trimmed stone, a floating golden halo ring hovering above the canopy, radiant white-gold light spilling from the nest, small glowing light motes drifting in the air, white and gold banners". All end "1px dark outline, transparent background".
 
 Goal mark: "same round badge and black outline: the plate becomes bright green with a gold rim, replace the X with one bold white-gold check mark tick".
+
+## GDD M4 set (2026-10-31)
+
+Keys follow `docs/art/gdd-m4-art-list.md` (64 required; the optional `ground.plotEdge` is skipped). Cost 88 generations. Original designs; v1 sheets are only the start image for habitats, Farm and crops.
+
+| Run | Tool | Cost | Used for |
+| --- | --- | --- | --- |
+| Habitats, Aerie | `edit_image_pixen` on a code-made start image (v1 frame 0 reprojected onto the 52x26 slab), seed 401 (flame and ice seed 402; seed 401 discarded) | 13 | frame 0 of `habitat.<element>`, `building.goldenAerie` (from the light start image) |
+| Habitat motion | `animate_image`, frame_count 4, seed 411 | 11 | effect pixels only, see below |
+| Farm | `edit_image_pixen` on the v1 plot, seed 422 (well kept; scarecrow seed 421 discarded) | 2 | `building.farmPlot` |
+| Crops | `edit_image_pixen` on the v1 frame scaled 1.5x, seed 431; ripe rerolls from the mid frame, seeds 441 and 442 | 26 | `crop.<id>` |
+| Sway | `animate_image` on the ripe frame, seed 481 | 6 | `crop.<id>.sway`; the lowest rows (the pumpkin's whole body, or its lightning mark goes) stay frame 0 |
+| Obstacles | `create_image_pro_flash` seed 451 for `ancientTree`; `create_image_pixen` seed 452 for the rest (`smallRock` drawn 32x32, cropped to 24 rows) | 10 | `obstacle.<kind>` |
+| Map | `create_image_pixen` 128x96, view high top-down, seed 461; `isle4` and `isle6` seed 462 (seed 461 discarded: trees and water; a literal crown) | 8 | `map.<id>` |
+| Bridge | `create_image_pixen` seed 461, then one plank repeated in code and mirrored both ways | 1 | `map.bridge` |
+| Backdrop | one `create_image_pixen` tried and discarded (a border and a dark rose, not seamless); drawn in code | 1 | `map.backdrop` |
+| Tiles | `create_tiles_pro` isometric 32 px, angle 30, depth 0, segmentation, 16 tiles in one call, seed 471; 2x mode downsample | 10 | `ground.isle<n>.<0..2>`, `ground.fog` |
+| Cliffs | drawn in code: 1 px ground lip, three strata from the island's ramp, dark foot; SW 78 % as bright as SE | 0 | `ground.cliff.isle<n>.sw/.se` |
+
+Habitat loop (code): `animate_image` redraws the whole sprite and drifts, so frame 0 is fixed and only the effect moves. Rim and silhouette below y 39 are code-drawn on every frame. Flame, dark, electric, metal, golden: the glow's hue band brightens, plus the tip region from generated frames (order 0,1,2,1 where the later frames die out). Terra and metal: new pixels only (motes, smoke). Nature, light: the crown or sun region. Sea: the water may change, the slab outline does not. Ice: code-drawn glints. War: flame region, banner rows shift 1 px.
+
+Tiles (code): the game's `(col*7+row*13)%3` equals `(col+row)%3`, so a strong feature tile draws diagonal stripes. Base tile is calmed toward its mean (20 to 45 %); variant 1 is the base plus its 3 most different pixels from its generated tile, variant 2 plus 5.
+
+Slab prompt: "same diamond platform, same angle, same colours: <top face>. Add at the back corner <prop>, rising above the platform. Front half of the top face stays flat and clear. Crisp pixel art, 1px dark outline, transparent background". Props: flame one slim narrow black lava rock spire with glowing orange cracks and a small flame; sea small grey rock outcrop with a little waterfall, one lily pad; nature small leafy young tree with ferns; electric one slim copper lightning rod with a coil and yellow sparks; ice cluster of tall pointed blue-white ice crystals; metal small iron forge chimney with a glowing furnace hatch and an anvil; dark slim black obelisk with violet runes and a violet flame; light slim white marble pillar with a small radiant golden sun; terra two tall tan standing stones leaning together; war crimson banners stay, small iron brazier at the back; Aerie ring of ten small glowing gem motes above the back half, white stone with gold trim.
+
+Island prompt: "a fantasy island seen whole from above and in front, floating alone with no water around it: <theme>, <rock> cliffs under its edge, filling the whole canvas width, 1px dark outline, transparent background, no shadow".

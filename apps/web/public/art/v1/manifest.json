@@ -2,19 +2,19 @@
   "assets": {
     "building.farmPlot": {
       "file": "farm-plot.png",
-      "w": 32,
-      "h": 32,
+      "w": 48,
+      "h": 40,
       "frames": 1,
       "fps": 0,
-      "top": 10
+      "top": 2
     },
     "building.goldenAerie": {
       "file": "golden-aerie.png",
-      "w": 80,
-      "h": 64,
-      "frames": 1,
-      "fps": 0,
-      "top": 10
+      "w": 64,
+      "h": 56,
+      "frames": 4,
+      "fps": 4,
+      "top": 7
     },
     "building.hatchery": {
       "file": "hatchery.png",
@@ -82,51 +82,51 @@
     },
     "crop.dragonBush": {
       "file": "crop-dragonBush.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 3,
       "fps": 0,
-      "top": 1
+      "top": 2
     },
     "crop.dragonBush.sway": {
       "file": "crop-dragonBush-sway.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 4,
       "fps": 4,
       "top": 1
     },
     "crop.emberWheat": {
       "file": "crop-emberWheat.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 3,
       "fps": 0,
       "top": 1
     },
     "crop.emberWheat.sway": {
       "file": "crop-emberWheat-sway.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 4,
       "fps": 4,
       "top": 1
     },
     "crop.frostBerries": {
       "file": "crop-frostBerries.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 3,
       "fps": 0,
-      "top": 2
+      "top": 3
     },
     "crop.frostBerries.sway": {
       "file": "crop-frostBerries-sway.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 4,
       "fps": 4,
-      "top": 1
+      "top": 3
     },
     "crop.harvest": {
       "file": "crop-harvest.png",
@@ -146,19 +146,19 @@
     },
     "crop.seaMelon": {
       "file": "crop-seaMelon.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 3,
       "fps": 0,
-      "top": 2
+      "top": 1
     },
     "crop.seaMelon.sway": {
       "file": "crop-seaMelon-sway.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 1
     },
     "crop.sprout": {
       "file": "crop-sprout.png",
@@ -178,35 +178,35 @@
     },
     "crop.thunderPumpkin": {
       "file": "crop-thunderPumpkin.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 3,
       "fps": 0,
       "top": 2
     },
     "crop.thunderPumpkin.sway": {
       "file": "crop-thunderPumpkin-sway.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 1
     },
     "crop.warlordPepper": {
       "file": "crop-warlordPepper.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 3,
       "fps": 0,
-      "top": 1
+      "top": 2
     },
     "crop.warlordPepper.sway": {
       "file": "crop-warlordPepper-sway.png",
-      "w": 16,
-      "h": 16,
+      "w": 24,
+      "h": 24,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 2
     },
     "decoration.boneArch": {
       "file": "decoration-boneArch.png",
@@ -570,83 +570,83 @@
     },
     "habitat.dark": {
       "file": "habitat-dark.png",
-      "w": 80,
-      "h": 64,
+      "w": 64,
+      "h": 56,
       "frames": 4,
       "fps": 4,
-      "top": 8
+      "top": 0
     },
     "habitat.electric": {
       "file": "habitat-electric.png",
-      "w": 80,
-      "h": 64,
+      "w": 64,
+      "h": 56,
       "frames": 4,
       "fps": 4,
       "top": 0
     },
     "habitat.flame": {
       "file": "habitat-flame.png",
-      "w": 80,
-      "h": 64,
+      "w": 64,
+      "h": 56,
       "frames": 4,
       "fps": 4,
-      "top": 7
+      "top": 0
     },
     "habitat.ice": {
       "file": "habitat-ice.png",
-      "w": 80,
-      "h": 64,
+      "w": 64,
+      "h": 56,
       "frames": 4,
       "fps": 4,
-      "top": 5
+      "top": 6
     },
     "habitat.light": {
       "file": "habitat-light.png",
-      "w": 80,
-      "h": 64,
+      "w": 64,
+      "h": 56,
       "frames": 4,
       "fps": 4,
-      "top": 11
+      "top": 4
     },
     "habitat.metal": {
       "file": "habitat-metal.png",
-      "w": 80,
-      "h": 64,
+      "w": 64,
+      "h": 56,
       "frames": 4,
       "fps": 4,
       "top": 0
     },
     "habitat.nature": {
       "file": "habitat-nature.png",
-      "w": 80,
-      "h": 64,
+      "w": 64,
+      "h": 56,
       "frames": 4,
       "fps": 4,
-      "top": 10
+      "top": 1
     },
     "habitat.sea": {
       "file": "habitat-sea.png",
-      "w": 80,
-      "h": 64,
+      "w": 64,
+      "h": 56,
       "frames": 4,
       "fps": 4,
-      "top": 10
+      "top": 17
     },
     "habitat.terra": {
       "file": "habitat-terra.png",
-      "w": 80,
-      "h": 64,
+      "w": 64,
+      "h": 56,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 4
     },
     "habitat.war": {
       "file": "habitat-war.png",
-      "w": 80,
-      "h": 64,
+      "w": 64,
+      "h": 56,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 14
     },
     "hatchling.dark": {
       "file": "hatchling-dark.png",
@@ -1194,8 +1194,8 @@
     },
     "map.backdrop": {
       "file": "map-backdrop.png",
-      "w": 320,
-      "h": 180,
+      "w": 256,
+      "h": 256,
       "frames": 1,
       "fps": 0,
       "top": 0
@@ -1210,51 +1210,51 @@
     },
     "map.home": {
       "file": "map-home.png",
-      "w": 32,
-      "h": 32,
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "map.isle2": {
+      "file": "map-isle2.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "map.isle3": {
+      "file": "map-isle3.png",
+      "w": 128,
+      "h": 96,
       "frames": 1,
       "fps": 0,
       "top": 6
     },
-    "map.isle2": {
-      "file": "map-isle2.png",
-      "w": 32,
-      "h": 32,
+    "map.isle4": {
+      "file": "map-isle4.png",
+      "w": 128,
+      "h": 96,
       "frames": 1,
       "fps": 0,
       "top": 4
-    },
-    "map.isle3": {
-      "file": "map-isle3.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "fps": 0,
-      "top": 3
-    },
-    "map.isle4": {
-      "file": "map-isle4.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "fps": 0,
-      "top": 3
     },
     "map.isle5": {
       "file": "map-isle5.png",
-      "w": 32,
-      "h": 32,
+      "w": 128,
+      "h": 96,
       "frames": 1,
       "fps": 0,
-      "top": 2
+      "top": 0
     },
     "obstacle.boulder": {
       "file": "obstacle-boulder.png",
-      "w": 32,
-      "h": 32,
+      "w": 64,
+      "h": 48,
       "frames": 1,
       "fps": 0,
-      "top": 4
+      "top": 1
     },
     "obstacle.bush": {
       "file": "obstacle-bush.png",
@@ -1262,7 +1262,7 @@
       "h": 16,
       "frames": 1,
       "fps": 0,
-      "top": 2
+      "top": 4
     },
     "obstacle.rock": {
       "file": "obstacle-rock.png",
@@ -1283,10 +1283,10 @@
     "obstacle.tree": {
       "file": "obstacle-tree.png",
       "w": 32,
-      "h": 32,
+      "h": 40,
       "frames": 1,
       "fps": 0,
-      "top": 2
+      "top": 0
     },
     "ui.avatarFrame": {
       "file": "ui-avatar-frame.png",
@@ -3039,6 +3039,246 @@
       "frames": 1,
       "fps": 0,
       "top": 1
+    },
+    "obstacle.ancientTree": {
+      "file": "obstacle-ancientTree.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "obstacle.largeRock": {
+      "file": "obstacle-largeRock.png",
+      "w": 48,
+      "h": 40,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "obstacle.smallRock": {
+      "file": "obstacle-smallRock.png",
+      "w": 32,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "map.isle6": {
+      "file": "map-isle6.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "map.bridge": {
+      "file": "map-bridge.png",
+      "w": 64,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "ground.isle2.0": {
+      "file": "ground-isle2-0.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.isle2.1": {
+      "file": "ground-isle2-1.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.isle2.2": {
+      "file": "ground-isle2-2.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.cliff.isle2.sw": {
+      "file": "ground-cliff-isle2-sw.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "ground.cliff.isle2.se": {
+      "file": "ground-cliff-isle2-se.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "ground.isle3.0": {
+      "file": "ground-isle3-0.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.isle3.1": {
+      "file": "ground-isle3-1.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.isle3.2": {
+      "file": "ground-isle3-2.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.cliff.isle3.sw": {
+      "file": "ground-cliff-isle3-sw.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "ground.cliff.isle3.se": {
+      "file": "ground-cliff-isle3-se.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "ground.isle4.0": {
+      "file": "ground-isle4-0.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.isle4.1": {
+      "file": "ground-isle4-1.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.isle4.2": {
+      "file": "ground-isle4-2.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.cliff.isle4.sw": {
+      "file": "ground-cliff-isle4-sw.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "ground.cliff.isle4.se": {
+      "file": "ground-cliff-isle4-se.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "ground.isle5.0": {
+      "file": "ground-isle5-0.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.isle5.1": {
+      "file": "ground-isle5-1.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.isle5.2": {
+      "file": "ground-isle5-2.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.cliff.isle5.sw": {
+      "file": "ground-cliff-isle5-sw.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "ground.cliff.isle5.se": {
+      "file": "ground-cliff-isle5-se.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "ground.isle6.0": {
+      "file": "ground-isle6-0.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.isle6.1": {
+      "file": "ground-isle6-1.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.isle6.2": {
+      "file": "ground-isle6-2.png",
+      "w": 16,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.cliff.isle6.sw": {
+      "file": "ground-cliff-isle6-sw.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "ground.cliff.isle6.se": {
+      "file": "ground-cliff-isle6-se.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
     }
   }
 }
