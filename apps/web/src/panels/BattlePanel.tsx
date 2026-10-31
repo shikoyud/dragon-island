@@ -1,7 +1,7 @@
 import { TRIAL_CHAPTERS, TURN_LIMIT, type Fighter, type PlayerMove } from '@wyrmhaven/game-core'
 import type { CSSProperties } from 'react'
 import type { BattleHook } from '../state/battle'
-import { formatGold } from '../ui/Money'
+import { BattleResult } from './BattleResult'
 import { ActionButton, Panel } from '../ui/Panel'
 
 const TAP: CSSProperties = { minHeight: 44 }
@@ -16,7 +16,6 @@ export function BattlePanel({ battle, onClose }: { battle: BattleHook; onClose?:
   const done = p.done
   const trial = battle.setup.mode === 'pve' ? battle.setup.trial : null
   const title = trial ? `${TRIAL_CHAPTERS[trial.chapter - 1]!.theme} · Node ${trial.node}` : 'Battle'
-  const paid = battle.result?.trial
   const can = (m: PlayerMove) => battle.legal.some(x => JSON.stringify(x) === JSON.stringify(m))
   const replacing = !done && awaiting === 'replace'
   const bench = mine.team.flatMap((f, to) => (f.hp > 0 && to !== mine.active ? [{ f, to }] : []))
@@ -68,15 +67,7 @@ export function BattlePanel({ battle, onClose }: { battle: BattleHook; onClose?:
         </ActionButton>
       </div>
 
-      {battle.result && (
-        <p role="status">
-          Result: {battle.report ? (battle.report.winner === 'attacker' ? 'victory' : 'defeat') : 'forfeit'}
-          {' · '}
-          {paid
-            ? `${'★'.repeat(paid.stars)}${paid.won ? ` · ${formatGold(paid.gold)} gold · ${formatGold(paid.food)} food · ${formatGold(paid.xp)} XP` : ' · the team rests'}`
-            : `trophies ${battle.result.state.trophies}`}
-        </p>
-      )}
+      {battle.result && <BattleResult result={battle.result} />}
     </Panel>
   )
 }

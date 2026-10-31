@@ -34,8 +34,8 @@ test('plays a real Trial node, resumes after a reload, and gets offers in the ar
   }
   await expect(page.getByText(/you win/i)).toBeVisible()
   await page.getByRole('button', { name: /^submit$/i }).click()
-  await expect(page.getByRole('status').filter({ hasText: /result:/i })).toContainText('victory')
-  await expect(page.getByRole('status').filter({ hasText: /result:/i })).toContainText('1,000 gold')
+  await expect(page.getByRole('status', { name: /battle result/i })).toContainText('Victory')
+  await expect(page.getByRole('status', { name: /battle result/i })).toContainText('1,000 gold')
   await expect(page.getByRole('status', { name: /resources/i })).toContainText('2,000') // 1,000 gold first clear
 
   // Arena: with a saved defence team the server offers three opponents (bots on an empty server).

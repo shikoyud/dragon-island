@@ -1,9 +1,9 @@
 // §6.3, A8, R68-R70, R73, R78: Trials are frozen at the start, re-simulated at the end, and cost something to leave. Review Focus 2, 3 and 5.
 import { describe, expect, it } from 'vitest'
 import {
-  applyAction, battlePreview, createRng, currentHp, FLASH_14, FLASH_28, HEAL_ALL_MICRO_USD, isValidAction, LAUNCH_CATALOG, legalMoves, levelLimit, maxHp, newPlayer,
-  nodeRewards, nodeTeam, priceMicroUsd, simulateBattle, xpToNext,
-  type Action, type ActionResult, type ActiveTrial, type BattleDragonSpec, type Dragon, type PlayerMove, type PlayerState, type Preset,
+  applyAction, battlePreview, BOSS_EGGS, BOSS_TOKENS, breedTimerMs, canLiveIn, createRng, currentHp, FLASH_14, FLASH_28, HEAL_ALL_MICRO_USD, hatcherySlots, hatcheryUsed, isValidAction, LAUNCH_CATALOG, legalMoves, levelLimit, maxHp, newPlayer,
+  nodeRewards, nodeTeam, priceMicroUsd, simulateBattle, TRIAL_CHAMPION_ID, xpToNext,
+  type Action, type ActionResult, type ActiveTrial, type BattleDragonSpec, type Dragon, type Habitat, type PlayerMove, type PlayerState, type Preset,
 } from '../src/index'
 import { err, ok } from './helpers'
 
@@ -376,5 +376,204 @@ describe('healAll (R78)', () => {
     const s = ok(run(at(4, team('terra', 40, { fatigue: { hp: 3_000, atMs: 0 } })), start()))
     err(run(s, heal), 'IN_TRIAL')
     expect(priceMicroUsd({ kind: 'healAll' }, s, 0)).toBeNull()
+  })
+})
+
+// --- Task 5: Boss drops (§6.3, §5.6, R20, R74-R77, A21, M4 Q2) ---
+describe('Boss drops', () => {
+  const WINNERS: Record<number, string> = Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 10].map(c => [c, c === 10 ? 'sea' : 'trial-champion']))
+  /** Nodes 1-9 of `chapter` and the previous Boss cleared, a team away from any habitat so the Hatchery counts only what the test adds. */
+  const atBoss = (chapter: number, speciesId = WINNERS[chapter]!, extra: Partial<PlayerState> = {}, level = 40): PlayerState => {
+    const stars = { ...starsUpTo(chapter, 9), ...(chapter > 1 ? { [`${chapter - 1}:10`]: 1 } : {}) } as PlayerState['pve']['stars']
+    return { ...at(40, team(speciesId, level, { habitatId: 'away' }), { stars }), nextId: 100, ...extra }
+  }
+  const bossWin = (chapter: number, extra: Partial<PlayerState> = {}, seed = SEED, preset: Preset = FLASH_14) => {
+    const s = ok(run(atBoss(chapter, WINNERS[chapter], extra), start(chapter, 10), 0, 1, preset, seed))
+    const r = run(s, { type: 'finishTrial', moves: play(activeOf(s), chapter === 10 ? move2 : strike, seed) }, 0, 1, preset, seed)
+    if (!r.ok || r.trial?.won !== true) throw new Error(`expected a Chapter ${chapter} Boss win`)
+    return { r, state: r.state, trial: r.trial }
+  }
+  /** Chapter 10's Boss is a Legendary: only Sea L40 with its third move beats it (found by trying every species and move). */
+  const move2: Picker = legal => legal.find(m => m.kind === 'attack' && m.move === 2) ?? legal[0]!
+  const species = (rarity: string, el: string) => [...C.species.values()].filter(x => x.rarity === rarity && x.elements[0] === el).map(x => x.id).sort()
+
+  it('the table is R75 literally', () => {
+    expect(BOSS_TOKENS).toEqual({
+      1: { token: '15m', count: 2 }, 2: { token: '15m', count: 2 }, 3: { token: '15m', count: 3 }, 4: { token: '1h', count: 3 },
+      5: { token: '1h', count: 4 }, 6: { token: '1h', count: 4 }, 7: { token: '3h', count: 5 },
+    })
+    expect(BOSS_EGGS).toEqual({ 5: 'uncommon', 7: 'rare' })
+    expect(TRIAL_CHAMPION_ID).toBe('trial-champion')
+  })
+
+  it.each([1, 2, 3, 4, 5, 6, 7])('a first clear of Chapter %i\'s Boss adds its tokens, and the result says so', chapter => {
+    const { state, trial } = bossWin(chapter)
+    const { token, count } = BOSS_TOKENS[chapter]!
+    expect(trial.tokens).toEqual({ token, count })
+    expect(state.speedUps).toEqual({ '15m': 0, '1h': 0, '3h': 0, [token]: count })
+  })
+
+  it('Chapter 10 pays no tokens, and no $DRIS (R77)', () => {
+    const { r, trial } = bossWin(10)
+    expect(trial.tokens).toBeUndefined()
+    expect(r.ok && r.effects).toEqual([])
+  })
+
+  it('a node that is not a Boss pays no drops', () => {
+    const { trial } = win(atBoss(5), 5, 9)
+    expect([trial.tokens, trial.egg, trial.champion]).toEqual([undefined, undefined, undefined])
+  })
+
+  it('a replay of a Boss pays no tokens or egg', () => {
+    const first = bossWin(5).state
+    // Hours later, so the team has healed.
+    const again = finish(started(first, 5, 10, 10 * 60 * MIN), strike, 10 * 60 * MIN)
+    expect(again.ok && again.trial).toMatchObject({ won: true, first: false })
+    expect(again.ok && again.trial?.tokens).toBeUndefined()
+    expect(again.ok && again.trial?.egg).toBeUndefined()
+    expect(ok(again).speedUps).toEqual(first.speedUps)
+    expect(ok(again).hatchery).toEqual(first.hatchery)
+  })
+
+  it('a loss pays nothing', () => {
+    const r = finish(started(atBoss(5, 'terra', {}, 1), 5, 10))
+    expect(r.ok && r.trial?.won).toBe(false)
+    expect(ok(r).speedUps).toEqual({ '15m': 0, '1h': 0, '3h': 0 })
+    expect(ok(r).hatchery).toEqual([])
+  })
+
+  it('tokens are spent by useSpeedUp (M4 Q2)', () => {
+    const { state } = bossWin(1)
+    const timed: PlayerState = { ...state, breeders: state.breeders.map((b, i) => i === 0 ? { ...b, egg: { speciesId: 'terra', readyAtMs: 3_600_000, hatchMs: 1, xpFree: false } } : b) }
+    const a = ok(run(timed, { type: 'useSpeedUp', token: '15m', target: 'breeder', index: 0 }))
+    expect(a.speedUps['15m']).toBe(1)
+    expect(a.breeders[0]!.egg?.readyAtMs).toBe(3_600_000 - 900_000)
+  })
+
+  describe('eggs', () => {
+    it('Chapter 5 gives an Uncommon with primary Electric, Chapter 7 a Rare with primary Metal, and says only that (R20)', () => {
+      for (const [chapter, rarity, element] of [[5, 'uncommon', 'electric'], [7, 'rare', 'metal']] as const) {
+        const { state, trial } = bossWin(chapter)
+        expect(trial.egg).toEqual({ rarity, element })
+        expect(state.hatchery).toHaveLength(1)
+        expect(species(rarity, element)).toContain(state.hatchery[0]!.speciesId)
+      }
+    })
+
+    it('is chosen by the action Rng: same seed, same egg; every species of the pool turns up, uniformly by sorted id', () => {
+      const pool = species('uncommon', 'electric')
+      expect(pool.length).toBeGreaterThan(1)
+      expect(bossWin(5).state.hatchery).toEqual(bossWin(5).state.hatchery)
+      const seen = new Set<string>()
+      for (let seed = 1; seed <= 40; seed++) seen.add(bossWin(5, {}, seed).state.hatchery[0]!.speciesId)
+      expect([...seen].sort()).toEqual(pool)
+    })
+
+    it('draws after the battle: the egg is the next draw of an Rng that has just run the battle', () => {
+      const s = started(atBoss(5), 5, 10)
+      const moves = play(activeOf(s))
+      const rng = createRng(SEED)
+      simulateBattle(activeOf(s).specs, nodeTeam(5, 10, C), moves, rng, C)
+      const pool = species('uncommon', 'electric')
+      expect(ok(run(s, { type: 'finishTrial', moves })).hatchery[0]!.speciesId).toBe(pool[rng.int(pool.length)])
+    })
+
+    it('hatches in its §3.5 time divided by the preset, and pays hatch XP (not xpFree)', () => {
+      for (const preset of [FLASH_14, FLASH_28]) {
+        const egg = bossWin(5, {}, SEED, preset).state.hatchery[0]!
+        const sp = C.species.get(egg.speciesId)!
+        expect(egg.readyAtMs).toBe(breedTimerMs(sp.rarity, sp.elements, preset))
+        expect(egg.xpFree).toBeFalsy()
+      }
+    })
+
+    it('a full Hatchery takes it above capacity; a further egg waits in its breeder until two hatches free the room (R76)', () => {
+      const slots = hatcherySlots(3, false)
+      const full = { speciesId: 'terra', readyAtMs: 0 }
+      const waiting = { speciesId: 'flame', readyAtMs: 0, hatchMs: 1, xpFree: false }
+      const { state } = bossWin(5, { hatcheryLevel: 3, hatchery: Array.from({ length: slots }, () => full), breeders: newPlayer(0).breeders.map(b => ({ ...b, egg: waiting })) })
+      expect(state.hatchery).toHaveLength(slots + 1)
+      expect(hatcheryUsed(state)).toBe(slots + 1)
+      err(run(state, { type: 'collectEgg', breeder: 0 }, 10), 'HATCHERY_FULL')
+      // The first hatch leaves it exactly full, still refused; the second frees a slot (the dragons find the Terra habitat).
+      const one = ok(run(state, { type: 'hatch', slot: 0 }, 10))
+      expect(hatcheryUsed(one)).toBe(slots)
+      err(run(one, { type: 'collectEgg', breeder: 0 }, 10), 'HATCHERY_FULL')
+      const two = ok(run(one, { type: 'hatch', slot: 0 }, 10))
+      expect(hatcheryUsed(two)).toBe(slots - 1)
+      expect(ok(run(two, { type: 'collectEgg', breeder: 0 }, 10)).hatchery).toHaveLength(slots)
+    })
+  })
+
+  describe('the Trial Champion (A21, Q5 a)', () => {
+    const before = atBoss(10)
+    it('the first clear of Chapter 10\'s Boss adds one Lv 1 Champion waiting with no home, discovered once', () => {
+      const { state, trial } = bossWin(10)
+      expect(trial.champion).toBe(true)
+      expect(state.dragons.find(d => d.id === `d${before.nextId}`)).toEqual({ id: `d${before.nextId}`, speciesId: TRIAL_CHAMPION_ID, level: 1, feeds: 0, habitatId: null })
+      expect(state.dragons).toHaveLength(before.dragons.length + 1)
+      expect(state.nextId).toBe(before.nextId + 1)
+      expect(state.discovered.filter(x => x === TRIAL_CHAMPION_ID)).toHaveLength(1)
+      expect(trial.egg).toBeUndefined()
+    })
+
+    it('never a second one, on a replay', () => {
+      const first = bossWin(10).state
+      const again = finish(started(first, 10, 10, 10 * 60 * MIN), move2, 10 * 60 * MIN)
+      expect(again.ok && again.trial?.won).toBe(true)
+      expect(again.ok && again.trial?.champion).toBeUndefined()
+      expect(ok(again).dragons).toHaveLength(first.dragons.length)
+      expect(ok(again).nextId).toBe(first.nextId)
+    })
+
+    it('holds a Hatchery slot, even above capacity; it cannot be sold, and lives in War, Metal or an Aerie', () => {
+      const slots = hatcherySlots(1, false)
+      const egg = { speciesId: 'terra', readyAtMs: 0 }
+      const { state } = bossWin(10, { hatchery: Array.from({ length: slots }, () => egg) })
+      expect(hatcheryUsed(state)).toBe(slots + 1)
+      err(run(state, { type: 'sellDragon', dragonId: `d${before.nextId}` }), 'NOT_SELLABLE')
+      const sp = C.species.get(TRIAL_CHAMPION_ID)!
+      const hab = (element: Habitat['element']) => ({ id: 'h', element, level: 1 }) as Habitat
+      for (const element of ['war', 'metal', 'aerie'] as const) expect(canLiveIn(sp, hab(element))).toBe(true)
+      expect(canLiveIn(sp, hab('terra'))).toBe(false)
+    })
+  })
+
+  describe('Dragon Chest pulls (R74)', () => {
+    /** Chapter `chapter` at 3 stars on every node but `except`, which is at `low` (absent when `low` is 0). */
+    const threes = (chapter: number, except: number, low: 0 | 1 | 2): PlayerState['pve']['stars'] =>
+      Object.fromEntries(Array.from({ length: 10 }, (_, i) => [i + 1, i + 1 === except ? low : 3] as const)
+        .filter(([, n]) => n > 0).map(([i, n]) => [`${chapter}:${i}`, n])) as PlayerState['pve']['stars']
+    const sea = (stars: PlayerState['pve']['stars'], pve: Partial<PlayerState['pve']> = {}) => at(40, team('trial-champion', 40, { habitatId: 'away' }), { stars, ...pve })
+
+    it('a first clear that makes the 30th star saves one pull and records the chapter', () => {
+      const a = win(sea(threes(1, 10, 0)), 1, 10)
+      expect(a.trial).toMatchObject({ first: true, stars: 3, chestPull: true })
+      expect([a.state.pve.chestPulls, a.state.pve.starredChapters]).toEqual([1, [1]])
+    })
+
+    it('a replay that makes the 30th star does the same', () => {
+      const a = win(sea(threes(1, 4, 2)), 1, 4)
+      expect(a.trial).toMatchObject({ first: false, stars: 3, chestPull: true })
+      expect([a.state.pve.chestPulls, a.state.pve.starredChapters]).toEqual([1, [1]])
+    })
+
+    it('only on the settle that did it: a later settle of the chapter adds nothing', () => {
+      const done = win(sea(threes(1, 4, 2)), 1, 4).state
+      const again = win(done, 1, 4)
+      expect(again.trial.chestPull).toBeUndefined()
+      expect([again.state.pve.chestPulls, again.state.pve.starredChapters]).toEqual([1, [1]])
+    })
+
+    it('a chapter with a node below 3 stars saves nothing', () => {
+      const a = win(sea(threes(1, 4, 2)), 1, 5)
+      expect([a.state.pve.chestPulls, a.trial.chestPull]).toEqual([0, undefined])
+    })
+
+    it('chapters are counted separately', () => {
+      const s = sea({ ...threes(1, 10, 1), ...threes(2, 4, 2) }, { chestPulls: 1, starredChapters: [1] })
+      const a = win(s, 2, 4)
+      expect([a.state.pve.chestPulls, a.state.pve.starredChapters]).toEqual([2, [1, 2]])
+    })
   })
 })

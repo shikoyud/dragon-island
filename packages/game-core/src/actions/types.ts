@@ -3,6 +3,7 @@ import type { Catalog } from '../catalog'
 import type { Preset } from '../data/presets'
 import type { Element } from '../elements'
 import type { OpponentSnapshot } from '../matchmaking'
+import type { Rarity } from '../rarity'
 import type { Rng } from '../rng'
 import type { BuildingRef, CropId, DecorationId, IslandId, Placement, PlayerState } from '../state'
 import type { SkipTarget, StoreItem } from '../store'
@@ -65,8 +66,17 @@ export type Effect =
 
 export type BattleReport = Extract<BattleOutcome, { ok: true }>
 
-/** What a settled Trial paid: `stars` are this battle's, `xp` is after the preset's `xpMult`. A loss or forfeit pays zeros. */
-export interface TrialResult { won: boolean; stars: 0 | 1 | 2 | 3; gold: number; food: number; xp: number; first: boolean }
+/**
+ * What a settled Trial paid: `stars` are this battle's, `xp` is after the preset's `xpMult`. A loss or forfeit pays zeros.
+ * The Boss drops are present only on the settle that paid them. `egg` names no species: R20 hides it until it hatches.
+ */
+export interface TrialResult {
+  won: boolean; stars: 0 | 1 | 2 | 3; gold: number; food: number; xp: number; first: boolean
+  tokens?: { token: SpeedUpToken; count: number }
+  egg?: { rarity: Rarity; element: Element }
+  champion?: true
+  chestPull?: true
+}
 
 export type ActionResult =
   /** `battle` is absent when a battle was forfeited (short or illegal move list). `trial` is finishTrial's. */

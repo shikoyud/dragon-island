@@ -2,6 +2,7 @@
 // Every number of §6.3 is here; the functions that read them are in ../trials.ts. Gates are `trial:n` in ./unlocks.ts.
 import type { Element } from '../elements'
 import type { Rarity } from '../rarity'
+import type { SpeedUpToken } from './speedups'
 
 export interface TrialChapter {
   chapter: number
@@ -62,3 +63,15 @@ export const HEAL_ALL_MICRO_USD = 50_000
 
 /** `chapter:node`, the key of a node's best stars in `state.pve.stars`. */
 export type NodeKey = `${number}:${number}`
+
+/** R75: what the first clear of a Boss adds to the speed-up tokens; Chapters 8-10 pay none (§6.3 says '2-5', M4 Q2 sets real hours). */
+export const BOSS_TOKENS: Readonly<Record<number, { token: SpeedUpToken; count: number }>> = {
+  1: { token: '15m', count: 2 }, 2: { token: '15m', count: 2 }, 3: { token: '15m', count: 3 }, 4: { token: '1h', count: 3 },
+  5: { token: '1h', count: 4 }, 6: { token: '1h', count: 4 }, 7: { token: '3h', count: 5 },
+}
+
+/** R76: the Boss egg of a chapter's first clear, of the chapter's element as primary. */
+export const BOSS_EGGS: Readonly<Record<number, Rarity>> = { 5: 'uncommon', 7: 'rare' }
+
+/** A21: the species of Chapter 10's Boss, and the one-time reward of its first clear. */
+export const TRIAL_CHAMPION_ID = 'trial-champion'

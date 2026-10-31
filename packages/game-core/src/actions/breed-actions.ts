@@ -47,7 +47,7 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
 }
 
 /** The Dragon Book with `speciesId` added once (R22). */
-function discover(discovered: readonly string[], speciesId: string): string[] {
+export function discover(discovered: readonly string[], speciesId: string): string[] {
   return discovered.includes(speciesId) ? [...discovered] : [...discovered, speciesId]
 }
 
