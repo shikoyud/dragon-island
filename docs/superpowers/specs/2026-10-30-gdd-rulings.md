@@ -43,6 +43,8 @@ shiko also said the token use and reward system will be discussed again after th
 | M3 Q1 | XP farming | (c) Both: no XP when two Common parents produce a Common egg, and a level limit per game day from §7.2 with banked XP (R40). |
 | M3 Q2 | Build XP | (a) Not multiplied by xpMult, and at most one level per build. |
 | M3 Goals | The 14 Goals | As drafted (R36). |
+| M4 Q1 | Clearing and building slots (2026-10-31) | (a) Separate limits: 2 clears at once, and 2 builds or upgrades at once. |
+| M4 Q2 | Speed-up token durations (2026-10-31) | (a) Real hours: a 3 h token takes 3 h off any running timer. |
 
 ## Rulings applied by the plans (defaults, not GDD text)
 
@@ -89,3 +91,23 @@ shiko also said the token use and reward system will be discussed again after th
 | R39 | **The maximum Player Level stays 50**, with the curve through PL 49. | §7.2 says "40+"; §5.5's last gate is PL 40. |
 | R40 | **If Q1 (b) or (c):** XP above the day's limit is banked and pays on the first action of the next day. Limits run per R41. | Nobody loses play; §7.2's Endgame row says only "30+". |
 | R41 | **Level limits run through Endgame** from §7.2's table, replacing R40's "limits end with Rush"; banking stays; no limit from Finals on. | Without it a casual player (6 × 30 min a day) reaches PL 30 at 20 h and PL 40 at 48 h, and banked XP jumped PL 30 to PL 45 on Day 5, against §7.2's PL 32–40 across Days 6–12. |
+| R42 | **Island ids are `home`, `isle2`..`isle6`, with names in `ISLANDS`.** `dawnspire` becomes `isle6`, Warlord's Crown. Its Legendary requirement goes. | §5.5 names the six and gives each only a PL gate; the old rule came from a superseded spec. |
+| R43 | **An island is 32×32 tiles, and plot index = plotRow × 4 + plotCol. A building may straddle owned plots;** every tile it covers must be owned. | §5.5 says 4×4 plots of 8×8 tiles; a 5×5 on an 8×8 plot would be needlessly boxed in. |
+| R44 | **"Touch" means sharing an edge,** not a corner. | Keeps holdings connected for buildings that straddle. |
+| R45 | **A plot's price is by how many have been bought on that island,** not by where it is. | §5.5 lists prices in order, with no positions. |
+| R46 | **Home's 12 plots open at PL 2, 2, 3, 4, … 12.** | §5.5 fits 12 plots into PL 2–12, 11 levels; the early doubling helps where room is tightest. |
+| R47 | **Bridges go in order, and need only their PL and Gold; outer plots have no PL gate beyond the Bridge.** An island needn't be full first. | §5.5 lists one PL gate per island; requiring a full island would cost 285k–2B before moving on. |
+| R48 | **A Bridge's 4 plots each spawn 2–4 obstacles,** like purchased plots. Only Home's start uses the fixed layout. | §5.6 calls out "starting plots" and "purchased" plots; a Bridge is a purchase. |
+| R49 | **Island 2's real total is 3,020,000 Gold with its Bridge, not the table's 2.9M,** which leaves the Bridge out. Price lists govern. | Every other row includes it. The table's cumulative figures are rounded, and nothing reads them. |
+| R50 | **Home's start is a fixed table, 77 of 256 tiles.** Obstacles lie to the south and east, leaving a clear block next to the buildings. | `newPlayer` has no `Rng`, and it pins room for the first sessions. |
+| R51 | **"Ancient Tree / Boulder" is two kinds with one row of values.** Spawn: 2–4 uniform, weights Ancient Tree 1, Boulder 1, Large Rock 2, Tree 4, Small Rock 4, Bush 8; one per quadrant. | The GDD gives no weights; these average 3,340 Gold and 167 XP per obstacle, so clearing a whole Home plot costs about 10k Gold. Clearing is optional, so early plots stay cheap to own. |
+| R52 | **`IslandMult` applies to Gold cost only.** XP is §5.6's value × `xpMult`. Drops are flat and not preset-multiplied. | §5.6's formula names only cost; §7.2 lists no drop multiplier. |
+| R53 | **Clear timers divide by the preset's build divisor.** | §5's header: "divides build timers", and clearing is construction. |
+| R54 | **Drops roll on completion with that action's `Rng`,** on any completion path. | One place to pay once, and the skip path already runs it. |
+| R55 | **A token takes its time off any timer a `$DRIS` skip can target; the surplus is lost;** it doesn't finish anything itself. | §3.6 and §5.6 say "speed-up"; reusing the targets and finish paths adds no new rules. |
+| R56 | **Plots and Bridges pay build XP (R31); clears pay §5.6's XP and no build XP.** | R31 names expansions and islands, and says obstacles keep §5.6's XP. |
+| R57 | **Moves stay free, between plots and between unlocked islands.** The Hatchery stays on Home. Timers keep running. | The GDD doesn't price moves, and they already cost nothing since Phase 6b. |
+| R58 | **An island always shows whole, with unowned land as fog, and the camera opens on owned land.** Zoom stays whole numbers from 1. | 32×32 is 512 px wide at zoom 1, wider than a phone; opening on owned land keeps it readable. |
+| R59 | **Warlord's Crown decorations keep their PL 45 gate until M7,** when A9 reprices them. | M7 owns them; the gap is noted, and harmless until PL 45. |
+| R60 | **The Map is a Phaser scene with a matching DOM list of buttons.** Positions are display only. | Reuses the island's gestures; the list keeps keyboard and screen-reader access. |
+| R61 | **Habitat and Farm sprites draw at footprint width ÷ sheet width,** until art lands at final size. | The game runs before the art does, and art needs no code change. |
