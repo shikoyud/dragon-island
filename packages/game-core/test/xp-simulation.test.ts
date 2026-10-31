@@ -204,9 +204,9 @@ describe('the level limit per game day (Q1 b, R40, R41)', () => {
   })
 
   it('build XP adds to a bank, and its one-level cap reads the current level', () => {
-    const held: PlayerState = { ...base, level: 12, xp: xpToNext(12) + 100, gold: 40_000 }
-    const a = ok(run(held, { type: 'unlockIsland' }, 1))
-    expect(a).toMatchObject({ level: 12, xp: held.xp + 2_000 })
+    const held: PlayerState = { ...base, level: 12, xp: xpToNext(12) + 100, gold: 150_000 }
+    const a = ok(run(held, { type: 'buyBridge', island: 'isle2' }, 1))
+    expect(a).toMatchObject({ level: 12, xp: held.xp + xpToNext(12) })
     // 400,000 Gold is worth 20,000 XP; the award stays at one level's worth with a bank waiting.
     const big: PlayerState = { ...base, level: 12, xp: xpToNext(12) }
     expect(buildXp(400_000, big)).toBe(xpToNext(12))

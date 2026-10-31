@@ -1,4 +1,4 @@
-import { OUTER_ISLANDS } from './island'
+import { ISLANDS } from './data/islands'
 import type { IslandId, Obstacle, ObstacleKind } from './state'
 
 /** Base values at multiplier 1 (spec section 4). Timers are ms. */
@@ -11,7 +11,7 @@ export const OBSTACLES: Record<ObstacleKind, { size: 1 | 2 | 3; cost: number; ti
 }
 
 export function obstacleMult(island: IslandId): number {
-  return island === 'home' ? 1 : OUTER_ISLANDS[island].mult
+  return ISLANDS[island].obstacleMult
 }
 
 export function clearCost(o: Obstacle): number {

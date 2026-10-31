@@ -1,4 +1,4 @@
-import { applyAction, createRng, islandSize, LAUNCH_CATALOG, newPlayer, placementRuleError, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { applyAction, createRng, ISLAND_TILES, LAUNCH_CATALOG, newPlayer, placementRuleError, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
 import { cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -50,9 +50,9 @@ describe('ShopPanel Build tab', () => {
     const { wrap } = harness({ ...base, level: 5, gold: 100_000 })
     wrap(<ShopPanel onPlace={onPlace} view="home" nowMs={0} />)
     await userEvent.click(screen.getByRole('button', { name: /terra habitat/i }))
-    expect(onPlace).toHaveBeenLastCalledWith({ kind: 'habitat', element: 'terra' }, 5)
+    expect(onPlace).toHaveBeenLastCalledWith({ kind: 'habitat', element: 'terra' }, 4)
     await userEvent.click(within(screen.getByTestId('shop-farming')).getByRole('button'))
-    expect(onPlace).toHaveBeenLastCalledWith({ kind: 'farm' }, 2)
+    expect(onPlace).toHaveBeenLastCalledWith({ kind: 'farm' }, 3)
   })
 
   it('sells one Grove from PL 12 (§5.4)', async () => {
@@ -67,7 +67,7 @@ describe('ShopPanel Build tab', () => {
     const onPlace = vi.fn()
     const ok = harness({ ...base, level: 12, gold: 400_000 }).wrap(<ShopPanel onPlace={onPlace} view="home" nowMs={0} />)
     await userEvent.click(grove())
-    expect(onPlace).toHaveBeenCalledWith({ kind: 'grove' }, 2)
+    expect(onPlace).toHaveBeenCalledWith({ kind: 'grove' }, 5)
     ok.unmount()
     const placement = base.breeders[0]!.placement
     harness({ ...base, level: 12, gold: 400_000, breeders: [...base.breeders, { kind: 'grove', egg: null, level: 1, placement }] }).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
@@ -75,13 +75,13 @@ describe('ShopPanel Build tab', () => {
     expect(grove()).toHaveAccessibleDescription('Already built')
   })
 
-  it('shows Dawnspire-only items greyed off the Dawnspire, enabled on it', () => {
+  it("shows Warlord's Crown items greyed off that island, enabled on it", () => {
     const rich = { ...base, level: 45, gold: 5_000_000 }
     const r = harness(rich).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
     for (const name of [/Star pool/, /Dawn obelisk/, /Dragon colossus/]) {
       const b = screen.getByRole('button', { name })
       expect(b).toBeDisabled()
-      expect(b).toHaveAccessibleDescription('Dawnspire only')
+      expect(b).toHaveAccessibleDescription("Warlord's Crown only")
     }
     r.unmount()
     harness(rich).wrap(<ShopPanel onPlace={vi.fn()} view="isle6" nowMs={0} />)
@@ -137,10 +137,10 @@ describe('ShopPanel Dragons section (buy a Basic)', () => {
 })
 
 /** Every free cell on an island taken by a 1-cell decoration: a state with truly no room for anything. */
-const fill = (s: PlayerState, island: IslandId): PlayerState => {
-  const { w, h } = islandSize(s, island)
+const fill = (s: PlayerState, island: IslandId, keep?: (col: number, row: number) => boolean): PlayerState => {
   const decorations = [...s.decorations]
-  for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
+  for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) {
+    if (keep?.(col, row)) continue
     const at = { island, col, row, facing: 0 as const }
     if (placementRuleError({ ...s, decorations }, { kind: 'decoration', decoration: 'flowerPatch' }, at) === null) {
       decorations.push({ id: `fill-${island}-${col}-${row}`, kind: 'flowerPatch', placement: at })
@@ -188,19 +188,19 @@ describe('ShopPanel rows that need a free grid cell', () => {
     within(screen.getByTestId('shop-habitats')).getByRole('button', { name: /flame habitat/i }),
   ]
 
-  it('does not say no room on a fresh island at step 0, PL 3 (R9)', () => {
+  it('does not say no room on a fresh island, PL 3', () => {
     const fresh = { ...base, level: 3, gold: 5_000 }
     harness(fresh).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
     const sea = within(screen.getByTestId('shop-habitats')).getByRole('button', { name: /sea habitat/i })
     expect(sea).toBeEnabled()
-    expect(sea).not.toHaveAccessibleDescription('No room: expand the island')
+    expect(sea).not.toHaveAccessibleDescription('No room: buy a plot')
   })
 
   it('disables habitats only when no cell really exists', () => {
     harness(fill(rich, 'home')).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
     for (const b of rows()) {
       expect(b).toBeDisabled()
-      expect(b).toHaveAccessibleDescription('No room: expand the island')
+      expect(b).toHaveAccessibleDescription('No room: buy a plot')
     }
   })
 
@@ -208,34 +208,32 @@ describe('ShopPanel rows that need a free grid cell', () => {
     harness(fill(rich, 'home')).wrap(<ShopPanel tab="store" onPlace={vi.fn()} view="home" nowMs={0} />)
     const aerie = screen.getByRole('button', { name: /golden aerie/i })
     expect(aerie).toBeDisabled()
-    expect(aerie).toHaveAccessibleDescription('No room: expand the island')
+    expect(aerie).toHaveAccessibleDescription('No room: buy a plot')
   })
 
-  it('opens them again once real expansions make room', () => {
-    // The third habitat takes the only 5x5 spot at step 0; the next one appears at step 3.
-    let st = act(rich, { type: 'placeBuilding', building: terra, placement: atHome(6, 5) })
+  it('opens them again once a plot makes room', () => {
+    let st = fill(rich, 'home')
     expect(placing.hasLegalCell(st, terra)).toBe(false)
     const none = harness(st).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
-    for (const b of rows()) expect(b).toHaveAccessibleDescription('No room: expand the island')
+    for (const b of rows()) expect(b).toHaveAccessibleDescription('No room: buy a plot')
     none.unmount()
-    for (let i = 0; i < 3; i++) st = act(st, { type: 'expandIsland' })
-    expect(st.islands.homeStep).toBe(3)
+    st = act(st, { type: 'buyPlot', island: 'home', plot: 7 })
+    expect(placing.hasLegalCell(st, terra)).toBe(true)
     const r = harness(st).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
     for (const b of rows()) expect(b).toBeEnabled()
     r.unmount()
     harness(st).wrap(<ShopPanel tab="store" onPlace={vi.fn()} view="home" nowMs={0} />)
-    expect(screen.getByRole('button', { name: /golden aerie/i })).not.toHaveAccessibleDescription('No room: expand the island')
+    expect(screen.getByRole('button', { name: /golden aerie/i })).not.toHaveAccessibleDescription('No room: buy a plot')
   })
 
-  it('sells the Grove where a 2-cell spot is left, though no 5x5 cell is (R9)', () => {
-    const st = act({ ...base, level: 12, gold: 1_000_000 }, { type: 'placeBuilding', building: terra, placement: atHome(6, 5) })
+  it('sells habitats where a 4x4 spot is left, though no 5x5 cell is for the Grove (§5.4)', () => {
+    const st = fill({ ...base, level: 12, gold: 1_000_000 }, 'home', (col, row) => col >= 20 && row >= 20)
     const r = harness(st).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
-    expect(rows()[0]).toHaveAccessibleDescription('No room: expand the island')
-    const grove = within(screen.getByTestId('shop-breeding')).getByRole('button', { name: /Breeding Grove/ })
-    expect(grove).toBeEnabled()
+    expect(rows()[0]).toBeEnabled()
+    expect(within(screen.getByTestId('shop-breeding')).getByRole('button', { name: /Breeding Grove/ })).toHaveAccessibleDescription('No room: buy a plot')
     r.unmount()
     harness(fill(st, 'home')).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
-    expect(within(screen.getByTestId('shop-breeding')).getByRole('button', { name: /Breeding Grove/ })).toHaveAccessibleDescription('No room: expand the island')
+    expect(rows()[0]).toHaveAccessibleDescription('No room: buy a plot')
   })
 })
 
@@ -243,24 +241,24 @@ describe('room on another island (hasLegalCell scans them all)', () => {
   const rich = { ...base, level: 12, gold: 1_000_000 }
 
   it('opens the ghost on the island that has the cell', () => {
-    const st = fill(act(rich, { type: 'unlockIsland' }), 'home')
+    const st = fill(act(rich, { type: 'buyBridge', island: 'isle2' }), 'home')
     expect(placing.hasLegalCell(st, terra)).toBe(true)
-    const start = placing.placementStart(st, terra, 5, 'home', null)
+    const start = placing.placementStart(st, terra, 4, 'home', null)
     expect(start.island).toBe('isle2')
     expect(placementRuleError(st, terra, { island: 'isle2', ...start.cell!, facing: 0 })).toBeNull()
   })
 
   it('stays on the viewed island when it has room, and with no room anywhere', () => {
-    const st = act(rich, { type: 'unlockIsland' })
-    expect(placing.placementStart(st, terra, 5, 'home', null).island).toBe('home')
-    expect(placing.placementStart(st, terra, 5, 'isle2', null).island).toBe('isle2')
+    const st = act(rich, { type: 'buyBridge', island: 'isle2' })
+    expect(placing.placementStart(st, terra, 4, 'home', null).island).toBe('home')
+    expect(placing.placementStart(st, terra, 4, 'isle2', null).island).toBe('isle2')
     const none = fill(rich, 'home')
-    expect(placing.placementStart(none, terra, 5, 'home', null)).toEqual({ island: 'home' })
+    expect(placing.placementStart(none, terra, 4, 'home', null)).toEqual({ island: 'home' })
   })
 
   it('a move stays where the building is, and starts from no suggested cell', () => {
     const from = base.habitats[0]!.placement
-    expect(placing.placementStart(base, { kind: 'move', target: h1 }, 5, 'isle2', null, from)).toEqual({ island: 'home' })
+    expect(placing.placementStart(base, { kind: 'move', target: h1 }, 4, 'isle2', null, from)).toEqual({ island: 'home' })
   })
 })
 
@@ -350,7 +348,7 @@ describe('ShopPanel Store tab', () => {
     const aerie = screen.getByRole('button', { name: /golden aerie/i })
     expect(aerie).toHaveTextContent('$5.00')
     await userEvent.click(aerie)
-    expect(onPlace).toHaveBeenCalledWith({ kind: 'goldenAerie' }, 5)
+    expect(onPlace).toHaveBeenCalledWith({ kind: 'goldenAerie' }, 4)
     expect(action).not.toHaveBeenCalled() // paid on Confirm, not here
   })
 
@@ -447,7 +445,7 @@ describe('UpgradeSection', () => {
     const { wrap, action } = harness(s)
     wrap(<StartPlacingProvider value={start}><UpgradeSection building={h1} nowMs={0} /></StartPlacingProvider>)
     await userEvent.click(screen.getByRole('button', { name: 'Move' }))
-    expect(start).toHaveBeenCalledWith({ kind: 'move', target: h1 }, 5, s.habitats[0]!.placement)
+    expect(start).toHaveBeenCalledWith({ kind: 'move', target: h1 }, 4, s.habitats[0]!.placement)
     await userEvent.click(screen.getByRole('button', { name: 'Turn' }))
     expect(action).toHaveBeenCalledWith({ type: 'moveBuilding', target: h1, placement: { ...s.habitats[0]!.placement, facing: 0 } }, expect.any(String))
   })
@@ -532,7 +530,6 @@ describe('error copy', () => {
     expect(messageFor('OVERLAP')).toBe('Something is already there.')
     expect(messageFor('OUT_OF_BOUNDS')).toBe('That spot is off the island.')
     expect(messageFor('BUILDERS_BUSY')).toBe('Both builders are busy. Finish or skip a build first.')
-    expect(messageFor('MAX_EXPANSION')).toBe('The home island is at its full size.')
-    for (const c of ['ISLAND_LOCKED', 'MAX_ISLAND', 'WRONG_ISLAND', 'UNDER_CONSTRUCTION', 'NO_LEGENDARY']) expect(messageFor(c)).not.toBe(c)
+    for (const c of ['ISLAND_LOCKED', 'WRONG_ISLAND', 'UNDER_CONSTRUCTION', 'NOT_OWNED', 'PLOT_OWNED', 'PLOT_NOT_ADJACENT']) expect(messageFor(c)).not.toBe(c)
   })
 })

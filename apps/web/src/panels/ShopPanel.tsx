@@ -1,5 +1,5 @@
 import {
-  BREEDER_LEVELS, DECORATIONS, basicHome, basicPriceGold, canLiveIn, getSpecies, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, ROOST_FOOTPRINT, ROOST_TIERS, farmBuildGold, MAX_FARMS, priceMicroUsd, unlockPl,
+  BREEDER_LEVELS, DECORATIONS, ISLANDS, basicHome, basicPriceGold, canLiveIn, getSpecies, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, ROOST_FOOTPRINT, ROOST_TIERS, farmBuildGold, MAX_FARMS, priceMicroUsd, unlockPl,
   type DecorationId, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem, type UnlockKey,
 } from '@wyrmhaven/game-core'
 import { useMemo, useState, type ReactNode } from 'react'
@@ -17,8 +17,7 @@ export type ShopTab = 'build' | 'store'
 const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1)
 /** "flowerPatch" -> "Flower patch". */
 const decorationName = (id: DecorationId) => cap(id.replace(/([A-Z])/g, ' $1').toLowerCase())
-const DAWNSPIRE_ONLY = 'Dawnspire only'
-const NO_ROOM = 'No room: expand the island'
+const NO_ROOM = 'No room: buy a plot'
 
 export interface ShopPanelProps {
   onPlace: (what: Placing['what'], size: Footprint) => void
@@ -37,7 +36,7 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
   const me = useMe()
   const [tab, setTab] = useState<ShopTab>(initial)
   const s = me.data?.state
-  // One scan for the 5x5 rows (habitats and the Golden Aerie share the footprint) and one for the Grove's 2 cells; not tied to the clock.
+  // One scan for the habitat rows (the Golden Aerie shares the footprint), one each for the Grove and the Roost; not tied to the clock.
   const { room, groveRoom, roostRoom } = useMemo(
     () => ({
       room: s ? hasLegalCell(s, { kind: 'habitat', element: 'terra' }) : false,
@@ -118,8 +117,8 @@ function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom }: { s: PlayerS
         plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), unlockPl(`farm:${plots + 1}` as UnlockKey)), { kind: 'farm' }, FOOTPRINT.farm))}
       {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {
         const d = DECORATIONS[id]
-        // Locked items stay visible, greyed (spec section 8): Dawnspire-only ones say so off the Dawnspire.
-        const reason = d.island && d.island !== view ? DAWNSPIRE_ONLY : gold(d.cost, d.minLevel)
+        // Locked items stay visible, greyed (spec section 8): an item for one island says so anywhere else.
+        const reason = d.island && d.island !== view ? `${ISLANDS[d.island].name} only` : gold(d.cost, d.minLevel)
         return card(`deco-${id}`, decorationName(id), `${formatGold(d.cost)} gold`, reason, { kind: 'decoration', decoration: id }, d.size)
       }))}
     </>

@@ -41,5 +41,5 @@ export const BREEDER_LEVELS: Record<BreederKind, readonly (BuildingLevel & { red
 const groveTop = BREEDER_LEVELS.grove[BREEDER_LEVELS.grove.length - 1]!
 export const GROVE_L3 = { level: BREEDER_LEVELS.grove.length, usdMicro: groveTop.usdMicro! }
 
-/** 2 cells until M4 changes every footprint together (R9; R15 is withdrawn). */
-export const BREEDER_FOOTPRINT = 2
+/** §5.4: Mountain and Grove stand on 5x5 tiles. */
+export const BREEDER_FOOTPRINT = 5

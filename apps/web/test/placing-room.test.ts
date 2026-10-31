@@ -1,9 +1,11 @@
-import { type Action, applyAction, createRng, islandSize, LAUNCH_CATALOG, newPlayer } from '@wyrmhaven/game-core'
+import { type Action, applyAction, createRng, FOOTPRINT, ISLAND_TILES, LAUNCH_CATALOG, newPlayer, placementRuleError, type Footprint, type PlayerState } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { hasLegalCell, nearestLegalCell, placementStart, placingAction } from '../src/state/placing'
 
+/** With no focus, the default cell aims at the owned land's middle, less half the footprint. */
+const midFor = (size: number) => ({ col: 16 - Math.floor((size - 1) / 2), row: 16 - Math.floor((size - 1) / 2) })
+
 describe('the default cell leaves room for a habitat (final fix 2)', () => {
-  // A fresh step-0 island has exactly one free 5x5 (cols 6-7, rows 5-7); the nearest free cell for a Roost, Grove or farm used to take it.
   const rich = { ...newPlayer(0), level: 12, gold: 1_000_000_000 }
   const sea = { kind: 'habitat', element: 'sea' } as const
 
@@ -11,15 +13,17 @@ describe('the default cell leaves room for a habitat (final fix 2)', () => {
     expect(hasLegalCell(rich, sea)).toBe(true)
   })
 
-  for (const what of [{ kind: 'roost' }, { kind: 'grove' }, { kind: 'farm' }] as const) {
-    it(`a new ${what.kind} opens on a legal cell that keeps a 5x5 free, wherever the screen's middle is`, () => {
-      const { w, h } = islandSize(rich, 'home')
-      const foci = [undefined, ...Array.from({ length: w * h }, (_, i) => ({ col: i % w, row: Math.floor(i / w) }))]
+  const things = [[{ kind: 'roost' }, FOOTPRINT.roost], [{ kind: 'grove' }, FOOTPRINT.breeder], [{ kind: 'farm' }, FOOTPRINT.farm]] as const
+  for (const [what, size] of things) {
+    it(`a new ${what.kind} opens on a legal cell that keeps a habitat's room free, wherever the screen's middle is`, () => {
+      const stride = 5
+      const foci = [undefined]  as ({ col: number; row: number } | undefined)[]
+      for (let row = 0; row < ISLAND_TILES; row += stride) for (let col = 0; col < ISLAND_TILES; col += stride) foci.push({ col, row })
       let taken = 0
       for (const focus of foci) {
-        const { island, cell } = placementStart(rich, what, 2, 'home', focus)
+        const { island, cell } = placementStart(rich, what, size, 'home', focus)
         expect(island).toBe('home')
-        const action = placingAction(rich, 'home', { what, size: 2, ...cell!, facing: 0 })
+        const action = placingAction(rich, 'home', { what, size, ...cell!, facing: 0 })
         expect(action).not.toBeNull()
         const r = applyAction(rich, action as Action, 0, createRng(1), LAUNCH_CATALOG)
         if (!r.ok) throw new Error(r.error)
@@ -29,15 +33,23 @@ describe('the default cell leaves room for a habitat (final fix 2)', () => {
     })
   }
 
-  it('a habitat-sized thing takes the nearest cell, as before', () => {
-    const { cell } = placementStart(rich, sea, 5, 'home', undefined)
-    expect(cell).toEqual(nearestLegalCell(rich, sea, 'home', { col: 4, row: 4 }))
+  it('a habitat-sized thing takes the nearest cell to the owned land\'s middle', () => {
+    const { cell } = placementStart(rich, sea, FOOTPRINT.habitat, 'home', undefined)
+    expect(cell).toEqual(nearestLegalCell(rich, sea, 'home', midFor(FOOTPRINT.habitat)))
   })
 
-  it('falls back to the nearest cell when no cell would leave a 5x5', () => {
-    const tight = { ...rich, habitats: [...rich.habitats, { id: 'hx', element: 'sea' as const, level: 1, lastCollectedMs: 0, placement: { island: 'home' as const, col: 6, row: 5, facing: 0 as const } }] }
-    expect(hasLegalCell(tight, sea)).toBe(false)
-    const { cell } = placementStart(tight, { kind: 'farm' }, 2, 'home', undefined)
-    expect(cell).toEqual(nearestLegalCell(tight, { kind: 'farm' }, 'home', { col: 4, row: 4 }))
+  it('falls back to the nearest cell when no cell would leave a habitat\'s room', () => {
+    // Everything owned is taken but one 4x4 block: a farm anywhere in it spoils the last habitat spot.
+    const decorations: PlayerState['decorations'] = []
+    for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) {
+      if (col >= 20 && row >= 20) continue
+      const at = { island: 'home' as const, col, row, facing: 0 as const }
+      if (placementRuleError({ ...rich, decorations }, { kind: 'decoration', decoration: 'flowerPatch' }, at) === null) decorations.push({ id: `f${col}-${row}`, kind: 'flowerPatch', placement: at })
+    }
+    const tight = { ...rich, decorations }
+    expect(hasLegalCell(tight, sea)).toBe(true)
+    const size: Footprint = FOOTPRINT.farm
+    const { cell } = placementStart(tight, { kind: 'farm' }, size, 'home', undefined)
+    expect(cell).toEqual(nearestLegalCell(tight, { kind: 'farm' }, 'home', midFor(size)))
   })
 })

@@ -1,16 +1,17 @@
 import { newPlayer } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { nearestLegalCell, placingAction, placingReducer } from '../src/state/placing'
+import { FREE } from './land'
 
 describe('placing', () => {
   it('a new building opens on the free cell nearest the given one, so Confirm works at once', () => {
     const s = newPlayer(0)
     // (0,0) is under habitat h1; the nearest free 2x2 spot to it is just below the habitats.
     const c = nearestLegalCell(s, { kind: 'farm' }, 'home', { col: 0, row: 0 })!
-    expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, ...c, facing: 0 })).not.toBeNull()
-    expect(Math.hypot(c.col, c.row)).toBeLessThan(8)
-    const mid = nearestLegalCell(s, { kind: 'farm' }, 'home', { col: 9, row: 7 })!
-    expect(mid).toEqual({ col: 9, row: 7 })
+    expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 3, ...c, facing: 0 })).not.toBeNull()
+    expect(Math.hypot(c.col, c.row)).toBeLessThan(18)
+    const mid = nearestLegalCell(s, { kind: 'farm' }, 'home', { col: FREE.col, row: FREE.row })!
+    expect(mid).toEqual({ col: FREE.col, row: FREE.row })
     // The start event puts the ghost on that cell.
     expect(placingReducer(null, { type: 'start', what: { kind: 'farm' }, size: 2, island: 'home', cell: mid })).toMatchObject(mid)
     // Nowhere legal: a full grid gives null.
@@ -36,25 +37,25 @@ describe('placing', () => {
 
   it('placingAction builds the right action and refuses illegal spots', () => {
     const s = newPlayer(0)
-    expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, col: 9, row: 8, facing: 1 })).toEqual({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { island: 'home', col: 9, row: 8, facing: 1 } })
+    expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 3, col: FREE.col, row: FREE.row, facing: 1 })).toEqual({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...FREE, facing: 1 } })
     expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, col: 0, row: 0, facing: 0 })).toBeNull()
-    expect(placingAction(s, 'home', { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 5, col: 0, row: 1, facing: 0 })).toEqual({ type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: { island: 'home', col: 0, row: 1, facing: 0 } })
+    expect(placingAction(s, 'home', { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 4, col: 8, row: 8, facing: 0 })).toEqual({ type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: { island: 'home', col: 8, row: 8, facing: 0 } })
     expect(placingAction(s, 'isle2', { what: { kind: 'farm' }, size: 2, col: 1, row: 1, facing: 0 })).toBeNull()
   })
 
   it('sends the Grove as a placeBuilding', () => {
     const s = newPlayer(0)
-    expect(placingAction(s, 'home', { what: { kind: 'grove' }, size: 2, col: 9, row: 7, facing: 0 })).toEqual({ type: 'placeBuilding', building: { kind: 'grove' }, placement: { island: 'home', col: 9, row: 7, facing: 0 } })
-    expect(placingAction(s, 'home', { what: { kind: 'grove' }, size: 2, col: 11, row: 7, facing: 0 })).toBeNull()
+    expect(placingAction(s, 'home', { what: { kind: 'grove' }, size: 5, col: FREE.col, row: FREE.row, facing: 0 })).toEqual({ type: 'placeBuilding', building: { kind: 'grove' }, placement: FREE })
+    expect(placingAction(s, 'home', { what: { kind: 'grove' }, size: 5, col: 20, row: 12, facing: 0 })).toBeNull()
   })
 
   it('placing the Golden Aerie buys it with the placement, on a free habitat-sized spot', () => {
     const s = newPlayer(0)
     const spot = nearestLegalCell(s, { kind: 'goldenAerie' }, 'home', { col: 4, row: 4 })!
     expect(spot).not.toBeNull()
-    expect(placingAction(s, 'home', { what: { kind: 'goldenAerie' }, size: 5, ...spot, facing: 2 })).toEqual({
+    expect(placingAction(s, 'home', { what: { kind: 'goldenAerie' }, size: 4, ...spot, facing: 2 })).toEqual({
       type: 'buy', item: { kind: 'goldenAerie', placement: { island: 'home', ...spot, facing: 2 } },
     })
-    expect(placingAction(s, 'home', { what: { kind: 'goldenAerie' }, size: 5, col: 0, row: 0, facing: 0 })).toBeNull()
+    expect(placingAction(s, 'home', { what: { kind: 'goldenAerie' }, size: 4, col: 0, row: 0, facing: 0 })).toBeNull()
   })
 })

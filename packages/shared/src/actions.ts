@@ -1,4 +1,4 @@
-import { CROP_IDS, DECORATIONS, ELEMENTS, ISLAND_ORDER, MAX_DRAGON_LEVEL, MAX_ROUNDS, TEAM_SIZE, type Action, type CropId, type DecorationId, type Element, type IslandId } from '@wyrmhaven/game-core'
+import { CROP_IDS, DECORATIONS, ELEMENTS, ISLAND_ORDER, MAX_DRAGON_LEVEL, MAX_ROUNDS, PLOTS_PER_SIDE, TEAM_SIZE, type Action, type CropId, type DecorationId, type Element, type IslandId } from '@wyrmhaven/game-core'
 import { z } from 'zod'
 
 // Mirrors game-core's isValidAction: the client sends JSON, this is the wire-level shape check.
@@ -10,8 +10,11 @@ const coord = z.number().int().min(0).max(63)
 const decorationSchema = z.custom<DecorationId>(v => typeof v === 'string' && Object.hasOwn(DECORATIONS, v))
 const cropSchema = z.enum(CROP_IDS as [CropId, ...CropId[]])
 
+const islandSchema = z.enum(ISLAND_ORDER as unknown as [IslandId, ...IslandId[]])
+const bridgeIslandSchema = islandSchema.exclude(['home'])
+
 export const placementSchema = z.object({
-  island: z.enum(ISLAND_ORDER as unknown as [IslandId, ...IslandId[]]),
+  island: islandSchema,
   col: coord,
   row: coord,
   facing: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
@@ -69,8 +72,8 @@ const common = [
   z.object({ type: z.literal('removeDecoration'), id }),
   z.object({ type: z.literal('startUpgrade'), building: buildingRefSchema }),
   z.object({ type: z.literal('finishConstruction'), index }),
-  z.object({ type: z.literal('expandIsland') }),
-  z.object({ type: z.literal('unlockIsland') }),
+  z.object({ type: z.literal('buyPlot'), island: islandSchema, plot: z.number().int().min(0).max(PLOTS_PER_SIDE * PLOTS_PER_SIDE - 1) }),
+  z.object({ type: z.literal('buyBridge'), island: bridgeIslandSchema }),
   z.object({ type: z.literal('clearObstacle'), obstacleId: id }),
   z.object({ type: z.literal('moveDragon'), dragonId: id, habitatId: id }),
   z.object({ type: z.literal('feed'), dragonId: id }),

@@ -47,8 +47,15 @@ const payloads: unknown[] = [
   { type: 'startUpgrade', building: { type: 'hoard' } },
   { type: 'finishConstruction', index: 0 },
   { type: 'finishConstruction', index: -1 },
-  { type: 'expandIsland' },
-  { type: 'unlockIsland' },
+  { type: 'buyPlot', island: 'home', plot: 4 },
+  { type: 'buyPlot', island: 'home', plot: 15 },
+  { type: 'buyPlot', island: 'home', plot: 16 },
+  { type: 'buyPlot', island: 'home', plot: -1 },
+  { type: 'buyPlot', island: 'home', plot: 1.5 },
+  { type: 'buyPlot', island: 'atlantis', plot: 4 },
+  { type: 'buyBridge', island: 'isle2' },
+  { type: 'buyBridge', island: 'home' },
+  { type: 'buyBridge', island: 'atlantis' },
   { type: 'clearObstacle', obstacleId: 'o1' },
   { type: 'clearObstacle', obstacleId: 3 },
   { type: 'moveDragon', dragonId: 'd1', habitatId: 'h2' },
@@ -128,6 +135,21 @@ describe('clientActionSchema', () => {
     expect(clientActionSchema.safeParse({ type: 'pvpBattle', team: TEAM, opponent: bot, moves }).success).toBe(false)
     expect(clientActionSchema.safeParse({ type: 'pvpBattle', offerId: '', team: TEAM, moves }).success).toBe(false)
     expect(clientActionSchema.safeParse({ type: 'collectGold', habitatId: 'h1' }).success).toBe(true)
+  })
+})
+
+describe('land actions (§5.5)', () => {
+  it('accepts a plot and a Bridge, and refuses what game-core refuses', () => {
+    for (const schema of [actionSchema, clientActionSchema]) {
+      expect(schema.safeParse({ type: 'buyPlot', island: 'home', plot: 15 }).success).toBe(true)
+      expect(schema.safeParse({ type: 'buyBridge', island: 'isle2' }).success).toBe(true)
+      expect(schema.safeParse({ type: 'buyPlot', island: 'home', plot: 16 }).success).toBe(false)
+      expect(schema.safeParse({ type: 'buyPlot', island: 'atlantis', plot: 4 }).success).toBe(false)
+      expect(schema.safeParse({ type: 'buyBridge', island: 'atlantis' }).success).toBe(false)
+      expect(schema.safeParse({ type: 'buyBridge', island: 'home' }).success).toBe(false)
+      expect(schema.safeParse({ type: 'expandIsland' }).success).toBe(false)
+      expect(schema.safeParse({ type: 'unlockIsland' }).success).toBe(false)
+    }
   })
 })
 

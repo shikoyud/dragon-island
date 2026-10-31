@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { actionLog, balances, players, spendBatches } from '../src/db/schema'
 import { FixedPriceSource } from '../src/services/price'
+import { FREE } from './helpers/land'
 import { bearer, testApp, type TestApp } from './helpers/testApp'
 import { TEST_KEYS, wallet } from './helpers/wallet'
 
@@ -61,6 +62,31 @@ describe('POST /actions', () => {
     expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(100n * E18)
   })
 
+  it('replaying a buyPlot idempotency key charges once (§5.5)', async () => {
+    await setState({ level: 2, gold: 1_000 })
+    const buy = { type: 'buyPlot', island: 'home', plot: 4 }
+    const first = await post(buy, 'plot-1')
+    const replay = await post(buy, 'plot-1')
+    expect([first.statusCode, replay.statusCode]).toEqual([200, 200])
+    expect(replay.json()).toEqual(first.json())
+    expect(await t.db.select().from(actionLog)).toHaveLength(1)
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const s = p!.state as PlayerState
+    expect(s.gold).toBe(900)
+    expect(s.islands.plots.home).toEqual([5, 6, 9, 10, 4])
+    // A new key on the same plot is refused, and still charges nothing.
+    const again = await post(buy, 'plot-2')
+    expect([again.statusCode, again.json().error]).toEqual([422, 'PLOT_OWNED'])
+    const [q] = await t.db.select().from(players).where(eq(players.id, playerId))
+    expect((q!.state as PlayerState).gold).toBe(900)
+  })
+
+  it('a server-side land rule refuses unowned land', async () => {
+    await setState({ level: 5, gold: 100_000 })
+    const r = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 0, row: 0, facing: 0 } })
+    expect([r.statusCode, r.json().error]).toEqual([422, 'NOT_OWNED'])
+  })
+
   it('charges store purchases in tokens and records the spend batch', async () => {
     const r = await post({ type: 'buy', item: { kind: 'foodPack' } })
     expect(r.statusCode).toBe(200)
@@ -111,7 +137,7 @@ describe('POST /actions', () => {
   })
 
   it('runs placeBuilding and finishConstruction through /actions and charges a construction skip', async () => {
-    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 7, row: 7, facing: 0 } })
+    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: FREE })
     expect(placed.statusCode).toBe(200)
     expect(placed.json().state.constructions).toHaveLength(1)
     const skipped = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } })
@@ -125,7 +151,7 @@ describe('POST /actions', () => {
   })
 
   it('a construction skip with a bad index or on a ready construction charges nothing', async () => {
-    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 7, row: 7, facing: 0 } })
+    const placed = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: FREE })
     expect(placed.statusCode).toBe(200)
     const bad = await post({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 5 } })
     expect([bad.statusCode, bad.json()]).toEqual([422, { error: 'NOT_FOUND' }])
@@ -137,7 +163,7 @@ describe('POST /actions', () => {
   })
 
   it('Ascension charges $2.00 in $DRIS and starts the Tier 5 build, all in one action (R35)', async () => {
-    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    const at = FREE
     await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 10_000_000 })
     const r = await post({ type: 'buy', item: { kind: 'ascension' } })
     expect(r.statusCode).toBe(200)
@@ -148,7 +174,7 @@ describe('POST /actions', () => {
   })
 
   it('Ascension with too little $DRIS rolls the whole action back: Gold, build and balance unchanged', async () => {
-    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    const at = FREE
     await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 10_000_000 })
     await t.db.update(balances).set({ tokenWei: 39n * E18 })
     const r = await post({ type: 'buy', item: { kind: 'ascension' } })
@@ -162,7 +188,7 @@ describe('POST /actions', () => {
   })
 
   it('Ascension with 9,999,999 Gold is a 422 INSUFFICIENT_GOLD with no charge', async () => {
-    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    const at = FREE
     await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 9_999_999 })
     const r = await post({ type: 'buy', item: { kind: 'ascension' } })
     expect([r.statusCode, r.json()]).toEqual([422, { error: 'INSUFFICIENT_GOLD' }])
@@ -171,7 +197,7 @@ describe('POST /actions', () => {
   })
 
   it('replaying the same idempotency key after an Ascension charges once', async () => {
-    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    const at = FREE
     await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 10_000_000 })
     const first = await post({ type: 'buy', item: { kind: 'ascension' } }, 'asc-1')
     const replay = await post({ type: 'buy', item: { kind: 'ascension' } }, 'asc-1')
@@ -198,7 +224,7 @@ describe('POST /actions', () => {
   })
 
   it('a fresh key while the Ascension builds is a 422 UNDER_CONSTRUCTION with no second charge', async () => {
-    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    const at = FREE
     await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 20_000_000 })
     expect((await post({ type: 'buy', item: { kind: 'ascension' } })).statusCode).toBe(200)
     const again = await post({ type: 'buy', item: { kind: 'ascension' } })
@@ -207,7 +233,7 @@ describe('POST /actions', () => {
   })
 
   it('Ascension below Tier 4 is a 422 with no charge', async () => {
-    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    const at = FREE
     await setState({ roostPlacement: at, roostTier: 3, level: 30, gold: 10_000_000 })
     const r = await post({ type: 'buy', item: { kind: 'ascension' } })
     expect([r.statusCode, r.json()]).toEqual([422, { error: 'INVALID_ACTION' }])

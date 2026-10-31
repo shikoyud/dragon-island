@@ -135,7 +135,7 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
       return
     }
     case 'decoration': {
-      // A box the size of its footprint, tinted by the element argument (nature = ordinary, light = Dawnspire).
+      // A box the size of its footprint, tinted by the element argument (nature = ordinary, light = Warlord's Crown).
       px(0, 0, w, h, OUTLINE)
       px(1, 1, w - 2, h - 2, p.base)
       px(1, 1, w - 2, 2, p.light)

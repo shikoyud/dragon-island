@@ -1,12 +1,12 @@
 import {
-  constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, HOME_EXPANSION, HOME_MAX_STEP, homeSize, unlockPl,
+  constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, isPlot, ownedPlots, plotOrigin, plotPrice, plotsBought, plotsTouch, TILES_PER_PLOT,
   DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
   type BreederKind, type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
 import { placementSubject, type Placing, type Target } from './bridge'
-import { anchor, depthOrder, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, NEST_EGG_SCALE } from './layout'
+import { anchor, cellTop, depthOrder, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, ISO, NEST_EGG_SCALE } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
 export interface IslandObject {
@@ -43,7 +43,8 @@ export interface IslandMarkers {
   constructions: number
   /** The placement ghost's footprint, drawn as a diamond outline tinted by legality. */
   ghost: { legal: boolean; col: number; row: number; size: number } | null
-  sign: { cost: number; minLevel: number } | null
+  /** One per unowned plot touching owned land; `price` is null when the island's price list has run out. */
+  signs: { plot: number; price: number | null }[]
 }
 
 export interface IslandModel {
@@ -118,6 +119,14 @@ export function dragonLook(speciesId: string, level: number, art: GameArtSet, ca
 export const dragonKey = (speciesId: string, level: number, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): string =>
   dragonLook(speciesId, level, art, catalog).key
 
+/**
+ * R61: habitat and Farm sheets draw at footprint width over sheet width, until art lands at final size. The fallback and
+ * today's sheets are drawn for older footprints; new art at final size comes out at scale 1 with no code change.
+ */
+const fitFootprint = <T extends { sprite: Sprite }>(look: T, size: number): T & { scale: number } => ({ ...look, scale: size * ISO.w / look.sprite.w })
+const habitatLook = (art: GameArtSet, element: Exclude<Habitat['element'], 'aerie'>) => fitFootprint({ key: textureKey(`habitat.${element}`), sprite: art.habitat[element] }, FOOTPRINT.habitat)
+const farmLook = (art: GameArtSet) => fitFootprint({ key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }, FOOTPRINT.farm)
+
 const flip = (facing: number): { flipX?: true } => (facing === 1 || facing === 3 ? { flipX: true } : {})
 
 type DecorationKind = keyof typeof DECORATIONS
@@ -127,7 +136,7 @@ const decorationLook = (art: GameArtSet, kind: DecorationKind) => ({
 })
 /**
  * Mountain and Grove sheets stay specified at 80x80, their footprint size from M4 (docs/art/gdd-m2-art-list.md). Until
- * then they stand on a 2-cell footprint (R9), so they are drawn smaller. Change this constant, not the sheet sizes;
+ * then this constant keeps them at their old drawn size on the new footprint. Change this constant, not the sheet sizes;
  * M4 sets it back to 1. The `building.nest` fallback is 32x32 already and keeps its native scale.
  */
 export const BREEDER_ART_SCALE = 0.5
@@ -152,7 +161,7 @@ function hatcheryLook(art: GameArtSet, level: number): { key: string; sprite: Sp
 }
 /**
  * Roost sheets stay specified at 64x64, their footprint size from M4 (docs/art/gdd-m3-art-list.md). Until then the Roost
- * stands on a 2-cell footprint (ROOST_FOOTPRINT), so they are drawn smaller. Change this constant, not the sheet sizes;
+ * keeps its old drawn size on the new footprint. Change this constant, not the sheet sizes;
  * M4 sets it back to 1. The `building.nest` fallback keeps its native scale.
  */
 export const ROOST_ART_SCALE = 0.5
@@ -169,7 +178,7 @@ function roostLook(art: GameArtSet, tier: number): { key: string; sprite: Sprite
 }
 const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), sprite: art.building.nexus })
 /** The Golden Aerie: its own sprite when the manifest has one, else the Nexus sprite. */
-const aerieLook = (art: GameArtSet) => (art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art))
+const aerieLook = (art: GameArtSet) => fitFootprint(art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art), FOOTPRINT.habitat)
 
 /** Sprite and texture key of a thing that can be placed, for the ghost. */
 function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): { key: string; sprite: Sprite; scale?: number } {
@@ -179,10 +188,9 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
       case 'habitat': {
         const h = state.habitats.find(x => x.id === t.id)
         if (!h) return nexusLook(art)
-        if (h.element === 'aerie') return aerieLook(art)
-        return { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
+        return h.element === 'aerie' ? aerieLook(art) : habitatLook(art, h.element)
       }
-      case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
+      case 'farm': return farmLook(art)
       case 'breeder': {
         const b = state.breeders[t.index]
         return b ? breederLook(art, b.kind, b.level) : breederLook(art, 'mountain', 1)
@@ -196,8 +204,8 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
     }
   }
   switch (what.kind) {
-    case 'habitat': return { key: textureKey(`habitat.${what.element}`), sprite: art.habitat[what.element] }
-    case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
+    case 'habitat': return habitatLook(art, what.element)
+    case 'farm': return farmLook(art)
     case 'grove': return breederLook(art, 'grove', 1)
     case 'roost': return roostLook(art, 1)
     case 'decoration': return decorationLook(art, what.decoration)
@@ -205,10 +213,12 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
   }
 }
 
-/** Where the home expansion sign stands: the middle of the strip that step `homeStep + 1` adds. */
-function signCell(homeStep: number): { col: number; row: number } {
-  const { w, h } = homeSize(homeStep)
-  return homeSize(homeStep + 1).w > w ? { col: w, row: Math.floor(h / 2) - 1 } : { col: Math.floor(w / 2) - 1, row: h }
+/** The unowned plots of an island that touch owned land (§5.5, R44). */
+function signPlots(s: PlayerState, island: IslandId): number[] {
+  const owned = ownedPlots(s, island)
+  const out: number[] = []
+  for (let plot = 0; isPlot(plot); plot++) if (!owned.includes(plot) && owned.some(o => plotsTouch(o, plot))) out.push(plot)
+  return out
 }
 
 /**
@@ -223,7 +233,7 @@ export function buildIslandModel(
   const objects: IslandObject[] = []
   const markers: IslandMarkers = {
     habitats: [], dragons: [], waiting: [], breeders: [], hatchery: [], farms: [],
-    obstacles: [], decorations: [], constructions: 0, ghost: null, sign: null,
+    obstacles: [], decorations: [], constructions: 0, ghost: null, signs: [],
   }
   if (!state) return { objects, markers }
   markers.constructions = state.constructions.length
@@ -263,9 +273,7 @@ export function buildIslandModel(
     const live = residents(state, h.id)
     const cap = habitatCap(h.element, h.level, preset)
     const gold = storedGold(h, live, catalog, nowMs, preset)
-    const base = h.element === 'aerie'
-      ? aerieLook(art)
-      : { key: textureKey(`habitat.${h.element}`), sprite: art.habitat[h.element] }
+    const base = h.element === 'aerie' ? aerieLook(art) : habitatLook(art, h.element)
     const group: IslandObject[] = [{
       id: `habitat:${h.id}`, ...base, ...a, target: { kind: 'habitat', id: h.id },
       badge: gold > 0 && gold >= cap ? 'full' : gold > 0 && gold >= goldBadgeThreshold(h, live, cap, catalog, preset) ? 'gold' : undefined,
@@ -336,7 +344,7 @@ export function buildIslandModel(
     if (plot.placement.island !== view) return
     const a = anchor(plot.placement.col, plot.placement.row, FOOTPRINT.farm)
     const group: IslandObject[] = [{
-      id: `farm:${i}`, key: textureKey('building.farmPlot'), sprite: art.building.farmPlot, ...a,
+      id: `farm:${i}`, ...farmLook(art), ...a,
       target: { kind: 'farm', plot: i }, ...look({ type: 'farm', index: i }, plot.placement),
     }]
     if (plot.crop) {
@@ -356,12 +364,15 @@ export function buildIslandModel(
     markers.farms.push({ plot: i, crop: plot.crop })
   })
 
-  if (view === 'home' && state.islands.homeStep < HOME_MAX_STEP) {
-    const next = HOME_EXPANSION[state.islands.homeStep]!
-    const { col, row } = signCell(state.islands.homeStep)
-    const a = anchor(col, row, 2)
-    add({ col, row }, 2, [{ id: 'sign', key: textureKey('island.sign'), sprite: art.island.sign, ...a, target: { kind: 'expandSign' } }])
-    markers.sign = { cost: next.cost, minLevel: unlockPl(`home:${state.islands.homeStep}`) }
+  const price = plotPrice(view, plotsBought(state, view))
+  for (const plot of signPlots(state, view)) {
+    const o = plotOrigin(plot)
+    // The sign stands on the plot's centre: depth-sorted as a 2x2 around it.
+    const mid = TILES_PER_PLOT / 2
+    add({ col: o.col + mid - 1, row: o.row + mid - 1 }, 2, [{
+      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot },
+    }])
+    markers.signs.push({ plot, price })
   }
 
   // Stable sort: back to front in isometric depth, ties keep insertion order.

@@ -1,4 +1,4 @@
-import { FOOTPRINT, islandSize, LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
+import { FOOTPRINT, LAUNCH_CATALOG, ownedPlots, plotOrigin, TILES_PER_PLOT, type Catalog } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
 import { animateWater, isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
@@ -21,7 +21,7 @@ const GROUND = {
 }
 const EMPTY: IslandMarkers = {
   habitats: [], dragons: [], waiting: [], breeders: [], hatchery: [], farms: [],
-  obstacles: [], decorations: [], constructions: 0, ghost: null, sign: null,
+  obstacles: [], decorations: [], constructions: 0, ghost: null, signs: [],
 }
 /** On-screen height of badge text in CSS pixels (the font is 8 px in world space). */
 const BADGE_PX = 14
@@ -162,7 +162,7 @@ export class IslandScene extends Phaser.Scene {
   /** Frames the island when the view, its shown size or the screen changes; otherwise only re-clamps. */
   private frame(): void {
     const s = this.bridge.state
-    const size = s ? shownSize(s, this.bridge.view) : { w: 0, h: 0 }
+    const size = s ? shownSize() : { w: 0, h: 0 }
     const key = `${this.bridge.view}:${size.w}x${size.h}:${this.scale.width}x${this.scale.height}`
     if (key === this.framed && this.view) return this.apply(this.view)
     this.framed = key
@@ -327,13 +327,13 @@ export class IslandScene extends Phaser.Scene {
   }
 
   /**
-   * The landmass: grass diamonds for unlocked cells, fog for the locked ring and a cliff skirt under the two front
-   * edges, over the sea. Uses the `ground.*` tiles when the manifest has them and drawn diamonds otherwise.
-   * Redrawn only when the view or home step changes.
+   * The landmass: grass diamonds for owned plots, fog for the rest and a cliff skirt under the two front edges, over
+   * the sea. Uses the `ground.*` tiles when the manifest has them and drawn diamonds otherwise. Redrawn only when the
+   * view or its owned plots change.
    */
   private drawGround(): void {
     const { state, view } = this.bridge
-    const key = `${view}:${state?.islands.homeStep ?? -1}`
+    const key = `${view}:${state ? ownedPlots(state, view).join(',') : '-'}`
     if (key === this.groundKey) return
     this.groundKey = key
     const g = this.ground.clear()
@@ -343,7 +343,7 @@ export class IslandScene extends Phaser.Scene {
     if (!state) return
     const tiles = this.art().ground
     const tile = (k: string, x: number, y: number) => this.groundTiles.add(this.add.image(x, y, textureKey(k)).setOrigin(0, 0))
-    const shown = shownSize(state, view)
+    const shown = shownSize()
     if (tiles.water) {
       const b = cameraBounds(state, view)
       const pad = 2048 // the sea also fills the screen beyond the camera bounds when zoomed out
@@ -372,13 +372,15 @@ export class IslandScene extends Phaser.Scene {
       for (let row = 0; row < shown.h; row++) { const t = cellTop(shown.w - 1, row); tile('ground.cliff.se', t.x - 8, t.y) }
     }
     // A diamond's 16x8 tile has its top-left corner 8 px left of the cell's top vertex.
-    const { w, h } = islandSize(state, view)
-    for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
-      if (tiles.grass.length > 0) {
-        const t = cellTop(col, row)
-        tile(`ground.grass.${(col * 7 + row * 13) % tiles.grass.length}`, t.x - 8, t.y)
-      } else {
-        g.fillStyle(GROUND.grass[(col + row) % 2]!, 1).fillPoints(points(footprintDiamond(col, row, 1)), true)
+    for (const plot of ownedPlots(state, view)) {
+      const o = plotOrigin(plot)
+      for (let row = o.row; row < o.row + TILES_PER_PLOT; row++) for (let col = o.col; col < o.col + TILES_PER_PLOT; col++) {
+        if (tiles.grass.length > 0) {
+          const t = cellTop(col, row)
+          tile(`ground.grass.${(col * 7 + row * 13) % tiles.grass.length}`, t.x - 8, t.y)
+        } else {
+          g.fillStyle(GROUND.grass[(col + row) % 2]!, 1).fillPoints(points(footprintDiamond(col, row, 1)), true)
+        }
       }
     }
     for (const c of lockedTiles(state, view)) {

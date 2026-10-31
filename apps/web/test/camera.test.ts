@@ -9,26 +9,23 @@ import { cellCentre } from '../src/game/layout'
 const vp = { w: 1280, h: 720 }
 
 describe('island camera logic', () => {
-  it('bounds the shown island diamond plus the cliff skirt and a margin, home with its two-cell locked ring', () => {
+  it('bounds the whole diamond of the island plus the cliff skirt and a margin', () => {
     const s = newPlayer(0)
-    s.islands.unlocked = ['home', 'isle2']
-    const home = cameraBounds(s, 'home') // 12x12 unlocked + ring = 14x14 shown
-    expect(home.w).toBeGreaterThan(14 * 16)
-    expect(home.x).toBeLessThan(-14 * 8)
-    expect(home.y + home.h).toBeGreaterThan(14 * 8 + SKIRT)
-    const full = cameraBounds({ ...s, islands: { ...s.islands, homeStep: 12 } }, 'home')
-    expect(full).toEqual(cameraBounds({ ...s, islands: { ...s.islands, homeStep: 11 } }, 'home'))
-    expect(full.w).toBeGreaterThan(home.w)
+    const home = cameraBounds(s, 'home')
+    expect(home.w).toBeGreaterThan(32 * 16)
+    expect(home.x).toBeLessThan(-32 * 8)
+    expect(home.y + home.h).toBeGreaterThan(32 * 8 + SKIRT)
+    expect(cameraBounds(s, 'isle2')).toEqual(home)
   })
 
   it('a ground click yields the cell, or nothing outside the island', () => {
     const s = newPlayer(0)
     const c = cellCentre(6, 8)
     expect(groundCell(s, 'home', c.x, c.y)).toEqual({ col: 6, row: 8 })
-    const out = cellCentre(12, 0)
+    const out = cellCentre(32, 0)
     expect(groundCell(s, 'home', out.x, out.y)).toBeNull()
-    const corner = cellCentre(11, 11)
-    expect(groundCell(s, 'home', corner.x, corner.y)).toEqual({ col: 11, row: 11 })
+    const corner = cellCentre(31, 31)
+    expect(groundCell(s, 'home', corner.x, corner.y)).toEqual({ col: 31, row: 31 })
     expect(groundCell(s, 'home', 0, -2)).toBeNull()
     expect(groundCell(null, 'home', 5, 5)).toBeNull()
   })
@@ -89,13 +86,13 @@ describe('island camera logic', () => {
     expect(stepZoom(1, 1, r)).toBe(1)
   })
 
-  it('draws locked tiles on the home island only, in the visible ring outside the unlocked cells', () => {
+  it('draws fog on every tile not owned, and none once it all is', () => {
     const s = newPlayer(0)
     const tiles = lockedTiles(s, 'home')
-    expect(tiles.length).toBe(14 * 14 - 12 * 12)
-    expect(tiles).toContainEqual({ col: 12, row: 0 })
-    expect(tiles).not.toContainEqual({ col: 0, row: 0 })
-    expect(lockedTiles({ ...s, islands: { ...s.islands, homeStep: 12 } }, 'home')).toEqual([])
-    expect(lockedTiles(s, 'isle2')).toEqual([])
+    expect(tiles.length).toBe(32 * 32 - 16 * 16)
+    expect(tiles).toContainEqual({ col: 0, row: 0 })
+    expect(tiles).not.toContainEqual({ col: 8, row: 8 })
+    expect(lockedTiles({ ...s, islands: { ...s.islands, plots: { home: Array.from({ length: 16 }, (_, i) => i) } } }, 'home')).toEqual([])
+    expect(lockedTiles(s, 'isle2').length).toBe(32 * 32)
   })
 })

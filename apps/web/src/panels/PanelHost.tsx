@@ -10,12 +10,12 @@ import { BreedPanel } from './BreedPanel'
 import { DecorationPanel } from './DecorationPanel'
 import { DragonPanel } from './DragonPanel'
 import { DragonBookPanel } from './DragonBookPanel'
-import { ExpandSignPanel } from './ExpandSignPanel'
 import { FarmPanel } from './FarmPanel'
 import { HabitatPanel } from './HabitatPanel'
-import { IslandMapPanel } from './IslandMapPanel'
+import { MapIslandPanel } from './MapIslandPanel'
 import { HatcheryPanel } from './HatcheryPanel'
 import { ObstaclePanel } from './ObstaclePanel'
+import { PlotPanel } from './PlotPanel'
 import { QuestsPanel } from './QuestsPanel'
 import { RoostPanel } from './RoostPanel'
 import { ShopPanel } from './ShopPanel'
@@ -45,7 +45,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
   if (dialog.kind === 'panel') {
     switch (dialog.id) {
       case 'shop': return <ShopPanel key={dialog.tab ?? 'build'} tab={dialog.tab} nowMs={nowMs} view={bridge.view} onPlace={(what, size) => { onOpen(null); startPlacing(what, size) }} onClose={close} />
-      case 'map': return <IslandMapPanel view={bridge.view} onView={id => { bridge.setView(id); close() }} onClose={close} art={bridge.art} />
+      case 'map': return <MapIslandPanel view={bridge.view} onView={id => { bridge.setView(id); close() }} onClose={close} art={bridge.art} />
       case 'breed': return <BreedPanel nowMs={nowMs} onClose={close} />
       case 'book': return <DragonBookPanel art={bridge.art} onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
       case 'battle': return <BattleHub nowMs={nowMs} onPve={onPve} onPvp={onPvp} onClose={close} />
@@ -66,7 +66,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
     case 'roost': return <RoostPanel nowMs={nowMs} onClose={close} />
     case 'farm': return <FarmPanel index={t.plot} nowMs={nowMs} onClose={close} />
     case 'obstacle': return <ObstaclePanel obstacleId={t.id} nowMs={nowMs} onClose={close} />
-    case 'expandSign': return <ExpandSignPanel onClose={close} />
+    case 'plot': return <PlotPanel key={`${t.island}:${t.plot}`} island={t.island} plot={t.plot} onClose={close} />
     default: return null
   }
 }

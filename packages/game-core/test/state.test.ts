@@ -7,25 +7,25 @@ describe('newPlayer', () => {
     expect(newPlayer(0)).toEqual({
       gold: 1000, food: 50, xp: 0, level: 1, roostTier: 0, roostPlacement: null,
       dragons: [{ id: 'd1', speciesId: 'terra', level: 1, feeds: 0, habitatId: 'h1' }, { id: 'd2', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h2' }],
-      habitats: [{ id: 'h1', element: 'terra', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 0, row: 0, facing: 0 } }, { id: 'h2', element: 'flame', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 5, row: 0, facing: 0 } }],
-      breeders: [{ kind: 'mountain', egg: null, level: 1, placement: { island: 'home', col: 4, row: 8, facing: 0 } }], hatchery: [],
-      hatcheryLevel: 1, hatcheryFifthSlot: false, hatcheryPlacement: { island: 'home', col: 0, row: 8, facing: 0 },
-      decorations: [], islands: { homeStep: 0, unlocked: ['home'], obstacles: [] }, constructions: [],
-      farms: [{ crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 10, row: 0, facing: 0 } }],
-      version: 7, firstHybridDone: false, discovered: ['terra', 'flame'],
+      habitats: [{ id: 'h1', element: 'terra', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 8, row: 8, facing: 0 } }, { id: 'h2', element: 'flame', level: 1, lastCollectedMs: 0, placement: { island: 'home', col: 12, row: 8, facing: 0 } }],
+      breeders: [{ kind: 'mountain', egg: null, level: 1, placement: { island: 'home', col: 8, row: 12, facing: 0 } }], hatchery: [],
+      hatcheryLevel: 1, hatcheryFifthSlot: false, hatcheryPlacement: { island: 'home', col: 16, row: 8, facing: 0 },
+      decorations: [], islands: { unlocked: ['home'], plots: { home: [5, 6, 9, 10] }, obstacles: [] }, constructions: [],
+      farms: [{ crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 20, row: 8, facing: 0 } }],
+      version: 8, firstHybridDone: false, discovered: ['terra', 'flame'],
       goalIndex: 0, goalStats: { collects: 0, harvests: 0, feeds: 0, breeds: 0, hatches: 0 }, nextId: 3,
       defenceTeam: null, trophies: 0, pvp: { day: 0, count: 0 }, pve: { cleared: 0, replays: { day: 0, count: 0 } },
     })
   })
 
-  it('starts on a 12x12 home island with the fixed layout', () => {
+  it("starts on Home's centre plots with the fixed layout (R50)", () => {
     const s = newPlayer(0)
     expect(s.habitats.map(h => h.placement)).toEqual([
-      { island: 'home', col: 0, row: 0, facing: 0 }, { island: 'home', col: 5, row: 0, facing: 0 }])
-    expect(s.farms.map(f => [f.level, f.placement.col, f.placement.row])).toEqual([[1, 10, 0]])
-    expect(s.breeders).toEqual([{ kind: 'mountain', egg: null, level: 1, placement: { island: 'home', col: 4, row: 8, facing: 0 } }])
-    expect([s.hatcheryLevel, s.hatcheryPlacement]).toEqual([1, { island: 'home', col: 0, row: 8, facing: 0 }])
-    expect(s.islands).toEqual({ homeStep: 0, unlocked: ['home'], obstacles: [] })
+      { island: 'home', col: 8, row: 8, facing: 0 }, { island: 'home', col: 12, row: 8, facing: 0 }])
+    expect(s.farms.map(f => [f.level, f.placement.col, f.placement.row])).toEqual([[1, 20, 8]])
+    expect(s.breeders).toEqual([{ kind: 'mountain', egg: null, level: 1, placement: { island: 'home', col: 8, row: 12, facing: 0 } }])
+    expect([s.hatcheryLevel, s.hatcheryPlacement]).toEqual([1, { island: 'home', col: 16, row: 8, facing: 0 }])
+    expect(s.islands).toEqual({ unlocked: ['home'], plots: { home: [5, 6, 9, 10] }, obstacles: [] })
     expect([s.constructions, s.decorations]).toEqual([[], []])
     expect(s).not.toHaveProperty('tutorial')
   })
@@ -60,7 +60,7 @@ describe('newPlayer', () => {
   it('new players carry the state version and no removed fields', () => {
     const s = newPlayer(0)
     expect(s.version).toBe(STATE_VERSION)
-    expect(STATE_VERSION).toBe(7)
+    expect(STATE_VERSION).toBe(8)
     expect(s).not.toHaveProperty('hoardLevel')
     expect(s).not.toHaveProperty('eligibleGold')
     expect(s).not.toHaveProperty('ledger')

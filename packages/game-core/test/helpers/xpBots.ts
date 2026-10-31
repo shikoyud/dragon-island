@@ -14,6 +14,9 @@ import type { Preset } from '../../src/data/presets'
 import { HATCH_XP, START_BREED_XP } from '../../src/data/xp'
 import { foodPerFeed, levelCap } from '../../src/dragon'
 import { ELEMENTS, type Element } from '../../src/elements'
+import { ISLAND_ORDER } from '../../src/island'
+import { ISLAND_TILES, plotError } from '../../src/plots'
+import { ALL_PLOTS } from './land'
 import { CROP_IDS, cropGrowMs, cropUnlocked, MAX_FARMS } from '../../src/farm'
 import { gameDay } from '../../src/game-clock'
 import { placementRuleError } from '../../src/placement-rules'
@@ -80,16 +83,20 @@ export function runBot(p: BotPlan): BotResult {
   const spot = (subject: Placeable, small: boolean): Placement | null => {
     const islands: readonly IslandId[] = small ? [...s.islands.unlocked].reverse() : s.islands.unlocked
     for (const island of islands) {
-      for (let i = 0; i < 24 * 24; i++) {
-        const k = small ? 24 * 24 - 1 - i : i
-        const placement: Placement = { island, col: k % 24, row: Math.floor(k / 24), facing: 0 }
+      for (let i = 0; i < ISLAND_TILES * ISLAND_TILES; i++) {
+        const k = small ? ISLAND_TILES * ISLAND_TILES - 1 - i : i
+        const placement: Placement = { island, col: k % ISLAND_TILES, row: Math.floor(k / ISLAND_TILES), facing: 0 }
         if (placementRuleError(s, subject, placement) === null) return placement
       }
     }
     return null
   }
   const makeRoom = () => {
-    if (act({ type: 'expandIsland' }) || act({ type: 'unlockIsland' })) return
+    for (const island of s.islands.unlocked) {
+      for (const plot of ALL_PLOTS) if (plotError(s, island, plot) === null && act({ type: 'buyPlot', island, plot })) return
+    }
+    const next = ISLAND_ORDER.find(i => !s.islands.unlocked.includes(i))
+    if (next && next !== 'home' && act({ type: 'buyBridge', island: next })) return
     const o = s.islands.obstacles.find(x => !s.constructions.some(k => k.kind === 'clear' && k.obstacleId === x.id))
     if (o && builderFree()) act({ type: 'clearObstacle', obstacleId: o.id })
   }

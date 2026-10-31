@@ -4,6 +4,7 @@ import { DECORATIONS } from '../decorations'
 import { ELEMENTS } from '../elements'
 import { CROPS } from '../farm'
 import { ISLAND_ORDER } from '../island'
+import { isPlot } from '../plots'
 import type { Action } from './types'
 
 /**
@@ -20,9 +21,11 @@ export function isValidAction(a: unknown): a is Action {
     case 'startUpgrade':
       return isBuildingRef(x['building'])
     case 'claimGoal':
-    case 'expandIsland':
-    case 'unlockIsland':
       return true
+    case 'buyPlot':
+      return isIsland(x['island']) && isPlot(x['plot'])
+    case 'buyBridge':
+      return isIsland(x['island']) && x['island'] !== 'home'
     case 'clearObstacle':
       return isId(x['obstacleId'])
     case 'finishConstruction':
@@ -65,11 +68,12 @@ export function isValidAction(a: unknown): a is Action {
 
 const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0
 const isIndex = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0
+const isIsland = (v: unknown): boolean => (ISLAND_ORDER as readonly unknown[]).includes(v)
 const isCoord = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 0 && (v as number) < 64
 function isPlacement(v: unknown): boolean {
   if (typeof v !== 'object' || v === null) return false
   const p = v as Record<string, unknown>
-  return (ISLAND_ORDER as readonly unknown[]).includes(p['island']) && isCoord(p['col']) && isCoord(p['row'])
+  return isIsland(p['island']) && isCoord(p['col']) && isCoord(p['row'])
     && (p['facing'] === 0 || p['facing'] === 1 || p['facing'] === 2 || p['facing'] === 3)
 }
 function isPlaceable(v: unknown): boolean {

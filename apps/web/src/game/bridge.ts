@@ -12,7 +12,8 @@ export type Target =
   | { kind: 'roost' }
   | { kind: 'decoration'; id: string }
   | { kind: 'obstacle'; id: string }
-  | { kind: 'expandSign' }
+  /** The sign on an unowned plot that touches owned land. */
+  | { kind: 'plot'; island: IslandId; plot: number }
   | { kind: 'cell'; col: number; row: number }
   | { kind: 'empty' }
 

@@ -1,4 +1,6 @@
+import { HOME_START } from './data/island-start'
 import type { Element } from './elements'
+import { STARTING_PLOTS } from './plots'
 import { utcDay, type DayCounter } from './time'
 
 export type CropId = 'dragonBush' | 'emberWheat' | 'seaMelon' | 'thunderPumpkin' | 'frostBerries' | 'warlordPepper'
@@ -28,7 +30,7 @@ export type Construction =
   | { kind: 'clear'; obstacleId: string; readyAtMs: number }
 
 /** Bumped when the saved shape changes; there is no save migration (R2). */
-export const STATE_VERSION = 7
+export const STATE_VERSION = 8
 
 /** Counters the Goals read (§1.4, R37); each rises only when its action succeeds. */
 export interface GoalStats { collects: number; harvests: number; feeds: number; breeds: number; hatches: number }
@@ -52,7 +54,8 @@ export interface PlayerState {
   hatcheryFifthSlot: boolean
   hatcheryPlacement: Placement
   decorations: Decoration[]
-  islands: { homeStep: number; unlocked: IslandId[]; obstacles: Obstacle[] }
+  /** `plots`: owned plot indices per island (§5.5), absent until the island opens. */
+  islands: { unlocked: IslandId[]; plots: Partial<Record<IslandId, number[]>>; obstacles: Obstacle[] }
   constructions: Construction[]
   farms: FarmPlot[]
   /** Index of the Goal waiting to be claimed; the Goals' count means all are done (R36). */
@@ -71,7 +74,7 @@ export interface PlayerState {
   pve: { cleared: number; replays: DayCounter }
 }
 
-const home = (col: number, row: number): Placement => ({ island: 'home', col, row, facing: 0 })
+const home = (cell: { col: number; row: number }): Placement => ({ island: 'home', col: cell.col, row: cell.row, facing: 0 })
 
 export function newPlayer(nowMs: number): PlayerState {
   return {
@@ -82,18 +85,18 @@ export function newPlayer(nowMs: number): PlayerState {
       { id: 'd2', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h2' },
     ],
     habitats: [
-      { id: 'h1', element: 'terra', level: 1, lastCollectedMs: nowMs, placement: home(0, 0) },
-      { id: 'h2', element: 'flame', level: 1, lastCollectedMs: nowMs, placement: home(5, 0) },
+      { id: 'h1', element: 'terra', level: 1, lastCollectedMs: nowMs, placement: home(HOME_START.terra) },
+      { id: 'h2', element: 'flame', level: 1, lastCollectedMs: nowMs, placement: home(HOME_START.flame) },
     ],
-    breeders: [{ kind: 'mountain', egg: null, level: 1, placement: home(4, 8) }],
+    breeders: [{ kind: 'mountain', egg: null, level: 1, placement: home(HOME_START.mountain) }],
     hatchery: [],
     hatcheryLevel: 1,
     hatcheryFifthSlot: false,
-    hatcheryPlacement: home(0, 8),
+    hatcheryPlacement: home(HOME_START.hatchery),
     decorations: [],
-    islands: { homeStep: 0, unlocked: ['home'], obstacles: [] },
+    islands: { unlocked: ['home'], plots: { home: [...STARTING_PLOTS] }, obstacles: [] },
     constructions: [],
-    farms: [{ crop: null, readyAtMs: 0, level: 1, placement: home(10, 0) }],
+    farms: [{ crop: null, readyAtMs: 0, level: 1, placement: home(HOME_START.farm) }],
     goalIndex: 0,
     goalStats: { collects: 0, harvests: 0, feeds: 0, breeds: 0, hatches: 0 },
     firstHybridDone: false,

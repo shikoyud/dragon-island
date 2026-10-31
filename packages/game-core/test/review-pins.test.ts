@@ -8,7 +8,7 @@ import { newPlayer, type PlayerState } from '../src/state'
 import { FIXTURE_CATALOG as C } from './fixtures'
 import { err, ok } from './helpers'
 
-const P = (col: number, row: number) => ({ island: 'home' as const, col, row, facing: 0 as const })
+import { FREE } from './helpers/land'
 
 /** Plant, harvest, startBreed, placeBuilding and startUpgrade from the same state, one snapshot per step. */
 function playScript(preset: Preset): PlayerState[] {
@@ -17,7 +17,7 @@ function playScript(preset: Preset): PlayerState[] {
     [{ type: 'plant', plot: 0, crop: 'dragonBush' }, 0],
     [{ type: 'harvest', plot: 0 }, 60_000],
     [{ type: 'startBreed', parentA: 'd1', parentB: 'd2' }, 60_000],
-    [{ type: 'placeBuilding', building: { kind: 'farm' }, placement: P(9, 7) }, 60_000],
+    [{ type: 'placeBuilding', building: { kind: 'farm' }, placement: FREE }, 60_000],
     [{ type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 60_000],
   ]
   let s: PlayerState = { ...newPlayer(0), gold: 10_000_000, level: 20, dragons: newPlayer(0).dragons.map(d => ({ ...d, level: 4 })) }

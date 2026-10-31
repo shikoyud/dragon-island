@@ -35,14 +35,14 @@ export interface GameArtSet {
     cropStage: Record<CropId, Sprite>
     /** Ripe-stage sway loop per crop, when the manifest has one (else the last growth frame stays still). */
     cropSway: Partial<Record<CropId, Sprite>>
-    /** The all-element habitat on Dawnspire. */
+    /** The all-element habitat. */
     nexus: Sprite
     /** The Golden Aerie's own sprite when the manifest has one; null = it reuses the Nexus sprite. */
     goldenAerie: Sprite | null
   }
   elementIcon: Record<Element, Sprite>
   ui: { panel: Sprite; button: Sprite; cursor: Sprite }
-  island: { base: Sprite; layers: Sprite[]; /** One locked ground cell. */ locked: Sprite; /** The home expansion sign. */ sign: Sprite }
+  island: { base: Sprite; layers: Sprite[]; /** One locked ground cell. */ locked: Sprite; /** The sign on a plot for sale. */ sign: Sprite }
   /** Base-building art; missing files draw footprint-sized boxes (16 px per cell). */
   obstacle: Record<ObstacleKind, Sprite>
   decoration: Record<DecorationId, Sprite>

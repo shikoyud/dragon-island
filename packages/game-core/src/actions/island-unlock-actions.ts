@@ -1,39 +1,36 @@
-import { getSpecies } from '../catalog'
 import { startConstruction } from '../construction'
-import { homeStripObstacles, outerObstacles } from '../data/island-layouts'
-import { isUnlocked } from '../data/unlocks'
-import { HOME_EXPANSION, HOME_MAX_STEP, ISLAND_ORDER, OUTER_ISLANDS } from '../island'
+import { ISLANDS, plotPrice } from '../data/islands'
+import { bridgeError } from '../island'
 import { OBSTACLES, clearCost } from '../obstacles'
+import { ownedPlots, plotError, plotsBought, STARTING_PLOTS } from '../plots'
 import { payBuildXp } from '../progression'
 import { spendGold } from '../wallet'
 import { failure, success, type Handler } from './types'
 
-export const expandIsland: Handler<'expandIsland'> = (s, _a, ctx) => {
-  const step = s.islands.homeStep
-  if (step >= HOME_MAX_STEP) return failure('MAX_EXPANSION')
-  const next = HOME_EXPANSION[step]!
-  if (!isUnlocked(`home:${step}`, s.level)) return failure('LEVEL_TOO_LOW')
-  const paid = spendGold(s, next.cost)
+/** §5.5: one more plot touching owned land, priced by how many were bought on that island (R45). */
+export const buyPlot: Handler<'buyPlot'> = (s, a, ctx) => {
+  const bad = plotError(s, a.island, a.plot)
+  if (bad) return failure(bad)
+  const price = plotPrice(a.island, plotsBought(s, a.island))!
+  const paid = spendGold(s, price)
   if (!paid) return failure('INSUFFICIENT_GOLD')
-  return success(payBuildXp({
-    ...paid,
-    islands: { ...paid.islands, homeStep: step + 1, obstacles: [...paid.islands.obstacles, ...homeStripObstacles(step + 1)] },
-  }, next.cost, s, ctx.preset, ctx.day))
+  const plots = { ...paid.islands.plots, [a.island]: [...ownedPlots(s, a.island), a.plot] }
+  return success(payBuildXp({ ...paid, islands: { ...paid.islands, plots } }, price, s, ctx.preset, ctx.day))
 }
 
-export const unlockIsland: Handler<'unlockIsland'> = (s, _a, ctx) => {
-  const last = Math.max(...s.islands.unlocked.map(i => ISLAND_ORDER.indexOf(i)))
-  const island = ISLAND_ORDER[last + 1]
-  if (!island || island === 'home') return failure('MAX_ISLAND')
-  const req = OUTER_ISLANDS[island]
-  if (!isUnlocked(`island:${island}`, s.level)) return failure('LEVEL_TOO_LOW')
-  if (island === 'isle6' && !s.dragons.some(d => getSpecies(ctx.catalog, d.speciesId).rarity === 'legendary')) return failure('NO_LEGENDARY')
-  const paid = spendGold(s, req.cost)
+/** §5.5: the Bridge opens the next island with its 4 centre plots (R47). */
+export const buyBridge: Handler<'buyBridge'> = (s, a, ctx) => {
+  const bad = bridgeError(s, a.island)
+  if (bad) return failure(bad)
+  const price = ISLANDS[a.island].bridgeGold!
+  const paid = spendGold(s, price)
   if (!paid) return failure('INSUFFICIENT_GOLD')
-  return success(payBuildXp({
-    ...paid,
-    islands: { ...paid.islands, unlocked: [...paid.islands.unlocked, island], obstacles: [...paid.islands.obstacles, ...outerObstacles(island)] },
-  }, req.cost, s, ctx.preset, ctx.day))
+  const islands = {
+    ...paid.islands,
+    unlocked: [...paid.islands.unlocked, a.island],
+    plots: { ...paid.islands.plots, [a.island]: [...STARTING_PLOTS] },
+  }
+  return success(payBuildXp({ ...paid, islands }, price, s, ctx.preset, ctx.day))
 }
 
 export const clearObstacle: Handler<'clearObstacle'> = (s, a, ctx) => {

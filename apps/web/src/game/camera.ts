@@ -1,4 +1,4 @@
-import { HOME_MAX_STEP, homeSize, islandSize, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { ISLAND_TILES, ownedPlots, plotOfTile, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
 import { islandBox, pointerToCell, type Box } from './layout'
 
 /** Height in world pixels of the cliff drawn under the island's two front edges. */
@@ -9,24 +9,23 @@ const MARGIN = 24
 /** What the camera shows: the world point at the screen's centre, and a whole-number zoom. */
 export interface View { cx: number; cy: number; zoom: number }
 
-/** Cells shown on an island: home is the unlocked square plus a two-cell ring of locked land (the next two expansions). */
-export function shownSize(state: PlayerState, view: IslandId): { w: number; h: number } {
-  return view === 'home' ? homeSize(Math.min(state.islands.homeStep + 2, HOME_MAX_STEP)) : islandSize(state, view)
+/** Tiles shown on an island: always all of it, with land not owned as fog (R58). */
+export function shownSize(): { w: number; h: number } {
+  return { w: ISLAND_TILES, h: ISLAND_TILES }
 }
 
 /** World box the camera may show: the shown island's diamond, its cliff skirt and a margin of sea. */
-export function cameraBounds(state: PlayerState | null, view: IslandId): Box {
-  const { w, h } = state ? shownSize(state, view) : { w: 12, h: 12 }
+export function cameraBounds(_state: PlayerState | null, _view: IslandId): Box {
+  const { w, h } = shownSize()
   const b = islandBox(w, h)
   return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + SKIRT + 2 * MARGIN }
 }
 
-/** The cell under a world position, or null when it falls outside the viewed island's unlocked land. */
-export function groundCell(state: PlayerState | null, view: IslandId, worldX: number, worldY: number): { col: number; row: number } | null {
+/** The tile under a world position, or null off the island. Land not owned counts: a red ghost can go over fog. */
+export function groundCell(state: PlayerState | null, _view: IslandId, worldX: number, worldY: number): { col: number; row: number } | null {
   if (!state) return null
-  const { w, h } = islandSize(state, view)
   const c = pointerToCell(worldX, worldY)
-  return c.col < 0 || c.row < 0 || c.col >= w || c.row >= h ? null : c
+  return plotOfTile(c.col, c.row) === null ? null : c
 }
 
 /** World position of a screen pixel (screen = the game canvas, in CSS pixels). */
@@ -85,12 +84,11 @@ export function stepZoom(zoom: number, dir: -1 | 1, range: { min: number; max: n
   return Math.min(range.max, Math.max(range.min, zoom - dir))
 }
 
-/** Home-island cells that are still locked and on screen: inside the shown ring but outside the current square. */
+/** Every tile of the viewed island not on an owned plot: the fog. */
 export function lockedTiles(state: PlayerState | null, view: IslandId): { col: number; row: number }[] {
-  if (!state || view !== 'home') return []
-  const cur = homeSize(state.islands.homeStep)
-  const max = shownSize(state, view)
+  if (!state) return []
+  const owned = new Set(ownedPlots(state, view))
   const out: { col: number; row: number }[] = []
-  for (let row = 0; row < max.h; row++) for (let col = 0; col < max.w; col++) if (col >= cur.w || row >= cur.h) out.push({ col, row })
+  for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) if (!owned.has(plotOfTile(col, row)!)) out.push({ col, row })
   return out
 }

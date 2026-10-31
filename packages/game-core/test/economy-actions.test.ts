@@ -7,6 +7,7 @@ import { skipPriceMicroUsd } from '../src/data/speedups'
 import { priceMicroUsd, type StoreItem } from '../src/store'
 import { FIXTURE_CATALOG } from './fixtures'
 import { err, ok } from './helpers'
+import { FREE, FREE_2 } from './helpers/land'
 import { isValidAction } from '../src/index'
 
 const run = (st: PlayerState, a: Action, t = 0) => applyAction(st, a, t, createRng(1), FIXTURE_CATALOG)
@@ -121,10 +122,10 @@ describe('habitat L5 and the Golden Aerie', () => {
   })
 
   it('the Golden Aerie is a level 5 habitat that houses 6 dragons of any element for $5.00', () => {
-    const r = run({ ...s, level: 1 }, buy({ kind: 'goldenAerie', placement: P(7, 7) }), 5_000)
+    const r = run({ ...s, level: 1 }, buy({ kind: 'goldenAerie', placement: FREE }), 5_000)
     expect(r.ok && r.effects).toEqual([{ type: 'charge', microUsd: 5_000_000 }])
     const a = ok(r)
-    expect(a.habitats.at(-1)).toEqual({ id: 'h3', element: 'aerie', level: 5, lastCollectedMs: 5_000, placement: P(7, 7) })
+    expect(a.habitats.at(-1)).toEqual({ id: 'h3', element: 'aerie', level: 5, lastCollectedMs: 5_000, placement: FREE })
     expect([a.nextId, a.constructions]).toEqual([4, []])
     const species = ['flame', 'sea', 'ice', 'nature', 'fw-rare', 'wall']
     const dragons = species.map((speciesId, i) => ({ id: `a${i}`, speciesId, level: 1, feeds: 0, habitatId: null }))
@@ -134,21 +135,21 @@ describe('habitat L5 and the Golden Aerie', () => {
     err(run({ ...st, dragons: [...st.dragons, { id: 'a9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }] }, { type: 'moveDragon', dragonId: 'a9', habitatId: 'h3' }), 'NO_HABITAT_SLOT')
   })
   it('a second Golden Aerie fails AERIE_EXISTS and charges nothing', () => {
-    const first = ok(run({ ...s, level: 1 }, buy({ kind: 'goldenAerie', placement: P(7, 7) }), 5_000))
-    const again = run(first, buy({ kind: 'goldenAerie', placement: P(12, 12) }), 6_000)
+    const first = ok(run({ ...s, level: 1 }, buy({ kind: 'goldenAerie', placement: FREE }), 5_000))
+    const again = run(first, buy({ kind: 'goldenAerie', placement: FREE_2 }), 6_000)
     err(again, 'AERIE_EXISTS')
     expect(again.ok).toBe(false)
     expect(first.habitats.filter(h => h.element === 'aerie')).toHaveLength(1)
   })
   it('the Golden Aerie needs a legal cell', () => {
-    err(run(s, buy({ kind: 'goldenAerie', placement: P(0, 0) })), 'OVERLAP')
-    err(run(s, buy({ kind: 'goldenAerie', placement: P(10, 10) })), 'OUT_OF_BOUNDS')
+    err(run(s, buy({ kind: 'goldenAerie', placement: P(8, 8) })), 'OVERLAP')
+    err(run(s, buy({ kind: 'goldenAerie', placement: P(29, 8) })), 'OUT_OF_BOUNDS')
   })
   it('validates the new store items', () => {
     expect(isValidAction(buy(l5))).toBe(true)
     expect(isValidAction(buy({ kind: 'habitatL5', habitatId: '' } as never))).toBe(false)
-    expect(isValidAction(buy({ kind: 'goldenAerie', placement: P(7, 7) }))).toBe(true)
-    expect(isValidAction(buy({ kind: 'goldenAerie', placement: { ...P(7, 7), facing: 4 } } as never))).toBe(false)
+    expect(isValidAction(buy({ kind: 'goldenAerie', placement: FREE }))).toBe(true)
+    expect(isValidAction(buy({ kind: 'goldenAerie', placement: { ...FREE, facing: 4 } } as never))).toBe(false)
     expect(isValidAction(buy({ kind: 'goldenAerie' } as never))).toBe(false)
   })
 })

@@ -1,6 +1,6 @@
 import type { DecorationId } from './state'
 
-/** Spec section 7. Only the Dawnspire items are island-restricted. */
+/** Spec section 7. Only the Warlord's Crown items are island-restricted. */
 export const DECORATIONS: Record<DecorationId, { size: 1 | 2 | 3; cost: number; minLevel: number; island?: 'isle6' }> = {
   stonePath: { size: 1, cost: 10, minLevel: 1 },
   picketFence: { size: 1, cost: 25, minLevel: 1 },
