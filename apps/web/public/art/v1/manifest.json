@@ -3279,6 +3279,438 @@
       "frames": 1,
       "fps": 0,
       "top": 5
+    },
+    "battle.backdrop.terra": {
+      "file": "battle-backdrop-terra.png",
+      "w": 360,
+      "h": 420,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.backdrop.flame": {
+      "file": "battle-backdrop-flame.png",
+      "w": 360,
+      "h": 420,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.backdrop.sea": {
+      "file": "battle-backdrop-sea.png",
+      "w": 360,
+      "h": 420,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.backdrop.nature": {
+      "file": "battle-backdrop-nature.png",
+      "w": 360,
+      "h": 420,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.backdrop.electric": {
+      "file": "battle-backdrop-electric.png",
+      "w": 360,
+      "h": 420,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.backdrop.ice": {
+      "file": "battle-backdrop-ice.png",
+      "w": 360,
+      "h": 420,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.backdrop.metal": {
+      "file": "battle-backdrop-metal.png",
+      "w": 360,
+      "h": 420,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.backdrop.dark": {
+      "file": "battle-backdrop-dark.png",
+      "w": 360,
+      "h": 420,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.backdrop.light": {
+      "file": "battle-backdrop-light.png",
+      "w": 360,
+      "h": 420,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.backdrop.war": {
+      "file": "battle-backdrop-war.png",
+      "w": 360,
+      "h": 420,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "fx.move.terra": {
+      "file": "fx-move-terra.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 12
+    },
+    "fx.move.flame": {
+      "file": "fx-move-flame.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 4
+    },
+    "fx.move.sea": {
+      "file": "fx-move-sea.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 3
+    },
+    "fx.move.nature": {
+      "file": "fx-move-nature.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 4
+    },
+    "fx.move.electric": {
+      "file": "fx-move-electric.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 5
+    },
+    "fx.move.ice": {
+      "file": "fx-move-ice.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 6
+    },
+    "fx.move.metal": {
+      "file": "fx-move-metal.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 12
+    },
+    "fx.move.dark": {
+      "file": "fx-move-dark.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 7
+    },
+    "fx.move.light": {
+      "file": "fx-move-light.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 2
+    },
+    "fx.move.war": {
+      "file": "fx-move-war.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 1
+    },
+    "fx.move.physical": {
+      "file": "fx-move-physical.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 12
+    },
+    "fx.hit": {
+      "file": "fx-hit.png",
+      "w": 64,
+      "h": 64,
+      "frames": 4,
+      "fps": 14,
+      "top": 7
+    },
+    "fx.crit": {
+      "file": "fx-crit.png",
+      "w": 64,
+      "h": 64,
+      "frames": 4,
+      "fps": 14,
+      "top": 4
+    },
+    "fx.immune": {
+      "file": "fx-immune.png",
+      "w": 64,
+      "h": 64,
+      "frames": 4,
+      "fps": 14,
+      "top": 2
+    },
+    "fx.ko": {
+      "file": "fx-ko.png",
+      "w": 64,
+      "h": 64,
+      "frames": 6,
+      "fps": 14,
+      "top": 3
+    },
+    "fx.swap": {
+      "file": "fx-swap.png",
+      "w": 64,
+      "h": 64,
+      "frames": 5,
+      "fps": 14,
+      "top": 9
+    },
+    "dragon.trial-champion": {
+      "file": "dragon-trial-champion.png",
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "fps": 6,
+      "top": 2
+    },
+    "juvenile.trial-champion": {
+      "file": "juvenile-trial-champion.png",
+      "w": 40,
+      "h": 40,
+      "frames": 4,
+      "fps": 6,
+      "top": 4
+    },
+    "hatchling.trial-champion": {
+      "file": "hatchling-trial-champion.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 6,
+      "top": 3
+    },
+    "egg.trial-champion": {
+      "file": "egg-trial-champion.png",
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "fps": 4,
+      "top": 1
+    },
+    "ui.battle.platform": {
+      "file": "ui-battle-platform.png",
+      "w": 64,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.battle.hpFrame": {
+      "file": "ui-battle-hpframe.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.battle.moveButton": {
+      "file": "ui-battle-move.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.battle.swap": {
+      "file": "ui-battle-swap.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.battle.turn": {
+      "file": "ui-battle-turn.png",
+      "w": 96,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.star": {
+      "file": "ui-star.png",
+      "w": 12,
+      "h": 12,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.star.empty": {
+      "file": "ui-star-empty.png",
+      "w": 12,
+      "h": 12,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.tier.1": {
+      "file": "ui-tier-1.png",
+      "w": 12,
+      "h": 12,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "ui.tier.2": {
+      "file": "ui-tier-2.png",
+      "w": 12,
+      "h": 12,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "ui.tier.3": {
+      "file": "ui-tier-3.png",
+      "w": 12,
+      "h": 12,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "battle.boss.marker": {
+      "file": "battle-boss-marker.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "trial.node": {
+      "file": "trial-node.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "trial.node.boss": {
+      "file": "trial-node-boss.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "trial.node.locked": {
+      "file": "trial-node-locked.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "trial.chapter.terra": {
+      "file": "trial-chapter-terra.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "trial.chapter.flame": {
+      "file": "trial-chapter-flame.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "trial.chapter.sea": {
+      "file": "trial-chapter-sea.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "trial.chapter.nature": {
+      "file": "trial-chapter-nature.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "trial.chapter.electric": {
+      "file": "trial-chapter-electric.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "trial.chapter.ice": {
+      "file": "trial-chapter-ice.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "trial.chapter.metal": {
+      "file": "trial-chapter-metal.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "trial.chapter.dark": {
+      "file": "trial-chapter-dark.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "trial.chapter.light": {
+      "file": "trial-chapter-light.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "trial.chapter.war": {
+      "file": "trial-chapter-war.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
     }
   }
 }
