@@ -99,6 +99,14 @@ describe('placing the Roost', () => {
     ok(run(done, feed, 300_000))
   })
 
+  it('a Roost moved during its build keeps the new cell, and the finish gives Tier 1', () => {
+    const building = ok(run({ ...base, level: 5, gold: 5_000 }, place))
+    const moved = ok(run(building, { type: 'moveBuilding', target: { type: 'roost' }, placement: P(10, 4) }, 100_000))
+    expect(moved.roostTier).toBe(0)
+    const done = ok(run(moved, { type: 'finishConstruction', index: 0 }, 300_000))
+    expect([done.roostTier, done.roostPlacement]).toEqual([1, P(10, 4)])
+  })
+
   it('a Roost build can be skipped like any construction', () => {
     const building = ok(run({ ...base, level: 5, gold: 5_000 }, place))
     const r = run(building, { type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 0)

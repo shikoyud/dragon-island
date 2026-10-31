@@ -161,6 +161,35 @@ describe('POST /actions', () => {
     expect(await t.db.select().from(spendBatches)).toHaveLength(0)
   })
 
+  it('Ascension with 9,999,999 Gold is a 422 INSUFFICIENT_GOLD with no charge', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 9_999_999 })
+    const r = await post({ type: 'buy', item: { kind: 'ascension' } })
+    expect([r.statusCode, r.json()]).toEqual([422, { error: 'INSUFFICIENT_GOLD' }])
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(100n * E18)
+    expect(await t.db.select().from(spendBatches)).toHaveLength(0)
+  })
+
+  it('replaying the same idempotency key after an Ascension charges once', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 10_000_000 })
+    const first = await post({ type: 'buy', item: { kind: 'ascension' } }, 'asc-1')
+    const replay = await post({ type: 'buy', item: { kind: 'ascension' } }, 'asc-1')
+    expect([first.statusCode, replay.statusCode]).toEqual([200, 200])
+    expect(replay.json()).toEqual(first.json())
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(60n * E18)
+    expect(await t.db.select().from(spendBatches)).toHaveLength(1)
+  })
+
+  it('a fresh key while the Ascension builds is a 422 UNDER_CONSTRUCTION with no second charge', async () => {
+    const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+    await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 20_000_000 })
+    expect((await post({ type: 'buy', item: { kind: 'ascension' } })).statusCode).toBe(200)
+    const again = await post({ type: 'buy', item: { kind: 'ascension' } })
+    expect([again.statusCode, again.json()]).toEqual([422, { error: 'UNDER_CONSTRUCTION' }])
+    expect((await t.db.select().from(balances))[0]!.tokenWei).toBe(60n * E18)
+  })
+
   it('Ascension below Tier 4 is a 422 with no charge', async () => {
     const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
     await setState({ roostPlacement: at, roostTier: 3, level: 30, gold: 10_000_000 })

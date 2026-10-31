@@ -51,6 +51,11 @@ describe('RoostPanel', () => {
     expect(screen.getByRole('button', { name: /Ascend/ })).toHaveAccessibleDescription('Needs player level 30')
   })
 
+  it('disables Ascension without the 10,000,000 Gold', () => {
+    harness(roosted(4, { gold: 9_999_999 })).wrap(<RoostPanel nowMs={0} />)
+    expect(screen.getByRole('button', { name: /Ascend/ })).toHaveAccessibleDescription('Not enough gold')
+  })
+
   it('shows the construction timer while a tier is building, and Max tier at Tier 5', () => {
     const building = { kind: 'upgrade' as const, building: { type: 'roost' as const }, readyAtMs: 60_000 }
     const { unmount } = harness(roosted(4, { constructions: [building] })).wrap(<RoostPanel nowMs={0} />)
