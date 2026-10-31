@@ -7,9 +7,10 @@ import type { Bridge, Target } from '../bridge'
 import {
   cameraBounds, clampView, groundCell, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
 } from '../camera'
-import { badgeY, buildIslandModel, groundTiles, type IslandMarkers, type IslandObject } from '../islandModel'
+import { badgeY, buildIslandModel, groundTiles, groundVariant, type IslandMarkers, type IslandObject } from '../islandModel'
 import { anchor, cellCentre, cellTop, footprintDiamond, islandBox, pointerToCell, tapHit, type Box, type Pos } from '../layout'
 import { createPanZoom, heldPointers } from '../panZoom'
+import { pickTarget, type Hit } from '../pickTarget'
 
 const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontFamily: 'Silkscreen, monospace', fontSize: '8px', color: '#f2f1ea', stroke: '#0f1324', strokeThickness: 2,
@@ -65,6 +66,7 @@ export class IslandScene extends Phaser.Scene {
   })
   private levelUpOnWake = false
   private lastCell = ''
+  private hoverKey = ''
   private groundKey = ''
   private view: View | null = null
   private framed = ''
@@ -130,8 +132,10 @@ export class IslandScene extends Phaser.Scene {
       this.scale.off(Phaser.Scale.Events.RESIZE, onResize)
       renderer?.off?.(Phaser.Renderer.Events.RESTORE_WEBGL, onRestore)
     })
+    // Every sprite under the pointer is reported, not only the topmost: `pickTarget` chooses (a real pixel hit beats a tap box).
+    this.input.setTopOnly(false)
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p))
-    this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p))
+    this.input.on('pointermove', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => this.onMove(p, over))
     this.input.on('pointerup', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => this.onUp(p, over))
     this.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => this.gestures.wheel(p, dy))
     this.time.addEvent({ delay: 1000, loop: true, callback: () => this.sync() })
@@ -249,8 +253,14 @@ export class IslandScene extends Phaser.Scene {
     this.gestures.down(p, heldPointers(this.input))
   }
 
-  private onMove(p: Phaser.Input.Pointer): void {
+  private onMove(p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[] = []): void {
     if (this.gestures.move(p, heldPointers(this.input), p.isDown)) return
+    // One hover target: the one a tap here would open.
+    if (!p.wasTouch) {
+      const hover = this.bridge.placing ? null : this.targetAt(p, over)
+      const key = hover ? JSON.stringify(hover) : ''
+      if (key !== this.hoverKey) { this.hoverKey = key; this.bridge.emit({ type: 'hover', target: hover }) }
+    }
     // The placement reducer tracks the cursor, so hover moves matter only while placing (and not for touches).
     if (!this.bridge.placing || p.wasTouch) return
     this.emitCell(p, false)
@@ -276,9 +286,32 @@ export class IslandScene extends Phaser.Scene {
     const badge = this.bridge.placing ? undefined : over.find(o => o.getData('collect'))
     if (badge) return this.collect(badge as Phaser.GameObjects.Text)
     // While placing, every click is a cell; otherwise a sprite under the pointer wins over the ground.
-    const hit = this.bridge.placing ? undefined : over.find(o => o.getData('target'))
-    if (hit) this.bridge.emit({ type: 'select', target: hit.getData('target') as Target })
+    const hit = this.bridge.placing ? null : this.targetAt(p, over)
+    if (hit) this.bridge.emit({ type: 'select', target: hit })
     else this.emitCell(p, true)
+  }
+
+  /**
+   * What a tap at `p` opens, from the sprites under it (topmost first). A sprite whose tap box was enlarged is a pixel hit
+   * only when the pointer is on its own opaque pixels; `pickTarget` lets those beat the boxes.
+   */
+  private targetAt(p: { x: number; y: number }, over: Phaser.GameObjects.GameObject[]): Target | null {
+    const w = this.toWorld(p)
+    const hits: Hit<Target>[] = []
+    for (const o of over) {
+      const target = o.getData('target') as Target | undefined
+      if (!target) continue
+      const spr = o as Phaser.GameObjects.Sprite
+      const entry = this.tapTargets.find(t => t.spr === spr)
+      let pixel = true
+      if (entry) {
+        const lx = (w.x - spr.x) / spr.scaleX + spr.displayOriginX
+        const ly = (w.y - spr.y) / spr.scaleY + spr.displayOriginY
+        pixel = Boolean(entry.pixel(entry.area, lx, ly, spr))
+      }
+      hits.push({ target, pixel, centre: { x: spr.x, y: spr.y - spr.displayHeight / 2 } })
+    }
+    return pickTarget(hits, w)
   }
 
   // ---- drawing -----------------------------------------------------------------------------------------------
@@ -406,7 +439,7 @@ export class IslandScene extends Phaser.Scene {
       for (let row = o.row; row < o.row + TILES_PER_PLOT; row++) for (let col = o.col; col < o.col + TILES_PER_PLOT; col++) {
         if (pick.grass.length > 0) {
           const t = cellTop(col, row)
-          at(pick.grass[(col * 7 + row * 13) % pick.grass.length]!, t.x - 8, t.y)
+          at(pick.grass[groundVariant(col, row, pick.grass.length)]!, t.x - 8, t.y)
         } else {
           diamond(GROUND.grass, col, row)
         }
@@ -455,8 +488,6 @@ export class IslandScene extends Phaser.Scene {
       // Pixel-perfect hits: a click on the transparent sky above a platform reaches the ground or what is behind it.
       spr.setInteractive({ useHandCursor: true, pixelPerfect: true, alphaTolerance: 1 })
       if (o.minTap) this.tapTargets.push({ spr, minTap: o.minTap, always: !!o.boxAlways, pixel: spr.input!.hitAreaCallback, area: spr.input!.hitArea })
-      spr.on('pointerover', () => this.bridge.emit({ type: 'hover', target: o.target }))
-      spr.on('pointerout', () => this.bridge.emit({ type: 'hover', target: null }))
     }
     this.layer.add(spr)
     this.drawn.push(spr)

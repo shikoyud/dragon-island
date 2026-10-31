@@ -120,7 +120,7 @@ describe('artSetFromManifest', () => {
     const e = (file: string, w: number, h: number) => ({ file, w, h, frames: 1, fps: 0 })
     const a = artSetFromManifest('v2', { assets: {
       'building.nexus': e('nexus.png', 80, 64), 'decoration.moonwell': e('moonwell.png', 48, 48), 'obstacle.ruin': e('ruin.png', 48, 48),
-      'island.locked': e('locked.png', 16, 16), 'island.sign': e('sign.png', 32, 32), 'map.dawnspire': e('map-dawn.png', 32, 32),
+      'island.locked': e('locked.png', 16, 16), 'island.sign': e('sign.png', 32, 32), 'map.isle6': e('map-dawn.png', 32, 32),
     } }, LAUNCH_CATALOG)
     expect(a.building.nexus.src).toBe('/art/v2/nexus.png')
     expect(a.decoration.moonwell.src).toBe('/art/v2/moonwell.png')
@@ -266,11 +266,11 @@ describe('M4 art keys (docs/art/gdd-m4-art-list.md)', () => {
     for (const i of ISLAND_ORDER as readonly IslandId[]) expect(groundTiles(FALLBACK_ART, i), i).toEqual({ grass: [], cliffSw: null, cliffSe: null })
   })
 
-  it('draws the map icons at any size and keeps isle6 on the Dawnspire art until map.isle6 lands', () => {
-    const a = artSetFromManifest('m4', { assets: { 'map.dawnspire': e('d.png', 32, 32), 'map.home': e('h.png', 128, 96) } }, C)
+  it('draws the map icons at any size, isle6 from its own map.isle6 key', () => {
+    const a = artSetFromManifest('m4', { assets: { 'map.isle6': e('d.png', 32, 32), 'map.home': e('h.png', 128, 96) } }, C)
     expect(a.map.isle6.src).toBe('/art/m4/d.png')
     expect(a.map.home).toMatchObject({ w: 128, h: 96 })
-    const b = artSetFromManifest('m4', { assets: { 'map.dawnspire': e('d.png', 32, 32), 'map.isle6': e('i6.png', 128, 96), 'map.bridge': e('b.png', 64, 32), 'map.backdrop': e('bd.png', 256, 256) } }, C)
+    const b = artSetFromManifest('m4', { assets: { 'map.isle6': e('i6.png', 128, 96), 'map.bridge': e('b.png', 64, 32), 'map.backdrop': e('bd.png', 256, 256) } }, C)
     expect(b.map.isle6.src).toBe('/art/m4/i6.png')
     expect(b.hud['map.bridge']).toMatchObject({ w: 64, h: 32 })
     expect(b.hud['map.backdrop']).toMatchObject({ w: 256, h: 256 })

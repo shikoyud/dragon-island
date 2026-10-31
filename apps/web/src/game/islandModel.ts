@@ -208,6 +208,18 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
 }
 
 /**
+ * Which of `n` grass variants a cell takes: a small integer hash of (col, row), stable and pure. A linear mix such as
+ * (7 col + 13 row) % 3 collapses to (col + row) % 3 and draws diagonal stripes.
+ */
+export function groundVariant(col: number, row: number, n: number): number {
+  let h = Math.imul(col + 1, 0x27d4eb2d) ^ Math.imul(row + 1, 0x165667b1)
+  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b)
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35)
+  h ^= h >>> 16
+  return (h >>> 0) % n
+}
+
+/**
  * Texture keys the baked ground draws on `island`: its own grass tiles when the manifest has any, else the current ones;
  * its cliff pieces only as a pair, else the current pair. Empty / null = the scene's placeholder diamonds and skirt.
  */

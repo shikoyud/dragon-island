@@ -39,7 +39,9 @@ export const MAP_SPOTS: Record<IslandId, Pos> = {
  * Sea kept round the chain at the camera's edges. Wide enough that the opening window can sit its first or last island
  * (Home at the foot, Warlord's Crown at the head) clear of the HUD with a neighbour beside it, on a tall screen too.
  */
-const MAP_MARGIN = 300
+const MAP_MARGIN_Y = 300
+/** Sides keep a narrow margin: only the chain's height needs room for the opening window. */
+const MAP_MARGIN_X = 24
 
 export type MapIslandState = 'current' | 'open' | 'next' | 'locked'
 
@@ -77,10 +79,10 @@ export function mapBoxOf(id: IslandId): Box {
 /** World box of the whole chain, with a margin of sea. */
 export function mapBounds(): Box {
   const boxes = ISLAND_ORDER.map(mapBoxOf)
-  const x0 = Math.min(...boxes.map(b => b.x)) - MAP_MARGIN
-  const y0 = Math.min(...boxes.map(b => b.y)) - MAP_MARGIN
-  const x1 = Math.max(...boxes.map(b => b.x + b.w)) + MAP_MARGIN
-  const y1 = Math.max(...boxes.map(b => b.y + b.h)) + MAP_MARGIN
+  const x0 = Math.min(...boxes.map(b => b.x)) - MAP_MARGIN_X
+  const y0 = Math.min(...boxes.map(b => b.y)) - MAP_MARGIN_Y
+  const x1 = Math.max(...boxes.map(b => b.x + b.w)) + MAP_MARGIN_X
+  const y1 = Math.max(...boxes.map(b => b.y + b.h)) + MAP_MARGIN_Y
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
 }
 
@@ -160,7 +162,9 @@ export function mapOpeningView(view: IslandId, bandH: number, insets: { top: num
   const behind = (l: { y: number; h: number }, from: number, to: number) => Math.max(0, Math.min(l.y + l.h, to) - Math.max(l.y, from))
   const strips = (top: number) => [{ from: top - insets.top / zoom - OPEN_GAP, to: top }, { from: top + h, to: top + h + insets.bottom / zoom + OPEN_GAP }]
   // Text counts ten times an icon: a name behind the pills is lost, an icon part behind them still reads.
-  const ICON_WEIGHT = 1
+  const ICON_WEIGHT = 0.25
+  /** Per px the window is off-centre: more than an icon px, so the viewed island stays centred unless text would go under the HUD. */
+  const CENTRE_WEIGHT = 0.5
   const LABEL_WEIGHT = 10
   const icons = ISLAND_ORDER.map(id => ({ y: MAP_SPOTS[id].y + MAP_CELL.top, h: MAP_CELL.labelTop - MAP_CELL.top }))
   const hidden = (top: number) => strips(top).reduce(
@@ -172,7 +176,7 @@ export function mapOpeningView(view: IslandId, bandH: number, insets: { top: num
     l.y + l.h + OPEN_GAP - h, l.y - insets.bottom / zoom - OPEN_GAP * 2 - h,
   ]), ...Array.from({ length: 61 }, (_, i) => want - 300 + i * 10)]
   const near = (p: number, q: number) => Math.abs(p - want) - Math.abs(q - want)
-  const best = tops.filter(t => t >= lo && t <= hi && holdsView(t)).sort((p, q) => hidden(p) - hidden(q) || near(p, q))[0]
+  const best = tops.filter(t => t >= lo && t <= hi && holdsView(t)).sort((p, q) => hidden(p) + CENTRE_WEIGHT * Math.abs(p - want) - hidden(q) - CENTRE_WEIGHT * Math.abs(q - want))[0]
   const top = best ?? (hi >= lo ? Math.min(hi, Math.max(lo, want)) : want)
   return { cx: b.x + b.w / 2, cy: top + h / 2, zoom }
 }

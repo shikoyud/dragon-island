@@ -137,7 +137,7 @@ describe('the icon', () => {
       assets: {
         'map.home': { file: 'a.png', w: 32, h: 32, frames: 1, fps: 0 },
         'map.isle2': { file: 'b.png', w: 128, h: 96, frames: 1, fps: 0 },
-        'map.dawnspire': { file: 'c.png', w: 32, h: 32, frames: 1, fps: 0 },
+        'map.isle6': { file: 'c.png', w: 32, h: 32, frames: 1, fps: 0 },
       },
     }, LAUNCH_CATALOG)
     const m = buildMapModel(fresh, art, 'home')
@@ -237,6 +237,30 @@ describe('mapOpeningView', () => {
       const { top } = range('home', s)
       expect(labelOf('isle2').y).toBeGreaterThanOrEqual(top)
     }
+  })
+
+  it('is centred in the band whenever centring puts no label under the HUD', () => {
+    let centred = 0
+    for (const s of BANDS) for (const id of ISLAND_ORDER) {
+      const b = mapBoxOf(id)
+      const want = b.y + b.h / 2 - s.h / 2
+      const hiddenAt = (top: number) => ISLAND_ORDER.some(o => {
+        const l = labelOf(o)
+        return (l.y < top && l.b > top - s.top - 6) || (l.y < top + s.h + s.bottom + 6 && l.b > top + s.h)
+      })
+      const bb = mapBounds()
+      if (hiddenAt(want) || want < bb.y || want + s.h > bb.y + bb.h) continue
+      centred++
+      expect(range(id, s).top, `${s.name} ${id}`).toBeCloseTo(want, 0)
+    }
+    expect(centred).toBeGreaterThan(0)
+  })
+
+  it('only the chain\'s height gets the wide sea margin; its width keeps a narrow one', () => {
+    const b = mapBounds()
+    const left = Math.min(...ISLAND_ORDER.map(i => mapBoxOf(i).x))
+    expect(left - b.x).toBeLessThanOrEqual(24)
+    expect(mapBoxOf('isle6').y - b.y).toBeGreaterThanOrEqual(200)
   })
 
   it('stays inside the chain bounds, so the scene\'s clamp leaves it alone', () => {

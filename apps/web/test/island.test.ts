@@ -4,7 +4,7 @@ import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
-import { badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, timerLabel } from '../src/game/islandModel'
+import { badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, groundVariant, timerLabel } from '../src/game/islandModel'
 import { NEST_EGG_SCALE } from '../src/game/layout'
 import { nearestLegalCell } from '../src/state/placing'
 import { FREE, FREE_2, withIsland } from './land'
@@ -418,6 +418,22 @@ describe('island model', () => {
     expect(o.key).toBe(textureKey(`obstacle.${obstacles[0]!.kind}`))
     expect(o).toMatchObject({ tint: 'building', badge: '30s', target: { kind: 'obstacle', id: obstacles[0]!.id } })
     expect(m.objects.find(x => x.id === `obstacle:${obstacles[1]!.id}`)!.tint).toBeUndefined()
+  })
+
+  it('ground variants are a stable hash: no diagonal of a 16x16 sample has one variant', () => {
+    for (const n of [2, 3, 4]) {
+      expect(groundVariant(5, 9, n)).toBe(groundVariant(5, 9, n))
+      for (const [dc, dr] of [[1, 1], [1, -1]] as const) {
+        for (let k = 0; k < 32; k++) {
+          const seen = new Set<number>()
+          for (let i = 0; i < 16; i++) {
+            const col = dc === 1 ? i : i, row = dr === 1 ? i + k - 16 : 15 - i + k - 16
+            seen.add(groundVariant(col + 16, row + 16, n))
+          }
+          expect(seen.size, `n ${n} diagonal ${dc},${dr} offset ${k}`).toBeGreaterThan(1)
+        }
+      }
+    }
   })
 
 })

@@ -46,6 +46,32 @@ test('a click on a cell centre is that cell, and on a building selects it', asyn
   await expect.poll(() => page.evaluate(() => window.__seen!)).toContainEqual({ type: 'select', target: { kind: 'habitat', id: 'h1' } })
 })
 
+test('a real click on the starting Farm opens the Farm, not a Bush whose tap box covers it (390x844)', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.waitForTimeout(400)
+  const farm = { type: 'select', target: { kind: 'farm', plot: 0 } }
+  // Zoom 2 is the phone's opening view; the Farm's middle is a drag away, so pan it in first.
+  await page.mouse.move(150, 700)
+  await page.mouse.down()
+  await page.mouse.move(40, 700, { steps: 6 })
+  await page.mouse.up()
+  await page.waitForTimeout(150)
+  for (const zoomOut of [false, true]) {
+    if (zoomOut) {
+      await page.keyboard.press('Escape') // the Farm panel from the first click
+      await page.mouse.move(195, 420)
+      await page.mouse.wheel(0, 100)
+      await page.waitForTimeout(100)
+      await page.mouse.wheel(0, 100)
+      await page.waitForTimeout(250)
+    }
+    await page.evaluate(() => { window.__seen!.length = 0 })
+    const p = await cellPoint(page, 22, 9) // the Farm at (21,8) is 3x3: its middle cell
+    await page.mouse.click(p.x, p.y)
+    await expect.poll(() => page.evaluate(() => window.__seen!), `zoom ${zoomOut ? 1 : 2}`).toContainEqual(farm)
+  }
+})
+
 test('clicks still land on the right cell after the page layout shifts the canvas', async ({ page }) => {
   // The canvas moves on the page (something above it grew) without changing size, so Phaser sees no resize.
   await page.evaluate(() => { (document.querySelector('.game-canvas') as HTMLElement).style.transform = 'translate(13px, 37px)' })
