@@ -8,7 +8,7 @@ import {
   cameraBounds, clampView, groundCell, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
 } from '../camera'
 import { badgeY, buildIslandModel, groundTiles, type IslandMarkers, type IslandObject } from '../islandModel'
-import { anchor, cellCentre, cellTop, footprintDiamond, islandBox, pointerToCell, tapBox, type Box, type Pos } from '../layout'
+import { anchor, cellCentre, cellTop, footprintDiamond, islandBox, pointerToCell, tapHit, type Box, type Pos } from '../layout'
 import { createPanZoom, heldPointers } from '../panZoom'
 
 const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
@@ -53,7 +53,7 @@ export class IslandScene extends Phaser.Scene {
   private drawn: Phaser.GameObjects.GameObject[] = []
   private badges: Phaser.GameObjects.Text[] = []
   /** Sprites that must be at least `minTap` CSS px to tap: their hit box follows the zoom (see `fitTapTargets`). */
-  private tapTargets: { spr: Phaser.GameObjects.Sprite; minTap: number; pixel: Phaser.Types.Input.HitAreaCallback; area: unknown }[] = []
+  private tapTargets: { spr: Phaser.GameObjects.Sprite; minTap: number; always: boolean; pixel: Phaser.Types.Input.HitAreaCallback; area: unknown }[] = []
   private current: IslandMarkers = EMPTY
   private catalog: Catalog = LAUNCH_CATALOG
   private readonly gestures = createPanZoom({
@@ -188,17 +188,18 @@ export class IslandScene extends Phaser.Scene {
   }
 
   /**
-   * Gives each small tap target (a plot sign) a box of at least its `minTap` CSS px at the current zoom, centred on the
-   * sprite. Once the sprite is drawn that big the pixel-perfect hit comes back, so the transparent corners of a big sign
-   * do not take taps meant for the ground. At zoom 1 only, the box's transparent corners can take taps: accepted.
+   * Gives each small tap target (an obstacle, a plot sign) a box of at least its `minTap` CSS px at the current zoom,
+   * centred on the sprite. Past that size the pixel-perfect hit comes back, except for `boxAlways` targets (signs), which
+   * keep their box at every zoom. Where boxes overlap, Phaser hands the tap to the topmost sprite, which is the draw
+   * order: a building or dragon drawn in front of an obstacle or sign still wins.
    */
   private fitTapTargets(): void {
     const zoom = this.view?.zoom ?? 1
-    for (const { spr, minTap, pixel, area } of this.tapTargets) {
+    for (const { spr, minTap, always, pixel, area } of this.tapTargets) {
       if (!spr.active || !spr.input) continue
       const shown = { w: spr.displayWidth, h: spr.displayHeight }
-      const box = tapBox(shown, zoom, minTap)
-      if (box.w === shown.w && box.h === shown.h) {
+      const box = tapHit(shown, zoom, minTap, always)
+      if (box.pixel) {
         spr.input.hitArea = area
         spr.input.hitAreaCallback = pixel
       } else {
@@ -448,7 +449,7 @@ export class IslandScene extends Phaser.Scene {
       spr.setData('target', o.target)
       // Pixel-perfect hits: a click on the transparent sky above a platform reaches the ground or what is behind it.
       spr.setInteractive({ useHandCursor: true, pixelPerfect: true, alphaTolerance: 1 })
-      if (o.minTap) this.tapTargets.push({ spr, minTap: o.minTap, pixel: spr.input!.hitAreaCallback, area: spr.input!.hitArea })
+      if (o.minTap) this.tapTargets.push({ spr, minTap: o.minTap, always: !!o.boxAlways, pixel: spr.input!.hitAreaCallback, area: spr.input!.hitArea })
       spr.on('pointerover', () => this.bridge.emit({ type: 'hover', target: o.target }))
       spr.on('pointerout', () => this.bridge.emit({ type: 'hover', target: null }))
     }

@@ -33,6 +33,8 @@ export interface IslandObject {
    * sign at zoom 1) gets a tap box of this size, centred on it, in place of its own pixels.
    */
   minTap?: number
+  /** With `minTap`: the tap box is used at every zoom, never the pixel-perfect test (a plot sign). */
+  boxAlways?: boolean
 }
 
 export interface IslandMarkers {
@@ -259,7 +261,7 @@ export function buildIslandModel(
     add(o, size, [{
       id: `obstacle:${o.id}`, key: textureKey(`obstacle.${o.kind}`),
       sprite: art.obstacle[o.kind],
-      ...a, target: { kind: 'obstacle', id: o.id },
+      ...a, target: { kind: 'obstacle', id: o.id }, minTap: TAP_PX,
       ...(c ? { tint: 'building' as const, badge: timerLabel(c.readyAtMs, nowMs) } : {}),
     }])
     markers.obstacles.push(o.id)
@@ -375,7 +377,7 @@ export function buildIslandModel(
     // The sign stands on the plot's centre: depth-sorted as a 2x2 around it.
     const mid = TILES_PER_PLOT / 2
     add({ col: o.col + mid - 1, row: o.row + mid - 1 }, 2, [{
-      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot }, minTap: TAP_PX,
+      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot }, minTap: TAP_PX, boxAlways: true,
     }])
     markers.signs.push({ plot, price })
   }

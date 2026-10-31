@@ -7,7 +7,7 @@ import {
   cameraBounds, clampView, fitZoom, groundCell, isClick, lockedTiles, openingView, ownedLandBox, panBy, screenToWorld, SKIRT, stepZoom, zoomAt, zoomRange,
   type View,
 } from '../src/game/camera'
-import { cellCentre, tapBox } from '../src/game/layout'
+import { cellCentre, tapBox, tapHit } from '../src/game/layout'
 
 const vp = { w: 1280, h: 720 }
 
@@ -159,5 +159,33 @@ describe('the opening view (R58)', () => {
     expect(tapBox({ w: 32, h: 32 }, 2)).toEqual({ w: 32, h: 32 })
     expect(tapBox({ w: 32, h: 32 }, 5)).toEqual({ w: 32, h: 32 })
     expect(tapBox({ w: 32, h: 32 }, 1, 0)).toEqual({ w: 32, h: 32 })
+  })
+
+  it('every obstacle gets the 44 px tap floor, at zoom 1 and 2 (a Bush is 16x16)', () => {
+    const obstacles = buildIslandModel(fresh, FALLBACK_ART, LAUNCH_CATALOG, 0, 'home', null).objects.filter(o => o.id.startsWith('obstacle:'))
+    expect(obstacles.length).toBeGreaterThan(0)
+    for (const o of obstacles) {
+      expect(o.minTap).toBe(44)
+      for (const zoom of [1, 2]) {
+        const hit = tapHit({ w: o.sprite.w, h: o.sprite.h }, zoom, o.minTap!)
+        expect(hit.w * zoom).toBeGreaterThanOrEqual(44)
+        expect(hit.h * zoom).toBeGreaterThanOrEqual(44)
+      }
+    }
+  })
+
+  it('a sign takes the box at every zoom, never the pixel test', () => {
+    for (const zoom of [1, 2, 3, 5]) {
+      const hit = tapHit({ w: 64, h: 64 }, zoom, 44, true)
+      expect(hit.pixel).toBe(false)
+      expect(hit.w).toBeGreaterThanOrEqual(64)
+      expect(hit.w * zoom).toBeGreaterThanOrEqual(44)
+    }
+    const s = withPlots({ ...fresh, level: 12 }, [5, 6, 9, 10])
+    const sign = buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, 'home', null).objects.find(o => o.id.startsWith('sign:'))
+    expect(sign?.boxAlways).toBe(true)
+    // Without the flag a thing drawn at least that big keeps its pixels; a smaller one gets the box.
+    expect(tapHit({ w: 64, h: 64 }, 2, 44).pixel).toBe(true)
+    expect(tapHit({ w: 16, h: 16 }, 2, 44).pixel).toBe(false)
   })
 })

@@ -92,6 +92,16 @@ export function tapBox(size: { w: number; h: number }, zoom: number, minPx: numb
   return { w: Math.max(size.w, minPx / zoom), h: Math.max(size.h, minPx / zoom) }
 }
 
+/**
+ * How a tap target is hit: its box in world px (the thing itself or `minPx` on screen, whichever is more) and whether the
+ * pixel-perfect test still applies. That is only when the thing is already big enough and `always` (a plot sign, which
+ * is easy to hit by its bounds at every zoom) is not set.
+ */
+export function tapHit(size: { w: number; h: number }, zoom: number, minPx: number = TAP_PX, always = false): { w: number; h: number; pixel: boolean } {
+  const box = tapBox(size, zoom, minPx)
+  return { ...box, pixel: !always && box.w === size.w && box.h === size.h }
+}
+
 /** Largest whole-number zoom that fits the battle stage in the viewport; never below 1. */
 export function integerZoom(viewportW: number, viewportH: number): number {
   return Math.max(1, Math.floor(Math.min(viewportW / BATTLE.w, viewportH / BATTLE.h)))
