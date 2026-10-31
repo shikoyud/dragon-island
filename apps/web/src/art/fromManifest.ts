@@ -45,6 +45,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
       hatchery: get('building.hatchery', 'hatchery'),
       breeder: { mountain: levelSheets('mountain', 3, 80), grove: levelSheets('grove', 3, 80) },
       hatcheryLevel: levelSheets('hatchery', 4, 64),
+      roostTier: levelSheets('roost', 5, 64),
       farmPlot: get('building.farmPlot', 'farmPlot'),
       cropStage: Object.fromEntries(CROPS.map(c => [c, get(`crop.${c}`, 'crop')])) as Record<CropId, Sprite>,
       cropSway: Object.fromEntries(CROPS.flatMap(c => { const s = present(`crop.${c}.sway`); return s ? [[c, s]] : [] })),

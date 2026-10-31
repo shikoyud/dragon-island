@@ -150,8 +150,23 @@ function hatcheryLook(art: GameArtSet, level: number): { key: string; sprite: Sp
   }
   return { key: textureKey('building.hatchery'), sprite: art.building.hatchery }
 }
-/** The Dragon Roost: the small nest sprite stands in until its own art is delivered (M3 Task 9); it keeps the nest's native scale. */
-const roostLook = (art: GameArtSet) => ({ key: textureKey('building.nest'), sprite: art.building.nest })
+/**
+ * Roost sheets stay specified at 64x64, their footprint size from M4 (docs/art/gdd-m3-art-list.md). Until then the Roost
+ * stands on a 2-cell footprint (ROOST_FOOTPRINT), so they are drawn smaller. Change this constant, not the sheet sizes;
+ * M4 sets it back to 1. The `building.nest` fallback keeps its native scale.
+ */
+export const ROOST_ART_SCALE = 0.5
+/**
+ * The Dragon Roost at `tier`: `building.roost.<tier>`, else the nearest lower tier's, else the small nest sprite. Tier 0
+ * (still being built) and a missing sheet both use the nest.
+ */
+function roostLook(art: GameArtSet, tier: number): { key: string; sprite: Sprite; scale?: number } {
+  for (let t = tier; t >= 1; t--) {
+    const s = art.building.roostTier[t]
+    if (s) return { key: textureKey(`building.roost.${t}`), sprite: s, scale: ROOST_ART_SCALE }
+  }
+  return { key: textureKey('building.nest'), sprite: art.building.nest }
+}
 const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), sprite: art.building.nexus })
 /** The Golden Aerie: its own sprite when the manifest has one, else the Nexus sprite. */
 const aerieLook = (art: GameArtSet) => (art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art))
@@ -173,7 +188,7 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
         return b ? breederLook(art, b.kind, b.level) : breederLook(art, 'mountain', 1)
       }
       case 'hatchery': return hatcheryLook(art, state.hatcheryLevel)
-      case 'roost': return roostLook(art)
+      case 'roost': return roostLook(art, state.roostTier)
       case 'decoration': {
         const d = state.decorations.find(x => x.id === t.id)
         return d ? decorationLook(art, d.kind) : nexusLook(art)
@@ -184,7 +199,7 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
     case 'habitat': return { key: textureKey(`habitat.${what.element}`), sprite: art.habitat[what.element] }
     case 'farm': return { key: textureKey('building.farmPlot'), sprite: art.building.farmPlot }
     case 'grove': return breederLook(art, 'grove', 1)
-    case 'roost': return roostLook(art)
+    case 'roost': return roostLook(art, 1)
     case 'decoration': return decorationLook(art, what.decoration)
     case 'goldenAerie': return aerieLook(art)
   }
@@ -284,7 +299,7 @@ export function buildIslandModel(
   if (state.roostPlacement && state.roostPlacement.island === view) {
     const a = anchor(state.roostPlacement.col, state.roostPlacement.row, FOOTPRINT.roost)
     add(state.roostPlacement, FOOTPRINT.roost, [{
-      id: 'roost', ...roostLook(art), ...a, target: { kind: 'roost' }, ...look({ type: 'roost' }, state.roostPlacement),
+      id: 'roost', ...roostLook(art, state.roostTier), ...a, target: { kind: 'roost' }, ...look({ type: 'roost' }, state.roostPlacement),
     }])
   }
 

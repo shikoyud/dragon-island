@@ -178,6 +178,19 @@ describe('artSetFromManifest', () => {
     for (const k of ['building.mountain.2', 'building.grove.3', 'building.hatchery.4']) expect(keys).toContain(`art:${k}`)
   })
 
+  it('reads the Roost tier sheets (building.roost.1..5) only when the manifest has them', () => {
+    expect(art.building.roostTier).toEqual({})
+    const e = (file: string) => ({ file, w: 64, h: 64, frames: 1, fps: 0 })
+    const a = artSetFromManifest('v3', { assets: { 'building.roost.3': e('r3.png'), 'building.roost.5': e('r5.png'), 'building.roost.6': e('x.png') } }, LAUNCH_CATALOG)
+    expect(Object.keys(a.building.roostTier)).toEqual(['3', '5'])
+    expect(a.building.roostTier[3]).toMatchObject({ src: '/art/v3/r3.png', w: 64, h: 64 })
+    const keys = artEntries(a).map(r => r.key)
+    expect(keys).toContain('art:building.roost.3')
+    expect(keys).toContain('art:building.roost.5')
+    expect(keys.some(k => /^art:building\.roost\.[124]$/.test(k))).toBe(false)
+    expect(artEntries(art).map(r => r.key).some(k => k.startsWith('art:building.roost'))).toBe(false)
+  })
+
   it('collects island layers in order', () => {
     const withLayers = artSetFromManifest('v2', {
       assets: {
