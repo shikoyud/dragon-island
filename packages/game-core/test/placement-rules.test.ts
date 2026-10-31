@@ -26,7 +26,7 @@ describe('placementRuleError', () => {
     expect(placementRuleError(both, { kind: 'decoration', decoration: 'starPool' }, dp)).toBeNull()
   })
   it('moves ignore the mover and keep the island rules', () => {
-    expect(placementRuleError(s, { kind: 'move', target: { type: 'habitat', id: 'h1' } }, P(8, 8))).toBeNull()
+    expect(placementRuleError(s, { kind: 'move', target: { type: 'habitat', id: 'h1' } }, P(13, 8))).toBeNull()
     expect(placementRuleError(both, { kind: 'move', target: { type: 'hatchery' } }, dp)).toBe('WRONG_ISLAND')
     const aerie = { ...both, habitats: [...both.habitats, { id: 'h3', element: 'aerie' as const, level: 5, lastCollectedMs: 0, placement: dp }] }
     expect(placementRuleError(aerie, { kind: 'move', target: { type: 'habitat', id: 'h3' } }, FREE)).toBeNull()

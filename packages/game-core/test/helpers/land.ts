@@ -49,14 +49,15 @@ export function withAllLand(s: PlayerState, island: IslandId = 'home'): PlayerSt
   return withPlots(s, ALL_PLOTS, island)
 }
 
-/** Whole island owned and a Boulder on every aligned 4x4 that is free, so any new building needs a clear. */
+/** Whole island owned and a Boulder wherever a 4x4 is still free (scan order), so any new building needs a clear. */
 export function withObstacleField(s: PlayerState, island: IslandId = 'home'): PlayerState {
-  const owned = withAllLand(s, island)
-  const obstacles: Obstacle[] = [...owned.islands.obstacles]
-  for (let row = 0; row < ISLAND_TILES; row += 4) for (let col = 0; col < ISLAND_TILES; col += 4) {
-    if (placementError(owned, { island, col, row, facing: 0 }, 4) === null) obstacles.push({ id: `f${col}_${row}`, kind: 'boulder', island, col, row })
+  let cur = withAllLand(s, island)
+  for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) {
+    if (placementError(cur, { island, col, row, facing: 0 }, 4) !== null) continue
+    const boulder: Obstacle = { id: `f${col}_${row}`, kind: 'boulder', island, col, row }
+    cur = { ...cur, islands: { ...cur.islands, obstacles: [...cur.islands.obstacles, boulder] } }
   }
-  return { ...owned, islands: { ...owned.islands, obstacles } }
+  return cur
 }
 
 /** Home's plots in a legal buying order (each touches what came before). */

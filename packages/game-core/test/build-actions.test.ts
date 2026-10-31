@@ -97,9 +97,9 @@ describe('plant on unfinished plots', () => {
 
 describe('moveBuilding', () => {
   it('moving a building over its own footprint is allowed; hatchery stays home', () => {
-    const a = ok(run(s, { type: 'moveBuilding', target: { type: 'hatchery' }, placement: P(16, 9) }, 0))
-    expect(a.hatcheryPlacement).toEqual(P(16, 9))
-    expect(ok(run(s, { type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: { ...P(8, 8), facing: 3 } }, 0)).habitats[0]!.placement.facing).toBe(3)
+    const a = ok(run(s, { type: 'moveBuilding', target: { type: 'hatchery' }, placement: P(8, 14) }, 0))
+    expect(a.hatcheryPlacement).toEqual(P(8, 14))
+    expect(ok(run(s, { type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: { ...P(13, 8), facing: 3 } }, 0)).habitats[0]!.placement.facing).toBe(3)
     err(run(withPlots({ ...s, islands: { ...s.islands, unlocked: ['home', 'isle2'] } }, [5, 6, 9, 10], 'isle2'), { type: 'moveBuilding', target: { type: 'hatchery' }, placement: { island: 'isle2', col: 8, row: 8, facing: 0 } }, 0), 'WRONG_ISLAND')
     err(run(s, { type: 'moveBuilding', target: { type: 'habitat', id: 'h9' }, placement: P(1, 0) }, 0), 'NOT_FOUND')
   })

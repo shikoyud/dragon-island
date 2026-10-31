@@ -85,15 +85,15 @@ describe('§5.4 tables', () => {
 })
 
 describe('newPlayer', () => {
-  it('starts with one Mountain L1 at (8, 12) and no fifth slot (R1, R50)', () => {
-    expect(base.breeders).toEqual([{ kind: 'mountain', egg: null, level: 1, placement: P(8, 12) }])
+  it('starts with one Mountain L1 at (8, 8) and no fifth slot (R1, R50)', () => {
+    expect(base.breeders).toEqual([{ kind: 'mountain', egg: null, level: 1, placement: P(8, 8) }])
     expect(base.hatcheryFifthSlot).toBe(false)
     expect(base).not.toHaveProperty('nests')
   })
 
   it('its placements are legal and do not overlap', () => {
     const occ = occupants(base, 'home')
-    expect(occ.find(o => o.ref.type === 'breeder')).toMatchObject({ col: 8, row: 12, size: 5 })
+    expect(occ.find(o => o.ref.type === 'breeder')).toMatchObject({ col: 8, row: 8, size: 5 })
     for (const o of occ) expect(placementError(base, { ...P(o.col, o.row) }, o.size, o.ref)).toBeNull()
     for (const [i, a] of occ.entries()) for (const b of occ.slice(i + 1)) expect(overlaps(a, b)).toBe(false)
   })
@@ -245,10 +245,10 @@ describe('placing the Grove', () => {
 describe('moving a breeder', () => {
   it('moves with a 5x5 footprint, ignoring itself', () => {
     const s = base
-    const a = ok(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 0 }, placement: P(8, 13) }))
-    expect(a.breeders[0]!.placement).toEqual(P(8, 13))
+    const a = ok(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 0 }, placement: P(13, 13) }))
+    expect(a.breeders[0]!.placement).toEqual(P(13, 13))
     err(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 0 }, placement: P(9, 8) }), 'OVERLAP')
-    err(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 9 }, placement: P(8, 13) }), 'NOT_FOUND')
+    err(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 9 }, placement: P(13, 13) }), 'NOT_FOUND')
   })
 })
 

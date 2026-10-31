@@ -69,8 +69,8 @@ export function fitZoom(viewportW: number, viewportH: number, b: Box): number {
   return Math.max(1, viewportH > viewportW ? Math.ceil(f) : Math.round(f + 0.1))
 }
 
-/** World px of sea-less margin kept round owned land when fitting it, so a building on its edge is not cropped. */
-const OPENING_PAD = 16
+/** World px kept round owned land when fitting it: a 64 px plot sign at the corner stays clear of the HUD, a building on the edge uncropped. */
+const OPENING_PAD = 32
 
 /**
  * World box round the diamonds of the plots owned on an island. With none owned (or no state) it is the whole island's, so

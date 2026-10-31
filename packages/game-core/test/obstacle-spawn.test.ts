@@ -61,7 +61,7 @@ describe('Home\'s start (R50)', () => {
     expect(at('largeRock')).toEqual([[20, 16]])
     expect(at('tree')).toEqual([[13, 21], [17, 20], [8, 18]])
     expect(at('smallRock')).toEqual([[15, 22], [10, 18], [18, 22]])
-    expect(at('bush')).toEqual([[23, 9], [23, 11], [21, 11], [12, 18], [12, 21], [14, 20], [16, 21], [13, 23], [17, 23], [19, 20], [23, 16], [20, 19]])
+    expect(at('bush')).toEqual([[22, 11], [23, 11], [21, 11], [12, 18], [12, 21], [14, 20], [16, 21], [13, 23], [17, 23], [19, 20], [23, 16], [20, 19]])
   })
   it('covers a third of the starting plots, clear of the buildings and of itself', () => {
     const tiles = base.islands.obstacles.reduce((n, o) => n + OBSTACLES[o.kind].size ** 2, 0)

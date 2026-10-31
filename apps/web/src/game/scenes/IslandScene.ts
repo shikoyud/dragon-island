@@ -187,7 +187,7 @@ export class IslandScene extends Phaser.Scene {
   /**
    * Gives each small tap target (a plot sign) a box of at least its `minTap` CSS px at the current zoom, centred on the
    * sprite. Once the sprite is drawn that big the pixel-perfect hit comes back, so the transparent corners of a big sign
-   * do not take taps meant for the ground.
+   * do not take taps meant for the ground. At zoom 1 only, the box's transparent corners can take taps: accepted.
    */
   private fitTapTargets(): void {
     const zoom = this.view?.zoom ?? 1

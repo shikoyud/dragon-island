@@ -46,8 +46,8 @@ describe('island model', () => {
     expect(markers.habitats).toEqual(['h1', 'h2'])
     expect(markers.dragons).toEqual(['d1', 'd2'])
     expect(markers.breeders).toEqual([{ index: 0, egg: false }])
-    // The Mountain stands on its 5x5 footprint at (8, 12) (R50), still drawn with the nest sprite until its art lands.
-    expect(objects.find(o => o.id === 'breeder:0')).toMatchObject({ key: textureKey('building.nest'), x: -32, y: 120, target: { kind: 'breeder', index: 0 } })
+    // The Mountain stands on its 5x5 footprint at (8, 8) (R50), still drawn with the nest sprite until its art lands.
+    expect(objects.find(o => o.id === 'breeder:0')).toMatchObject({ key: textureKey('building.nest'), x: 0, y: 104, target: { kind: 'breeder', index: 0 } })
     expect(markers.hatchery).toEqual([])
     expect(markers.farms).toHaveLength(1)
     expect(objects.find(o => o.id === 'habitat:h1')!.key).toBe(textureKey('habitat.terra'))
@@ -184,8 +184,8 @@ describe('island model', () => {
     const at = (id: string) => ids.indexOf(id)
     expect(at('habitat:h1')).toBeLessThan(at('dragon:d1'))
     expect(at('habitat:h2')).toBeLessThan(at('dragon:d2'))
-    expect(at('hatchery')).toBeGreaterThan(at('habitat:h1'))
-    expect(at('habitat:h2')).toBeLessThan(at('farm:0')) // (5,0)x5 sums to 10, (10,0)x2 to 12
+    expect(at('hatchery')).toBeLessThan(at('habitat:h1')) // (8,13)x4 and (13,8)x4 both sum to 25: the lower col goes first
+    expect(at('habitat:h2')).toBeLessThan(at('farm:0')) // (17,8)x4 sums to 29, (21,8)x3 to 32
   })
 
   it('swaps a ripe crop to its sway loop when the art has one', () => {
@@ -241,7 +241,7 @@ describe('island model', () => {
     const open = withIsland(newPlayer(0), 'isle2')
     const s = { ...open, islands: { ...open.islands, obstacles: [{ id: 'o1', kind: 'bush' as const, island: 'isle2' as const, col: 8, row: 8 }] } }
     const home = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', null)
-    expect(home.objects.find(o => o.id === 'habitat:h2')).toMatchObject({ x: 32, y: 112, key: textureKey('habitat.flame') }) // bottom vertex of its 4x4 diamond
+    expect(home.objects.find(o => o.id === 'habitat:h2')).toMatchObject({ x: 72, y: 132, key: textureKey('habitat.flame') }) // bottom vertex of its 4x4 diamond
     expect(home.markers.obstacles).toEqual([])
     expect(home.markers.signs).toHaveLength(8)
     expect(home.markers.signs[0]).toMatchObject({ price: 100 })
@@ -382,7 +382,7 @@ describe('island model', () => {
 
   it('ignores the mover itself when previewing a move', () => {
     const s = newPlayer(0)
-    const p = { what: { kind: 'move' as const, target: { type: 'habitat' as const, id: 'h1' } }, size: 4 as const, col: 8, row: 8, facing: 0 as const }
+    const p = { what: { kind: 'move' as const, target: { type: 'habitat' as const, id: 'h1' } }, size: 4 as const, col: 13, row: 8, facing: 0 as const }
     expect(buildIslandModel(s, FALLBACK_ART, C, 0, 'home', p).markers.ghost).toMatchObject({ legal: true })
     expect(buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { ...p, col: 12, row: 8 }).markers.ghost).toMatchObject({ legal: false })
   })

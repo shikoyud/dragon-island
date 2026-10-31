@@ -26,7 +26,7 @@ const at = (what: Placing['what'], size: Placing['size'], col: number, row: numb
 describe('client placement preview matches the server island rules', () => {
   const cases: { name: string; s: PlayerState; view: 'home' | 'isle6'; p: Placing; legalView: 'home' | 'isle6'; legalP: Placing }[] = [
     { name: "a Warlord's Crown decoration at home", s: both, view: 'home', p: at({ kind: 'decoration', decoration: 'starPool' }, 3, FREE.col, FREE.row), legalView: 'isle6', legalP: at({ kind: 'decoration', decoration: 'starPool' }, 3, 8, 8) },
-    { name: 'moving the hatchery off home', s: both, view: 'isle6', p: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 8, 8), legalView: 'home', legalP: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 16, 9) },
+    { name: 'moving the hatchery off home', s: both, view: 'isle6', p: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 8, 8), legalView: 'home', legalP: at({ kind: 'move', target: { type: 'hatchery' } }, 4, 8, 14) },
     { name: "moving a Warlord's Crown decoration home", s: { ...both, decorations: [{ id: 'c3', kind: 'starPool', placement: dp }] }, view: 'home', p: at({ kind: 'move', target: { type: 'decoration', id: 'c3' } }, 3, FREE.col, FREE.row), legalView: 'isle6', legalP: at({ kind: 'move', target: { type: 'decoration', id: 'c3' } }, 3, 9, 8) },
   ]
   for (const c of cases) {

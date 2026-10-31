@@ -38,7 +38,7 @@ test('a click on a cell centre is that cell, and on a building selects it', asyn
     await page.mouse.click(p.x, p.y)
     await expect.poll(() => page.evaluate(() => window.__seen!)).toContainEqual({ type: 'cell', col, row })
   }
-  const h1 = await cellPoint(page, 10, 10)
+  const h1 = await cellPoint(page, 15, 10)
   await page.mouse.click(h1.x, h1.y)
   await expect.poll(() => page.evaluate(() => window.__seen!)).toContainEqual({ type: 'select', target: { kind: 'habitat', id: 'h1' } })
 })

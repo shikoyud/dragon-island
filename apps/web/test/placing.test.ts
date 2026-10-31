@@ -1,4 +1,4 @@
-import { newPlayer } from '@wyrmhaven/game-core'
+import { FOOTPRINT, newPlayer } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { nearestLegalCell, placingAction, placingReducer } from '../src/state/placing'
 import { FREE } from './land'
@@ -19,7 +19,7 @@ describe('placing', () => {
   })
 
   it('placing reducer tracks the cursor, turns and cancels', () => {
-    const p = placingReducer(null, { type: 'start', what: { kind: 'farm' }, size: 2, island: 'home' })!
+    const p = placingReducer(null, { type: 'start', what: { kind: 'farm' }, size: FOOTPRINT.farm, island: 'home' })!
     expect(placingReducer(p, { type: 'cell', col: 6, row: 8 })).toMatchObject({ col: 6, row: 8 })
     expect(placingReducer(placingReducer(p, { type: 'turn' })!, { type: 'turn' })!.facing).toBe(2)
     expect(placingReducer(p, { type: 'cancel' })).toBeNull()
@@ -29,7 +29,7 @@ describe('placing', () => {
 
   it('a move start pre-fills the current cell and facing; turn wraps at 4', () => {
     const p = placingReducer(null, {
-      type: 'start', what: { kind: 'move', target: { type: 'farm', index: 0 } }, size: 2, island: 'home', from: { island: 'home', col: 3, row: 4, facing: 3 },
+      type: 'start', what: { kind: 'move', target: { type: 'farm', index: 0 } }, size: FOOTPRINT.farm, island: 'home', from: { island: 'home', col: 3, row: 4, facing: 3 },
     })!
     expect(p).toMatchObject({ col: 3, row: 4, facing: 3 })
     expect(placingReducer(p, { type: 'turn' })!.facing).toBe(0)
@@ -38,9 +38,9 @@ describe('placing', () => {
   it('placingAction builds the right action and refuses illegal spots', () => {
     const s = newPlayer(0)
     expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 3, col: FREE.col, row: FREE.row, facing: 1 })).toEqual({ type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...FREE, facing: 1 } })
-    expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 2, col: 0, row: 0, facing: 0 })).toBeNull()
-    expect(placingAction(s, 'home', { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 4, col: 8, row: 8, facing: 0 })).toEqual({ type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: { island: 'home', col: 8, row: 8, facing: 0 } })
-    expect(placingAction(s, 'isle2', { what: { kind: 'farm' }, size: 2, col: 1, row: 1, facing: 0 })).toBeNull()
+    expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: FOOTPRINT.farm, col: 0, row: 0, facing: 0 })).toBeNull()
+    expect(placingAction(s, 'home', { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 4, col: 13, row: 8, facing: 0 })).toEqual({ type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: { island: 'home', col: 13, row: 8, facing: 0 } })
+    expect(placingAction(s, 'isle2', { what: { kind: 'farm' }, size: FOOTPRINT.farm, col: 1, row: 1, facing: 0 })).toBeNull()
   })
 
   it('sends the Grove as a placeBuilding', () => {

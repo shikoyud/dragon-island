@@ -26,10 +26,10 @@ describe('the start (§5.5, R50)', () => {
     expect(STATE_VERSION).toBe(9)
   })
   it('places the buildings on the fixed table', () => {
-    expect(base.habitats.map(h => [h.element, h.placement])).toEqual([['terra', P(8, 8)], ['flame', P(12, 8)]])
-    expect(base.hatcheryPlacement).toEqual(P(16, 8))
-    expect(base.farms.map(f => [f.level, f.placement])).toEqual([[1, P(20, 8)]])
-    expect(base.breeders.map(b => [b.kind, b.placement])).toEqual([['mountain', P(8, 12)]])
+    expect(base.habitats.map(h => [h.element, h.placement])).toEqual([['terra', P(13, 8)], ['flame', P(17, 8)]])
+    expect(base.hatcheryPlacement).toEqual(P(8, 13))
+    expect(base.farms.map(f => [f.level, f.placement])).toEqual([[1, P(21, 8)]])
+    expect(base.breeders.map(b => [b.kind, b.placement])).toEqual([['mountain', P(8, 8)]])
   })
   it('nothing overlaps and everything stands on owned land', () => {
     const occ = occupants(base, 'home')
@@ -64,7 +64,7 @@ describe('placement on owned land (R43)', () => {
     expect(placementError(base, P(0, 0), FOOTPRINT.habitat)).toBe('NOT_OWNED')
   })
   it('a move ignores the mover, and still needs owned land', () => {
-    expect(placementError(base, P(8, 8), FOOTPRINT.habitat, { type: 'habitat', id: 'h1' })).toBeNull()
+    expect(placementError(base, P(13, 8), FOOTPRINT.habitat, { type: 'habitat', id: 'h1' })).toBeNull()
     expect(placementError(base, P(0, 0), FOOTPRINT.habitat, { type: 'habitat', id: 'h1' })).toBe('NOT_OWNED')
   })
   it('straddling two owned plots is legal once the plot is bought', () => {

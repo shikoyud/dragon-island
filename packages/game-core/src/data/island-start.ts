@@ -3,11 +3,11 @@ import type { Obstacle, ObstacleKind } from '../state'
 
 /** Top-left cell of each starting building on Home Isle. */
 export const HOME_START = {
-  terra: { col: 8, row: 8 },
-  flame: { col: 12, row: 8 },
-  hatchery: { col: 16, row: 8 },
-  farm: { col: 20, row: 8 },
-  mountain: { col: 8, row: 12 },
+  terra: { col: 13, row: 8 },
+  flame: { col: 17, row: 8 },
+  hatchery: { col: 8, row: 13 },
+  farm: { col: 21, row: 8 },
+  mountain: { col: 8, row: 8 },
 } as const
 
 /** R50: 21 obstacles, 77 of the starting plots' 256 tiles, to the south and east of the buildings, as `[col, row]`. */
@@ -17,7 +17,7 @@ const HOME_OBSTACLE_CELLS: readonly (readonly [ObstacleKind, readonly (readonly 
   ['largeRock', [[20, 16]]],
   ['tree', [[13, 21], [17, 20], [8, 18]]],
   ['smallRock', [[15, 22], [10, 18], [18, 22]]],
-  ['bush', [[23, 9], [23, 11], [21, 11], [12, 18], [12, 21], [14, 20], [16, 21], [13, 23], [17, 23], [19, 20], [23, 16], [20, 19]]],
+  ['bush', [[22, 11], [23, 11], [21, 11], [12, 18], [12, 21], [14, 20], [16, 21], [13, 23], [17, 23], [19, 20], [23, 16], [20, 19]]],
 ]
 
 /** Ids `os1..` stay clear of the `o${nextId}` ids spawns take, so `nextId` is untouched by the start. */

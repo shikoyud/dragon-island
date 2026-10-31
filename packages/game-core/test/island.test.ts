@@ -8,7 +8,7 @@ describe('island geometry', () => {
   it('lists the starting occupants', () => {
     const o = occupants(newPlayer(0), 'home').filter(x => x.ref.type !== 'obstacle')
     expect(o).toHaveLength(5)
-    expect(o.find(x => x.ref.type === 'hatchery')).toEqual({ ref: { type: 'hatchery' }, col: 16, row: 8, size: 4 })
+    expect(o.find(x => x.ref.type === 'hatchery')).toEqual({ ref: { type: 'hatchery' }, col: 8, row: 13, size: 4 })
   })
   it('rejects placements off the island, on a locked island, off owned land, or over something', () => {
     const s = newPlayer(0)
@@ -18,7 +18,7 @@ describe('island geometry', () => {
     expect(placementError(s, P(0, 0), 1)).toBe('NOT_OWNED')
     expect(placementError(s, P(8, 8), 2)).toBe('OVERLAP')
     expect(placementError(s, P(20, 12), FOOTPRINT.habitat)).toBeNull()
-    expect(placementError(s, P(12, 8), FOOTPRINT.habitat, { type: 'habitat', id: 'h2' })).toBeNull()
+    expect(placementError(s, P(17, 8), FOOTPRINT.habitat, { type: 'habitat', id: 'h2' })).toBeNull()
   })
   it('a Bridge reads the one before it, then its level', () => {
     const s = newPlayer(0)

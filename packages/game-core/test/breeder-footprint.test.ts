@@ -22,11 +22,11 @@ const legalCells = (s: PlayerState, subject: PlacementSubject) => {
 }
 
 describe('breeding buildings stand on 5x5 tiles (§5.4)', () => {
-  it('sets the footprint to 5 and puts the first Mountain at (8, 12)', () => {
+  it('sets the footprint to 5 and puts the first Mountain at (8, 8)', () => {
     expect(BREEDER_FOOTPRINT).toBe(5)
     expect(FOOTPRINT.breeder).toBe(5)
-    expect(newPlayer(0).breeders[0]!.placement).toEqual(P(8, 12))
-    expect(occupants(newPlayer(0), 'home').find(o => o.ref.type === 'breeder')).toMatchObject({ col: 8, row: 12, size: 5 })
+    expect(newPlayer(0).breeders[0]!.placement).toEqual(P(8, 8))
+    expect(occupants(newPlayer(0), 'home').find(o => o.ref.type === 'breeder')).toMatchObject({ col: 8, row: 8, size: 5 })
   })
 
   it('leaves legal habitat cells on a fresh island', () => {
