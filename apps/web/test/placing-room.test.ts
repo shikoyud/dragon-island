@@ -15,23 +15,54 @@ describe('the default cell leaves room for a habitat (final fix 2)', () => {
 
   const things = [[{ kind: 'roost' }, FOOTPRINT.roost], [{ kind: 'grove' }, FOOTPRINT.breeder], [{ kind: 'farm' }, FOOTPRINT.farm]] as const
   for (const [what, size] of things) {
-    it(`a new ${what.kind} opens on a legal cell that keeps a habitat's room free, wherever the screen's middle is`, () => {
+    it(`a new ${what.kind} opens on a legal cell, wherever the screen's middle is`, () => {
       const stride = 5
       const foci = [undefined]  as ({ col: number; row: number } | undefined)[]
       for (let row = 0; row < ISLAND_TILES; row += stride) for (let col = 0; col < ISLAND_TILES; col += stride) foci.push({ col, row })
-      let taken = 0
       for (const focus of foci) {
         const { island, cell } = placementStart(rich, what, size, 'home', focus)
         expect(island).toBe('home')
-        const action = placingAction(rich, 'home', { what, size, ...cell!, facing: 0 })
-        expect(action).not.toBeNull()
-        const r = applyAction(rich, action as Action, 0, createRng(1), LAUNCH_CATALOG)
-        if (!r.ok) throw new Error(r.error)
-        if (!hasLegalCell(r.state, sea)) taken++
+        expect(placingAction(rich, 'home', { what, size, ...cell!, facing: 0 })).not.toBeNull()
       }
-      expect(taken).toBe(0)
     })
   }
+
+  /** Decorations on all owned land except where `keep` says, so only that land is free. */
+  const onlyFree = (keep: (col: number, row: number) => boolean): PlayerState => {
+    const decorations: PlayerState['decorations'] = []
+    for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) {
+      if (keep(col, row)) continue
+      const at = { island: 'home' as const, col, row, facing: 0 as const }
+      if (placementRuleError({ ...rich, decorations }, { kind: 'decoration', decoration: 'flowerPatch' }, at) === null) decorations.push({ id: `f${col}-${row}`, kind: 'flowerPatch', placement: at })
+    }
+    return { ...rich, decorations }
+  }
+  const placeFarm = (s: PlayerState, cell: { col: number; row: number }): PlayerState => {
+    const action = placingAction(s, 'home', { what: { kind: 'farm' }, size: FOOTPRINT.farm, ...cell, facing: 0 })
+    expect(action).not.toBeNull()
+    const r = applyAction(s, action as Action, 0, createRng(1), LAUNCH_CATALOG)
+    if (!r.ok) throw new Error(r.error)
+    return r.state
+  }
+
+  describe('with free land only 4x7 (cols 20-23, rows 17-23)', () => {
+    const strip = onlyFree((col, row) => col >= 20 && row >= 17)
+    // The screen's middle over the strip's middle: the farm's nearest cell is (20, 18), which leaves no 4x4 clear.
+    const focus = { col: 21, row: 19 }
+
+    it('the nearest cell would spoil the last habitat spot', () => {
+      expect(hasLegalCell(strip, sea)).toBe(true)
+      const nearest = nearestLegalCell(strip, { kind: 'farm' }, 'home', { col: focus.col - 1, row: focus.row - 1 })!
+      expect(nearest).toEqual({ col: 20, row: 18 })
+      expect(hasLegalCell(placeFarm(strip, nearest), sea)).toBe(false)
+    })
+
+    it('a new farm opens on a cell that keeps the habitat spot', () => {
+      const { island, cell } = placementStart(strip, { kind: 'farm' }, FOOTPRINT.farm, 'home', focus)
+      expect(island).toBe('home')
+      expect(hasLegalCell(placeFarm(strip, cell!), sea)).toBe(true)
+    })
+  })
 
   it('a habitat-sized thing takes the nearest cell to the owned land\'s middle', () => {
     const { cell } = placementStart(rich, sea, FOOTPRINT.habitat, 'home', undefined)
@@ -40,13 +71,7 @@ describe('the default cell leaves room for a habitat (final fix 2)', () => {
 
   it('falls back to the nearest cell when no cell would leave a habitat\'s room', () => {
     // Everything owned is taken but one 4x4 block: a farm anywhere in it spoils the last habitat spot.
-    const decorations: PlayerState['decorations'] = []
-    for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) {
-      if (col >= 20 && row >= 20) continue
-      const at = { island: 'home' as const, col, row, facing: 0 as const }
-      if (placementRuleError({ ...rich, decorations }, { kind: 'decoration', decoration: 'flowerPatch' }, at) === null) decorations.push({ id: `f${col}-${row}`, kind: 'flowerPatch', placement: at })
-    }
-    const tight = { ...rich, decorations }
+    const tight = onlyFree((col, row) => col >= 20 && row >= 20)
     expect(hasLegalCell(tight, sea)).toBe(true)
     const size: Footprint = FOOTPRINT.farm
     const { cell } = placementStart(tight, { kind: 'farm' }, size, 'home', undefined)
