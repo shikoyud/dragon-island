@@ -2,6 +2,7 @@ import { CROPS, currentGoal, goalProgress, ISLANDS, LAUNCH_CATALOG, levelLimit, 
 import type { ClientAction } from '@wyrmhaven/shared'
 import type { Target } from '../game/bridge'
 import { hatcheryHasRoom } from '../game/islandModel'
+import { clearingLabel } from '../ui/obstacleNames'
 import type { DialogKey } from './Hud'
 
 /** Pure numbers and lists the HUD shows; no React, so they are tested directly. */
@@ -138,7 +139,7 @@ function buildingTarget(b: BuildingRef): Target {
 function constructionItem(s: PlayerState, c: Construction, index: number, nowMs: number): AttentionItem {
   const ready = c.readyAtMs <= nowMs
   const base = { id: `construction:${index}`, ready, readyAtMs: c.readyAtMs, ...(ready ? { action: { type: 'finishConstruction', index } as ClientAction } : {}) }
-  if (c.kind === 'clear') return { ...base, label: 'Clearing', panel: { kind: 'obstacle', id: c.obstacleId } }
+  if (c.kind === 'clear') return { ...base, label: clearingLabel(s, c.obstacleId), panel: { kind: 'obstacle', id: c.obstacleId } }
   const what = buildingLabel(s, c.building)
   return { ...base, label: c.kind === 'build' ? `Building ${what}` : `Upgrading ${what}`, panel: buildingTarget(c.building) }
 }

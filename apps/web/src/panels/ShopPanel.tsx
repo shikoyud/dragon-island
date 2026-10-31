@@ -10,6 +10,7 @@ import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatGold, formatMicroUsd, formatSkipPrice } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
+import { clearingLabel } from '../ui/obstacleNames'
 import { Timer } from '../ui/Timer'
 
 export type ShopTab = 'build' | 'store'
@@ -131,7 +132,7 @@ interface TimerRow { id: string; label: string; target: SkipTarget; index: numbe
 function runningTimers(s: PlayerState): TimerRow[] {
   const rows: TimerRow[] = []
   s.constructions.forEach((c, i) => rows.push({
-    id: `construction-${i}`, label: c.kind === 'build' ? 'Building' : 'Upgrade', target: 'construction', index: i, readyAtMs: c.readyAtMs,
+    id: `construction-${i}`, label: c.kind === 'clear' ? clearingLabel(s, c.obstacleId) : c.kind === 'build' ? 'Building' : 'Upgrade', target: 'construction', index: i, readyAtMs: c.readyAtMs,
   }))
   s.breeders.forEach((b, i) => { if (b.egg) rows.push({ id: `breeder-${i}`, label: `${breederName(b.kind)} egg`, target: 'breeder', index: i, readyAtMs: b.egg.readyAtMs }) })
   s.hatchery.forEach((e, i) => { if (e) rows.push({ id: `hatch-${i}`, label: `Hatchery egg ${i + 1}`, target: 'hatchery', index: i, readyAtMs: e.readyAtMs }) })

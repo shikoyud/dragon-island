@@ -1,16 +1,14 @@
-import { OBSTACLES, activeClears, clearCost, clearReward, clearTimerMs, MAX_CLEARS, type ObstacleDrop, type ObstacleKind } from '@wyrmhaven/game-core'
+import { OBSTACLES, activeClears, clearCost, clearReward, clearTimerMs, MAX_CLEARS, type ObstacleDrop } from '@wyrmhaven/game-core'
 import { timerLabel } from '../game/islandModel'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { usePreset } from '../state/preset'
 import { formatGold } from '../ui/Money'
+import { OBSTACLE_NAMES } from '../ui/obstacleNames'
 import { ActionButton, Panel } from '../ui/Panel'
 import { ConstructionStatus } from './ConstructionStatus'
 import { TOKEN_NAMES } from './SpeedUpButton'
 
-const NAMES: Record<ObstacleKind, string> = {
-  ancientTree: 'Ancient Tree', boulder: 'Boulder', largeRock: 'Large Rock', tree: 'Tree', smallRock: 'Small Rock', bush: 'Bush',
-}
 
 /** §5.6's bonus drop as the player reads it, e.g. `10 % chance: 3 h speed-up`. */
 function dropLabel(d: ObstacleDrop): string {
@@ -35,7 +33,7 @@ export function ObstaclePanel({ obstacleId, nowMs, onClose }: { obstacleId: stri
   const drop = OBSTACLES[o.kind].drop
   const reason = s.gold < cost ? 'Not enough gold' : activeClears(s) >= MAX_CLEARS ? 'Two clears are running' : ''
   return (
-    <Panel title={`Obstacle: ${NAMES[o.kind]}`} onClose={onClose}>
+    <Panel title={`Obstacle: ${OBSTACLE_NAMES[o.kind]}`} onClose={onClose}>
       <p style={{ margin: '4px 0' }}>Reward: +{formatGold(reward.xp * preset.xpMult)} XP</p>
       {drop && <p style={{ margin: '4px 0' }}>{dropLabel(drop)}</p>}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
