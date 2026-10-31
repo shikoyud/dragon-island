@@ -8,6 +8,7 @@ import { buildXp, xpToNext } from '../src/progression'
 import { createRng } from '../src/rng'
 import { newPlayer, type PlayerState } from '../src/state'
 import { ok } from './helpers'
+import { FREE } from './helpers/land'
 
 const base = newPlayer(0)
 const run = (st: PlayerState, a: Action, t = 0) => applyAction(st, a, t, createRng(1), LAUNCH_CATALOG, FLASH_14, 1)
@@ -55,24 +56,24 @@ describe('first-time hatch (R30)', () => {
 describe('build XP is paid when the Gold is spent (R31)', () => {
   it('a Sea habitat (5,000 Gold) at PL 3 awards 250, not 3,000', () => {
     const st: PlayerState = { ...base, level: 3, gold: 5_000 }
-    expect(gained(st, ok(run(st, { type: 'placeBuilding', building: { kind: 'habitat', element: 'sea' }, placement: P(7, 7) })))).toBe(250)
+    expect(gained(st, ok(run(st, { type: 'placeBuilding', building: { kind: 'habitat', element: 'sea' }, placement: FREE })))).toBe(250)
   })
   it('a War habitat (250,000 Gold) at PL 18 is capped at xpToNext(18) and levels up once', () => {
     const st: PlayerState = { ...base, level: 18, gold: 250_000 }
-    const a = ok(applyAction(st, { type: 'placeBuilding', building: { kind: 'habitat', element: 'war' }, placement: P(7, 7) }, 0, createRng(1), LAUNCH_CATALOG, FLASH_14, 3))
+    const a = ok(applyAction(st, { type: 'placeBuilding', building: { kind: 'habitat', element: 'war' }, placement: FREE }, 0, createRng(1), LAUNCH_CATALOG, FLASH_14, 3))
     expect(a).toMatchObject({ level: 19, xp: 0 })
   })
   it('Farm 2 (3,000 Gold) awards 150', () => {
     const st: PlayerState = { ...base, level: 3, gold: 3_000 }
-    expect(gained(st, ok(run(st, { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(7, 7) })))).toBe(150)
+    expect(gained(st, ok(run(st, { type: 'placeBuilding', building: { kind: 'farm' }, placement: FREE })))).toBe(150)
   })
-  it('an expansion for 1,000 Gold awards 50', () => {
-    const st: PlayerState = { ...base, level: 2, gold: 1_000 }
-    expect(gained(st, ok(run(st, { type: 'expandIsland' })))).toBe(50)
+  it('a plot for 100 Gold awards the 5 minimum', () => {
+    const st: PlayerState = { ...base, level: 2, gold: 100 }
+    expect(gained(st, ok(run(st, { type: 'buyPlot', island: 'home', plot: 4 })))).toBe(5)
   })
-  it('an island unlock pays build XP', () => {
-    const st: PlayerState = { ...base, level: 12, gold: 40_000 }
-    expect(gained(st, ok(run(st, { type: 'unlockIsland' })))).toBe(2_000)
+  it('a Bridge pays build XP', () => {
+    const st: PlayerState = { ...base, level: 12, gold: 150_000 }
+    expect(gained(st, ok(run(st, { type: 'buyBridge', island: 'isle2' })))).toBe(buildXp(150_000, st))
   })
   it('an upgrade pays build XP on the Gold paid', () => {
     const st: PlayerState = { ...base, level: 10, gold: 1_000_000 }
@@ -82,14 +83,14 @@ describe('build XP is paid when the Gold is spent (R31)', () => {
   })
   it('a decoration awards 0', () => {
     const st: PlayerState = { ...base, level: 50, gold: 1_000_000 }
-    const a = ok(run(st, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'stonePath' }, placement: P(7, 7) }))
+    const a = ok(run(st, { type: 'placeBuilding', building: { kind: 'decoration', decoration: 'stonePath' }, placement: FREE }))
     expect(a.gold).toBeLessThan(st.gold)
     expect(a.xp).toBe(0)
   })
   it('premium items (farmL5, goldenAerie) award 0', () => {
     const farm = ok(run({ ...base, level: 50, farms: [{ ...base.farms[0]!, level: 4 }] }, { type: 'buy', item: { kind: 'farmL5', index: 0 } }))
     expect(farm.xp).toBe(0)
-    const aerie = ok(run({ ...base, level: 50 }, { type: 'buy', item: { kind: 'goldenAerie', placement: P(7, 7) } }))
+    const aerie = ok(run({ ...base, level: 50 }, { type: 'buy', item: { kind: 'goldenAerie', placement: FREE } }))
     expect(aerie.xp).toBe(0)
   })
   it('no Gold spent pays no build XP: buildXp(0) is 0, not the paid-build minimum', () => {
@@ -98,7 +99,7 @@ describe('build XP is paid when the Gold is spent (R31)', () => {
   })
   it('a refused build changes nothing: no Gold, no XP', () => {
     const st: PlayerState = { ...base, level: 3, gold: 4_999, xp: 40 }
-    const r = run(st, { type: 'placeBuilding', building: { kind: 'habitat', element: 'sea' }, placement: P(7, 7) })
+    const r = run(st, { type: 'placeBuilding', building: { kind: 'habitat', element: 'sea' }, placement: FREE })
     expect(r).toEqual({ ok: false, error: 'INSUFFICIENT_GOLD' })
   })
   it('collecting Gold awards 0', () => {

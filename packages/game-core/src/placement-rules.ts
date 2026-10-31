@@ -54,7 +54,7 @@ export function requiredIsland(s: PlayerState, subject: PlacementSubject): Islan
 
 /**
  * Grid legality of putting `subject` at `p`, shared by the server handlers and the client ghost.
- * The grid error (lock, bounds, overlap; a move ignores the mover) comes before WRONG_ISLAND.
+ * The grid error (lock, bounds, ownership, overlap; a move ignores the mover) comes before WRONG_ISLAND.
  * Level, gold and count limits stay in the handlers.
  */
 export function placementRuleError(s: PlayerState, subject: PlacementSubject, p: Placement): PlacementRuleError | null {

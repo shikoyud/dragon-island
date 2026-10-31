@@ -14,6 +14,7 @@ import { createRng, type Rng } from '../src/rng'
 import { newPlayer, type Breeder, type Dragon, type PlayerState } from '../src/state'
 import { priceMicroUsd, type StoreItem } from '../src/store'
 import { err, ok } from './helpers'
+import { FREE, freeCell, withAllLand } from './helpers/land'
 
 const P = (col: number, row: number) => ({ island: 'home' as const, col, row, facing: 0 as const })
 const base = newPlayer(0)
@@ -25,7 +26,7 @@ const run = (s: PlayerState, a: Action, t = 0, rng: Rng = createRng(1)) => apply
 const breed: Action = { type: 'startBreed', parentA: 'd1', parentB: 'd2' }
 const buy = (item: StoreItem): Action => ({ type: 'buy', item })
 const mountain = (over: Partial<Breeder> = {}): Breeder => ({ ...base.breeders[0]!, ...over })
-const grove = (over: Partial<Breeder> = {}): Breeder => ({ kind: 'grove', egg: null, level: 1, placement: P(7, 7), ...over })
+const grove = (over: Partial<Breeder> = {}): Breeder => ({ kind: 'grove', egg: null, level: 1, placement: FREE, ...over })
 const finished = { speciesId: 'flame', readyAtMs: 0, hatchMs: 777, xpFree: false }
 const counting = () => {
   const c = { calls: 0, rng: { next: () => { c.calls++; return 0 }, int: () => { c.calls++; return 0 } } as Rng }
@@ -62,8 +63,8 @@ describe('§5.4 tables', () => {
     ])
   })
 
-  it('both breeding buildings keep 2 cells until M4 (R9)', () => {
-    expect(BREEDER_FOOTPRINT).toBe(2)
+  it('both breeding buildings stand on 5x5 tiles (§5.4)', () => {
+    expect(BREEDER_FOOTPRINT).toBe(5)
   })
 
   it('hatcherySlots adds the fifth slot on top of any level', () => {
@@ -84,15 +85,15 @@ describe('§5.4 tables', () => {
 })
 
 describe('newPlayer', () => {
-  it('starts with one Mountain L1 at (4, 8) and no fifth slot (R1, R9)', () => {
-    expect(base.breeders).toEqual([{ kind: 'mountain', egg: null, level: 1, placement: P(4, 8) }])
+  it('starts with one Mountain L1 at (8, 8) and no fifth slot (R1, R50)', () => {
+    expect(base.breeders).toEqual([{ kind: 'mountain', egg: null, level: 1, placement: P(8, 8) }])
     expect(base.hatcheryFifthSlot).toBe(false)
     expect(base).not.toHaveProperty('nests')
   })
 
   it('its placements are legal and do not overlap', () => {
     const occ = occupants(base, 'home')
-    expect(occ.find(o => o.ref.type === 'breeder')).toMatchObject({ col: 4, row: 8, size: 2 })
+    expect(occ.find(o => o.ref.type === 'breeder')).toMatchObject({ col: 8, row: 8, size: 5 })
     for (const o of occ) expect(placementError(base, { ...P(o.col, o.row) }, o.size, o.ref)).toBeNull()
     for (const [i, a] of occ.entries()) for (const b of occ.slice(i + 1)) expect(overlaps(a, b)).toBe(false)
   })
@@ -199,7 +200,7 @@ describe('Review Focus 1: a full Hatchery leaves the egg in its building', () =>
 })
 
 describe('placing the Grove', () => {
-  const place: Action = { type: 'placeBuilding', building: { kind: 'grove' }, placement: P(7, 7) }
+  const place: Action = { type: 'placeBuilding', building: { kind: 'grove' }, placement: FREE }
   const ready = (level: number, gold = 500_000) => ({ ...base, level, gold })
 
   it('needs PL 12', () => {
@@ -209,7 +210,7 @@ describe('placing the Grove', () => {
   it('charges 400,000 and builds for 2,400,000 ms under Flash-14', () => {
     const a = ok(applyAction(ready(12), place, 1_000, createRng(1), LAUNCH_CATALOG, FLASH_14))
     expect(a.gold).toBe(100_000)
-    expect(a.breeders[1]).toEqual({ kind: 'grove', egg: null, level: 1, placement: P(7, 7) })
+    expect(a.breeders[1]).toEqual({ kind: 'grove', egg: null, level: 1, placement: FREE })
     expect(a.constructions).toEqual([{ kind: 'build', building: { type: 'breeder', index: 1 }, readyAtMs: 1_000 + 2_400_000 }])
   })
 
@@ -220,8 +221,10 @@ describe('placing the Grove', () => {
 
   it('a second Grove fails MAX_LEVEL', () => {
     const a = ok(run(ready(12, 2_000_000), place))
-    expect(placementRuleError(a, { kind: 'grove' }, P(10, 2))).toBeNull()
-    err(run(a, { ...place, placement: P(10, 2) } as Action), 'MAX_LEVEL')
+    const more = withAllLand(a) // the Start has no second free 5x5
+    const second = freeCell(more, 5)
+    expect(placementRuleError(more, { kind: 'grove' }, second)).toBeNull()
+    err(run(more, { ...place, placement: second } as Action), 'MAX_LEVEL')
   })
 
   it('refuses short Gold and busy builders', () => {
@@ -230,21 +233,22 @@ describe('placing the Grove', () => {
     err(run(busy, place), 'BUILDERS_BUSY')
   })
 
-  it('takes a 2-cell footprint and is a valid action', () => {
-    expect(placementRuleError(base, { kind: 'grove' }, P(11, 7))).toBe('OUT_OF_BOUNDS')
-    expect(placementRuleError(base, { kind: 'grove' }, P(10, 7))).toBeNull()
-    expect(placementRuleError(base, { kind: 'grove' }, P(3, 7))).toBe('OVERLAP')
+  it('takes a 5x5 footprint and is a valid action', () => {
+    expect(placementRuleError(base, { kind: 'grove' }, P(28, 12))).toBe('OUT_OF_BOUNDS')
+    expect(placementRuleError(base, { kind: 'grove' }, P(20, 12))).toBe('NOT_OWNED')
+    expect(placementRuleError(base, { kind: 'grove' }, P(14, 12))).toBeNull()
+    expect(placementRuleError(base, { kind: 'grove' }, P(9, 12))).toBe('OVERLAP')
     expect(isValidAction(place)).toBe(true)
   })
 })
 
 describe('moving a breeder', () => {
-  it('moves with a 2-cell footprint, ignoring itself', () => {
+  it('moves with a 5x5 footprint, ignoring itself', () => {
     const s = base
-    const a = ok(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 0 }, placement: P(5, 7) }))
-    expect(a.breeders[0]!.placement).toEqual(P(5, 7))
-    err(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 0 }, placement: P(3, 8) }), 'OVERLAP')
-    err(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 9 }, placement: P(5, 7) }), 'NOT_FOUND')
+    const a = ok(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 0 }, placement: P(13, 13) }))
+    expect(a.breeders[0]!.placement).toEqual(P(13, 13))
+    err(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 0 }, placement: P(9, 8) }), 'OVERLAP')
+    err(run(s, { type: 'moveBuilding', target: { type: 'breeder', index: 9 }, placement: P(13, 13) }), 'NOT_FOUND')
   })
 })
 

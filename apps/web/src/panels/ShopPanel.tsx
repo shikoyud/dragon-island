@@ -1,8 +1,8 @@
 import {
-  BREEDER_LEVELS, DECORATIONS, basicHome, basicPriceGold, canLiveIn, getSpecies, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, ROOST_FOOTPRINT, ROOST_TIERS, farmBuildGold, MAX_FARMS, priceMicroUsd, unlockPl,
+  BREEDER_LEVELS, DECORATIONS, ISLANDS, basicHome, basicPriceGold, canLiveIn, getSpecies, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, ROOST_FOOTPRINT, ROOST_TIERS, farmBuildGold, MAX_FARMS, priceMicroUsd, unlockPl,
   type DecorationId, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem, type UnlockKey,
 } from '@wyrmhaven/game-core'
-import { useMemo, useState, type ReactNode } from 'react'
+import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Placing } from '../game/bridge'
 import { breederName } from '../hud/hudModel'
 import { hasLegalCell } from '../state/placing'
@@ -10,6 +10,7 @@ import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatGold, formatMicroUsd, formatSkipPrice } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
+import { clearingLabel } from '../ui/obstacleNames'
 import { Timer } from '../ui/Timer'
 
 export type ShopTab = 'build' | 'store'
@@ -17,8 +18,24 @@ export type ShopTab = 'build' | 'store'
 const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1)
 /** "flowerPatch" -> "Flower patch". */
 const decorationName = (id: DecorationId) => cap(id.replace(/([A-Z])/g, ' $1').toLowerCase())
-const DAWNSPIRE_ONLY = 'Dawnspire only'
-const NO_ROOM = 'No room: expand the island'
+const NO_ROOM = 'No room: clear or buy land'
+
+/**
+ * Whether each decoration has a legal cell. One scan per footprint (a decoration of the same size has the same cells), and
+ * none for an item of another island, whose row already says `<Island> only`.
+ */
+function decorationRoom(s: PlayerState, view: IslandId): Record<DecorationId, boolean> {
+  const bySize = new Map<number, boolean>()
+  const out = {} as Record<DecorationId, boolean>
+  for (const id of Object.keys(DECORATIONS) as DecorationId[]) {
+    const d = DECORATIONS[id]
+    if (d.island && d.island !== view) { out[id] = true; continue }
+    const key = d.size + (d.island ? 10 : 0)
+    if (!bySize.has(key)) bySize.set(key, hasLegalCell(s, { kind: 'decoration', decoration: id }))
+    out[id] = bySize.get(key)!
+  }
+  return out
+}
 
 export interface ShopPanelProps {
   onPlace: (what: Placing['what'], size: Footprint) => void
@@ -37,16 +54,22 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
   const me = useMe()
   const [tab, setTab] = useState<ShopTab>(initial)
   const s = me.data?.state
-  // One scan for the 5x5 rows (habitats and the Golden Aerie share the footprint) and one for the Grove's 2 cells; not tied to the clock.
-  const { room, groveRoom, roostRoom } = useMemo(
+  // One scan for the habitat rows (the Golden Aerie shares the footprint), one each for the Grove and the Roost; not tied to the clock.
+  const { room, groveRoom, roostRoom, farmRoom, decoRoom } = useMemo(
     () => ({
       room: s ? hasLegalCell(s, { kind: 'habitat', element: 'terra' }) : false,
       groveRoom: s ? hasLegalCell(s, { kind: 'grove' }) : false,
       roostRoom: s ? hasLegalCell(s, { kind: 'roost' }) : false,
+      farmRoom: s ? hasLegalCell(s, { kind: 'farm' }) : false,
+      decoRoom: s ? decorationRoom(s, view) : ({} as Record<DecorationId, boolean>),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s?.islands, s?.habitats, s?.breeders, s?.farms, s?.decorations, s?.hatcheryPlacement, s?.roostPlacement, s?.constructions],
+    [view, s?.islands, s?.habitats, s?.breeders, s?.farms, s?.decorations, s?.hatcheryPlacement, s?.roostPlacement, s?.constructions],
   )
+  // The host passes a new onPlace every render; the rows call the latest through one that stays the same, so the Build tab, which reads no clock, sits out the tick.
+  const latestPlace = useRef(onPlace)
+  latestPlace.current = onPlace
+  const place = useCallback<ShopPanelProps['onPlace']>((what, size) => latestPlace.current(what, size), [])
   if (!s) return null
   return (
     <Panel title="Shop" onClose={onClose}>
@@ -55,7 +78,7 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
         <button type="button" role="tab" className="hud-tab" aria-selected={tab === 'store'} onClick={() => setTab('store')}>Store</button>
       </div>
       <div role="tabpanel" aria-label={tab === 'build' ? 'Build' : 'Store'}>
-        {tab === 'build' ? <BuildTab s={s} onPlace={onPlace} view={view} room={room} groveRoom={groveRoom} roostRoom={roostRoom} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
+        {tab === 'build' ? <BuildTab s={s} onPlace={place} view={view} room={room} groveRoom={groveRoom} roostRoom={roostRoom} farmRoom={farmRoom} decoRoom={decoRoom} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
       </div>
     </Panel>
   )
@@ -69,7 +92,7 @@ const section = (key: string, title: string, items: ReactNode) => (
 )
 
 /** Gold-and-level shop for everything that goes on the grid (spec section 8). */
-function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean; groveRoom: boolean; roostRoom: boolean }) {
+const BuildTab = memo(function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom, farmRoom, decoRoom }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean; groveRoom: boolean; roostRoom: boolean; farmRoom: boolean; decoRoom: Record<DecorationId, boolean> }) {
   const card = (id: string, label: string, price: string, reason: string | undefined, what: Placing['what'], size: Footprint) => (
     <li key={id}>
       <ActionButton id={`shop-${id}`} disabled={Boolean(reason)} reason={reason} onClick={() => onPlace(what, size)}>
@@ -115,16 +138,16 @@ function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom }: { s: PlayerS
       {section('roost', 'Roost', card('roost', 'Dragon Roost', `${formatGold(roost.gold)} gold`,
         gold(roost.gold, unlockPl('roost:1'), s.roostPlacement ? 'Already built' : roostRoom ? undefined : NO_ROOM), { kind: 'roost' }, ROOST_FOOTPRINT))}
       {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_FARMS ? 'maximum' : `${formatGold(farmBuildGold(plots + 1))} gold`,
-        plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), unlockPl(`farm:${plots + 1}` as UnlockKey)), { kind: 'farm' }, FOOTPRINT.farm))}
+        plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), unlockPl(`farm:${plots + 1}` as UnlockKey), farmRoom ? undefined : NO_ROOM), { kind: 'farm' }, FOOTPRINT.farm))}
       {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {
         const d = DECORATIONS[id]
-        // Locked items stay visible, greyed (spec section 8): Dawnspire-only ones say so off the Dawnspire.
-        const reason = d.island && d.island !== view ? DAWNSPIRE_ONLY : gold(d.cost, d.minLevel)
+        // Locked items stay visible, greyed (spec section 8): an item for one island says so anywhere else.
+        const reason = d.island && d.island !== view ? `${ISLANDS[d.island].name} only` : gold(d.cost, d.minLevel, decoRoom[id] ? undefined : NO_ROOM)
         return card(`deco-${id}`, decorationName(id), `${formatGold(d.cost)} gold`, reason, { kind: 'decoration', decoration: id }, d.size)
       }))}
     </>
   )
-}
+})
 
 interface TimerRow { id: string; label: string; target: SkipTarget; index: number; readyAtMs: number }
 
@@ -132,7 +155,7 @@ interface TimerRow { id: string; label: string; target: SkipTarget; index: numbe
 function runningTimers(s: PlayerState): TimerRow[] {
   const rows: TimerRow[] = []
   s.constructions.forEach((c, i) => rows.push({
-    id: `construction-${i}`, label: c.kind === 'build' ? 'Building' : 'Upgrade', target: 'construction', index: i, readyAtMs: c.readyAtMs,
+    id: `construction-${i}`, label: c.kind === 'clear' ? clearingLabel(s, c.obstacleId) : c.kind === 'build' ? 'Building' : 'Upgrade', target: 'construction', index: i, readyAtMs: c.readyAtMs,
   }))
   s.breeders.forEach((b, i) => { if (b.egg) rows.push({ id: `breeder-${i}`, label: `${breederName(b.kind)} egg`, target: 'breeder', index: i, readyAtMs: b.egg.readyAtMs }) })
   s.hatchery.forEach((e, i) => { if (e) rows.push({ id: `hatch-${i}`, label: `Hatchery egg ${i + 1}`, target: 'hatchery', index: i, readyAtMs: e.readyAtMs }) })

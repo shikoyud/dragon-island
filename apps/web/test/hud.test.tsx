@@ -5,18 +5,18 @@ import type { GameInfo } from '@wyrmhaven/shared'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createBridge } from '../src/game/bridge'
 import { Dialog } from '../src/hud/Dialog'
-import { Hud } from '../src/hud/Hud'
+import { Hud, type DialogKey } from '../src/hud/Hud'
 import { HudArtContext } from '../src/hud/Icon'
 import { harness } from './harness'
 
 const base = (): PlayerState => ({ ...newPlayer(0), gold: 12_345, food: 678, level: 3, xp: 225 })
 
-function renderHud(state: PlayerState, opts: { placing?: boolean; nowMs?: number; game?: Partial<GameInfo> } = {}) {
+function renderHud(state: PlayerState, opts: { placing?: boolean; nowMs?: number; game?: Partial<GameInfo>; open?: DialogKey | null } = {}) {
   const h = harness(state, 0, undefined, opts.game)
   const onOpen = vi.fn()
   const bridge = createBridge()
   const setInsets = vi.spyOn(bridge, 'setInsets')
-  h.wrap(<Hud bridge={bridge} nowMs={opts.nowMs ?? 10_000} open={null} onOpen={onOpen} placing={opts.placing ?? false} />)
+  h.wrap(<Hud bridge={bridge} nowMs={opts.nowMs ?? 10_000} open={opts.open ?? null} onOpen={onOpen} placing={opts.placing ?? false} />)
   return { ...h, onOpen, bridge, setInsets }
 }
 
@@ -100,6 +100,43 @@ describe('HUD', () => {
     expect(within(right).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Map'])
     for (const label of ['Hoard', 'Season', 'Ranks', 'Referral']) expect(screen.queryByRole('button', { name: label })).toBeNull()
     expect(within(right).queryByRole('link', { name: 'Admin' })).toBeNull()
+  })
+
+  it('the Map button opens the Map and toggles back; it is lit with an island panel open too', async () => {
+    const closed = renderHud(base())
+    await userEvent.click(screen.getByRole('button', { name: 'Map' }))
+    expect(closed.onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'map' })
+    cleanup()
+    const open = renderHud(base(), { open: { kind: 'panel', id: 'map' } })
+    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(screen.getByRole('button', { name: 'Map' }))
+    expect(open.onOpen).toHaveBeenLastCalledWith(null)
+    cleanup()
+    renderHud(base(), { open: { kind: 'target', target: { kind: 'mapIsland', id: 'isle2' } } })
+    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('the Map waits while a building is being placed', () => {
+    renderHud(base(), { placing: true })
+    expect(screen.getByRole('button', { name: 'Map' })).toBeDisabled()
+  })
+
+  it('on the Map, a list of buttons named for each island sits in the page (R60), and the menus stay', async () => {
+    const { onOpen } = renderHud(base(), { open: { kind: 'panel', id: 'map' } })
+    const list = screen.getByRole('navigation', { name: 'Islands' })
+    expect(within(list).getAllByRole('button').map(b => b.textContent)).toEqual([
+      'Home Isle · 4 / 16', 'Ember Reach · Level 12 · Bridge 150,000', 'Frostspire · Level 18', 'Ironhold · Level 25', 'Shadowmere · Level 32', "Warlord's Crown · Level 40",
+    ])
+    expect(within(list).getByRole('button', { name: /Home Isle/ })).toHaveAttribute('aria-current', 'true')
+    await userEvent.click(within(list).getByRole('button', { name: /Ember Reach/ }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'target', target: { kind: 'mapIsland', id: 'isle2' } })
+    expect(screen.getByRole('navigation', { name: 'Main menu' })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Resources' })).toBeInTheDocument()
+  })
+
+  it('off the Map there is no island list', () => {
+    renderHud(base())
+    expect(screen.queryByRole('navigation', { name: 'Islands' })).toBeNull()
   })
 
   it('shows Admin when the operator token is set', () => {

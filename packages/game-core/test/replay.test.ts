@@ -1,8 +1,9 @@
 import { expect, it } from 'vitest'
 import { applyAction, createRng, newPlayer, type Action, type Effect, type PlayerState } from '../src/index'
 import { FIXTURE_CATALOG } from './fixtures'
+import { FREE, FREE_2 } from './helpers/land'
 
-const OBSTACLE_ID = 'home-s1-bush'
+const OBSTACLE_ID = 'o-bush'
 const script: [Action, number][] = [
   [{ type: 'collectGold', habitatId: 'h1' }, 60_000],
   [{ type: 'plant', plot: 0, crop: 'dragonBush' }, 60_000],
@@ -12,21 +13,22 @@ const script: [Action, number][] = [
   [{ type: 'startBreed', parentA: 'd1', parentB: 'd2' }, 120_000],
   [{ type: 'collectEgg', breeder: 0 }, 135_000],
   [{ type: 'hatch', slot: 0 }, 150_000],
-  [{ type: 'placeBuilding', building: { kind: 'decoration', decoration: 'stonePath' }, placement: { island: 'home', col: 9, row: 8, facing: 0 } }, 160_000],
-  [{ type: 'moveBuilding', target: { type: 'decoration', id: 'c4' }, placement: { island: 'home', col: 10, row: 8, facing: 0 } }, 160_000],
+  [{ type: 'placeBuilding', building: { kind: 'decoration', decoration: 'stonePath' }, placement: FREE }, 160_000],
+  [{ type: 'moveBuilding', target: { type: 'decoration', id: 'c4' }, placement: FREE_2 }, 160_000],
   [{ type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, 160_000],
   [{ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 170_000],
   [{ type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 180_000],
   [{ type: 'finishConstruction', index: 0 }, 99_999_999],
-  [{ type: 'expandIsland' }, 100_000_000],
-  [{ type: 'unlockIsland' }, 100_000_000],
+  [{ type: 'buyPlot', island: 'home', plot: 4 }, 100_000_000],
+  [{ type: 'buyBridge', island: 'isle2' }, 100_000_000],
   [{ type: 'clearObstacle', obstacleId: OBSTACLE_ID }, 100_000_000],
   [{ type: 'finishConstruction', index: 0 }, 200_000_000],
 ]
 
 function replay(): { state: PlayerState; effects: Effect[] } {
   const rng = createRng(123)
-  let state: PlayerState = { ...newPlayer(0), food: 200, level: 12, gold: 300_000 }
+  const start = newPlayer(0)
+  let state: PlayerState = { ...start, food: 200, level: 12, gold: 300_000, islands: { ...start.islands, obstacles: [{ id: OBSTACLE_ID, kind: 'bush', island: 'home', col: 8, row: 20 }] } }
   const effects: Effect[] = []
   for (const [action, t] of script) {
     const r = applyAction(state, action, t, rng, FIXTURE_CATALOG)
@@ -48,8 +50,8 @@ it('replays to an identical state', () => {
 
 it('the building scenario changes the island and is deterministic', () => {
   const { state } = replay()
-  expect(state.islands.homeStep).toBe(1)
+  expect(state.islands.plots.home).toEqual([5, 6, 9, 10, 4])
   expect(state.islands.unlocked).toEqual(['home', 'isle2'])
-  expect(state.islands.obstacles.some(o => o.id === 'home-s1-bush')).toBe(false)
+  expect(state.islands.obstacles.some(o => o.id === OBSTACLE_ID)).toBe(false)
   expect(state.constructions).toEqual([])
 })

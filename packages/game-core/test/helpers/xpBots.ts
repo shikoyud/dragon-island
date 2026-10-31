@@ -6,7 +6,8 @@ import type { Action, Placeable } from '../../src/actions/types'
 import { activeLegendaries, breedingOdds, breedValidity } from '../../src/breeding'
 import { breederBreedMs, upgradeInfo } from '../../src/buildings'
 import { getSpecies } from '../../src/catalog'
-import { isUnderConstruction, isUnfinished, MAX_BUILDERS } from '../../src/construction'
+import { clearCost, MAX_CLEARS } from '../../src/obstacles'
+import { activeClears, isUnderConstruction, isUnfinished, MAX_BUILDERS } from '../../src/construction'
 import { breedTimerMs } from '../../src/data/breeding-timers'
 import { LAUNCH_CATALOG } from '../../src/data/launch-catalog'
 import { isUnlocked, type UnlockKey } from '../../src/data/unlocks'
@@ -14,12 +15,15 @@ import type { Preset } from '../../src/data/presets'
 import { HATCH_XP, START_BREED_XP } from '../../src/data/xp'
 import { foodPerFeed, levelCap } from '../../src/dragon'
 import { ELEMENTS, type Element } from '../../src/elements'
+import { ISLAND_ORDER } from '../../src/island'
+import { ISLAND_TILES, plotError } from '../../src/plots'
+import { ALL_PLOTS, cheapestClears } from './land'
 import { CROP_IDS, cropGrowMs, cropUnlocked, MAX_FARMS } from '../../src/farm'
 import { gameDay } from '../../src/game-clock'
 import { placementRuleError } from '../../src/placement-rules'
 import { breedXpApplies } from '../../src/progression'
 import { createRng } from '../../src/rng'
-import { newPlayer, type Breeder, type CropId, type IslandId, type Placement, type PlayerState } from '../../src/state'
+import { newPlayer, type Breeder, type CropId, type IslandId, type Obstacle, type Placement, type PlayerState } from '../../src/state'
 import { MS_PER_DAY } from '../../src/time'
 
 const c = LAUNCH_CATALOG
@@ -45,6 +49,8 @@ export interface BotPlan {
   roost?: boolean
   /** Plays only in these windows, the first at launch. */
   sessions?: { perDay: number; minutes: number }
+  /** Plays on from this state instead of a new player (for tests that need a blocked island). */
+  start?: PlayerState
 }
 export interface BotResult {
   name: string
@@ -57,7 +63,7 @@ export interface BotResult {
 
 export function runBot(p: BotPlan): BotResult {
   const rng = createRng(p.seed ?? 1)
-  let s = newPlayer(0)
+  let s = p.start ?? newPlayer(0)
   let now = 0
   let actions = 0
   const reached = new Map<number, Reached>()
@@ -80,24 +86,37 @@ export function runBot(p: BotPlan): BotResult {
   const spot = (subject: Placeable, small: boolean): Placement | null => {
     const islands: readonly IslandId[] = small ? [...s.islands.unlocked].reverse() : s.islands.unlocked
     for (const island of islands) {
-      for (let i = 0; i < 24 * 24; i++) {
-        const k = small ? 24 * 24 - 1 - i : i
-        const placement: Placement = { island, col: k % 24, row: Math.floor(k / 24), facing: 0 }
+      for (let i = 0; i < ISLAND_TILES * ISLAND_TILES; i++) {
+        const k = small ? ISLAND_TILES * ISLAND_TILES - 1 - i : i
+        const placement: Placement = { island, col: k % ISLAND_TILES, row: Math.floor(k / ISLAND_TILES), facing: 0 }
         if (placementRuleError(s, subject, placement) === null) return placement
       }
     }
     return null
   }
-  const makeRoom = () => {
-    if (act({ type: 'expandIsland' }) || act({ type: 'unlockIsland' })) return
-    const o = s.islands.obstacles.find(x => !s.constructions.some(k => k.kind === 'clear' && k.obstacleId === x.id))
-    if (o && builderFree()) act({ type: 'clearObstacle', obstacleId: o.id })
+  const makeRoom = (subject: Placeable) => {
+    for (const island of s.islands.unlocked) {
+      for (const plot of ALL_PLOTS) if (plotError(s, island, plot) === null && act({ type: 'buyPlot', island, plot })) return
+    }
+    const next = ISLAND_ORDER.find(i => !s.islands.unlocked.includes(i))
+    if (next && next !== 'home' && act({ type: 'buyBridge', island: next })) return
+    // Nothing to buy: clear what blocks the cheapest cell for this building, the cheapest blocker first. A clear runs against MAX_CLEARS, not the builders (`builderFree` above still counts a clear as a busy builder, which is conservative).
+    if (activeClears(s) >= MAX_CLEARS) return
+    let blockers: Obstacle[] | null = null
+    for (const island of s.islands.unlocked) {
+      const hit = cheapestClears(s, subject, island)
+      if (hit && (blockers === null || hit.length < blockers.length)) blockers = hit
+    }
+    const o = (blockers ?? [])
+      .filter(x => !s.constructions.some(k => k.kind === 'clear' && k.obstacleId === x.id))
+      .sort((a, b) => clearCost(a) - clearCost(b))[0]
+    if (o) act({ type: 'clearObstacle', obstacleId: o.id })
   }
   const place = (building: Placeable, small: boolean) => {
     if (!builderFree()) return
     const placement = spot(building, small)
     if (placement) act({ type: 'placeBuilding', building, placement })
-    else makeRoom()
+    else makeRoom(building)
   }
 
   const finishBuilds = () => {

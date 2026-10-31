@@ -4,8 +4,9 @@ import type { Preset } from '../data/presets'
 import type { Element } from '../elements'
 import type { OpponentSnapshot } from '../matchmaking'
 import type { Rng } from '../rng'
-import type { BuildingRef, CropId, DecorationId, Placement, PlayerState } from '../state'
-import type { StoreItem } from '../store'
+import type { BuildingRef, CropId, DecorationId, IslandId, Placement, PlayerState } from '../state'
+import type { SkipTarget, StoreItem } from '../store'
+import type { SpeedUpToken } from '../data/speedups'
 
 export type TeamIds = [string, string, string]
 
@@ -21,8 +22,8 @@ export type Action =
   | { type: 'removeDecoration'; id: string }
   | { type: 'startUpgrade'; building: BuildingRef }
   | { type: 'finishConstruction'; index: number }
-  | { type: 'expandIsland' }
-  | { type: 'unlockIsland' }
+  | { type: 'buyPlot'; island: IslandId; plot: number }
+  | { type: 'buyBridge'; island: Exclude<IslandId, 'home'> }
   | { type: 'clearObstacle'; obstacleId: string }
   | { type: 'moveDragon'; dragonId: string; habitatId: string }
   | { type: 'feed'; dragonId: string }
@@ -34,6 +35,8 @@ export type Action =
   | { type: 'hatch'; slot: number }
   | { type: 'buyBasic'; element: Element }
   | { type: 'buy'; item: StoreItem }
+  /** R55: takes the token's real hours off a running timer; no $DRIS involved. */
+  | { type: 'useSpeedUp'; token: SpeedUpToken; target: SkipTarget; index: number }
   | { type: 'setDefenceTeam'; dragonIds: TeamIds }
   /**
    * `opponent` is built by the server from a stored matchmaking offer, never taken
@@ -46,10 +49,10 @@ export type Action =
 export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'INSUFFICIENT_GOLD' | 'INSUFFICIENT_FOOD' | 'MAX_LEVEL' | 'LEVEL_CAP'
   | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'OPPOSITE_BASICS' | 'NO_FREE_BREEDER' | 'BREEDER_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'
   | 'NO_HABITAT_SLOT' | 'ELEMENT_MISMATCH' | 'MAX_PLOTS' | 'PLOT_BUSY' | 'PLOT_EMPTY'
-  | 'LAST_DRAGONS' | 'NOT_SELLABLE' | 'NOTHING_TO_SKIP'
+  | 'LAST_DRAGONS' | 'NOT_SELLABLE' | 'NOTHING_TO_SKIP' | 'NO_TOKEN'
   | 'INVALID_TEAM' | 'NO_DEFENCE_TEAM' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'
-  | 'OUT_OF_BOUNDS' | 'OVERLAP' | 'BUILDERS_BUSY' | 'ISLAND_LOCKED' | 'MAX_ISLAND' | 'WRONG_ISLAND' | 'UNDER_CONSTRUCTION'
-  | 'NO_LEGENDARY' | 'MAX_EXPANSION' | 'AERIE_EXISTS' | 'GOAL_NOT_DONE' | 'NO_GOAL'
+  | 'OUT_OF_BOUNDS' | 'OVERLAP' | 'BUILDERS_BUSY' | 'ISLAND_LOCKED' | 'NOT_OWNED' | 'PLOT_OWNED' | 'PLOT_NOT_ADJACENT' | 'WRONG_ISLAND' | 'UNDER_CONSTRUCTION' | 'CLEARS_BUSY'
+  | 'AERIE_EXISTS' | 'GOAL_NOT_DONE' | 'NO_GOAL'
 
 /** Side effects the server settles after persisting the new state. */
 export type Effect =

@@ -1,3 +1,4 @@
+import { MAX_CLEARS } from './data/obstacles'
 import type { BuildingRef, Construction, PlayerState } from './state'
 
 type NewConstruction = Construction extends infer C ? (C extends unknown ? Omit<C, 'readyAtMs'> : never) : never
@@ -22,11 +23,26 @@ export function isUnderConstruction(s: PlayerState, ref: BuildingRef): boolean {
   return constructionFor(s, ref) !== undefined
 }
 
-/** Appends a construction that takes `timerMs`. `null` when both builders are busy. */
+/** Builds and upgrades running; clears have their own limit (M4 Q1 a). */
+export function activeBuilds(s: PlayerState): number {
+  return s.constructions.filter(c => c.kind !== 'clear').length
+}
+
+export function activeClears(s: PlayerState): number {
+  return s.constructions.filter(c => c.kind === 'clear').length
+}
+
+/** Which limit stops a new construction of this kind: builds against MAX_BUILDERS, clears against MAX_CLEARS. */
+export function busyError(s: PlayerState, kind: Construction['kind']): 'BUILDERS_BUSY' | 'CLEARS_BUSY' | null {
+  if (kind === 'clear') return activeClears(s) >= MAX_CLEARS ? 'CLEARS_BUSY' : null
+  return activeBuilds(s) >= MAX_BUILDERS ? 'BUILDERS_BUSY' : null
+}
+
+/** Appends a construction that takes `timerMs`. `null` when its limit is reached (busyError says which). */
 export function startConstruction(
   s: PlayerState, c: NewConstruction, timerMs: number, nowMs: number,
 ): PlayerState | null {
-  if (s.constructions.length >= MAX_BUILDERS) return null
+  if (busyError(s, c.kind) !== null) return null
   return { ...s, constructions: [...s.constructions, { ...c, readyAtMs: nowMs + timerMs } as Construction] }
 }
 

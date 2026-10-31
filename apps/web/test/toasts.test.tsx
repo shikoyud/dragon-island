@@ -20,6 +20,14 @@ function Providers({ children, api }: { children: ReactNode; api?: Partial<Api> 
 }
 
 describe('toasts and errors', () => {
+  it('toasts sit above the bottom menu, and never take a tap', () => {
+    const { container } = render(<ToastProvider><span /></ToastProvider>)
+    const host = container.querySelector('.toasts') as HTMLElement
+    expect(host.style.pointerEvents).toBe('none')
+    // The tallest menu is 88 px (desktop); 72 at 390.
+    expect(parseInt(host.style.bottom, 10)).toBeGreaterThanOrEqual(96)
+  })
+
   it('shows one toast with the mapped message when an action fails', async () => {
     const api = { action: vi.fn(async () => { throw new ApiError(422, 'PLOT_BUSY') }) }
     const Trigger = () => {

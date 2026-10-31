@@ -11,9 +11,10 @@ import { ShopPanel } from '../src/panels/ShopPanel'
 import { StartPlacingProvider } from '../src/state/startPlacing'
 import { LAUNCH_CATALOG } from '@wyrmhaven/game-core'
 import { harness, TestHost } from './harness'
+import { FREE, FREE_2 } from './land'
 
 const base = newPlayer(0)
-const AT = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
+const AT = FREE
 const roosted = (tier: number, over: Partial<PlayerState> = {}): PlayerState => ({ ...base, roostPlacement: AT, roostTier: tier, level: 30, gold: 50_000_000, ...over })
 const maxed = (s: PlayerState): PlayerState => ({ ...s, dragons: s.dragons.map(d => d.id === 'd1' ? { ...d, level: s.roostTier === 0 ? 7 : 10 } : d) })
 
@@ -92,7 +93,7 @@ describe('DragonPanel Upgrade Roost', () => {
 describe('Shop Build tab Roost row', () => {
   const row = () => within(screen.getByTestId('shop-roost')).getByRole('button', { name: /Dragon Roost/ })
 
-  it('is locked below PL 5, then starts placement on 2 cells', async () => {
+  it('is locked below PL 5, then starts placement on its 4x4 footprint', async () => {
     const onPlace = vi.fn()
     const low = harness({ ...base, level: 4, gold: 5_000 }).wrap(<ShopPanel onPlace={onPlace} view="home" nowMs={0} />)
     expect(row()).toBeDisabled()
@@ -101,7 +102,7 @@ describe('Shop Build tab Roost row', () => {
     harness({ ...base, level: 5, gold: 5_000 }).wrap(<ShopPanel onPlace={onPlace} view="home" nowMs={0} />)
     expect(row()).toHaveTextContent('5,000 gold')
     await userEvent.click(row())
-    expect(onPlace).toHaveBeenCalledWith({ kind: 'roost' }, 2)
+    expect(onPlace).toHaveBeenCalledWith({ kind: 'roost' }, 4)
   })
 
   it('says Already built once it stands', () => {
@@ -117,9 +118,9 @@ describe('Roost on the island', () => {
     const m = buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, 'home', null)
     const roost = m.objects.find(o => o.id === 'roost')!
     expect(roost.target).toEqual({ kind: 'roost' })
-    expect(roost.key).toBe(buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, 'home', { what: { kind: 'roost' }, size: 2, col: 10, row: 4, facing: 0 }).objects.find(o => o.id === 'ghost')!.key)
-    const moving = buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, 'home', { what: { kind: 'move', target: { type: 'roost' } }, size: 2, col: 10, row: 4, facing: 0 })
-    expect(moving.markers.ghost).toEqual({ legal: true, col: 10, row: 4, size: 2 })
+    expect(roost.key).toBe(buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, 'home', { what: { kind: 'roost' }, size: 4, col: FREE_2.col, row: FREE_2.row, facing: 0 }).objects.find(o => o.id === 'ghost')!.key)
+    const moving = buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, 'home', { what: { kind: 'move', target: { type: 'roost' } }, size: 4, col: FREE_2.col, row: FREE_2.row, facing: 0 })
+    expect(moving.markers.ghost).toEqual({ legal: true, col: FREE_2.col, row: FREE_2.row, size: 4 })
     expect(buildIslandModel(base, FALLBACK_ART, LAUNCH_CATALOG, 0, 'home', null).objects.find(o => o.id === 'roost')).toBeUndefined()
   })
 

@@ -1,3 +1,5 @@
+import { ISLANDS } from '@wyrmhaven/game-core'
+
 /** Human copy for every game-core ActionError and server code (apps/server/README.md). */
 export const errorMessages: Record<string, string> = {
   INVALID_ACTION: 'That request was malformed. Please reload and try again.',
@@ -22,6 +24,7 @@ export const errorMessages: Record<string, string> = {
   LAST_DRAGONS: 'Keep at least two dragons so you can still breed.',
   NOT_SELLABLE: 'Legendary dragons cannot be sold.',
   NOTHING_TO_SKIP: 'There is no timer to skip here.',
+  NO_TOKEN: 'You have no speed-up token of that kind.',
   INVALID_TEAM: 'Pick three different dragons you own.',
   NO_DEFENCE_TEAM: 'Save a defence team before attacking.',
   DAILY_CAP_REACHED: 'You have reached today’s limit for that.',
@@ -41,14 +44,15 @@ export const errorMessages: Record<string, string> = {
   RATE_LIMITED: 'Slow down a little and try again.',
   PRICE_UNAVAILABLE: 'The token price is unavailable right now. Try again shortly.',
   OUT_OF_BOUNDS: 'That spot is off the island.',
+  NOT_OWNED: 'You don’t own that land yet. Buy the plot first.',
+  PLOT_OWNED: 'You already own that.',
+  PLOT_NOT_ADJACENT: 'A new plot must touch land you own.',
   OVERLAP: 'Something is already there.',
   BUILDERS_BUSY: 'Both builders are busy. Finish or skip a build first.',
-  ISLAND_LOCKED: 'Unlock that island first.',
-  MAX_ISLAND: 'Every island is unlocked.',
-  WRONG_ISLAND: 'That can only go on its own island.',
+  CLEARS_BUSY: 'Two clears are already running. Finish or skip one first.',
+  ISLAND_LOCKED: 'Buy that island’s Bridge first.',
+  WRONG_ISLAND: `That belongs on its own island: ${ISLANDS.isle6.name} for its decorations, ${ISLANDS.home.name} for the Hatchery.`,
   UNDER_CONSTRUCTION: 'That building is still being built.',
-  NO_LEGENDARY: 'Own a legendary dragon to unlock Dawnspire.',
-  MAX_EXPANSION: 'The home island is at its full size.',
   AERIE_EXISTS: 'You already own a Golden Aerie.',
   GOAL_NOT_DONE: 'That Goal is not finished yet.',
   NO_GOAL: 'You have finished every Goal.',

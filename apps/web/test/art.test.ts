@@ -1,12 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { DECORATIONS, ELEMENTS, ISLAND_ORDER, LAUNCH_CATALOG, OBSTACLES, type DecorationId, type ObstacleKind } from '@wyrmhaven/game-core'
+import { DECORATIONS, ELEMENTS, FOOTPRINT, ISLAND_ORDER, LAUNCH_CATALOG, newPlayer, OBSTACLES, type DecorationId, type IslandId, type ObstacleKind } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { drawFallback, fallbackKey, FALLBACK_PALETTE } from '../src/art/fallback'
 import { artSetFromManifest, type Manifest } from '../src/art/fromManifest'
-import { ART_VERSION } from '../src/art/slots'
+import { ART_VERSION, FALLBACK_ART } from '../src/art/slots'
 import { artEntries } from '../src/art/phaserLoader'
 import { SLOT_SIZES } from '../src/art/types'
+import { buildIslandModel, groundTiles } from '../src/game/islandModel'
 
 const manifest: Manifest = {
   assets: {
@@ -49,16 +50,17 @@ describe('art v1 manifest', () => {
       expect(s.src, key).not.toBe('')
       expect([s.w, s.h], key).toEqual([w, h])
     }
-    for (const e of ELEMENTS_WITH_ART) fit(`habitat.${e}`, art.habitat[e], 80, 64)
+    for (const e of ELEMENTS_WITH_ART) fit(`habitat.${e}`, art.habitat[e], 64, 56)
     fit('building.nexus', art.building.nexus, 80, 64)
     fit('building.hatchery', art.building.hatchery, 64, 64)
-    fit('building.farmPlot', art.building.farmPlot, 32, 32)
+    fit('building.farmPlot', art.building.farmPlot, 48, 40)
     fit('building.nest', art.building.nest, 32, 32)
     for (const id of Object.keys(DECORATIONS) as DecorationId[]) fit(id, art.decoration[id], DECORATIONS[id].size * 16, DECORATIONS[id].size * 16)
-    for (const k of Object.keys(OBSTACLES) as ObstacleKind[]) fit(k, art.obstacle[k], OBSTACLES[k].size * 16, OBSTACLES[k].size * 16)
+    // v1 has no art of its own for the §5.6 kinds yet: each shows the nearest old sprite, which keeps its own size.
+    for (const k of Object.keys(OBSTACLES) as ObstacleKind[]) expect(art.obstacle[k].src, k).not.toBe('')
     fit('island.locked', art.island.locked, 16, 16)
     fit('island.sign', art.island.sign, 32, 32)
-    for (const id of ISLAND_ORDER) fit(`map.${id}`, art.map[id], 32, 32)
+    for (const id of ISLAND_ORDER) fit(`map.${id}`, art.map[id], 128, 96)
   })
 
   it('points every entry at a PNG on disk whose size matches w × frames by h', () => {
@@ -118,14 +120,14 @@ describe('artSetFromManifest', () => {
     const e = (file: string, w: number, h: number) => ({ file, w, h, frames: 1, fps: 0 })
     const a = artSetFromManifest('v2', { assets: {
       'building.nexus': e('nexus.png', 80, 64), 'decoration.moonwell': e('moonwell.png', 48, 48), 'obstacle.ruin': e('ruin.png', 48, 48),
-      'island.locked': e('locked.png', 16, 16), 'island.sign': e('sign.png', 32, 32), 'map.dawnspire': e('map-dawn.png', 32, 32),
+      'island.locked': e('locked.png', 16, 16), 'island.sign': e('sign.png', 32, 32), 'map.isle6': e('map-dawn.png', 32, 32),
     } }, LAUNCH_CATALOG)
     expect(a.building.nexus.src).toBe('/art/v2/nexus.png')
     expect(a.decoration.moonwell.src).toBe('/art/v2/moonwell.png')
-    expect(a.obstacle.ruin.src).toBe('/art/v2/ruin.png')
+    expect(a.obstacle.largeRock.src).toBe('/art/v2/ruin.png') // the nearest old sprite until obstacle.largeRock lands
     expect(a.island.locked.src).toBe('/art/v2/locked.png')
     expect(a.island.sign.src).toBe('/art/v2/sign.png')
-    expect(a.map.dawnspire.src).toBe('/art/v2/map-dawn.png')
+    expect(a.map.isle6.src).toBe('/art/v2/map-dawn.png')
   })
 
   it('falls back to footprint-sized blank sprites for every base-building slot', () => {
@@ -200,6 +202,78 @@ describe('artSetFromManifest', () => {
       },
     }, LAUNCH_CATALOG)
     expect(withLayers.island.layers.map(l => l.src)).toEqual(['/art/v2/water.png', '/art/v2/clouds.png'])
+  })
+})
+
+describe('M4 art keys (docs/art/gdd-m4-art-list.md)', () => {
+  const e = (file: string, w: number, h: number, frames = 1, fps = 0) => ({ file, w, h, frames, fps })
+  const C = LAUNCH_CATALOG
+
+  it('reads each obstacle at its listed size: the sheet width is the footprint width', () => {
+    const listed: Record<ObstacleKind, [number, number]> = { ancientTree: [64, 64], boulder: [64, 48], largeRock: [48, 40], tree: [32, 40], smallRock: [32, 24], bush: [16, 16] }
+    const a = artSetFromManifest('m4', { assets: Object.fromEntries(Object.entries(listed).map(([k, [w, h]]) => [`obstacle.${k}`, e(`${k}.png`, w, h)])) }, C)
+    for (const k of Object.keys(OBSTACLES) as ObstacleKind[]) {
+      expect(a.obstacle[k].src, k).toBe(`/art/m4/${k}.png`)
+      expect([a.obstacle[k].w, a.obstacle[k].h], k).toEqual(listed[k])
+      expect(a.obstacle[k].w, k).toBe(OBSTACLES[k].size * 16)
+    }
+  })
+
+  it('draws final-size habitat, Aerie and Farm sheets at scale 1 and missing ones scaled to the footprint', () => {
+    const s = newPlayer(0)
+    const farm = (art: typeof FALLBACK_ART) => buildIslandModel(s, art, C, 0, 'home', null).objects.find(o => o.id === 'farm:0')!
+    const hab = (art: typeof FALLBACK_ART) => buildIslandModel(s, art, C, 0, 'home', null).objects.find(o => o.id === 'habitat:h1')!
+    const final = artSetFromManifest('m4', { assets: { 'habitat.terra': e('h.png', 64, 56, 4, 4), 'building.farmPlot': e('f.png', 48, 40) } }, C)
+    expect(hab(final).scale ?? 1).toBe(1)
+    expect(farm(final).scale ?? 1).toBe(1)
+    // A manifest with none of the new sheets: the slot sizes (80 wide, 32 wide) scale to 64 and 48 and every object still draws.
+    expect(hab(FALLBACK_ART).scale).toBeCloseTo((FOOTPRINT.habitat * 16) / SLOT_SIZES.habitat.w, 5)
+    expect(farm(FALLBACK_ART).scale).toBeCloseTo((FOOTPRINT.farm * 16) / SLOT_SIZES.farmPlot.w, 5)
+    const aerie = artSetFromManifest('m4', { assets: { 'building.goldenAerie': e('a.png', 64, 56, 4, 4) } }, C)
+    expect(aerie.building.goldenAerie).toMatchObject({ w: 64, h: 56, frames: 4, fps: 4 })
+  })
+
+  it('reads per-island ground tiles and cliffs only when the manifest has them, and registers them with the loader', () => {
+    expect(FALLBACK_ART.ground.island).toEqual({})
+    expect(FALLBACK_ART.ground.plotEdge).toBeNull()
+    const a = artSetFromManifest('m4', { assets: {
+      'ground.isle2.0': e('e0.png', 16, 8), 'ground.isle2.1': e('e1.png', 16, 8), 'ground.isle2.5': e('x.png', 16, 8), 'ground.home.0': e('x.png', 16, 8),
+      'ground.cliff.isle2.sw': e('esw.png', 16, 16), 'ground.cliff.isle2.se': e('ese.png', 16, 16), 'ground.cliff.isle3.sw': e('fsw.png', 16, 16),
+      'ground.plotEdge': e('pe.png', 16, 8),
+    } }, C)
+    expect(Object.keys(a.ground.island)).toEqual(['isle2', 'isle3'])
+    expect(a.ground.island.isle2!.grass.map(g => g.src)).toEqual(['/art/m4/e0.png', '/art/m4/e1.png'])
+    expect(a.ground.island.isle2!.cliffSw?.src).toBe('/art/m4/esw.png')
+    expect(a.ground.island.isle3!.grass).toEqual([])
+    expect(a.ground.plotEdge?.src).toBe('/art/m4/pe.png')
+    const keys = artEntries(a).map(r => r.key)
+    for (const k of ['ground.isle2.0', 'ground.isle2.1', 'ground.cliff.isle2.sw', 'ground.cliff.isle2.se', 'ground.cliff.isle3.sw', 'ground.plotEdge']) expect(keys, k).toContain(`art:${k}`)
+    expect(keys).not.toContain('art:ground.isle2.2')
+    expect(keys.some(k => k.startsWith('art:ground.home'))).toBe(false)
+    expect(artEntries(FALLBACK_ART).some(r => /ground\.(isle|plotEdge)/.test(r.key))).toBe(false)
+  })
+
+  it('picks the island tiles when present and the current tiles otherwise, a cliff only as a pair', () => {
+    const base = { 'ground.grass.0': e('g0.png', 16, 8), 'ground.grass.1': e('g1.png', 16, 8), 'ground.cliff.sw': e('csw.png', 16, 16), 'ground.cliff.se': e('cse.png', 16, 16) }
+    const a = artSetFromManifest('m4', { assets: { ...base, 'ground.isle2.0': e('e0.png', 16, 8), 'ground.isle2.1': e('e1.png', 16, 8), 'ground.cliff.isle2.sw': e('esw.png', 16, 16), 'ground.cliff.isle3.sw': e('fsw.png', 16, 16) } }, C)
+    expect(groundTiles(a, 'home')).toEqual({ grass: ['ground.grass.0', 'ground.grass.1'], cliffSw: 'ground.cliff.sw', cliffSe: 'ground.cliff.se' })
+    // Ember Reach has grass but only one cliff piece: the grass is its own, the cliff pair is the current one.
+    expect(groundTiles(a, 'isle2')).toEqual({ grass: ['ground.isle2.0', 'ground.isle2.1'], cliffSw: 'ground.cliff.sw', cliffSe: 'ground.cliff.se' })
+    expect(groundTiles(a, 'isle3').grass).toEqual(['ground.grass.0', 'ground.grass.1'])
+    const both = artSetFromManifest('m4', { assets: { ...base, 'ground.cliff.isle4.sw': e('a.png', 16, 16), 'ground.cliff.isle4.se': e('b.png', 16, 16) } }, C)
+    expect(groundTiles(both, 'isle4')).toMatchObject({ cliffSw: 'ground.cliff.isle4.sw', cliffSe: 'ground.cliff.isle4.se' })
+    // No ground art at all: nothing to draw, the scene's placeholder diamonds take over on every island.
+    for (const i of ISLAND_ORDER as readonly IslandId[]) expect(groundTiles(FALLBACK_ART, i), i).toEqual({ grass: [], cliffSw: null, cliffSe: null })
+  })
+
+  it('draws the map icons at any size, isle6 from its own map.isle6 key', () => {
+    const a = artSetFromManifest('m4', { assets: { 'map.isle6': e('d.png', 32, 32), 'map.home': e('h.png', 128, 96) } }, C)
+    expect(a.map.isle6.src).toBe('/art/m4/d.png')
+    expect(a.map.home).toMatchObject({ w: 128, h: 96 })
+    const b = artSetFromManifest('m4', { assets: { 'map.isle6': e('i6.png', 128, 96), 'map.bridge': e('b.png', 64, 32), 'map.backdrop': e('bd.png', 256, 256) } }, C)
+    expect(b.map.isle6.src).toBe('/art/m4/i6.png')
+    expect(b.hud['map.bridge']).toMatchObject({ w: 64, h: 32 })
+    expect(b.hud['map.backdrop']).toMatchObject({ w: 256, h: 256 })
   })
 })
 

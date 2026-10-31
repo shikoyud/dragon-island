@@ -52,11 +52,12 @@ export function depthOrder(p: { col: number; row: number; size: number }, q: { c
 }
 
 /**
- * Dragon spots on a 5x5 habitat's top face (its diamond centre is 34 px above the anchor on the 80x64 art):
- * the first dragon stands in the middle, the rest around it. Callers draw residents back to front by y.
+ * Dragon spots on a 4x4 habitat's top face, from its anchor (the diamond's bottom vertex): the diamond is 64 wide and 32
+ * tall, so its centre is (0, -16) and every spot's feet stay inside it. The first dragon stands in the middle, the rest
+ * around it. Callers draw residents back to front by y.
  */
 const DRAGON_SPOTS: readonly Pos[] = [
-  { x: 0, y: -28 }, { x: -16, y: -34 }, { x: 16, y: -34 }, { x: 0, y: -40 }, { x: -8, y: -24 }, { x: 8, y: -44 }, { x: -24, y: -38 },
+  { x: 0, y: -16 }, { x: -14, y: -20 }, { x: 14, y: -20 }, { x: 0, y: -26 }, { x: -12, y: -11 }, { x: 12, y: -11 }, { x: -22, y: -16 },
 ]
 
 export function dragonSpot(a: Pos, slot: number): Pos {
@@ -81,6 +82,24 @@ const HATCHERY_NICHES: readonly Pos[] = [
 export function hatcherySpot(a: Pos, slot: number): Pos {
   const n = HATCHERY_NICHES[Math.min(slot, HATCHERY_NICHES.length - 1)]!
   return { x: a.x + n.x, y: a.y + n.y }
+}
+
+/** The least a finger can be asked to hit: 44 CSS px square. */
+export const TAP_PX = 44
+
+/** World size of a tap box for a thing `size` world px big at `zoom`: the thing itself, or TAP_PX on screen if that is more. */
+export function tapBox(size: { w: number; h: number }, zoom: number, minPx: number = TAP_PX): { w: number; h: number } {
+  return { w: Math.max(size.w, minPx / zoom), h: Math.max(size.h, minPx / zoom) }
+}
+
+/**
+ * How a tap target is hit: its box in world px (the thing itself or `minPx` on screen, whichever is more) and whether the
+ * pixel-perfect test still applies. That is only when the thing is already big enough and `always` (a plot sign, which
+ * is easy to hit by its bounds at every zoom) is not set.
+ */
+export function tapHit(size: { w: number; h: number }, zoom: number, minPx: number = TAP_PX, always = false): { w: number; h: number; pixel: boolean } {
+  const box = tapBox(size, zoom, minPx)
+  return { ...box, pixel: !always && box.w === size.w && box.h === size.h }
 }
 
 /** Largest whole-number zoom that fits the battle stage in the viewport; never below 1. */

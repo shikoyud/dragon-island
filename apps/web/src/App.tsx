@@ -7,7 +7,7 @@ import type { GameArtSet } from './art/types'
 import { createBridge } from './game/bridge'
 import { GameCanvas } from './game/GameCanvas'
 import { Dialog } from './hud/Dialog'
-import { Hud, type DialogKey } from './hud/Hud'
+import { Hud, isMapDialog, type DialogKey } from './hud/Hud'
 import { LevelUp, useLevelUp } from './hud/LevelUp'
 import { HudArtContext } from './hud/Icon'
 import { hudSkin } from './hud/skin'
@@ -20,7 +20,7 @@ import { useAction } from './state/actions'
 import { useBattle } from './state/battle'
 import { useGameClock } from './state/clock'
 import { useMe, useRefreshOnNewDay } from './state/me'
-import { placementStart, placingAction } from './state/placing'
+import { placementIslands, placementStart, placingAction } from './state/placing'
 import { StartPlacingProvider, type StartPlacing } from './state/startPlacing'
 import { usePlacing } from './state/usePlacing'
 import { ErrorBoundary } from './ui/ErrorBoundary'
@@ -53,7 +53,7 @@ function Game() {
   const nowMs = useGameClock(me.data?.game?.serverNowMs)
   const [dialog, setDialog] = useDialog(bridge)
   const battle = useBattle()
-  const { placing, view, dispatch } = usePlacing(bridge)
+  const { placing, view, dispatch, moveToIsland } = usePlacing(bridge)
   const { run, pending } = useAction()
   useAutoFinish(nowMs)
   useRefreshOnNewDay(me.data?.game, nowMs)
@@ -65,9 +65,29 @@ function Game() {
   useEffect(() => { if (battle.error) toasts.error(battle.error) }, [battle.error, toasts])
   useEffect(() => { if (me.error) toasts.error(me.error) }, [me.error, toasts])
   const levelUpOpen = levelUp !== null
-  useEffect(() => { if (levelUpOpen) bridge.emit({ type: 'levelUp' }) }, [bridge, levelUpOpen])
-  const close = useCallback(() => setDialog(null), [setDialog])
+  useEffect(() => { bridge.emit({ type: levelUpOpen ? 'levelUp' : 'levelUpClosed' }) }, [bridge, levelUpOpen])
+  // A panel over the Map closes back to the Map; the Map closes to the island.
+  const mapPanelOpen = dialog?.kind === 'target' && dialog.target.kind === 'mapIsland'
+  const close = useCallback(() => setDialog(mapPanelOpen ? { kind: 'panel', id: 'map' } : null), [setDialog, mapPanelOpen])
+  // The Map runs in place of the island (R60): never under placement or a battle, and any other dialog closes it.
+  const mapShown = isMapDialog(dialog) && placing === null && !battle.setup
+  useEffect(() => { bridge.setMapOpen(mapShown) }, [bridge, mapShown])
+  // The bare Map has no Dialog to close it: Escape does it here. With an island panel open, the Dialog's Escape closes that first.
+  const mapBare = mapShown && !mapPanelOpen && levelUp === null
+  useEffect(() => {
+    if (!mapBare) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDialog(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mapBare, setDialog])
   const skin = useMemo(() => hudSkin(art.hud), [art])
+  // The Island buttons scan every unlocked island for room: only when the state, the thing being placed or the view changes.
+  const stateNow = me.data?.state
+  const placingWhat = placing?.what
+  const islandChoices = useMemo(
+    () => (stateNow && placingWhat ? placementIslands(stateNow, placingWhat, view) : []),
+    [stateNow, placingWhat, view],
+  )
 
   const signedIn = Boolean(session && me.data)
   if (!signedIn || !me.data) {
@@ -89,14 +109,15 @@ function Game() {
   const ghostAction = placing ? placingAction(state, view, placing) : null
   const confirmPlacing = () => {
     if (!ghostAction) return
-    void run(ghostAction).then(res => { if (res) dispatch({ type: 'cancel' }) })
+    void run(ghostAction).then(res => { if (res) dispatch({ type: 'done' }) })
   }
   const startPlacing: StartPlacing = (what, size, from) => {
     // Show the island the thing belongs on: a move stays where it is, a new building goes where it has room.
     const { island, cell } = placementStart(state, what, size, view, bridge.focusCell?.(), from)
     setDialog(null)
-    if (island !== view) bridge.setView(island)
+    // Start first so Cancel knows the view to return to, then show the island it belongs on.
     dispatch({ type: 'start', what, size, island, from, cell })
+    if (island !== view) bridge.setView(island)
   }
   const startPvp = (offer: Offer, team: TeamIds) => { battle.startPvp(offer, team); setDialog(null) }
   const startPve = (stage: number, team: TeamIds) => { battle.startPve(stage, team); setDialog(null) }
@@ -106,7 +127,7 @@ function Game() {
   const underLevelUp = (fn: () => void) => (levelUp ? () => {} : fn)
   const content = battle.setup
     ? { label: 'Battle', node: <BattlePanel battle={battle} onClose={closeBattle} />, onClose: underLevelUp(closeBattle), modal: false }
-    : dialog && !placing
+    : dialog && !placing && !(dialog.kind === 'panel' && dialog.id === 'map')
       ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} onPve={startPve} onPvp={startPvp} />, onClose: underLevelUp(close) }
       : null
 
@@ -123,7 +144,7 @@ function Game() {
             onOpen={setDialog}
             placing={placing !== null}
             bottom={placing ? (
-              <PlacementBar legal={ghostAction !== null} pending={pending} onTurn={() => dispatch({ type: 'turn' })} onConfirm={confirmPlacing} onCancel={() => dispatch({ type: 'cancel' })} />
+              <PlacementBar legal={ghostAction !== null} pending={pending} islands={islandChoices} onIsland={island => moveToIsland(state, island)} onTurn={() => dispatch({ type: 'turn' })} onConfirm={confirmPlacing} onCancel={() => dispatch({ type: 'cancel' })} />
             ) : undefined}
           />
           {content && <Dialog label={content.label} onClose={content.onClose} modal={content.modal ?? true}>{content.node}</Dialog>}

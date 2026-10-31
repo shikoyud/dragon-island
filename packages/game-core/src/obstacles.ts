@@ -1,24 +1,73 @@
-import { OUTER_ISLANDS } from './island'
+import { ISLANDS } from './data/islands'
+import { MAX_CLEARS, OBSTACLES, OBSTACLE_SPAWN, type ObstacleDrop } from './data/obstacles'
+import type { Preset } from './data/presets'
+import type { SpeedUpToken } from './data/speedups'
+import { plotOrigin, TILES_PER_PLOT } from './plots'
+import type { Rng } from './rng'
 import type { IslandId, Obstacle, ObstacleKind } from './state'
 
-/** Base values at multiplier 1 (spec section 4). Timers are ms. */
-export const OBSTACLES: Record<ObstacleKind, { size: 1 | 2 | 3; cost: number; timerMs: number; xp: number; food: number }> = {
-  bush: { size: 1, cost: 100, timerMs: 60_000, xp: 20, food: 10 },
-  rock: { size: 1, cost: 250, timerMs: 300_000, xp: 40, food: 0 },
-  tree: { size: 2, cost: 800, timerMs: 1_800_000, xp: 100, food: 60 },
-  boulder: { size: 2, cost: 2_000, timerMs: 7_200_000, xp: 250, food: 0 },
-  ruin: { size: 3, cost: 6_000, timerMs: 28_800_000, xp: 700, food: 300 },
-}
+export { MAX_CLEARS, OBSTACLES, OBSTACLE_SPAWN }
+export type { ObstacleDrop }
 
 export function obstacleMult(island: IslandId): number {
-  return island === 'home' ? 1 : OUTER_ISLANDS[island].mult
+  return ISLANDS[island].obstacleMult
 }
 
+/** §5.6: base Gold × the island's multiplier (R52: Gold only). */
 export function clearCost(o: Obstacle): number {
-  return OBSTACLES[o.kind].cost * obstacleMult(o.island)
+  return OBSTACLES[o.kind].gold * obstacleMult(o.island)
 }
 
-export function clearReward(o: Obstacle): { xp: number; food: number } {
-  const m = obstacleMult(o.island)
-  return { xp: OBSTACLES[o.kind].xp * m, food: OBSTACLES[o.kind].food * m }
+/** Classic XP, unscaled by island (R52); the preset's `xpMult` is applied where it is paid. */
+export function clearReward(o: Obstacle): { xp: number } {
+  return { xp: OBSTACLES[o.kind].xp }
+}
+
+/** R53: the classic timer divided by the preset's build divisor. */
+export function clearTimerMs(kind: ObstacleKind, preset: Preset): number {
+  return Math.floor(OBSTACLES[kind].classicMs / preset.timerDiv)
+}
+
+/** A plot is 8×8 tiles; each quadrant is 4×4, so an obstacle up to 4×4 always fits inside one. */
+const QUADRANT = TILES_PER_PLOT / 2
+
+function pickKind(rng: Rng): ObstacleKind {
+  const kinds = Object.keys(OBSTACLE_SPAWN.weights) as ObstacleKind[]
+  let roll = rng.int(kinds.reduce((n, k) => n + OBSTACLE_SPAWN.weights[k], 0))
+  for (const k of kinds) {
+    roll -= OBSTACLE_SPAWN.weights[k]
+    if (roll < 0) return k
+  }
+  return kinds[kinds.length - 1]!
+}
+
+/**
+ * R51: 2..4 obstacles on a plot, each in a different quadrant at a random offset that keeps it inside.
+ * `rng` order is fixed for replay: the count, then for each obstacle its kind, quadrant, column offset, row offset.
+ */
+export function spawnPlotObstacles(island: IslandId, plot: number, firstId: number, rng: Rng): Obstacle[] {
+  const count = OBSTACLE_SPAWN.min + rng.int(OBSTACLE_SPAWN.max - OBSTACLE_SPAWN.min + 1)
+  const quadrants = [0, 1, 2, 3]
+  const origin = plotOrigin(plot)
+  const out: Obstacle[] = []
+  for (let i = 0; i < count; i++) {
+    const kind = pickKind(rng)
+    const q = quadrants.splice(rng.int(quadrants.length), 1)[0]!
+    const slack = QUADRANT - OBSTACLES[kind].size + 1
+    const col = origin.col + (q % 2) * QUADRANT + rng.int(slack)
+    const row = origin.row + Math.floor(q / 2) * QUADRANT + rng.int(slack)
+    out.push({ id: `o${firstId + i}`, kind, island, col, row })
+  }
+  return out
+}
+
+const range = (r: [number, number], rng: Rng): number => r[0] + rng.int(r[1] - r[0] + 1)
+
+/** R54: one roll for the chance, then one for the amount. At most one of the three fields is set. */
+export function rollDrop(kind: ObstacleKind, rng: Rng): { gold?: number; food?: number; token?: SpeedUpToken } {
+  const drop: ObstacleDrop | null = OBSTACLES[kind].drop
+  if (!drop || rng.int(100) >= drop.percent) return {}
+  if ('token' in drop) return { token: drop.token }
+  if ('gold' in drop) return { gold: range(drop.gold, rng) }
+  return { food: range(drop.food, rng) }
 }

@@ -3,6 +3,8 @@ import type { Bridge } from './bridge'
 import { BattleScene } from './scenes/BattleScene'
 import { BootScene } from './scenes/BootScene'
 import { IslandScene } from './scenes/IslandScene'
+import { MapScene } from './scenes/MapScene'
+import { wantedScene } from './mapModel'
 
 export interface GameOptions {
   /** Tests: no renderer, no requestAnimationFrame dependence. */
@@ -26,7 +28,15 @@ export function createGame(parent: HTMLElement, bridge: Bridge, opts: GameOption
     input: { activePointers: 2 },
     audio: { noAudio: true },
     banner: false,
-    scene: [new BootScene(bridge), new IslandScene(bridge), new BattleScene(bridge)],
+    scene: [new BootScene(bridge), new IslandScene(bridge), new BattleScene(bridge), new MapScene(bridge)],
+  })
+  // One scene at a time, the one the bridge asks for. Checked each frame rather than on events: open, close and open again
+  // within a frame ends right, and nothing can switch twice (switching to a running scene restarts it). The one left sleeps.
+  game.events.on(Phaser.Core.Events.PRE_STEP, () => {
+    const want = wantedScene(bridge)
+    for (const key of ['island', 'map', 'battle'] as const) {
+      if (key !== want && game.scene.isActive(key)) return void game.scene.switch(key, want)
+    }
   })
   // Phaser caches the canvas's page rectangle and re-measures only when the parent resizes, so a layout shift
   // that moves the canvas without resizing it offsets every pointer. Re-measure before Phaser sees each event

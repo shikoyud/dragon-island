@@ -9,6 +9,7 @@ import { addRawXp, addXp, breedXpApplies, buildXp, cumulativeXp, levelLimit, set
 import { createRng } from '../src/rng'
 import { newPlayer, type BreederEgg, type PlayerState } from '../src/state'
 import { ok } from './helpers'
+import { withObstacleField } from './helpers/land'
 import { breedLoop, casual, harvestAndFeed, harvestLoop, runBot, type BotPlan, type BotResult } from './helpers/xpBots'
 
 const base = newPlayer(0)
@@ -204,9 +205,9 @@ describe('the level limit per game day (Q1 b, R40, R41)', () => {
   })
 
   it('build XP adds to a bank, and its one-level cap reads the current level', () => {
-    const held: PlayerState = { ...base, level: 12, xp: xpToNext(12) + 100, gold: 40_000 }
-    const a = ok(run(held, { type: 'unlockIsland' }, 1))
-    expect(a).toMatchObject({ level: 12, xp: held.xp + 2_000 })
+    const held: PlayerState = { ...base, level: 12, xp: xpToNext(12) + 100, gold: 150_000 }
+    const a = ok(run(held, { type: 'buyBridge', island: 'isle2' }, 1))
+    expect(a).toMatchObject({ level: 12, xp: held.xp + xpToNext(12) })
     // 400,000 Gold is worth 20,000 XP; the award stays at one level's worth with a bank waiting.
     const big: PlayerState = { ...base, level: 12, xp: xpToNext(12) }
     expect(buildXp(400_000, big)).toBe(xpToNext(12))
@@ -285,4 +286,24 @@ describe('non-stop bots stay on §7.2 through Day 12 (R41)', () => {
       expect(r.endOfDay).toEqual([12, 18, 25, 30, 32, 33, 34, 36, 37, 38, 39, 40])
     }, BOT_TIMEOUT_MS)
   }
+})
+
+describe('the 14 Goals finish on the Gold and Food the game gives, on both presets', () => {
+  for (const preset of [FLASH_14, FLASH_28]) {
+    it(`${preset.id}: the casual bot claims all 14 with no grants`, () => {
+      const r = runBot(casual(preset, 50, 6))
+      expect(r.final.goalIndex).toBe(14)
+    }, BOT_TIMEOUT_MS)
+  }
+})
+
+describe('a bot with no room clears what blocks it', () => {
+  it('clears the Boulder that blocks the Roost, and no more', () => {
+    const start = { ...withObstacleField(newPlayer(0)), level: 5 }
+    const plan: BotPlan = { name: 'blocked', preset: FLASH_14, untilLevel: 6, maxDay: 1, grantGold: true, roost: true, start }
+    const r = runBot(plan)
+    const cleared = start.islands.obstacles.length - r.final.islands.obstacles.length
+    expect(r.final.roostPlacement).not.toBeNull()
+    expect(cleared).toBe(1) // measured: one Boulder is all the best cell holds
+  }, BOT_TIMEOUT_MS)
 })

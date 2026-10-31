@@ -13,7 +13,7 @@ type TestBridge = {
 const bridge = <T>(page: Page, fn: (b: TestBridge) => T) =>
   page.evaluate(`(${fn.toString()})(window.__bridge)`) as Promise<T>
 
-test('builds, skips, upgrades, moves and turns a building, and the map shows isle2 locked', async ({ page, request }) => {
+test('builds, skips, upgrades, moves and turns a building, and the map shows Ember Reach locked', async ({ page, request }) => {
   await signIn(page)
   // Gold for a plot and an upgrade, level 5, and game balance for the paid skips.
   await resetPlayer(request, { gold: 50_000, level: 5, xp: 0 }, { tokenWei: (100n * 10n ** 18n).toString() })
@@ -21,10 +21,10 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows isl
   await expect(page.getByRole('status', { name: /resources/i })).toContainText('50,000')
   await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: { state: unknown } }).__bridge?.state))
 
-  // Shop (Build tab) -> Farm plot -> ghost on the free cell (9,8) -> Confirm.
+  // Shop (Build tab) -> Farm plot -> ghost on the free cell (20,12) -> Confirm.
   await openPanel(page, 'Shop')
   await page.locator('#shop-farm').click()
-  await bridge(page, b => b.emit({ type: 'cell', col: 9, row: 8 }))
+  await bridge(page, b => b.emit({ type: 'cell', col: 20, row: 12 }))
   const placement = page.getByRole('toolbar', { name: /placement/i })
   await expect(placement.getByRole('button', { name: /confirm/i })).toBeEnabled()
   await placement.getByRole('button', { name: /confirm/i }).click()
@@ -48,24 +48,31 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows isl
   await expect(habitat.getByText(/^Upgrading to 2 · /)).toBeVisible()
   await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
 
-  // Move h1 one cell down: (0,0) -> (0,1). (One cell right would overlap h2 at (5,0).)
+  // Move h1 to open land: (8,8) -> (13,12). Its neighbours box it in where it stands.
   await habitat.getByRole('button', { name: /^move$/i }).click()
-  await bridge(page, b => b.emit({ type: 'cell', col: 0, row: 1 }))
+  await bridge(page, b => b.emit({ type: 'cell', col: 13, row: 12 }))
   await expect(placement.getByRole('button', { name: /confirm/i })).toBeEnabled()
   await placement.getByRole('button', { name: /confirm/i }).click()
   await expect(placement).toBeHidden()
-  await expect.poll(() => bridge(page, b => b.state!.habitats.find(h => h.id === 'h1')!.placement.row)).toBe(1)
+  await expect.poll(() => bridge(page, b => b.state!.habitats.find(h => h.id === 'h1')!.placement.row)).toBe(12)
 
   // Turn it.
   await bridge(page, b => b.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
   await page.getByRole('region', { name: /terra habitat h1/i }).getByRole('button', { name: /^turn$/i }).click()
   await expect.poll(() => bridge(page, b => b.state!.habitats.find(h => h.id === 'h1')!.placement.facing)).toBe(1)
 
-  // The island map: at level 5 isle2 is still locked. It is the next island in order, so the panel shows a disabled
-  // Unlock button (not the word "Locked"); that label appears on the islands after it (isle3 here).
+  // The island map: at level 5 every Bridge is still shut, each with its reason.
   await openPanel(page, 'Map')
-  const map = page.getByRole('region', { name: /islands/i })
-  await expect(map.locator('#unlock-isle2')).toBeDisabled()
-  await expect(map.getByRole('button', { name: /go to second island/i })).toHaveCount(0)
-  await expect(map).toContainText(/Third island\s*·\s*Locked/)
+  const islands = page.getByRole('navigation', { name: 'Islands' })
+  await islands.getByRole('button', { name: /Ember Reach/ }).focus()
+  await page.keyboard.press('Enter')
+  const ember = page.getByRole('dialog', { name: 'Ember Reach' })
+  await expect(ember.locator('#bridge-isle2')).toBeDisabled()
+  await expect(ember.getByRole('button', { name: /go to ember reach/i })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await islands.getByRole('button', { name: /Frostspire/ }).focus()
+  await page.keyboard.press('Enter')
+  const frost = page.getByRole('dialog', { name: 'Frostspire' })
+  await expect(frost.locator('#bridge-isle3')).toBeDisabled()
+  await expect(frost).toContainText('Needs the Bridge to Ember Reach')
 })

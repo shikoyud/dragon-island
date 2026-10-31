@@ -4,6 +4,8 @@ import { DECORATIONS } from '../decorations'
 import { ELEMENTS } from '../elements'
 import { CROPS } from '../farm'
 import { ISLAND_ORDER } from '../island'
+import { SPEED_UP_TOKEN_MS } from '../data/speedups'
+import { ISLAND_TILES, isPlot } from '../plots'
 import type { Action } from './types'
 
 /**
@@ -20,9 +22,11 @@ export function isValidAction(a: unknown): a is Action {
     case 'startUpgrade':
       return isBuildingRef(x['building'])
     case 'claimGoal':
-    case 'expandIsland':
-    case 'unlockIsland':
       return true
+    case 'buyPlot':
+      return isIsland(x['island']) && isPlot(x['plot'])
+    case 'buyBridge':
+      return isIsland(x['island']) && x['island'] !== 'home'
     case 'clearObstacle':
       return isId(x['obstacleId'])
     case 'finishConstruction':
@@ -52,6 +56,8 @@ export function isValidAction(a: unknown): a is Action {
       return typeof x['element'] === 'string' && (ELEMENTS as readonly string[]).includes(x['element'])
     case 'buy':
       return isStoreItem(x['item'])
+    case 'useSpeedUp':
+      return typeof x['token'] === 'string' && Object.hasOwn(SPEED_UP_TOKEN_MS, x['token']) && isSkipTarget(x['target']) && isIndex(x['index'])
     case 'setDefenceTeam':
       return isTeam(x['dragonIds'])
     case 'pvpBattle':
@@ -64,12 +70,14 @@ export function isValidAction(a: unknown): a is Action {
 }
 
 const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0
+const isSkipTarget = (v: unknown): boolean => ['breeder', 'hatchery', 'farm', 'construction'].includes(v as string)
 const isIndex = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0
-const isCoord = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 0 && (v as number) < 64
+const isIsland = (v: unknown): boolean => (ISLAND_ORDER as readonly unknown[]).includes(v)
+const isCoord = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 0 && (v as number) < ISLAND_TILES
 function isPlacement(v: unknown): boolean {
   if (typeof v !== 'object' || v === null) return false
   const p = v as Record<string, unknown>
-  return (ISLAND_ORDER as readonly unknown[]).includes(p['island']) && isCoord(p['col']) && isCoord(p['row'])
+  return isIsland(p['island']) && isCoord(p['col']) && isCoord(p['row'])
     && (p['facing'] === 0 || p['facing'] === 1 || p['facing'] === 2 || p['facing'] === 3)
 }
 function isPlaceable(v: unknown): boolean {

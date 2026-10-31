@@ -35,14 +35,14 @@ export interface GameArtSet {
     cropStage: Record<CropId, Sprite>
     /** Ripe-stage sway loop per crop, when the manifest has one (else the last growth frame stays still). */
     cropSway: Partial<Record<CropId, Sprite>>
-    /** The all-element habitat on Dawnspire. */
+    /** The all-element habitat. */
     nexus: Sprite
     /** The Golden Aerie's own sprite when the manifest has one; null = it reuses the Nexus sprite. */
     goldenAerie: Sprite | null
   }
   elementIcon: Record<Element, Sprite>
   ui: { panel: Sprite; button: Sprite; cursor: Sprite }
-  island: { base: Sprite; layers: Sprite[]; /** One locked ground cell. */ locked: Sprite; /** The home expansion sign. */ sign: Sprite }
+  island: { base: Sprite; layers: Sprite[]; /** One locked ground cell. */ locked: Sprite; /** The sign on a plot for sale. */ sign: Sprite }
   /** Base-building art; missing files draw footprint-sized boxes (16 px per cell). */
   obstacle: Record<ObstacleKind, Sprite>
   decoration: Record<DecorationId, Sprite>
@@ -51,7 +51,13 @@ export interface GameArtSet {
   /** Effects: a loop over buildings under construction, a one-shot burst where an egg hatches. */
   fx: { construction: Sprite; hatch: Sprite; /** Gold coin burst, one-shot, on a tapped gold badge. */ coins: Sprite; /** Level-up burst, one-shot; optional, the screen alone marks a level without it. */ levelUp?: Sprite }
   /** Isometric ground tiles; null (or empty) until the art exists, and the island scene draws placeholders. */
-  ground: { grass: Sprite[]; fog: Sprite | null; water: Sprite | null; cliffSw: Sprite | null; cliffSe: Sprite | null }
+  ground: {
+    grass: Sprite[]; fog: Sprite | null; water: Sprite | null; cliffSw: Sprite | null; cliffSe: Sprite | null
+    /** Per-island ground (`ground.<island>.<n>`, `ground.cliff.<island>.sw|se`), only for pieces the manifest has; Home keeps the plain `grass` and cliffs. */
+    island: Partial<Record<IslandId, { grass: Sprite[]; cliffSw: Sprite | null; cliffSe: Sprite | null }>>
+    /** Optional mark drawn on the border cells of an owned plot (`ground.plotEdge`). */
+    plotEdge: Sprite | null
+  }
   /** HUD art present in the manifest (icon.<name>.16/.32, ui.*), by manifest key; absent keys use drawn placeholders. */
   hud: Record<string, Sprite>
 }
@@ -83,4 +89,4 @@ export const SLOT_SIZES = {
 export type SlotName = keyof typeof SLOT_SIZES
 
 /** Pixel edge of a base-building object with a footprint of `cells` x `cells` (16 px per cell). */
-export const footprintPx = (cells: 1 | 2 | 3): { w: number; h: number } => ({ w: cells * 16, h: cells * 16 })
+export const footprintPx = (cells: number): { w: number; h: number } => ({ w: cells * 16, h: cells * 16 })

@@ -98,11 +98,11 @@ export function plotPrice(island: IslandId, bought: number): number | null  // t
 ```
 - Additive except the rename: `dawnspire` becomes `isle6`. `OUTER_ISLANDS`, `HOME_EXPANSION` and `homeStep` stay until Task 2. Unlock keys stay `home:0`..`home:11`; tests pinning the old gates re-pin.
 
-- [ ] **Step 1: Write the failing tests.** Names: Home Isle, Ember Reach, Frostspire, Ironhold, Shadowmere, Warlord's Crown. `ISLANDS.home.plotPrices` equals §5.5's 12 values (100, 500, 1,500, 5,000, 8,000, 12,000, 18,000, 25,000, 35,000, 45,000, 60,000, 75,000), and the same for Islands 2, 4, 5 and 6's literal lists; Island 3 is 450,000 rising by 50,000 for 12 values to 1,000,000. Every list has 12 entries and rises. `bridgeGold` is null, 150,000, 750,000, 5M, 25M, 100M. `obstacleMult` is 1, 3, 10, 40, 150, 500. Sums with Bridge: 285,100; 3,020,000 (R49); 9,450,000; 77M; 491M; 2.15B. `plotOfTile(8, 8) === 5`, `(7, 8) === 4`, `(31, 31) === 15`, `(32, 0) === null`, `(-1, 0) === null`. `plotOrigin(5)` is `(8, 8)`. `plotsTouch(5, 6)` and `(5, 9)` true; `(5, 10)` false (corner, R44); `(3, 4)` false (row wrap). `unlockPl('home:0') === 2`, `home:1` 2, `home:2` 3, stepping by one to `home:11` 12 (R46); `island:isle6` 40.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- plots` — expected: FAIL.
-- [ ] **Step 3: Implement.** `HOME_PL` becomes `[2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]`. Rename the id across packages. Decorations keep their PL 45 gate on `isle6` (R59).
-- [ ] **Step 4: Run** `pnpm -r typecheck` and every package's tests — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): §5.5 island tables and plot geometry`
+- [x] **Step 1: Write the failing tests.** Names: Home Isle, Ember Reach, Frostspire, Ironhold, Shadowmere, Warlord's Crown. `ISLANDS.home.plotPrices` equals §5.5's 12 values (100, 500, 1,500, 5,000, 8,000, 12,000, 18,000, 25,000, 35,000, 45,000, 60,000, 75,000), and the same for Islands 2, 4, 5 and 6's literal lists; Island 3 is 450,000 rising by 50,000 for 12 values to 1,000,000. Every list has 12 entries and rises. `bridgeGold` is null, 150,000, 750,000, 5M, 25M, 100M. `obstacleMult` is 1, 3, 10, 40, 150, 500. Sums with Bridge: 285,100; 3,020,000 (R49); 9,450,000; 77M; 491M; 2.15B. `plotOfTile(8, 8) === 5`, `(7, 8) === 4`, `(31, 31) === 15`, `(32, 0) === null`, `(-1, 0) === null`. `plotOrigin(5)` is `(8, 8)`. `plotsTouch(5, 6)` and `(5, 9)` true; `(5, 10)` false (corner, R44); `(3, 4)` false (row wrap). `unlockPl('home:0') === 2`, `home:1` 2, `home:2` 3, stepping by one to `home:11` 12 (R46); `island:isle6` 40.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- plots` — expected: FAIL.
+- [x] **Step 3: Implement.** `HOME_PL` becomes `[2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]`. Rename the id across packages. Decorations keep their PL 45 gate on `isle6` (R59).
+- [x] **Step 4: Run** `pnpm -r typecheck` and every package's tests — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): §5.5 island tables and plot geometry`
 
 ---
 
@@ -135,9 +135,9 @@ export type PlacementError = 'ISLAND_LOCKED' | 'OUT_OF_BOUNDS' | 'NOT_OWNED' | '
 | { type: 'buyBridge'; island: Exclude<IslandId, 'home'> }
 ```
 - Removes: `expandIsland`, `unlockIsland`, `homeStep`, `homeSize`, `islandSize`'s step logic, `HOME_EXPANSION`, `HOME_MAX_STEP`, `OUTER_ISLANDS`, `OUTER_SIZE`, `NO_LEGENDARY`, `MAX_EXPANSION`, `MAX_ISLAND`, `outerIslandsUnlocked` if unused.
-- Starting layout, each `(col, row)`: Terra habitat (8, 8), Flame habitat (12, 8), Hatchery (16, 8), Farm (20, 8), Mountain (8, 12). Obstacles start here, on §5.6's new kinds, in Task 3; until then this task leaves `obstacles: []` and Task 3 adds the table's rows.
+- Starting layout, each `(col, row)`, as corrected in Task 6 so the Mountain hides no starter: Mountain (8, 8), Terra habitat (13, 8), Flame habitat (17, 8), Farm (21, 8), Hatchery (8, 13). Obstacles start here, on §5.6's new kinds, in Task 3; until then this task leaves `obstacles: []` and Task 3 adds the table's rows.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - `newPlayer(0).islands.plots.home` equals `[5, 6, 9, 10]`; buildings at the positions above; none overlap; all stand on owned land.
   - Footprints: `FOOTPRINT` equals `{ habitat: 4, hatchery: 4, farm: 3, breeder: 5, roost: 4 }`. Decoration sizes unchanged.
   - Placement: a habitat at `(20, 12)` is legal once obstacles allow; at `(21, 12)` it covers column 24, an unowned plot: `NOT_OWNED`. At `(-1, 8)` or `(29, 8)`: `OUT_OF_BOUNDS`. After buying plot 7, `(21, 12)`, which straddles plots 6 and 7, is legal. L-shape: owning 5, 6, 9, 10, 7 and not 11, a 5×5 at `(22, 15)` is refused (`NOT_OWNED`) and the same result comes from the client's `placingAction`, which returns null.
@@ -147,10 +147,10 @@ export type PlacementError = 'ISLAND_LOCKED' | 'OUT_OF_BOUNDS' | 'NOT_OWNED' | '
   - Shared schema accepts both actions and refuses `plot: 16`, `island: 'atlantis'`, `buyBridge` on `home`.
   - Server, on the real path: replaying a `buyPlot` `actionId` charges once.
   - Web: `lockedTiles` lists every tile not on an owned plot. `groundCell` returns tiles anywhere on 32×32, so a red ghost can go over fog. Each unowned plot touching owned land yields one sign, target `{ kind: 'plot', island, plot }`, at the plot's centre. `PlotPanel` shows `Buy plot · 100 gold`, disabled with `Needs player level 3`, then `Not enough gold`, in the handler's order. `MapIslandPanel` shows name, `Level 12`, `Bridge · 150,000 gold`, and `Go` when unlocked. `messageFor` has copy for `NOT_OWNED`, `PLOT_OWNED`, `PLOT_NOT_ADJACENT`. The level-up list shows `Home Isle plot` for `home:n` keys (once at PL 2) and `Bridge to Ember Reach` for island keys, with no raw keys.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- land` — expected: FAIL.
-- [ ] **Step 3: Implement.** `placementError`: `ISLAND_LOCKED`, then `OUT_OF_BOUNDS` against `ISLAND_TILES`, then `NOT_OWNED`, then `OVERLAP`. `buyPlot` checks in the order the panel shows. A plot's gate is `home:${plotsBought}` on Home only. `shownSize` is always 32×32. The old sign target goes away. `HABITAT_ART_SCALE` is not added: habitats and farms draw at `footprint width ÷ sprite.w` (R61), so new art needs no code change. `MapIslandPanel` runs from the `map` panel as a plain list until Task 8. In `IslandScene.drawGround`, the ground key becomes `view:owned plots`.
-- [ ] **Step 4: Run** `pnpm -r typecheck` and every package's tests, one at a time — expected: PASS. Run e2e via the temporary config; re-aim `build.spec.ts` and `island.spec.ts` cells at the new land.
-- [ ] **Step 5: Commit** — `feat: plot grid replaces home steps, with GDD footprints (§5.4, §5.5)`
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- land` — expected: FAIL.
+- [x] **Step 3: Implement.** `placementError`: `ISLAND_LOCKED`, then `OUT_OF_BOUNDS` against `ISLAND_TILES`, then `NOT_OWNED`, then `OVERLAP`. `buyPlot` checks in the order the panel shows. A plot's gate is `home:${plotsBought}` on Home only. `shownSize` is always 32×32. The old sign target goes away. `HABITAT_ART_SCALE` is not added: habitats and farms draw at `footprint width ÷ sprite.w` (R61), so new art needs no code change. `MapIslandPanel` runs from the `map` panel as a plain list until Task 8. In `IslandScene.drawGround`, the ground key becomes `view:owned plots`.
+- [x] **Step 4: Run** `pnpm -r typecheck` and every package's tests, one at a time — expected: PASS. Run e2e via the temporary config; re-aim `build.spec.ts` and `island.spec.ts` cells at the new land.
+- [x] **Step 5: Commit** — `feat: plot grid replaces home steps, with GDD footprints (§5.4, §5.5)`
 
 ---
 
@@ -177,10 +177,10 @@ export function spawnPlotObstacles(island: IslandId, plot: number, firstId: numb
 export function rollDrop(kind: ObstacleKind, rng: Rng): { gold?: number; food?: number; token?: SpeedUpToken }
 // state: speedUps: Record<SpeedUpToken, number>, starts all 0
 ```
-- Starting obstacles (R50), `(col, row)`: Ancient Tree (20, 20); Boulder (8, 20); Large Rock (20, 16); Tree (13, 21), (17, 20), (8, 18); Small Rock (15, 22), (10, 18), (18, 22); Bush (23, 9), (23, 11), (21, 11), (12, 18), (12, 21), (14, 20), (16, 21), (13, 23), (17, 23), (19, 20), (23, 16), (20, 19). I checked these with a script: no overlaps, no clash with buildings, 77 of 256 tiles, 30.1 %.
+- Starting obstacles (R50), `(col, row)`: Ancient Tree (20, 20); Boulder (8, 20); Large Rock (20, 16); Tree (13, 21), (17, 20), (8, 18); Small Rock (15, 22), (10, 18), (18, 22); Bush (22, 11), (23, 11), (21, 11), (12, 18), (12, 21), (14, 20), (16, 21), (13, 23), (17, 23), (19, 20), (23, 16), (20, 19). I checked these with a script: no overlaps, no clash with buildings, 77 of 256 tiles, 30.1 %.
 - Spawn (R51): count is `rng` 2..4. Each obstacle takes a different quadrant of the plot, at a random offset inside it, so it always fits. Ids `o${nextId}` from `nextId`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - Table, literal: Ancient Tree and Boulder 4×4, 25,000 Gold, 4 h, 1,250 XP, 10 %: 3 h token. Large Rock 3×3, 5,000, 1 h, 250, 5 %: 1 h token. Tree 2×2, 1,000, 15 min, 50, 5 %: 15 min token. Small Rock 2×2, 500, 5 min, 25, 10 %: 100–300 Gold. Bush 1×1, 100, 30 s, 5, 10 %: 10–25 Food.
   - Cost: a Bush on Island 6 costs 50,000; an Ancient Tree on Island 2 costs 75,000. XP does not scale with the island: a Bush on Island 6 pays 5 × `xpMult` (R52).
   - Timers: `clearTimerMs('ancientTree', FLASH_14)` is 40 minutes, Flash-28 is 60 minutes, Bush 5 s under Flash-14 (R53).
@@ -191,10 +191,10 @@ export function rollDrop(kind: ObstacleKind, rng: Rng): { gold?: number; food?: 
   - Completion: XP and the obstacle's removal happen once, by `finishConstruction` and by a `$DRIS` skip. Drop: find a seed for each outcome and pin each: a token adds 1 to `speedUps`, Gold in 100..300, Food in 10..25, and no drop leaves all three unchanged. Rates over 10,000 rolls within 1 percentage point of §5.6.
   - Goal stats and XP limit unaffected: XP above the day's limit banks (R40).
   - Web: `ObstaclePanel` shows `Clear · 25,000 gold · 40m`, `+15,000 XP`, and `10 % chance: 3 h speed-up`; with 2 clears running it says `Two clears are running`, and a build's reason says nothing about clears.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- obstacle` — expected: FAIL.
-- [ ] **Step 3: Implement.** `startConstruction` counts builds and upgrades against `MAX_BUILDERS`, and clears against `MAX_CLEARS`, returning which is busy. Drops roll inside `completeConstruction`. Art keys `obstacle.<kind>` fall back to the nearest old sprite by size until art lands: `boulder` for 4×4, `ruin` for 3×3, `rock` for the small 2×2.
-- [ ] **Step 4: Run** `pnpm -r typecheck` and every package's tests — expected: PASS.
-- [ ] **Step 5: Commit** — `feat: §5.6 obstacles with spawns, drops and two clears at once`
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- obstacle` — expected: FAIL.
+- [x] **Step 3: Implement.** `startConstruction` counts builds and upgrades against `MAX_BUILDERS`, and clears against `MAX_CLEARS`, returning which is busy. Drops roll inside `completeConstruction`. Art keys `obstacle.<kind>` fall back to the nearest old sprite by size until art lands: `boulder` for 4×4, `ruin` for 3×3, `rock` for the small 2×2.
+- [x] **Step 4: Run** `pnpm -r typecheck` and every package's tests — expected: PASS.
+- [x] **Step 5: Commit** — `feat: §5.6 obstacles with spawns, drops and two clears at once`
 
 ---
 
@@ -213,11 +213,11 @@ export const SPEED_UP_TOKEN_MS: Record<SpeedUpToken, number>   // per Q2 (a): 90
 // ActionError + 'NO_TOKEN'
 ```
 
-- [ ] **Step 1: Write the failing tests.** A `1h` token on a 3 h breed leaves 2 h and `speedUps['1h']` one lower. A `3h` token on a 40-minute clear: `readyAtMs` is `nowMs`, the surplus is lost, the clear finishes by `finishConstruction` and pays once (Review Focus 3). Nothing running on that slot: `NOTHING_TO_SKIP`, token kept. No tokens: `NO_TOKEN`. Bad index: `NOT_FOUND`. Replay of one `actionId` spends one token. Works on `breeder`, `hatchery`, `farm`, `construction`. Web: the button shows the largest token not longer than the time left, else the smallest, labelled `Use 1 h · 2 left`; hidden with none; fires the action; after a clear hits zero the existing auto-finish completes it.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- speed-up` — expected: FAIL.
-- [ ] **Step 3: Implement.** Reduce `readyAtMs` by the token, floored at `nowMs`. Don't complete anything inside this action: the same finish paths run as after any timer.
-- [ ] **Step 4: Run** `pnpm -r typecheck` and every package's tests — expected: PASS.
-- [ ] **Step 5: Commit** — `feat: speed-up token inventory and use on any timer`
+- [x] **Step 1: Write the failing tests.** A `1h` token on a 3 h breed leaves 2 h and `speedUps['1h']` one lower. A `3h` token on a 40-minute clear: `readyAtMs` is `nowMs`, the surplus is lost, the clear finishes by `finishConstruction` and pays once (Review Focus 3). Nothing running on that slot: `NOTHING_TO_SKIP`, token kept. No tokens: `NO_TOKEN`. Bad index: `NOT_FOUND`. Replay of one `actionId` spends one token. Works on `breeder`, `hatchery`, `farm`, `construction`. Web: the button shows the largest token not longer than the time left, else the smallest, labelled `Use 1 h · 2 left`; hidden with none; fires the action; after a clear hits zero the existing auto-finish completes it.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- speed-up` — expected: FAIL.
+- [x] **Step 3: Implement.** Reduce `readyAtMs` by the token, floored at `nowMs`. Don't complete anything inside this action: the same finish paths run as after any timer.
+- [x] **Step 4: Run** `pnpm -r typecheck` and every package's tests — expected: PASS.
+- [x] **Step 5: Commit** — `feat: speed-up token inventory and use on any timer`
 
 ---
 
@@ -231,7 +231,7 @@ export const SPEED_UP_TOKEN_MS: Record<SpeedUpToken, number>   // per Q2 (a): 90
 - Consumes: `buyPlot`, `clearObstacle`, `placeBuilding`.
 - Produces: nothing for later tasks. If the room test fails, change `island-start.ts`, not the test.
 
-- [ ] **Step 1: Write the failing test, on real `applyAction` only, Flash-14, with Gold granted and the level set at each step.**
+- [x] **Step 1: Write the failing test, on real `applyAction` only, Flash-14, with Gold granted and the level set at each step.**
 ```ts
 const ROOM_SCHEDULE = [
   [3, ['habitat:sea', 'habitat:nature', 'farm']], [4, ['farm']], [5, ['roost']], [6, ['habitat:electric']], [7, ['farm']],
@@ -240,10 +240,10 @@ const ROOM_SCHEDULE = [
 ```
   - `the starting land alone holds every unlock through PL 5`: no plot bought, no obstacle cleared, no move; each first legal cell found by scanning.
   - `every unlock through PL 12 fits with no moves` for seeds 1..50: at each PL buy every plot its gate opens (lowest legal index first), then place. If a building has no legal cell, clear the fewest obstacles needed and retry. Assert: all placed, `moveBuilding` never called, and the most clears any seed needed, as a measured literal.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- island-room` — expected: FAIL until the bot's placement scan exists. To prove the test can fail, move the starting Mountain to `(13, 12)`, see `the starting land alone` fail, and revert.
-- [ ] **Step 3: Update `xpBots.ts`:** spots scan 32×32 on owned land; expansions call `buyPlot`, then `buyBridge`; bots clear obstacles when blocked. Bot tests keep `BOT_TIMEOUT_MS`.
-- [ ] **Step 4: Run** the XP simulation. Expected: `endOfDay` still `[12, 18, 25, 30, 32, 33, 34, 36, 37, 38, 39, 40]`, since the limit paces. If it changes, stop and report rather than re-pin. All 14 Goals finish with no grants on both presets.
-- [ ] **Step 5: Commit** — `test(game-core): room through PL 12 with no moves, bots on the plot grid`
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- island-room` — expected: FAIL until the bot's placement scan exists. To prove the test can fail, move the starting Mountain to `(13, 12)`, see `the starting land alone` fail, and revert.
+- [x] **Step 3: Update `xpBots.ts`:** spots scan 32×32 on owned land; expansions call `buyPlot`, then `buyBridge`; bots clear obstacles when blocked. Bot tests keep `BOT_TIMEOUT_MS`.
+- [x] **Step 4: Run** the XP simulation. Expected: `endOfDay` still `[12, 18, 25, 30, 32, 33, 34, 36, 37, 38, 39, 40]`, since the limit paces. If it changes, stop and report rather than re-pin. All 14 Goals finish with no grants on both presets.
+- [x] **Step 5: Commit** — `test(game-core): room through PL 12 with no moves, bots on the plot grid`
 
 ---
 
@@ -256,11 +256,11 @@ const ROOM_SCHEDULE = [
 - Consumes: `FOOTPRINT`, `lockedTiles`, `ownedPlots`.
 - Produces: `openingView(state, view, viewportW, viewportH): View`, centred on owned land; `ownedLandBox(state, view): Box`. Removes `BREEDER_ART_SCALE`, `ROOST_ART_SCALE`.
 
-- [ ] **Step 1: Write the failing tests.** Mountain, Grove, Hatchery and Roost draw at scale 1. A habitat with an 80×64 sheet draws at 0.8, with a 64-wide sheet at 1; a Farm with a 32-wide sheet at 1.5, with a 48-wide sheet at 1. Dragon spots stay inside a 4×4 diamond for slots 0..5: each spot's feet within the footprint's diamond. Hatchery niches unchanged. The opening view centres on owned land at a fresh start and after buying an outer corner plot. `cameraBounds` covers 32×32 at both sizes, and zoom min stays 1. A new Roost, Farm or Grove on a fresh island opens on a legal cell that leaves a legal 4×4 free. A habitat on a fresh island opens on a legal cell. A Shop row reason for no room reads `No room: buy a plot`. Shop computes `hasLegalCell` once per state, not per clock tick: count calls across two renders with a new `nowMs`.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- island camera placing shop` — expected: FAIL.
-- [ ] **Step 3: Implement.** `drawGround` bakes all ground, fog and cliff tiles into one render texture for the current island and holding, rather than 1,024 images. Water stays. `DRAGON_SPOTS` is rewritten for the 64-wide diamond. `Shop` memoises room checks on `state`. `placementStart`'s default `mid` is the centre of owned land.
-- [ ] **Step 4: Run** `pnpm -r typecheck`, web tests, e2e via the temporary config — expected: PASS. Open at 390×844 and 1440×900 with a 16-plot holding and Read the screenshots: buildings stand on their diamonds, signs tap, and nothing clips.
-- [ ] **Step 5: Commit** — `feat(web): GDD footprints at full size, baked ground, opening view on owned land`
+- [x] **Step 1: Write the failing tests.** Mountain, Grove, Hatchery and Roost draw at scale 1. A habitat with an 80×64 sheet draws at 0.8, with a 64-wide sheet at 1; a Farm with a 32-wide sheet at 1.5, with a 48-wide sheet at 1. Dragon spots stay inside a 4×4 diamond for slots 0..5: each spot's feet within the footprint's diamond. Hatchery niches unchanged. The opening view centres on owned land at a fresh start and after buying an outer corner plot. `cameraBounds` covers 32×32 at both sizes, and zoom min stays 1. A new Roost, Farm or Grove on a fresh island opens on a legal cell that leaves a legal 4×4 free. A habitat on a fresh island opens on a legal cell. A Shop row reason for no room reads `No room: buy a plot`. Shop computes `hasLegalCell` once per state, not per clock tick: count calls across two renders with a new `nowMs`.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- island camera placing shop` — expected: FAIL.
+- [x] **Step 3: Implement.** `drawGround` bakes all ground, fog and cliff tiles into one render texture for the current island and holding, rather than 1,024 images. Water stays. `DRAGON_SPOTS` is rewritten for the 64-wide diamond. `Shop` memoises room checks on `state`. `placementStart`'s default `mid` is the centre of owned land.
+- [x] **Step 4: Run** `pnpm -r typecheck`, web tests, e2e via the temporary config — expected: PASS. Open at 390×844 and 1440×900 with a 16-plot holding and Read the screenshots: buildings stand on their diamonds, signs tap, and nothing clips.
+- [x] **Step 5: Commit** — `feat(web): GDD footprints at full size, baked ground, opening view on owned land`
 
 ---
 
@@ -273,11 +273,11 @@ const ROOM_SCHEDULE = [
 - Consumes: `moveBuilding`, `placementRuleError`.
 - Produces: `PlacementBar` gets `Island` buttons (`aria-label="Move to Ember Reach"`) when the mover may leave its island and more than one is unlocked.
 
-- [ ] **Step 1: Write the failing tests.** A habitat moves from one plot to another, across a plot border, for free, keeping `lastCollectedMs`, dragons and Gold. A move onto unowned land is `NOT_OWNED`; onto itself offset by one tile is legal (it ignores itself). A 5×5 Mountain moving from `(8, 12)` to a straddling spot works. A habitat with stored Gold, moved to Island 2: legal, and its Gold is unchanged. The Hatchery stays on Home: `WRONG_ISLAND`; the bar shows no Island buttons for it. A `isle6` decoration stays on `isle6` (R59). A building under construction can move and its timer keeps running. Web: during a move the ghost starts on the current spot, and tapping `Move to Ember Reach` switches the view, opens on the nearest legal cell there, and Confirm sends that island. Cancel returns the view. e2e: a real drag across a plot border on the canvas.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- placing` — expected: FAIL.
-- [ ] **Step 3: Implement.** Game-core likely needs nothing beyond its tests; the UI is new.
-- [ ] **Step 4: Run** `pnpm -r typecheck`, each affected package's tests, and e2e via the temporary config — expected: PASS.
-- [ ] **Step 5: Commit** — `feat: move buildings between plots and islands`
+- [x] **Step 1: Write the failing tests.** A habitat moves from one plot to another, across a plot border, for free, keeping `lastCollectedMs`, dragons and Gold. A move onto unowned land is `NOT_OWNED`; onto itself offset by one tile is legal (it ignores itself). A 5×5 Mountain moving from `(8, 8)` to a straddling spot works. A habitat with stored Gold, moved to Island 2: legal, and its Gold is unchanged. The Hatchery stays on Home: `WRONG_ISLAND`; the bar shows no Island buttons for it. A `isle6` decoration stays on `isle6` (R59). A building under construction can move and its timer keeps running. Web: during a move the ghost starts on the current spot, and tapping `Move to Ember Reach` switches the view, opens on the nearest legal cell there, and Confirm sends that island. Cancel returns the view. e2e: a real drag across a plot border on the canvas.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- placing` — expected: FAIL.
+- [x] **Step 3: Implement.** Game-core likely needs nothing beyond its tests; the UI is new.
+- [x] **Step 4: Run** `pnpm -r typecheck`, each affected package's tests, and e2e via the temporary config — expected: PASS.
+- [x] **Step 5: Commit** — `feat: move buildings between plots and islands`
 
 ---
 
@@ -297,11 +297,11 @@ export function buildMapModel(s: PlayerState, art: GameArtSet, view: IslandId): 
 export type Target = /* existing */ | { kind: 'mapIsland'; id: IslandId } | { kind: 'plot'; island: IslandId; plot: number }
 ```
 
-- [ ] **Step 1: Write the failing tests.** `buildMapModel` on a fresh state: 6 islands, 96 plots in all, 4 owned, each plot in a diamond around its island. `home` is `current`, labelled `Home Isle · 4 / 16`. Isle 2 is `next`, labelled `Ember Reach · Level 12 · Bridge 150,000`. Isle 3 and on are `locked`, labelled with level only. After `buyBridge('isle2')`, its state is `open`, its bridge `built`, and Isle 3 is `next`. Labels format large prices `100M`. Bounds contain all islands. `panZoom` keeps today's island gestures: a tap under 4 px of movement is a click, wheel and pinch zoom whole numbers, and drag pans (moved from `IslandScene`, existing tests stay). Panel: `MapIslandPanel` for `next` at PL 11 shows `Needs player level 12`; at PL 12 without Gold, `Not enough gold`; else the Bridge buys and the panel turns to `Go`. `Go` closes the Map and shows that island. A list of buttons named for each island sits in the DOM for keyboard and screen readers. e2e `map.spec.ts`: open Map, a real drag pans, wheel zooms, a real click on Isle 2's cell opens its panel, buy the Bridge with Gold granted, Go, and see the island with fog and plot signs.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- mapModel panZoom` — expected: FAIL.
-- [ ] **Step 3: Implement.** `MapScene` runs in place of `IslandScene` while the `map` panel is open: scene switch, no second canvas. It draws `map.backdrop` tiled, each island's `map.<id>` icon, plots as a diamond grid (owned bright, others dim) by `Graphics` so it works before art lands, Bridges from `map.bridge` or a drawn line, locks as a dim tint, and labels as text. It opens centred on the viewed island. HUD stays above. `Map` button toggles back.
-- [ ] **Step 4: Run** `pnpm -r typecheck`, web tests, e2e via the temporary config — expected: PASS. Read screenshots at 390×844 and 1440×900.
-- [ ] **Step 5: Commit** — `feat(web): scrollable, zoomable Map of all six islands`
+- [x] **Step 1: Write the failing tests.** `buildMapModel` on a fresh state: 6 islands, 96 plots in all, 4 owned, each plot in a diamond around its island. `home` is `current`, labelled `Home Isle · 4 / 16`. Isle 2 is `next`, labelled `Ember Reach · Level 12 · Bridge 150,000`. Isle 3 and on are `locked`, labelled with level only. After `buyBridge('isle2')`, its state is `open`, its bridge `built`, and Isle 3 is `next`. Labels format large prices `100M`. Bounds contain all islands. `panZoom` keeps today's island gestures: a tap under 4 px of movement is a click, wheel and pinch zoom whole numbers, and drag pans (moved from `IslandScene`, existing tests stay). Panel: `MapIslandPanel` for `next` at PL 11 shows `Needs player level 12`; at PL 12 without Gold, `Not enough gold`; else the Bridge buys and the panel turns to `Go`. `Go` closes the Map and shows that island. A list of buttons named for each island sits in the DOM for keyboard and screen readers. e2e `map.spec.ts`: open Map, a real drag pans, wheel zooms, a real click on Isle 2's cell opens its panel, buy the Bridge with Gold granted, Go, and see the island with fog and plot signs.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- mapModel panZoom` — expected: FAIL.
+- [x] **Step 3: Implement.** `MapScene` runs in place of `IslandScene` while the `map` panel is open: scene switch, no second canvas. It draws `map.backdrop` tiled, each island's `map.<id>` icon, plots as a diamond grid (owned bright, others dim) by `Graphics` so it works before art lands, Bridges from `map.bridge` or a drawn line, locks as a dim tint, and labels as text. It opens centred on the viewed island. HUD stays above. `Map` button toggles back.
+- [x] **Step 4: Run** `pnpm -r typecheck`, web tests, e2e via the temporary config — expected: PASS. Read screenshots at 390×844 and 1440×900.
+- [x] **Step 5: Commit** — `feat(web): scrollable, zoomable Map of all six islands`
 
 ---
 
@@ -315,24 +315,24 @@ export type Target = /* existing */ | { kind: 'mapIsland'; id: IslandId } | { ki
 - Consumes: art keys from Tasks 3, 6 and 8.
 - Produces: the list, and code reading each key with a fallback.
 
-- [ ] **Step 1: Write the failing tests.** Each new key has a fallback and is read when the manifest has it. A manifest with none of them still renders every island: habitats scaled, plots drawn by `Graphics`.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- art` — expected: FAIL.
-- [ ] **Step 3: Implement plumbing, and write the list** in the M3 list's format (style line, projection, budget table, priority order, a table for each group with key, frame size, frames, fps and description):
+- [x] **Step 1: Write the failing tests.** Each new key has a fallback and is read when the manifest has it. A manifest with none of them still renders every island: habitats scaled, plots drawn by `Graphics`.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- art` — expected: FAIL.
+- [x] **Step 3: Implement plumbing, and write the list** in the M3 list's format (style line, projection, budget table, priority order, a table for each group with key, frame size, frames, fps and description):
   - **Buildings at final size.** `habitat.<element>` × 10 and `building.goldenAerie`: 64×56, 4 frames, 4 fps, keeping each element's look; bottom-centre on the 4×4 diamond's bottom vertex. `building.farmPlot`: 48×40. Crops: `crop.<id>` × 6 sized for a 3×3 Farm. Listed as already final, not to regenerate: Mountain and Grove (80×80, 5×5), Hatchery levels and Roost tiers (64×64, 4×4); the thread should check them at scale 1 in the running game and report.
   - **Obstacles.** `obstacle.ancientTree` 64×64, `obstacle.boulder` 64×48, `obstacle.largeRock` 48×40, `obstacle.tree` 32×40, `obstacle.smallRock` 32×24, `obstacle.bush` 16×16. Stills. Original designs.
-  - **Island tiles.** `ground.<island>.<0..2>` for Ember Reach, Frostspire, Ironhold, Shadowmere, Warlord's Crown (16×8, seamless, the technique in the HUD art round). Home keeps today's grass. `ground.cliff.<island>.sw`, `.se`. `ground.fog` stays. A plot-border mark `ground.plotEdge`, optional.
+  - **Island tiles.** `ground.<island>.<0..2>` for Ember Reach, Frostspire, Ironhold, Shadowmere, Warlord's Crown (16×8, seamless, the technique in the HUD art round). Home keeps today's grass. `ground.cliff.<island>.sw`, `.se`. `ground.fog` is replaced, dim and misty (the old one read as snow). A plot-border mark `ground.plotEdge`, optional.
   - **Plots.** `island.sign` stays, and is checked on fog.
   - **Map.** `map.home` … `map.isle6`: 128×96 each, the island seen whole and distinct by theme. `map.bridge`: 64×32, reads in either isometric direction with a flip. `map.backdrop`: seamless sea, 256×256.
   - Budget table with counts; priority order: habitats, Farm, obstacles, Map, tiles.
-- [ ] **Step 4: Run** web tests — expected: PASS.
-- [ ] **Step 5: Commit** — `docs(art): M4 art list; every key read with a fallback`
+- [x] **Step 4: Run** web tests — expected: PASS.
+- [x] **Step 5: Commit** — `docs(art): M4 art list; every key read with a fallback`
 
 ---
 
 ### Task 10: M4 verification and report
 
-- [ ] **Step 1: `pnpm -r typecheck`, each package's tests, and e2e** — expected: green; record counts.
-- [ ] **Step 2: Playtest** with `pnpm playtest` through the real UI, with a throwaway Playwright spec (deleted after), at 390×844 and 1440×900:
+- [x] **Step 1: `pnpm -r typecheck`, each package's tests, and e2e** — expected: green; record counts.
+- [x] **Step 2: Playtest** with `pnpm playtest` through the real UI, with a throwaway Playwright spec (deleted after), at 390×844 and 1440×900:
   - Fresh account: the starting land shows, about 30 % obstacles, buildings at final sizes; PL 2 buys a 100 Gold plot, a sign moves on, obstacles appear, a Goal still reads right.
   - Through PL 12 by real play with Food granted if needed: every §4.4 unlock placed, no moves. Say how many plots and clears it took.
   - Clear a Bush, a Small Rock and an Ancient Tree: cost, timer (40 min, finished by clock), XP. Two clears run together, a third refused. Force a drop by seed in a unit test, then use a granted token on a running breed.
@@ -340,9 +340,9 @@ export type Target = /* existing */ | { kind: 'mapIsland'; id: IslandId } | { ki
   - Map: drag, wheel, pinch where possible, tap each of 6 islands; locks and prices right.
   - A full Home holding of 16 plots: frame time on the island at 4× CPU throttle, with and without the Shop open. Record numbers.
   - Reload on each interesting state: `/me` agrees with the next action. No page errors or unexpected 4xx.
-- [ ] **Step 3: Take** `docs/art/m4-island.png` (fresh), `m4-grown.png` (many plots), `m4-map.png`, `m4-plot.png` at 390×844, and `m4-desktop.png` at 1440×900; read each to check it shows what its name says.
-- [ ] **Step 4: Write `docs/superpowers/reports/2026-10-31-m4-report.md`**: what works, what doesn't, what couldn't be verified, test counts, the room test's measured clears, frame times, rulings made, deferred items.
-- [ ] **Step 5: Commit** — `docs: M4 report and playtest screenshots`
+- [x] **Step 3: Take** `docs/art/m4-island.png` (fresh), `m4-grown.png` (many plots), `m4-map.png`, `m4-plot.png` at 390×844, and `m4-desktop.png` at 1440×900; read each to check it shows what its name says.
+- [x] **Step 4: Write `docs/superpowers/reports/2026-10-31-m4-report.md`**: what works, what doesn't, what couldn't be verified, test counts, the room test's measured clears, frame times, rulings made, deferred items.
+- [x] **Step 5: Commit** — `docs: M4 report and playtest screenshots`
 
 ---
 

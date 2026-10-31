@@ -32,6 +32,8 @@ export function artEntries(art: GameArtSet): Entry[] {
   for (const [d, s] of Object.entries(art.decoration)) add(`decoration.${d}`, s, 'decoration', DECORATIONS[d as keyof typeof DECORATIONS].island ? 'light' : 'nature')
   for (const [k, s] of Object.entries(art.obstacle)) add(`obstacle.${k}`, s, 'obstacle', OBSTACLES[k as keyof typeof OBSTACLES].size > 1 ? 'terra' : 'nature')
   for (const [i, s] of Object.entries(art.map)) add(`map.${i}`, s, 'map', 'sea')
+  // The Map's backdrop and Bridge load only when they exist: without them it shows the sea and draws its own lines.
+  for (const k of ['map.backdrop', 'map.bridge']) { const s = art.hud[k]; if (s) add(k, s, 'island', 'sea') }
   for (const [el, s] of Object.entries(art.elementIcon) as [Element, Sprite][]) add(`icon.${el}`, s, 'icon', el)
   add('ui.panel', art.ui.panel, 'panel')
   add('ui.button', art.ui.button, 'button')
@@ -48,6 +50,12 @@ export function artEntries(art: GameArtSet): Entry[] {
   const ground = art.ground
   ground.grass.forEach((s, i) => add(`ground.grass.${i}`, s, 'island', 'nature'))
   for (const [k, s] of [['fog', ground.fog], ['water', ground.water], ['cliff.sw', ground.cliffSw], ['cliff.se', ground.cliffSe]] as const) if (s) add(`ground.${k}`, s, 'island', 'terra')
+  for (const [island, t] of Object.entries(ground.island)) {
+    t.grass.forEach((s, i) => add(`ground.${island}.${i}`, s, 'island', 'nature'))
+    if (t.cliffSw) add(`ground.cliff.${island}.sw`, t.cliffSw, 'island', 'terra')
+    if (t.cliffSe) add(`ground.cliff.${island}.se`, t.cliffSe, 'island', 'terra')
+  }
+  if (ground.plotEdge) add('ground.plotEdge', ground.plotEdge, 'island', 'terra')
   return rows
 }
 
@@ -80,11 +88,14 @@ export function loadArt(scene: Phaser.Scene, art: GameArtSet): void {
   })
 }
 
-/** Ticks the water tile sprite through its frames; does nothing for a still, reduced motion or a sheet whose frames are missing. */
-export function animateWater(scene: Phaser.Scene, water: Phaser.GameObjects.TileSprite, key: string, frames: number, fps: number, reducedMotion: boolean): void {
-  if (frames <= 1 || fps <= 0 || reducedMotion || !hasFrames(scene, key, frames)) return
+/**
+ * Ticks the water tile sprite through its frames and returns the looping timer, so whoever rebuilds the water can remove it;
+ * null (nothing started) for a still, reduced motion or a sheet whose frames are missing.
+ */
+export function animateWater(scene: Phaser.Scene, water: Phaser.GameObjects.TileSprite, key: string, frames: number, fps: number, reducedMotion: boolean): Phaser.Time.TimerEvent | null {
+  if (frames <= 1 || fps <= 0 || reducedMotion || !hasFrames(scene, key, frames)) return null
   let f = 0
-  scene.time.addEvent({ delay: 1000 / fps, loop: true, callback: () => { if (water.active) water.setFrame(f = (f + 1) % frames) } })
+  return scene.time.addEvent({ delay: 1000 / fps, loop: true, callback: () => { if (water.active) water.setFrame(f = (f + 1) % frames) } })
 }
 
 /** Animation key for a sprite sheet texture. */
@@ -114,8 +125,8 @@ export function playOrStill(sprite: Phaser.GameObjects.Sprite, key: string, fram
   if (!anims.exists(animKey(key))) {
     anims.create({ key: animKey(key), frames: anims.generateFrameNumbers(key, { start: 0, end: frames - 1 }), frameRate: fps, repeat: -1 })
   }
-  // The island rebuilds its sprites every second; start where the loop would be on the scene clock (plus a position offset
-  // so neighbours are out of step) so the rebuild does not restart every animation at frame 0.
+  // The island makes a sprite again when its look changes; start where the loop would be on the scene clock (plus a position
+  // offset so neighbours are out of step) so that does not restart the animation at frame 0.
   const now = sprite.scene.time?.now ?? 0
   const spread = Math.abs(Math.floor((sprite.x ?? 0) * 7 + (sprite.y ?? 0) * 13)) % frames
   const startFrame = (Math.floor((now / 1000) * fps) + spread) % frames

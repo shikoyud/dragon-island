@@ -15,8 +15,9 @@ import { priceMicroUsd } from '../src/store'
 import { unlockPl } from '../src/data/unlocks'
 import { err, ok } from './helpers'
 
+import { FREE, FREE_2 } from './helpers/land'
 const P = (col: number, row: number) => ({ island: 'home' as const, col, row, facing: 0 as const })
-const AT = P(7, 7)
+const AT = FREE
 const base = newPlayer(0)
 const run = (s: PlayerState, a: Action, t = 0) => applyAction(s, a, t, createRng(1), LAUNCH_CATALOG)
 const place: Action = { type: 'placeBuilding', building: { kind: 'roost' }, placement: AT }
@@ -34,7 +35,7 @@ describe('§4.2 tables', () => {
       { tier: 4, levelCap: 30, gold: 2_500_000, usdMicro: null, classicMs: 24 * H },
       { tier: 5, levelCap: 40, gold: 10_000_000, usdMicro: 2_000_000, classicMs: 48 * H },
     ])
-    expect(ROOST_FOOTPRINT).toBe(2)
+    expect(ROOST_FOOTPRINT).toBe(4)
   })
 
   it('levelCap at each tier is derived from the table', () => {
@@ -68,23 +69,23 @@ describe('placing the Roost', () => {
 
   it('too little Gold, busy builders, a second Roost, and bad cells', () => {
     err(run({ ...base, level: 5, gold: 4_999 }, place), 'INSUFFICIENT_GOLD')
-    const busy = { ...base, level: 5, gold: 9_999, constructions: [{ kind: 'clear' as const, obstacleId: 'x', readyAtMs: 9 }, { kind: 'clear' as const, obstacleId: 'y', readyAtMs: 9 }] }
+    const busy = { ...base, level: 5, gold: 9_999, constructions: [0, 1].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 9 })) }
     err(run(busy, place), 'BUILDERS_BUSY')
-    err(run(roosted(1), { ...place, placement: P(10, 4) }), 'MAX_LEVEL')
-    err(run({ ...base, level: 5, gold: 5_000 }, { ...place, placement: P(0, 0) }), 'OVERLAP')
+    err(run(roosted(1), { ...place, placement: FREE_2 }), 'MAX_LEVEL')
+    err(run({ ...base, level: 5, gold: 5_000 }, { ...place, placement: P(8, 8) }), 'OVERLAP')
   })
 
-  it('is a 2-cell building in the occupants list and the placement rules', () => {
-    expect(occupants(roosted(1), 'home').find(o => o.ref.type === 'roost')).toEqual({ ref: { type: 'roost' }, col: 7, row: 7, size: 2 })
+  it('is a 4x4 building in the occupants list and the placement rules', () => {
+    expect(occupants(roosted(1), 'home').find(o => o.ref.type === 'roost')).toEqual({ ref: { type: 'roost' }, col: FREE.col, row: FREE.row, size: 4 })
     expect(placementRuleError(base, { kind: 'roost' }, AT)).toBeNull()
-    expect(placementRuleError(base, { kind: 'roost' }, P(4, 8))).toBe('OVERLAP')
+    expect(placementRuleError(base, { kind: 'roost' }, P(8, 8))).toBe('OVERLAP')
     expect(placementRuleError(base, { kind: 'move', target: { type: 'roost' } }, AT)).toBe('NOT_FOUND')
   })
 
   it('moves like other buildings', () => {
-    const moved = ok(run(roosted(1), { type: 'moveBuilding', target: { type: 'roost' }, placement: P(10, 4) }))
-    expect(moved.roostPlacement).toEqual(P(10, 4))
-    err(run(roosted(1), { type: 'moveBuilding', target: { type: 'roost' }, placement: P(0, 0) }), 'OVERLAP')
+    const moved = ok(run(roosted(1), { type: 'moveBuilding', target: { type: 'roost' }, placement: FREE_2 }))
+    expect(moved.roostPlacement).toEqual(FREE_2)
+    err(run(roosted(1), { type: 'moveBuilding', target: { type: 'roost' }, placement: P(8, 8) }), 'OVERLAP')
     err(run(base, { type: 'moveBuilding', target: { type: 'roost' }, placement: AT }), 'NOT_FOUND')
   })
 
@@ -101,10 +102,10 @@ describe('placing the Roost', () => {
 
   it('a Roost moved during its build keeps the new cell, and the finish gives Tier 1', () => {
     const building = ok(run({ ...base, level: 5, gold: 5_000 }, place))
-    const moved = ok(run(building, { type: 'moveBuilding', target: { type: 'roost' }, placement: P(10, 4) }, 100_000))
+    const moved = ok(run(building, { type: 'moveBuilding', target: { type: 'roost' }, placement: FREE_2 }, 100_000))
     expect(moved.roostTier).toBe(0)
     const done = ok(run(moved, { type: 'finishConstruction', index: 0 }, 300_000))
-    expect([done.roostTier, done.roostPlacement]).toEqual([1, P(10, 4)])
+    expect([done.roostTier, done.roostPlacement]).toEqual([1, FREE_2])
   })
 
   it('a Roost build can be skipped like any construction', () => {
@@ -170,7 +171,7 @@ describe('Ascension (Tier 5, R35)', () => {
     err(run(roosted(4, { level: 29 }), ascend), 'LEVEL_TOO_LOW')
     err(run(roosted(4, { gold: 9_999_999 }), ascend), 'INSUFFICIENT_GOLD')
     err(run(roosted(5), ascend), 'MAX_LEVEL')
-    const full = roosted(4, { constructions: [{ kind: 'clear', obstacleId: 'x', readyAtMs: 9 }, { kind: 'clear', obstacleId: 'y', readyAtMs: 9 }] })
+    const full = roosted(4, { constructions: [0, 1].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 9 })) })
     err(run(full, ascend), 'BUILDERS_BUSY')
   })
 

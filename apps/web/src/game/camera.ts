@@ -1,5 +1,5 @@
-import { HOME_MAX_STEP, homeSize, islandSize, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
-import { islandBox, pointerToCell, type Box } from './layout'
+import { ISLAND_TILES, ownedPlots, plotOfTile, plotOrigin, TILES_PER_PLOT, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { footprintDiamond, islandBox, pointerToCell, type Box } from './layout'
 
 /** Height in world pixels of the cliff drawn under the island's two front edges. */
 export const SKIRT = 12
@@ -9,29 +9,33 @@ const MARGIN = 24
 /** What the camera shows: the world point at the screen's centre, and a whole-number zoom. */
 export interface View { cx: number; cy: number; zoom: number }
 
-/** Cells shown on an island: home is the unlocked square plus a two-cell ring of locked land (the next two expansions). */
-export function shownSize(state: PlayerState, view: IslandId): { w: number; h: number } {
-  return view === 'home' ? homeSize(Math.min(state.islands.homeStep + 2, HOME_MAX_STEP)) : islandSize(state, view)
+/** Tiles shown on an island: always all of it, with land not owned as fog (R58). */
+export function shownSize(): { w: number; h: number } {
+  return { w: ISLAND_TILES, h: ISLAND_TILES }
 }
 
-/** World box the camera may show: the shown island's diamond, its cliff skirt and a margin of sea. */
-export function cameraBounds(state: PlayerState | null, view: IslandId): Box {
-  const { w, h } = state ? shownSize(state, view) : { w: 12, h: 12 }
+/** World box the camera may show: the island's diamond (every island is 32x32), its cliff skirt and a margin of sea. */
+export function cameraBounds(): Box {
+  const { w, h } = shownSize()
   const b = islandBox(w, h)
   return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + SKIRT + 2 * MARGIN }
 }
 
-/** The cell under a world position, or null when it falls outside the viewed island's unlocked land. */
-export function groundCell(state: PlayerState | null, view: IslandId, worldX: number, worldY: number): { col: number; row: number } | null {
+/** The tile under a world position, or null off the island. Land not owned counts: a red ghost can go over fog. */
+export function groundCell(state: PlayerState | null, worldX: number, worldY: number): { col: number; row: number } | null {
   if (!state) return null
-  const { w, h } = islandSize(state, view)
   const c = pointerToCell(worldX, worldY)
-  return c.col < 0 || c.row < 0 || c.col >= w || c.row >= h ? null : c
+  return plotOfTile(c.col, c.row) === null ? null : c
 }
 
 /** World position of a screen pixel (screen = the game canvas, in CSS pixels). */
 export function screenToWorld(v: View, viewportW: number, viewportH: number, sx: number, sy: number): { x: number; y: number } {
   return { x: v.cx + (sx - viewportW / 2) / v.zoom, y: v.cy + (sy - viewportH / 2) / v.zoom }
+}
+
+/** Screen pixel of a world position. */
+export function worldToScreen(v: View, viewportW: number, viewportH: number, wx: number, wy: number): { x: number; y: number } {
+  return { x: (wx - v.cx) * v.zoom + viewportW / 2, y: (wy - v.cy) * v.zoom + viewportH / 2 }
 }
 
 /** Drag by (dx, dy) screen pixels: the world follows the pointer. */
@@ -70,6 +74,34 @@ export function fitZoom(viewportW: number, viewportH: number, b: Box): number {
   return Math.max(1, viewportH > viewportW ? Math.ceil(f) : Math.round(f + 0.1))
 }
 
+/** World px kept round owned land when fitting it: a 64 px plot sign at the corner stays clear of the HUD, a building on the edge uncropped. */
+const OPENING_PAD = 32
+
+/**
+ * World box round the diamonds of the plots owned on an island. With none owned (or no state) it is the whole island's, so
+ * the camera has somewhere to open.
+ */
+export function ownedLandBox(state: PlayerState | null, view: IslandId): Box {
+  const owned = state ? ownedPlots(state, view) : []
+  if (owned.length === 0) return islandBox(ISLAND_TILES, ISLAND_TILES)
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+  for (const plot of owned) {
+    const o = plotOrigin(plot)
+    for (const p of footprintDiamond(o.col, o.row, TILES_PER_PLOT)) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y) }
+  }
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+}
+
+/**
+ * Where the camera opens (R58): the middle of the owned land, at the whole-number zoom that fits it with a margin
+ * (`fitZoom`, never below 1). `viewportH` is the height the HUD leaves free. Drag or zoom reaches the rest of the island.
+ */
+export function openingView(state: PlayerState | null, view: IslandId, viewportW: number, viewportH: number): View {
+  const b = ownedLandBox(state, view)
+  const padded = { x: b.x - OPENING_PAD, y: b.y - OPENING_PAD, w: b.w + 2 * OPENING_PAD, h: b.h + 2 * OPENING_PAD }
+  return { cx: b.x + b.w / 2, cy: b.y + b.h / 2, zoom: fitZoom(viewportW, viewportH, padded) }
+}
+
 /** A press that ended within 4 px of where it began is a click, not a pan. */
 export function isClick(downX: number, downY: number, upX: number, upY: number): boolean {
   return Math.hypot(upX - downX, upY - downY) <= 4
@@ -85,12 +117,11 @@ export function stepZoom(zoom: number, dir: -1 | 1, range: { min: number; max: n
   return Math.min(range.max, Math.max(range.min, zoom - dir))
 }
 
-/** Home-island cells that are still locked and on screen: inside the shown ring but outside the current square. */
+/** Every tile of the viewed island not on an owned plot: the fog. */
 export function lockedTiles(state: PlayerState | null, view: IslandId): { col: number; row: number }[] {
-  if (!state || view !== 'home') return []
-  const cur = homeSize(state.islands.homeStep)
-  const max = shownSize(state, view)
+  if (!state) return []
+  const owned = new Set(ownedPlots(state, view))
   const out: { col: number; row: number }[] = []
-  for (let row = 0; row < max.h; row++) for (let col = 0; col < max.w; col++) if (col >= cur.w || row >= cur.h) out.push({ col, row })
+  for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) if (!owned.has(plotOfTile(col, row)!)) out.push({ col, row })
   return out
 }

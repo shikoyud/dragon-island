@@ -124,7 +124,7 @@ describe('level-up screen (R38)', () => {
     // PL 4: Farm 3, Hatchery 2, PvE, Home step; PL 8: wings.
     const lines = levelUnlockLines(3, 4)
     expect(lines).toContain('Farm 3')
-    expect(lines.filter(l => l === 'Island expansion')).toHaveLength(1)
+    expect(lines.filter(l => l === 'Home Isle plot')).toHaveLength(1)
     expect(levelUnlockLines(4, 5)).toContain('Roost Tier 1')
     expect(levelUnlockLines(7, 8).join()).not.toMatch(/wings/i)
   })
@@ -205,7 +205,7 @@ describe('level-up screen (R38)', () => {
       harness(at(18)).wrap(<Host />)
       const d = await screen.findByRole('dialog', { name: 'Level up' })
       expect(within(d).getByRole('heading')).toHaveTextContent('Level 12 → 18')
-      for (const line of ['Hatchery level 3', 'Dark Habitat', 'Light Habitat', 'War Habitat', 'Roost Tier 3', 'Third island']) expect(within(d).getByText(line)).toBeInTheDocument()
+      for (const line of ['Hatchery level 3', 'Dark Habitat', 'Light Habitat', 'War Habitat', 'Roost Tier 3', 'Bridge to Frostspire']) expect(within(d).getByText(line)).toBeInTheDocument()
       expect(within(d).queryByText(/home:/)).toBeNull()
       expect(within(d).queryByText('Electric Habitat')).toBeNull() // PL 6 is below the range
     })

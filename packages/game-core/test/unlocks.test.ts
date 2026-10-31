@@ -10,9 +10,10 @@ import { ELEMENTS } from '../src/elements'
 import { createRng } from '../src/rng'
 import { newPlayer, type Breeder, type IslandId, type PlayerState } from '../src/state'
 import { err, ok } from './helpers'
+import { FREE, HOME_BUY_ORDER, withPlots } from './helpers/land'
 
 const sorted = (xs: readonly string[]) => [...xs].sort()
-/** Home expansions past the first keep today's values until M4 (R32); §4.4 lists only the first. */
+/** §4.4 lists only the first Home plot (home:0); plots 2 to 12 get their levels from R46, pinned in the R32, R46 test below. */
 const notLaterHome = (k: string) => !/^home:([1-9]|\d\d)$/.test(k)
 const at = (pl: number) => sorted(unlocksAt(pl).filter(notLaterHome))
 
@@ -52,9 +53,9 @@ describe('the §4.4 unlock schedule, PL 1 to 30', () => {
       expect(at(pl)).toEqual(sorted([...(SECTION_4_4[pl] ?? []), ...(SECTION_5[pl] ?? [])]))
     })
   }
-  it('R32: Islands 5 and 6 sit at PL 32 and 40; Home expansions keep today\'s gates until M4', () => {
-    expect([unlockPl('island:isle5'), unlockPl('island:dawnspire')]).toEqual([32, 40])
-    expect([...Array(12).keys()].map(i => unlockPl(`home:${i}`))).toEqual([2, 4, 7, 10, 14, 18, 22, 27, 32, 37, 42, 47])
+  it('R32, R46: Islands 5 and 6 sit at PL 32 and 40; Home plots open at PL 2, 2, 3 then one per level to 12', () => {
+    expect([unlockPl('island:isle5'), unlockPl('island:isle6')]).toEqual([32, 40])
+    expect([...Array(12).keys()].map(i => unlockPl(`home:${i}`))).toEqual([2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
   })
   it('lists every key once, with a positive whole level', () => {
     for (const [k, pl] of Object.entries(UNLOCKS)) expect(Number.isInteger(pl) && pl >= 1, k).toBe(true)
@@ -91,15 +92,15 @@ const P = (col: number, row: number, island: IslandId = 'home') => ({ island, co
 const base = newPlayer(0)
 const run = (s: PlayerState, a: Action) => applyAction(s, a, 0, createRng(1), LAUNCH_CATALOG)
 const rich = (s: PlayerState, level: number): PlayerState => ({ ...s, level, gold: 1e12 })
-const grove = (level = 1): Breeder => ({ kind: 'grove', egg: null, level, placement: P(7, 7) })
+const grove = (level = 1): Breeder => ({ kind: 'grove', egg: null, level, placement: FREE })
 
 type Probe = (level: number) => { state: PlayerState; action: Action }
 const probes = (): [UnlockKey, Probe][] => {
   const list: [UnlockKey, Probe][] = []
   for (const e of ELEMENTS) {
-    list.push([`habitat:${e}`, l => ({ state: rich(base, l), action: { type: 'placeBuilding', building: { kind: 'habitat', element: e }, placement: P(7, 7) } })])
+    list.push([`habitat:${e}`, l => ({ state: rich(base, l), action: { type: 'placeBuilding', building: { kind: 'habitat', element: e }, placement: FREE } })])
     list.push([`basic:${e}`, l => ({
-      state: { ...rich(base, l), habitats: [...base.habitats, { id: 'hx', element: e, level: 1, lastCollectedMs: 0, placement: P(7, 7) }] },
+      state: { ...rich(base, l), habitats: [...base.habitats, { id: 'hx', element: e, level: 1, lastCollectedMs: 0, placement: FREE }] },
       action: { type: 'buyBasic', element: e },
     })])
   }
@@ -109,7 +110,7 @@ const probes = (): [UnlockKey, Probe][] => {
     list.push([`farm:${n}` as UnlockKey, l => ({
       state: {
         ...rich(base, l),
-        islands: { ...base.islands, unlocked: ['home', 'isle2'] },
+        islands: { ...base.islands, unlocked: ['home', 'isle2'], plots: { ...base.islands.plots, isle2: [5, 6, 9, 10] } },
         farms: Array.from({ length: n - 1 }, (_, i) => ({ ...base.farms[0]!, placement: P((i % 5) * 3, Math.floor(i / 5) * 3 + 6, 'isle2') })),
       },
       action: { type: 'placeBuilding', building: { kind: 'farm' }, placement: P(14, 13, 'isle2') },
@@ -122,7 +123,7 @@ const probes = (): [UnlockKey, Probe][] => {
   for (const n of [2, 3]) list.push([`mountain:${n}` as UnlockKey, l => ({
     state: { ...rich(base, l), breeders: [{ ...base.breeders[0]!, level: n - 1 }] }, action: { type: 'startUpgrade', building: { type: 'breeder', index: 0 } },
   })])
-  list.push(['grove:1', l => ({ state: rich(base, l), action: { type: 'placeBuilding', building: { kind: 'grove' }, placement: P(7, 7) } })])
+  list.push(['grove:1', l => ({ state: rich(base, l), action: { type: 'placeBuilding', building: { kind: 'grove' }, placement: FREE } })])
   list.push(['grove:2', l => ({
     state: { ...rich(base, l), breeders: [base.breeders[0]!, grove(1)] }, action: { type: 'startUpgrade', building: { type: 'breeder', index: 1 } },
   })])
@@ -134,21 +135,17 @@ const probes = (): [UnlockKey, Probe][] => {
   })])
   list.push(['hatcheryFifthSlot', l => ({ state: rich(base, l), action: { type: 'buy', item: { kind: 'hatcheryL5' } } })])
   // Roost Tiers 1-5: the build (PL 5), the three upgrades (PL 10, 15, 22), and Ascension (PL 30).
-  list.push(['roost:1', l => ({ state: rich(base, l), action: { type: 'placeBuilding', building: { kind: 'roost' }, placement: P(7, 7) } })])
+  list.push(['roost:1', l => ({ state: rich(base, l), action: { type: 'placeBuilding', building: { kind: 'roost' }, placement: FREE } })])
   for (const n of [2, 3, 4]) list.push([`roost:${n}` as UnlockKey, l => ({
-    state: { ...rich(base, l), roostPlacement: P(7, 7), roostTier: n - 1 }, action: { type: 'startUpgrade', building: { type: 'roost' } },
+    state: { ...rich(base, l), roostPlacement: FREE, roostTier: n - 1 }, action: { type: 'startUpgrade', building: { type: 'roost' } },
   })])
-  list.push(['roost:5', l => ({ state: { ...rich(base, l), roostPlacement: P(7, 7), roostTier: 4 }, action: { type: 'buy', item: { kind: 'ascension' } } })])
+  list.push(['roost:5', l => ({ state: { ...rich(base, l), roostPlacement: FREE, roostTier: 4 }, action: { type: 'buy', item: { kind: 'ascension' } } })])
   list.push(['pve', l => ({ state: rich(base, l), action: { type: 'pveBattle', stage: 1, team: ['d1', 'd2', 'dX'], moves: [] } })])
-  for (let i = 0; i < 12; i++) list.push([`home:${i}`, l => ({ state: { ...rich(base, l), islands: { ...base.islands, homeStep: i } }, action: { type: 'expandIsland' } })])
-  const order: IslandId[] = ['home', 'isle2', 'isle3', 'isle4', 'isle5', 'dawnspire']
-  for (const id of order.slice(1)) list.push([`island:${id}` as UnlockKey, l => ({
-    state: {
-      ...rich(base, l),
-      islands: { ...base.islands, unlocked: order.slice(0, order.indexOf(id)) },
-      dragons: [...base.dragons, { id: 'dL', speciesId: [...LAUNCH_CATALOG.species.values()].find(sp => sp.rarity === 'legendary')!.id, level: 1, feeds: 0, habitatId: null }],
-    },
-    action: { type: 'unlockIsland' },
+  for (let i = 0; i < 12; i++) list.push([`home:${i}`, l => ({ state: withPlots(rich(base, l), [5, 6, 9, 10, ...HOME_BUY_ORDER.slice(0, i)]), action: { type: 'buyPlot', island: 'home', plot: HOME_BUY_ORDER[i]! } })])
+  const order: IslandId[] = ['home', 'isle2', 'isle3', 'isle4', 'isle5', 'isle6']
+  for (const id of order.slice(1) as Exclude<IslandId, 'home'>[]) list.push([`island:${id}` as UnlockKey, l => ({
+    state: { ...rich(base, l), islands: { ...base.islands, unlocked: order.slice(0, order.indexOf(id)) } },
+    action: { type: 'buyBridge', island: id },
   })])
   return list
 }
@@ -173,7 +170,6 @@ describe('every gate refuses at PL - 1 and opens at PL', () => {
       expect(r.error, key).not.toBe('LEVEL_TOO_LOW')
       // Past the level gate, each probe's only expected refusal is a missing second Hatchery team, never the level.
       if (key === 'pve') expect(r.error).toBe('INVALID_TEAM')
-      else if (key === 'island:dawnspire') expect(r.error).not.toBe('NO_LEGENDARY')
     })
   }
   it('actions that spend a gate succeed at PL (Gold and room given)', () => {

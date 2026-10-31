@@ -1,4 +1,4 @@
-import { isValidAction } from '@wyrmhaven/game-core'
+import { ISLAND_TILES, isValidAction } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { actionSchema, clientActionSchema, storeItemSchema } from '../src/actions'
 
@@ -17,7 +17,7 @@ const payloads: unknown[] = [
   { type: 'placeBuilding', building: { kind: 'habitat', element: 'war' }, placement: PL },
   { type: 'placeBuilding', building: { kind: 'habitat', element: 'fire' }, placement: PL },
   { type: 'placeBuilding', building: { kind: 'habitat', element: 'plasma' }, placement: PL },
-  { type: 'placeBuilding', building: { kind: 'nexus' }, placement: { ...PL, island: 'dawnspire' } },
+  { type: 'placeBuilding', building: { kind: 'nexus' }, placement: { ...PL, island: 'isle6' } },
   { type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...PL, island: 'isle9' } },
   { type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...PL, col: 64 } },
   { type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...PL, row: -1 } },
@@ -47,8 +47,15 @@ const payloads: unknown[] = [
   { type: 'startUpgrade', building: { type: 'hoard' } },
   { type: 'finishConstruction', index: 0 },
   { type: 'finishConstruction', index: -1 },
-  { type: 'expandIsland' },
-  { type: 'unlockIsland' },
+  { type: 'buyPlot', island: 'home', plot: 4 },
+  { type: 'buyPlot', island: 'home', plot: 15 },
+  { type: 'buyPlot', island: 'home', plot: 16 },
+  { type: 'buyPlot', island: 'home', plot: -1 },
+  { type: 'buyPlot', island: 'home', plot: 1.5 },
+  { type: 'buyPlot', island: 'atlantis', plot: 4 },
+  { type: 'buyBridge', island: 'isle2' },
+  { type: 'buyBridge', island: 'home' },
+  { type: 'buyBridge', island: 'atlantis' },
   { type: 'clearObstacle', obstacleId: 'o1' },
   { type: 'clearObstacle', obstacleId: 3 },
   { type: 'moveDragon', dragonId: 'd1', habitatId: 'h2' },
@@ -96,6 +103,11 @@ const payloads: unknown[] = [
   { type: 'buy', item: { kind: 'hoard', placement: { ...PL, col: 99 } } },
   { type: 'buy', item: { kind: 'levelUp', dragonId: 7 } },
   { type: 'buy', item: { kind: 'x' } },
+  { type: 'useSpeedUp', token: '1h', target: 'breeder', index: 0 },
+  { type: 'useSpeedUp', token: '2h', target: 'breeder', index: 0 },
+  { type: 'useSpeedUp', token: '1h', target: 'bank', index: 0 },
+  { type: 'useSpeedUp', token: '1h', target: 'farm', index: -1 },
+  { type: 'useSpeedUp', token: 'constructor', target: 'farm', index: 0 },
   { type: 'setDefenceTeam', dragonIds: TEAM },
   { type: 'setDefenceTeam', dragonIds: ['d1', 'd2'] },
   { type: 'pveBattle', stage: 1, team: TEAM, moves },
@@ -128,6 +140,32 @@ describe('clientActionSchema', () => {
     expect(clientActionSchema.safeParse({ type: 'pvpBattle', team: TEAM, opponent: bot, moves }).success).toBe(false)
     expect(clientActionSchema.safeParse({ type: 'pvpBattle', offerId: '', team: TEAM, moves }).success).toBe(false)
     expect(clientActionSchema.safeParse({ type: 'collectGold', habitatId: 'h1' }).success).toBe(true)
+  })
+})
+
+describe('land actions (§5.5)', () => {
+  it('accepts a plot and a Bridge, and refuses what game-core refuses', () => {
+    for (const schema of [actionSchema, clientActionSchema]) {
+      expect(schema.safeParse({ type: 'buyPlot', island: 'home', plot: 15 }).success).toBe(true)
+      expect(schema.safeParse({ type: 'buyBridge', island: 'isle2' }).success).toBe(true)
+      expect(schema.safeParse({ type: 'buyPlot', island: 'home', plot: 16 }).success).toBe(false)
+      expect(schema.safeParse({ type: 'buyPlot', island: 'atlantis', plot: 4 }).success).toBe(false)
+      expect(schema.safeParse({ type: 'buyBridge', island: 'atlantis' }).success).toBe(false)
+      expect(schema.safeParse({ type: 'buyBridge', island: 'home' }).success).toBe(false)
+      expect(schema.safeParse({ type: 'expandIsland' }).success).toBe(false)
+      expect(schema.safeParse({ type: 'unlockIsland' }).success).toBe(false)
+    }
+  })
+})
+
+describe('placement coordinates stop at the island edge', () => {
+  it('accepts the last tile and refuses the first one past it, as isValidAction does', () => {
+    for (const schema of [actionSchema, clientActionSchema]) {
+      const at = (col: number, row: number) => ({ type: 'moveBuilding', target: { type: 'hatchery' }, placement: { ...PL, col, row } })
+      expect(schema.safeParse(at(ISLAND_TILES - 1, ISLAND_TILES - 1)).success).toBe(true)
+      expect(schema.safeParse(at(ISLAND_TILES, 0)).success).toBe(false)
+      expect(schema.safeParse(at(0, ISLAND_TILES)).success).toBe(false)
+    }
   })
 })
 

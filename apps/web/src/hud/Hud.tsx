@@ -1,8 +1,10 @@
 import { gameDay, xpToNext } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import type { Bridge, Target } from '../game/bridge'
 import { timerLabel } from '../game/islandModel'
+import { FALLBACK_ART } from '../art/slots'
+import { buildMapModel } from '../game/mapModel'
 import { TOKEN_KEY as ADMIN_TOKEN_KEY } from '../pages/Admin'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -21,6 +23,9 @@ export type DialogKey = { kind: 'panel'; id: PanelId; tab?: 'build' | 'store' } 
 const hasAdminToken = (): boolean => { try { return Boolean(sessionStorage.getItem(ADMIN_TOKEN_KEY)) } catch { return false } }
 
 const isPanel = (open: DialogKey | null, id: PanelId) => open?.kind === 'panel' && open.id === id
+
+/** The Map's scene shows for the Map itself and for an island panel over it; any other dialog closes it. */
+export const isMapDialog = (open: DialogKey | null): boolean => isPanel(open, 'map') || (open?.kind === 'target' && open.target.kind === 'mapIsland')
 
 /** A round HUD button: icon in a plate, label under it (or only for screen readers), optional badge. */
 const COMING_LATER = 'Coming in a later milestone'
@@ -85,7 +90,7 @@ function Shortcut({ item, nowMs, onOpen }: { item: AttentionItem; nowMs: number;
  * the App renders in `bottom`). Reports how much screen its top and bottom take so the camera frames around it.
  */
 export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = false }: {
-  bridge: Bridge; nowMs: number; open: DialogKey | null; onOpen: (k: DialogKey) => void; placing: boolean; bottom?: ReactNode
+  bridge: Bridge; nowMs: number; open: DialogKey | null; onOpen: (k: DialogKey | null) => void; placing: boolean; bottom?: ReactNode
   /** During a battle only the top bar stays (resources update as the fight pays out); the menus step aside. */
   battle?: boolean
 }) {
@@ -111,14 +116,67 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
     return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
   }, [bridge, placing])
 
+  const mapOpen = isMapDialog(open)
+  const playerState = me.data?.state
+  // The HUD renders on every clock tick; the list changes only with the state.
+  const mapIslands = useMemo(
+    () => (mapOpen && playerState ? buildMapModel(playerState, bridge.art ?? FALLBACK_ART, bridge.view).islands : []),
+    [mapOpen, playerState, bridge.art, bridge.view],
+  )
+
+  // The HUD renders on every clock tick (the countdown, the XP day limit, the attention timers). What doesn't read the clock
+  // keeps its elements, so React skips it: on a throttled phone a whole-HUD render a second was the longest task there is.
+  const food = playerState?.food ?? 0
+  const gold = playerState?.gold ?? 0
+  const balanceWei = me.data?.balanceWei
+  const pills = useMemo(() => (
+    <div className="hud-pills" role="status" aria-label="Resources">
+      <Pill icon="food" label="Food" value={formatGold(food)} plusLabel="Buy food" onPlus={() => onOpen({ kind: 'panel', id: 'shop', tab: 'store' })} />
+      {/* No "+" until the Store sells Gold. */}
+      <Pill icon="gold" label="Gold" value={formatGold(gold)} />
+      <Pill icon="dris" label="DRIS" value={`${formatWei(BigInt(balanceWei ?? 0), 18, 2)}`} plusLabel="Add DRIS" onPlus={() => onOpen({ kind: 'panel', id: 'settings' })} />
+    </div>
+  ), [food, gold, balanceWei, onOpen])
+  const settingsOpen = isPanel(open, 'settings')
+  const settings = useMemo(
+    () => <RoundButton icon="settings" label="Settings" size="small" showLabel={false} active={settingsOpen} onClick={() => onOpen({ kind: 'panel', id: 'settings' })} />,
+    [settingsOpen, onOpen],
+  )
+  const islandMenu = useMemo(() => (
+    <nav className="hud-right" aria-label="Island menu">
+      <RoundButton icon="map" label="Map" size="small" active={mapOpen} onClick={mapOpen ? () => onOpen(null) : () => onOpen({ kind: 'panel', id: 'map' })} disabledReason={placing ? 'Finish placing first' : undefined} />
+      {hasAdminToken() && <a className="hud-round hud-round--small" href="#/admin" aria-label="Admin"><span className="hud-round__plate"><Icon name="admin" size={22} /></span><span className="hud-round__label" aria-hidden="true">Admin</span></a>}
+    </nav>
+  ), [mapOpen, placing, onOpen])
+  const goalReady = playerState ? goalClaimable(playerState) : false
+  const shopOpen = isPanel(open, 'shop')
+  const breedOpen = isPanel(open, 'breed')
+  const bookOpen = isPanel(open, 'book')
+  const battleOpen = isPanel(open, 'battle')
+  const questsOpen = isPanel(open, 'quests')
+  const mainMenu = useMemo(() => {
+    const panel = (id: PanelId) => () => onOpen({ kind: 'panel', id })
+    return (
+      <nav className="hud-bar" aria-label="Main menu">
+        <RoundButton icon="store" label="Shop" active={placing || shopOpen} onClick={panel('shop')} />
+        <RoundButton icon="breed" label="Breed" active={breedOpen} onClick={panel('breed')} />
+        <RoundButton icon="dragons" label="Dragon Book" active={bookOpen} onClick={panel('book')} />
+        <RoundButton icon="battle" label="Battle" active={battleOpen} onClick={panel('battle')} />
+        <RoundButton icon="wings" label="Wings" disabledReason={COMING_LATER} />
+        <RoundButton icon="quests" label="Quests" active={questsOpen} onClick={panel('quests')}
+          description={goalReady ? 'Goal ready' : undefined}
+          badge={goalReady ? <span className="hud-dot" aria-hidden="true" /> : undefined} />
+        <RoundButton icon="inbox" label="Inbox" disabledReason={COMING_LATER} />
+      </nav>
+    )
+  }, [placing, shopOpen, breedOpen, bookOpen, battleOpen, questsOpen, goalReady, onOpen])
+
   const data = me.data
   if (!data) return null
   const s = data.state
   const barText = xpBarText(s, formatGold, data.game ? { preset: presetOf(data), day: gameDay(data.game.launchAtMs, nowMs) } : undefined)
   // At the day's limit the sentence is too long for the bar on a phone: the bar shows a short label, the sentence stays its title and value text, and a tap shows it.
   const limited = barText.startsWith(XP_LIMIT_SHORT)
-  const panel = (id: PanelId) => () => onOpen({ kind: 'panel', id })
-  const openStore = () => onOpen({ kind: 'panel', id: 'shop', tab: 'store' })
 
   return (
     <div className="hud">
@@ -136,21 +194,24 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
               : <span className="hud-xp__text">{barText}</span>}
           </div>
         </div>
-        <div className="hud-pills" role="status" aria-label="Resources">
-          <Pill icon="food" label="Food" value={formatGold(s.food)} plusLabel="Buy food" onPlus={openStore} />
-          {/* No "+" until the Store sells Gold. */}
-          <Pill icon="gold" label="Gold" value={formatGold(s.gold)} />
-          <Pill icon="dris" label="DRIS" value={`${formatWei(BigInt(data.balanceWei), 18, 2)}`} plusLabel="Add DRIS" onPlus={panel('settings')} />
-        </div>
-        <RoundButton icon="settings" label="Settings" size="small" showLabel={false} active={isPanel(open, 'settings')} onClick={panel('settings')} />
+        {pills}
+        {settings}
         {data.game && <TerminalClock game={data.game} nowMs={nowMs} />}
       </header>
 
       {!battle && <>
-      <nav className="hud-right" aria-label="Island menu">
-        <RoundButton icon="map" label="Map" size="small" active={isPanel(open, 'map')} onClick={panel('map')} />
-        {hasAdminToken() && <a className="hud-round hud-round--small" href="#/admin" aria-label="Admin"><span className="hud-round__plate"><Icon name="admin" size={22} /></span><span className="hud-round__label" aria-hidden="true">Admin</span></a>}
-      </nav>
+      {islandMenu}
+
+      {/* R60: the Map's canvas is invisible to the keyboard and to screen readers. These stay out of sight until focused. */}
+      {mapOpen && (
+        <nav className="map-list" aria-label="Islands">
+          <ul>
+            {mapIslands.map(i => (
+              <li key={i.id}><button type="button" className="btn" aria-current={i.state === 'current' ? 'true' : undefined} onClick={() => onOpen({ kind: 'target', target: { kind: 'mapIsland', id: i.id } })}>{i.label}</button></li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       <aside className="hud-left" aria-label="Needs attention">
         <ul>
@@ -159,19 +220,7 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
       </aside>
 
       <div className="hud-bottom" ref={foot}>
-        {bottom ?? (
-          <nav className="hud-bar" aria-label="Main menu">
-            <RoundButton icon="store" label="Shop" active={placing || isPanel(open, 'shop')} onClick={panel('shop')} />
-            <RoundButton icon="breed" label="Breed" active={isPanel(open, 'breed')} onClick={panel('breed')} />
-            <RoundButton icon="dragons" label="Dragon Book" active={isPanel(open, 'book')} onClick={panel('book')} />
-            <RoundButton icon="battle" label="Battle" active={isPanel(open, 'battle')} onClick={panel('battle')} />
-            <RoundButton icon="wings" label="Wings" disabledReason={COMING_LATER} />
-            <RoundButton icon="quests" label="Quests" active={isPanel(open, 'quests')} onClick={panel('quests')}
-              description={goalClaimable(s) ? 'Goal ready' : undefined}
-              badge={goalClaimable(s) ? <span className="hud-dot" aria-hidden="true" /> : undefined} />
-            <RoundButton icon="inbox" label="Inbox" disabledReason={COMING_LATER} />
-          </nav>
-        )}
+        {bottom ?? mainMenu}
       </div>
       </>}
     </div>

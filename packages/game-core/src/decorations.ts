@@ -1,7 +1,7 @@
 import type { DecorationId } from './state'
 
-/** Spec section 7. Only the Dawnspire items are island-restricted. */
-export const DECORATIONS: Record<DecorationId, { size: 1 | 2 | 3; cost: number; minLevel: number; island?: 'dawnspire' }> = {
+/** Spec section 7. Only the Warlord's Crown items are island-restricted. */
+export const DECORATIONS: Record<DecorationId, { size: 1 | 2 | 3; cost: number; minLevel: number; island?: 'isle6' }> = {
   stonePath: { size: 1, cost: 10, minLevel: 1 },
   picketFence: { size: 1, cost: 25, minLevel: 1 },
   flowerPatch: { size: 1, cost: 50, minLevel: 1 },
@@ -14,9 +14,9 @@ export const DECORATIONS: Record<DecorationId, { size: 1 | 2 | 3; cost: number; 
   moonwell: { size: 3, cost: 50_000, minLevel: 24 },
   boneArch: { size: 3, cost: 150_000, minLevel: 32 },
   skyShrine: { size: 3, cost: 400_000, minLevel: 40 },
-  dawnObelisk: { size: 2, cost: 100_000, minLevel: 45, island: 'dawnspire' },
-  starPool: { size: 3, cost: 300_000, minLevel: 45, island: 'dawnspire' },
-  dragonColossus: { size: 3, cost: 1_000_000, minLevel: 45, island: 'dawnspire' },
+  dawnObelisk: { size: 2, cost: 100_000, minLevel: 45, island: 'isle6' },
+  starPool: { size: 3, cost: 300_000, minLevel: 45, island: 'isle6' },
+  dragonColossus: { size: 3, cost: 1_000_000, minLevel: 45, island: 'isle6' },
 }
 
 export const DECORATION_REFUND_PCT = 25
