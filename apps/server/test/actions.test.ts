@@ -81,6 +81,28 @@ describe('POST /actions', () => {
     expect((q!.state as PlayerState).gold).toBe(900)
   })
 
+  it('replaying a buyBridge idempotency key charges once and spawns the obstacles once (R47/R48)', async () => {
+    await setState({ level: 12, gold: 200_000 })
+    const buy = { type: 'buyBridge', island: 'isle2' }
+    const first = await post(buy, 'bridge-1')
+    const replay = await post(buy, 'bridge-1')
+    expect([first.statusCode, replay.statusCode]).toEqual([200, 200])
+    expect(replay.json()).toEqual(first.json())
+    expect(await t.db.select().from(actionLog)).toHaveLength(1)
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const s = p!.state as PlayerState
+    expect(s.gold).toBe(50_000)
+    expect(s.islands.unlocked).toEqual(['home', 'isle2'])
+    const onBridge = s.islands.obstacles.filter(o => o.island === 'isle2').length
+    expect(onBridge).toBeGreaterThan(0)
+    // A new key on the same island is refused and changes nothing.
+    const again = await post(buy, 'bridge-2')
+    expect(again.statusCode).toBe(422)
+    const [q] = await t.db.select().from(players).where(eq(players.id, playerId))
+    expect((q!.state as PlayerState).gold).toBe(50_000)
+    expect((q!.state as PlayerState).islands.obstacles.filter(o => o.island === 'isle2')).toHaveLength(onBridge)
+  })
+
   it('a server-side land rule refuses unowned land', async () => {
     await setState({ level: 5, gold: 100_000 })
     const r = await post({ type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: { island: 'home', col: 0, row: 0, facing: 0 } })
