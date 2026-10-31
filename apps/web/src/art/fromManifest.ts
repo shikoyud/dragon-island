@@ -70,6 +70,13 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     ground: {
       grass: [0, 1, 2].map(i => present(`ground.grass.${i}`)).filter((g): g is Sprite => g !== null),
       fog: present('ground.fog'), water: present('ground.water'), cliffSw: present('ground.cliff.sw'), cliffSe: present('ground.cliff.se'),
+      // Home keeps the plain tiles above; every other island may have its own, piece by piece.
+      island: Object.fromEntries(ISLAND_ORDER.filter(i => i !== 'home').flatMap(i => {
+        const grass = [0, 1, 2].map(n => present(`ground.${i}.${n}`)).filter((g): g is Sprite => g !== null)
+        const cliffSw = present(`ground.cliff.${i}.sw`), cliffSe = present(`ground.cliff.${i}.se`)
+        return grass.length > 0 || cliffSw || cliffSe ? [[i, { grass, cliffSw, cliffSe }]] : []
+      })),
+      plotEdge: present('ground.plotEdge'),
     },
     hud: Object.fromEntries(Object.keys(manifest.assets).filter(k => HUD_KEY.test(k)).map(k => [k, get(k, 'icon')])),
   }

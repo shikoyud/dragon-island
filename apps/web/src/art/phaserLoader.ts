@@ -50,6 +50,12 @@ export function artEntries(art: GameArtSet): Entry[] {
   const ground = art.ground
   ground.grass.forEach((s, i) => add(`ground.grass.${i}`, s, 'island', 'nature'))
   for (const [k, s] of [['fog', ground.fog], ['water', ground.water], ['cliff.sw', ground.cliffSw], ['cliff.se', ground.cliffSe]] as const) if (s) add(`ground.${k}`, s, 'island', 'terra')
+  for (const [island, t] of Object.entries(ground.island)) {
+    t.grass.forEach((s, i) => add(`ground.${island}.${i}`, s, 'island', 'nature'))
+    if (t.cliffSw) add(`ground.cliff.${island}.sw`, t.cliffSw, 'island', 'terra')
+    if (t.cliffSe) add(`ground.cliff.${island}.se`, t.cliffSe, 'island', 'terra')
+  }
+  if (ground.plotEdge) add('ground.plotEdge', ground.plotEdge, 'island', 'terra')
   return rows
 }
 

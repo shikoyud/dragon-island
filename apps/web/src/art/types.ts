@@ -51,7 +51,13 @@ export interface GameArtSet {
   /** Effects: a loop over buildings under construction, a one-shot burst where an egg hatches. */
   fx: { construction: Sprite; hatch: Sprite; /** Gold coin burst, one-shot, on a tapped gold badge. */ coins: Sprite; /** Level-up burst, one-shot; optional, the screen alone marks a level without it. */ levelUp?: Sprite }
   /** Isometric ground tiles; null (or empty) until the art exists, and the island scene draws placeholders. */
-  ground: { grass: Sprite[]; fog: Sprite | null; water: Sprite | null; cliffSw: Sprite | null; cliffSe: Sprite | null }
+  ground: {
+    grass: Sprite[]; fog: Sprite | null; water: Sprite | null; cliffSw: Sprite | null; cliffSe: Sprite | null
+    /** Per-island ground (`ground.<island>.<n>`, `ground.cliff.<island>.sw|se`), only for pieces the manifest has; Home keeps the plain `grass` and cliffs. */
+    island: Partial<Record<IslandId, { grass: Sprite[]; cliffSw: Sprite | null; cliffSe: Sprite | null }>>
+    /** Optional mark drawn on the border cells of an owned plot (`ground.plotEdge`). */
+    plotEdge: Sprite | null
+  }
   /** HUD art present in the manifest (icon.<name>.16/.32, ui.*), by manifest key; absent keys use drawn placeholders. */
   hud: Record<string, Sprite>
 }

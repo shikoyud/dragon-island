@@ -7,7 +7,7 @@ import type { Bridge, Target } from '../bridge'
 import {
   cameraBounds, clampView, groundCell, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
 } from '../camera'
-import { badgeY, buildIslandModel, type IslandMarkers, type IslandObject } from '../islandModel'
+import { badgeY, buildIslandModel, groundTiles, type IslandMarkers, type IslandObject } from '../islandModel'
 import { anchor, cellCentre, cellTop, footprintDiamond, islandBox, pointerToCell, tapBox, type Box, type Pos } from '../layout'
 import { createPanZoom, heldPointers } from '../panZoom'
 
@@ -345,7 +345,7 @@ export class IslandScene extends Phaser.Scene {
    */
   private drawGround(): void {
     const { state, view } = this.bridge
-    const key = `${view}:${state ? ownedPlots(state, view).join(',') : '-'}`
+    const key = `${this.art().version}:${view}:${state ? ownedPlots(state, view).join(',') : '-'}`
     if (key === this.groundKey) return
     this.groundKey = key
     const g = this.ground.clear()
@@ -387,21 +387,25 @@ export class IslandScene extends Phaser.Scene {
     // The skirt first (it is the backing), then everything else over it in the order the sprites used to go.
     rt.batchDraw(g, -land.x, -land.y)
     g.clear()
-    if (tiles.cliffSw && tiles.cliffSe) {
+    // This island's own tiles when the manifest has them, else today's (groundTiles); read here, in the bake, so a stale tile can't be picked.
+    const pick = groundTiles(this.art(), view)
+    if (pick.cliffSw && pick.cliffSe) {
       // A 16x16 piece per front edge cell, drawn over the cell's bounding box; its face hangs below the cell's edge.
-      for (let col = 0; col < shown.w; col++) { const t = cellTop(col, shown.h - 1); at('ground.cliff.sw', t.x - 8, t.y) }
-      for (let row = 0; row < shown.h; row++) { const t = cellTop(shown.w - 1, row); at('ground.cliff.se', t.x - 8, t.y) }
+      for (let col = 0; col < shown.w; col++) { const t = cellTop(col, shown.h - 1); at(pick.cliffSw, t.x - 8, t.y) }
+      for (let row = 0; row < shown.h; row++) { const t = cellTop(shown.w - 1, row); at(pick.cliffSe, t.x - 8, t.y) }
     }
     // A diamond's 16x8 tile has its top-left corner 8 px left of the cell's top vertex.
     for (const plot of ownedPlots(state, view)) {
       const o = plotOrigin(plot)
       for (let row = o.row; row < o.row + TILES_PER_PLOT; row++) for (let col = o.col; col < o.col + TILES_PER_PLOT; col++) {
-        if (tiles.grass.length > 0) {
+        if (pick.grass.length > 0) {
           const t = cellTop(col, row)
-          at(`ground.grass.${(col * 7 + row * 13) % tiles.grass.length}`, t.x - 8, t.y)
+          at(pick.grass[(col * 7 + row * 13) % pick.grass.length]!, t.x - 8, t.y)
         } else {
           diamond(GROUND.grass, col, row)
         }
+        // The optional plot-border mark on the plot's back edges (its top-left row and column of cells).
+        if (tiles.plotEdge && (row === o.row || col === o.col)) { const t = cellTop(col, row); at('ground.plotEdge', t.x - 8, t.y) }
       }
     }
     for (const c of lockedTiles(state, view)) {

@@ -205,6 +205,20 @@ function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): 
   }
 }
 
+/**
+ * Texture keys the baked ground draws on `island`: its own grass tiles when the manifest has any, else the current ones;
+ * its cliff pieces only as a pair, else the current pair. Empty / null = the scene's placeholder diamonds and skirt.
+ */
+export function groundTiles(art: GameArtSet, island: IslandId): { grass: string[]; cliffSw: string | null; cliffSe: string | null } {
+  const own = art.ground.island[island]
+  const grass = own && own.grass.length > 0
+    ? own.grass.map((_, i) => `ground.${island}.${i}`)
+    : art.ground.grass.map((_, i) => `ground.grass.${i}`)
+  if (own?.cliffSw && own.cliffSe) return { grass, cliffSw: `ground.cliff.${island}.sw`, cliffSe: `ground.cliff.${island}.se` }
+  const plain = art.ground.cliffSw && art.ground.cliffSe
+  return { grass, cliffSw: plain ? 'ground.cliff.sw' : null, cliffSe: plain ? 'ground.cliff.se' : null }
+}
+
 /** The unowned plots of an island that touch owned land (§5.5, R44). */
 function signPlots(s: PlayerState, island: IslandId): number[] {
   const owned = ownedPlots(s, island)
