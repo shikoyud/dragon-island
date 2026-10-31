@@ -4,7 +4,7 @@ import type { Action } from '../src/actions/types'
 import { HOME_OBSTACLES } from '../src/data/island-start'
 import { MAX_CLEARS, OBSTACLE_SPAWN, OBSTACLES, type ObstacleKind } from '../src/data/obstacles'
 import { FLASH_14, FLASH_28 } from '../src/data/presets'
-import { SPEEDUP_TOKEN_MS } from '../src/data/speedups'
+import { SPEED_UP_TOKEN_MS } from '../src/data/speedups'
 import { occupants, overlaps } from '../src/island'
 import { clearCost, clearReward, clearTimerMs, rollDrop, spawnPlotObstacles } from '../src/obstacles'
 import { cumulativeXp, levelLimit, xpToNext } from '../src/progression'
@@ -31,7 +31,7 @@ describe('the §5.6 table', () => {
     expect(row('bush')).toEqual([1, 100, 30_000, 5, { percent: 10, food: [10, 25] }])
     expect(OBSTACLE_SPAWN).toEqual({ min: 2, max: 4, weights: { ancientTree: 1, boulder: 1, largeRock: 2, tree: 4, smallRock: 4, bush: 8 } })
     expect(MAX_CLEARS).toBe(2)
-    expect(SPEEDUP_TOKEN_MS).toEqual({ '15m': 900_000, '1h': 3_600_000, '3h': 10_800_000 })
+    expect(SPEED_UP_TOKEN_MS).toEqual({ '15m': 900_000, '1h': 3_600_000, '3h': 10_800_000 })
   })
   it('scales Gold by the island and XP not at all (R52)', () => {
     expect(clearCost(one('bush', 'isle6'))).toBe(50_000)

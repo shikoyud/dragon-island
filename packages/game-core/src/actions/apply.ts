@@ -5,7 +5,7 @@ import type { Rng } from '../rng'
 import type { PlayerState } from '../state'
 import { pveBattle, pvpBattle, setDefenceTeam } from './battle-actions'
 import { buyBasic, collectEgg, hatch, startBreed } from './breed-actions'
-import { buy } from './economy-actions'
+import { buy, useSpeedUp } from './economy-actions'
 import { harvest, plant } from './farm-actions'
 import { claimGoal } from './goal-actions'
 import { finishConstruction, moveBuilding, placeBuilding, removeDecoration, startUpgrade } from './build-actions'
@@ -49,6 +49,7 @@ function dispatch(s: PlayerState, a: Action, ctx: ActionCtx): ActionResult {
     case 'collectEgg': return collectEgg(s, a, ctx)
     case 'hatch': return hatch(s, a, ctx)
     case 'buy': return buy(s, a, ctx)
+    case 'useSpeedUp': return useSpeedUp(s, a, ctx)
     case 'setDefenceTeam': return setDefenceTeam(s, a, ctx)
     case 'pvpBattle': return pvpBattle(s, a, ctx)
     case 'pveBattle': return pveBattle(s, a, ctx)

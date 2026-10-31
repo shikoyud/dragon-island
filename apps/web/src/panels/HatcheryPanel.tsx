@@ -6,6 +6,7 @@ import { ActionButton, Panel } from '../ui/Panel'
 import { isReady, Timer } from '../ui/Timer'
 import { useToasts } from '../ui/Toast'
 import { UpgradeSection } from './UpgradeSection'
+import { SpeedUpButton } from './SpeedUpButton'
 
 /**
  * The Hatchery (§3.1, §5.4): one row per slot. An egg shows only its timer (R20); a hatched dragon with no habitat
@@ -41,6 +42,7 @@ export function HatcheryPanel({ nowMs, onClose, onOpenDragon }: { nowMs: number;
               <ActionButton id={`hatch-${slot}`} primary disabled={pending || !isReady(egg.readyAtMs, nowMs)} reason="Still hatching" onClick={() => void hatch(slot)}>
                 Hatch
               </ActionButton>
+              <SpeedUpButton id={`speedup-hatch-${slot}`} target="hatchery" index={slot} readyAtMs={egg.readyAtMs} nowMs={nowMs} />
               {price !== null && (
                 <ActionButton id={`skip-hatch-${slot}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'hatchery', index: slot } })}>
                   Skip · {formatSkipPrice(price)}

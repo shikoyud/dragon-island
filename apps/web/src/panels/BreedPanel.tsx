@@ -11,6 +11,7 @@ import { formatDuration, formatSkipPrice } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { isReady, Timer } from '../ui/Timer'
 import { UpgradeSection } from './UpgradeSection'
+import { SpeedUpButton } from './SpeedUpButton'
 
 const pct = (weight: number, total: number) => `${((weight * 100) / total).toFixed(2)}%`
 const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1)
@@ -86,6 +87,7 @@ export function BreedPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
                     Skip · {formatSkipPrice(price)}
                   </ActionButton>
                 )}
+                {egg && !done && <SpeedUpButton id={`speedup-breeder-${i}`} target="breeder" index={i} readyAtMs={egg.readyAtMs} nowMs={nowMs} />}
                 {egg && done && (
                   <ActionButton id={`collect-egg-${i}`} primary disabled={pending || hatcheryFull} reason={hatcheryFull ? 'Hatchery is full' : ''} onClick={() => void run({ type: 'collectEgg', breeder: i })}>
                     Move to Hatchery

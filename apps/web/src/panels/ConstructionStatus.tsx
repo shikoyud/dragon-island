@@ -4,6 +4,7 @@ import { useMe } from '../state/me'
 import { formatSkipPrice } from '../ui/Money'
 import { ActionButton } from '../ui/Panel'
 import { Timer } from '../ui/Timer'
+import { SpeedUpButton } from './SpeedUpButton'
 
 /** Timer, manual Finish once ready and Skip price for one construction; the app-level useAutoFinish finishes it automatically. */
 export function ConstructionStatus({ index, readyAtMs, nowMs, id, label }: { index: number; readyAtMs: number; nowMs: number; id: string; label: string }) {
@@ -19,6 +20,7 @@ export function ConstructionStatus({ index, readyAtMs, nowMs, id, label }: { ind
           Finish
         </ActionButton>
       )}
+      {index >= 0 && <SpeedUpButton id={`speedup-construction-${id}`} target="construction" index={index} readyAtMs={readyAtMs} nowMs={nowMs} />}
       {skip !== null && (
         <ActionButton id={`skip-construction-${id}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'construction', index } })}>
           Skip · {formatSkipPrice(skip)}

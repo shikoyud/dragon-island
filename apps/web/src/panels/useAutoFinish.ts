@@ -1,7 +1,9 @@
-import type { PlayerState } from '@wyrmhaven/game-core'
+import type { PlayerState, SpeedUpToken } from '@wyrmhaven/game-core'
 import { useEffect, useRef, useState } from 'react'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
+import { useToasts } from '../ui/Toast'
+import { TOKEN_NAMES } from './SpeedUpButton'
 
 /** A failed attempt on the same construction is retried after this long (e.g. client clock ahead of the server). */
 export const AUTO_FINISH_RETRY_MS = 30_000
@@ -20,6 +22,7 @@ export function firstReadyConstruction(s: PlayerState, nowMs: number): number {
 export function useAutoFinish(nowMs: number): void {
   const me = useMe()
   const { run } = useAction()
+  const toasts = useToasts()
   const busy = useRef(false)
   const [settled, setSettled] = useState(0) // re-runs the effect once our request is done
   const tried = useRef<{ key: string; atMs: number } | null>(null)
@@ -32,6 +35,12 @@ export function useAutoFinish(nowMs: number): void {
     if (tried.current && tried.current.key === key && nowMs - tried.current.atMs < AUTO_FINISH_RETRY_MS) return
     tried.current = { key, atMs: nowMs }
     busy.current = true
-    void run({ type: 'finishConstruction', index }).finally(() => { busy.current = false; setSettled(n => n + 1) })
-  }, [s, nowMs, run, settled])
+    void run({ type: 'finishConstruction', index }).then(res => {
+      // R54/R55: a finished clear can drop a speed-up token; say so.
+      if (!res) return
+      for (const k of Object.keys(TOKEN_NAMES) as SpeedUpToken[]) {
+        if (res.state.speedUps[k] > s.speedUps[k]) toasts.info(`Found a ${TOKEN_NAMES[k]} speed-up`)
+      }
+    }).finally(() => { busy.current = false; setSettled(n => n + 1) })
+  }, [s, nowMs, run, settled, toasts])
 }

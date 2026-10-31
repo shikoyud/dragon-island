@@ -207,6 +207,24 @@ describe('POST /actions', () => {
     expect(await t.db.select().from(spendBatches)).toHaveLength(1)
   })
 
+  it('replaying a useSpeedUp idempotency key spends one token (R55)', async () => {
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const br = (p!.state as PlayerState).breeders
+    const egg = { speciesId: 'flame', readyAtMs: 10_800_000, hatchMs: 1, xpFree: false }
+    await setState({ speedUps: { '15m': 0, '1h': 3, '3h': 0 }, breeders: [{ ...br[0]!, egg }, ...br.slice(1)] })
+    const use = { type: 'useSpeedUp', token: '1h', target: 'breeder', index: 0 }
+    const first = await post(use, 'tok-1')
+    const replay = await post(use, 'tok-1')
+    expect([first.statusCode, replay.statusCode]).toEqual([200, 200])
+    expect(replay.json()).toEqual(first.json())
+    const [q] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const s = q!.state as PlayerState
+    expect([s.speedUps['1h'], s.breeders[0]!.egg!.readyAtMs]).toEqual([2, 7_200_000])
+    expect(await t.db.select().from(spendBatches)).toHaveLength(0)
+    const none = await post({ ...use, token: '3h' }, 'tok-2')
+    expect([none.statusCode, none.json().error]).toEqual([422, 'NO_TOKEN'])
+  })
+
   it('claimGoal posted twice with one idempotency key pays the reward once', async () => {
     const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
     const before = p!.state as PlayerState

@@ -6,6 +6,7 @@ import { formatDuration, formatGold, formatSkipPrice } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { isReady, Timer } from '../ui/Timer'
 import { UpgradeSection } from './UpgradeSection'
+import { SpeedUpButton } from './SpeedUpButton'
 
 /** Crops in tier order (the order of the CROPS table). */
 const CROP_IDS = Object.keys(CROPS) as CropId[]
@@ -32,10 +33,15 @@ export function FarmPanel({ index, nowMs, onClose }: { index: number; nowMs: num
             <ActionButton id={`harvest-${index}`} primary disabled={pending} onClick={() => void run({ type: 'harvest', plot: index })}>
               Harvest · {formatGold(cropFood(plot.crop, plot.level, preset))} food
             </ActionButton>
-          ) : skip !== null && (
-            <ActionButton id={`skip-farm-${index}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'farm', index } })}>
-              Skip · {formatSkipPrice(skip)}
-            </ActionButton>
+          ) : (
+            <>
+              <SpeedUpButton id={`speedup-farm-${index}`} target="farm" index={index} readyAtMs={plot.readyAtMs} nowMs={nowMs} />
+              {skip !== null && (
+                <ActionButton id={`skip-farm-${index}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'farm', index } })}>
+                  Skip · {formatSkipPrice(skip)}
+                </ActionButton>
+              )}
+            </>
           )}
         </div>
       ) : (

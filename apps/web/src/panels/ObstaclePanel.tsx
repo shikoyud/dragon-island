@@ -1,4 +1,4 @@
-import { OBSTACLES, activeClears, clearCost, clearReward, clearTimerMs, MAX_CLEARS, type ObstacleDrop, type ObstacleKind, type SpeedUpToken } from '@wyrmhaven/game-core'
+import { OBSTACLES, activeClears, clearCost, clearReward, clearTimerMs, MAX_CLEARS, type ObstacleDrop, type ObstacleKind } from '@wyrmhaven/game-core'
 import { timerLabel } from '../game/islandModel'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -6,11 +6,11 @@ import { usePreset } from '../state/preset'
 import { formatGold } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { ConstructionStatus } from './ConstructionStatus'
+import { TOKEN_NAMES } from './SpeedUpButton'
 
 const NAMES: Record<ObstacleKind, string> = {
   ancientTree: 'Ancient Tree', boulder: 'Boulder', largeRock: 'Large Rock', tree: 'Tree', smallRock: 'Small Rock', bush: 'Bush',
 }
-const TOKEN_NAMES: Record<SpeedUpToken, string> = { '15m': '15 min', '1h': '1 h', '3h': '3 h' }
 
 /** §5.6's bonus drop as the player reads it, e.g. `10 % chance: 3 h speed-up`. */
 function dropLabel(d: ObstacleDrop): string {

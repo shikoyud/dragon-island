@@ -24,6 +24,7 @@ export const errorMessages: Record<string, string> = {
   LAST_DRAGONS: 'Keep at least two dragons so you can still breed.',
   NOT_SELLABLE: 'Legendary dragons cannot be sold.',
   NOTHING_TO_SKIP: 'There is no timer to skip here.',
+  NO_TOKEN: 'You have no speed-up token of that kind.',
   INVALID_TEAM: 'Pick three different dragons you own.',
   NO_DEFENCE_TEAM: 'Save a defence team before attacking.',
   DAILY_CAP_REACHED: 'You have reached today’s limit for that.',

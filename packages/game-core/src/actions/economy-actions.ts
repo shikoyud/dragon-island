@@ -10,6 +10,7 @@ import { spendGold } from '../wallet'
 import { placementRuleError } from '../placement-rules'
 import type { Rng } from '../rng'
 import type { PlayerState } from '../state'
+import { SPEED_UP_TOKEN_MS } from '../data/speedups'
 import { FOOD_PACK, ownsAerie, priceMicroUsd, skipTargetReadyAt, type SkipTarget, type StoreItem } from '../store'
 import { completeConstruction } from './build-actions'
 import { collectHabitat } from './island-actions'
@@ -116,4 +117,23 @@ export const buy: Handler<'buy'> = (s, a, ctx) => {
   const microUsd = priceMicroUsd(a.item, s, ctx.nowMs)
   if (microUsd === null) return failure('NOT_FOUND')
   return success(applyItem(a.item, s, ctx.nowMs, ctx.catalog, ctx.preset, ctx.day, ctx.rng), [{ type: 'charge', microUsd }])
+}
+
+/**
+ * R55: a token takes its hours off any timer a  skip can target, floored at now (the surplus is lost).
+ * It completes nothing itself: the same finish paths run once the timer is up.
+ */
+export const useSpeedUp: Handler<'useSpeedUp'> = (s, a, ctx) => {
+  const { token, target, index } = a
+  if (index >= skipSlotCount(s, target)) return failure('NOT_FOUND')
+  const readyAt = skipTargetReadyAt(s, target, index)
+  if (readyAt === null || readyAt <= ctx.nowMs) return failure('NOTHING_TO_SKIP')
+  if (s.speedUps[token] < 1) return failure('NO_TOKEN')
+  const to = Math.max(ctx.nowMs, readyAt - SPEED_UP_TOKEN_MS[token])
+  const at = <T extends { readyAtMs: number } | null>(xs: T[]) => xs.map((x, i) => i === index && x ? { ...x, readyAtMs: to } : x)
+  const spent: PlayerState = { ...s, speedUps: { ...s.speedUps, [token]: s.speedUps[token] - 1 } }
+  if (target === 'breeder') return success({ ...spent, breeders: s.breeders.map((b, i) => i === index && b.egg ? { ...b, egg: { ...b.egg, readyAtMs: to } } : b) })
+  if (target === 'construction') return success({ ...spent, constructions: at(s.constructions) })
+  if (target === 'hatchery') return success({ ...spent, hatchery: at(s.hatchery) })
+  return success({ ...spent, farms: at(s.farms) })
 }
