@@ -345,7 +345,7 @@ export class IslandScene extends Phaser.Scene {
    */
   private drawGround(): void {
     const { state, view } = this.bridge
-    const key = `${this.art().version}:${view}:${state ? ownedPlots(state, view).join(',') : '-'}`
+    const key = `${view}:${state ? ownedPlots(state, view).join(',') : '-'}`
     if (key === this.groundKey) return
     this.groundKey = key
     const g = this.ground.clear()

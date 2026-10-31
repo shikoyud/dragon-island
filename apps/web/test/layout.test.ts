@@ -64,6 +64,8 @@ describe('isometric layout', () => {
       expect(inside(p)).toBeLessThanOrEqual(0.9)
     }
     expect(spots[0]).toEqual({ x: a.x, y: a.y - 16 }) // the first dragon stands in the middle
+    // The art list's habitat silhouette (docs/art/gdd-m4-art-list.md): a 52x26 top face centred 16 px above the anchor; every spot is on it.
+    for (const p of spots) expect(Math.abs(p.x - a.x) / 26 + Math.abs(p.y - (a.y - 16)) / 13).toBeLessThanOrEqual(1)
     expect(dragonSpot(a, 12)).toEqual(spots[6]) // past the last, they share it
   })
 

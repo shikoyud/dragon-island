@@ -11,23 +11,25 @@ Style: the v1 set's palette and 1 px dark outline, transparent background, origi
 - An obstacle sheet whose width is `footprint cells x 16` draws at scale 1.
 - The island is 32 x 32 cells (4 x 4 plots of 8 x 8 cells), seen whole; the camera pans and zooms over it.
 
-**Generation budget.** PixelLab has about **1,115 generations left**. One "generation" in the table below means one finished sheet or still (a key); it may take several PixelLab calls (a still is usually 1 to 3, a 4-frame sheet 2 to 5). Required: **58 keys**, which at the worst case of 5 calls each is about 290 calls, roughly a quarter of what is left; with the optional keys (**65**) about 325. Count calls as you go and stop at 800 remaining unless the owner says otherwise.
+**Generation budget.** PixelLab has about **1,115 generations left**. One "generation" in the table below means one finished sheet or still (a key); it may take several PixelLab calls (a still is usually 1 to 3, a 4-frame sheet 2 to 5). Required: **64 keys**, which at the worst case of 5 calls each is about 320 calls, under a third of what is left; with the one optional key (**65**) about 325. Count calls as you go and stop at 800 remaining unless the owner says otherwise.
 
 | Group | Keys | Generations |
 |---|---|---|
 | Habitats, 10 elements | `habitat.<element>` | 10 |
 | Golden Aerie | `building.goldenAerie` | 1 |
 | Farm | `building.farmPlot` | 1 |
-| Crops | `crop.<id>` x 6 | 6 |
+| Crops, growth stages | `crop.<id>` x 6 | 6 |
+| Crops, ripe sway | `crop.<id>.sway` x 6 | 6 |
 | Obstacles | `obstacle.<kind>` x 6 | 6 |
 | Map | `map.home`, `map.isle2` to `map.isle6`, `map.bridge`, `map.backdrop` | 8 |
 | Island ground | `ground.<island>.<0..2>` x 5 islands | 15 |
 | Island cliffs | `ground.cliff.<island>.sw` / `.se` x 5 islands | 10 |
 | Fog | `ground.fog` (replaces the current one) | 1 |
-| **Total (required)** | | **58** |
-| Crop sway (optional) | `crop.<id>.sway` x 6 | 6 |
+| **Total (required)** | | **64** |
 | Plot border mark (optional) | `ground.plotEdge` | 1 |
-| **Total with the optional keys** | | **65** |
+| **Total with the optional key** | | **65** |
+
+Most of these **replace sheets that already exist in the v1 manifest under the same key** (the habitats, `building.goldenAerie`, `building.farmPlot`, all twelve crop keys, `obstacle.boulder`, `obstacle.bush`, `obstacle.tree`, the Map icons and `map.backdrop`, `ground.fog`). The rest are new keys (`obstacle.ancientTree`, `obstacle.largeRock`, `obstacle.smallRock`, `map.bridge`, `map.isle6`, all the per-island ground and cliffs, `ground.plotEdge`). Art lands in `apps/web/public/art/v1/` in place (the game's `ART_VERSION` is a code constant, `v1`): overwrite the PNG, update the manifest entry (`w`, `h`, `frames`, `fps`, `top`), and reload the game to see it.
 
 Priority order if the budget runs short: **habitats (and the Golden Aerie), then the Farm and crops, then obstacles, then the Map, then island tiles** (grass first, then cliffs, then `ground.fog`); the optional keys last. Every group degrades alone: a missing habitat or Farm sheet is drawn from the old one, a missing obstacle from the nearest old sprite, a missing island tile from Home's, a missing Map icon from the old 32x32 one (or a drawn disc).
 
@@ -43,15 +45,15 @@ They already draw at scale 1. The art thread should look at each in the running 
 
 ## Buildings at final size
 
-Replace the sheets under the same keys. Each element's look carries over: start from the existing `habitat.<element>` sheet's colours, props and animation idea and redraw it onto the new platform (for example an edit pass from the v1 sheet).
+Replace the existing v1 sheets under the same keys (they are 80x64 habitats, an 80x64 one-frame Golden Aerie and a 32x32 Farm today). Each element's look carries over: start from the existing `habitat.<element>` sheet's colours, props and animation idea and redraw it onto the new platform (for example an edit pass from the v1 sheet).
 
 | Key | Frame (px) | Frames | fps | Description |
 |---|---|---|---|---|
 | `habitat.<element>` | 64x56 | 4 | 4 | One sheet per element (`terra flame sea nature electric ice metal dark light war`, 10 in all): the element's platform with its element loop (embers flicker, water ripples, sparks, frost glints, ...). The platform itself does not move. 4x4 footprint |
-| `building.goldenAerie` | 64x56 | 4 | 4 | Golden Aerie, the all-element habitat: the same platform shape as the habitats in white stone with gold trim, a ring of small gem-coloured motes (one per element colour) drifting above it, a soft golden shimmer loop. Today it shows the Nexus sprite; this gives it its own. 4x4 footprint |
+| `building.goldenAerie` | 64x56 | 4 | 4 | Golden Aerie, the all-element habitat: the same platform shape as the habitats in white stone with gold trim, a ring of small gem-coloured motes (one per element colour) drifting above it, a soft golden shimmer loop. Replaces the v1 `building.goldenAerie` (80x64, one frame, drawn today at 0.8): same key, now 64x56 with a 4-frame loop. 4x4 footprint |
 | `building.farmPlot` | 48x40 | 1 | 0 | Farm: tilled soil beds in a neat grid on a low wooden-edged diamond, with a small scarecrow or well at the back corner. The top face is empty soil so crops read on it. 3x3 footprint |
 
-**Habitat and Aerie rules (the code is tuned to them).** The sheet is 64 wide, so the top face is the **full width of the sheet**: a 64x32 diamond in the bottom 32 rows (left and right vertices at sheet y 40, bottom vertex at the bottom-centre pixel, y 55). Its **centre stays 16 px above the bottom-centre of the sheet** (the same point as on the current sheets), because dragons stand on fixed spots measured from that bottom vertex: (0,-16) first, then (-14,-20), (14,-20), (0,-26), (-12,-11), (12,-11), (-22,-16), feet on those points (`apps/web/src/game/layout.ts`, `DRAGON_SPOTS`). The 48x48 dragon sprites draw over the habitat, so keep the front half of the top face flat and clear; put props, totems and the element's glow at the back and sides, rising into the top 24 rows. Platform thickness (the cliff-like edge) goes below the diamond's side vertices, inside the 56 rows. If a redrawn platform moves its top face, say so in the PR and the spots in `layout.ts` get retuned there instead.
+**Habitat and Aerie rules (the code is tuned to them).** **One silhouette** (sheet 64x56, pixel x 0 to 63, y 0 to 55; the anchor is the bottom-centre pixel (32, 55), the footprint's bottom vertex). The platform is a slab: a **52x26 top-face diamond** with its **centre at (32, 39), i.e. 16 px above the anchor**, vertices left (6, 39), right (58, 39), top (32, 26), bottom (32, 52), and a **3 px rim** (stone edge, outline included) below the face's lower edges, so the lowest rows (y 53 to 55) are the rim's front vertex. The 6 px margins left and right of the slab are for props and glow only. (The v1 sheets do not match this: their platform is a taller, wider slab whose top-face centre is about 26 px above the anchor at the 0.8 scale they draw at; `DRAGON_SPOTS` was meant for a 64x32 face centred 16 px up, which has no room for a rim, so the face is 52x26 and the spots are unchanged and all inside it, `layout.test.ts` checks this.) Dragons stand on fixed spots measured from the anchor: (0,-16) first, then (-14,-20), (14,-20), (0,-26), (-12,-11), (12,-11), (-22,-16), feet on those points (`apps/web/src/game/layout.ts`, `DRAGON_SPOTS`). The 48x48 dragon sprites draw over the habitat, so keep the front half of the top face flat and clear; put props, totems and the element's glow at the back and sides, rising into the top 26 rows.
 
 **Farm rules.** The 48x24 top face sits in the bottom 24 rows with its centre 12 px above the bottom-centre of the sheet. Crops draw as separate sprites with their bottom-centre **10 px above the Farm's bottom vertex** (`y - 10` in `islandModel.ts`), at their own size, so the Farm's soil must show at that point.
 
@@ -67,13 +69,13 @@ Replace the sheets under the same keys. Each element's look carries over: start 
 | `crop.thunderPumpkin` | 24x24 | 3 | 0 | Thunder pumpkin: sprout, vine with a yellow flower, a ripe pumpkin with a jagged lightning mark |
 | `crop.frostBerries` | 24x24 | 3 | 0 | Frost berries: pale sprout, frosted bush, bush with icy-blue berries |
 | `crop.warlordPepper` | 24x24 | 3 | 0 | Warlord pepper: sprout, leafy plant, plant hung with dark crimson peppers |
-| `crop.<id>.sway` | 24x24 | 4 | 4 | Optional. Ripe-stage loop for each of the six ids, same design as the last growth frame, swaying a pixel or two. Played in place of the last frame when it exists; frame 0 must equal the ripe frame |
+| `crop.<id>.sway` | 24x24 | 4 | 4 | **Required, one per id (six keys).** Ripe-stage loop, same design as the last growth frame, swaying a pixel or two; frame 0 equals the ripe frame. The game draws it in place of the last growth frame once the crop is ripe, so if it stayed at the v1 16x16 the crop would shrink when it ripens |
 
-Draw each crop with its bottom-centre on the bottom-centre pixel of the frame (that point lands 10 px above the Farm's bottom vertex). The old `crop.sprout`, `crop.bushel`, `crop.harvest` and `crop.bounty` keys in the v1 manifest are not read.
+These replace the existing v1 sheets: `crop.<id>` is 16x16 with 3 frames today and `crop.<id>.sway` is 16x16 with 4 frames. Replace **both** for all six ids, in the same pass. Draw each crop with its bottom-centre on the bottom-centre pixel of the frame (that point lands 10 px above the Farm's bottom vertex). Record `top` (transparent rows above the art) in the manifest for every crop and sway sheet: the ripe and timer badges sit just above it. The v1 manifest also holds `crop.sprout`, `crop.bushel`, `crop.harvest` and `crop.bounty` (and `.sway` of each): the game does not read them; leave them as they are.
 
 ## Obstacles
 
-Stills, original designs, bottom-centre on the footprint's bottom vertex. The width is the footprint's (cells x 16), so each draws at scale 1. An obstacle with no sheet uses the nearest old sprite (`boulder`, `ruin`, `rock`, `tree`, `bush`), whose size differs, so it is the sheets listed here that make them fit.
+Stills, original designs, bottom-centre on the footprint's bottom vertex. The width is the footprint's (cells x 16), so each draws at scale 1. v1 has `obstacle.boulder` (32x32), `obstacle.bush` (16x16) and `obstacle.tree` (32x32): replace those under the same keys; `ancientTree`, `largeRock` and `smallRock` are new. Until a kind has its own sheet it uses the nearest old sprite (`boulder`, `ruin`, `rock`, `tree`, `bush`), whose size differs, so it is the sheets listed here that make them fit. Leave `obstacle.ruin` and `obstacle.rock` in the manifest.
 
 | Key | Frame (px) | Frames | fps | Description |
 |---|---|---|---|---|
@@ -110,7 +112,7 @@ Island themes (names and themes from `packages/game-core/src/data/islands.ts`; `
 | `ground.fog` | 16x8 | 1 | 0 | **Replaces the current white cloud tile** (the one change to "ground.fog stays"). On the first screen the current fog reads as snow, white and bright beside the grass. Draw unowned, distant, misty land instead: a dim desaturated blue-grey haze (no white, darker than every grass tile, never brighter than the island ground beside it) with a faint hint of shaped land and soft drifting mist, so it reads as land you cannot reach yet. Tiles seamlessly on all four edges |
 | `ground.plotEdge` | 16x8 | 1 | 0 | Optional. A faint border mark in a darker or lighter tone of grass with 40 % opacity, drawn over the plot's back-edge cells (its first row and first column of 8 x 8 cells) so owned plots read as separate squares. Transparent except the mark. Skip it if it looks busy at zoom 1 |
 
-How the game uses them: the island scene bakes the landmass once per island (`IslandScene.drawGround`). For each island it reads `ground.<island>.<n>` (those present, in order, so 0, 1, 2) for grass, else Home's `ground.grass.<n>`; it uses `ground.cliff.<island>.sw` and `.se` only if **both** exist, else Home's pair. Pieces are chosen one island at a time, so a partial set is fine. Unowned land draws `ground.fog` on every island. The bake is keyed by art version, island and owned plots; a changed manifest version makes it redraw.
+How the game uses them: the island scene bakes the landmass once per island (`IslandScene.drawGround`). For each island it reads `ground.<island>.<n>` (those present, in order, so 0, 1, 2) for grass, else Home's `ground.grass.<n>`; it uses `ground.cliff.<island>.sw` and `.se` only if **both** exist, else Home's pair. Pieces are chosen one island at a time, so a partial set is fine. Unowned land draws `ground.fog` on every island. The bake is keyed by island and owned plots and is made once the art set is loaded, so new PNGs show after a reload.
 
 ## Plots
 
