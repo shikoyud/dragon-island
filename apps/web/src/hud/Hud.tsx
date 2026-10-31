@@ -7,7 +7,7 @@ import { TOKEN_KEY as ADMIN_TOKEN_KEY } from '../pages/Admin'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatGold, formatWei } from '../ui/Money'
-import { attentionItems, xpFraction, type AttentionItem } from './hudModel'
+import { attentionItems, goalClaimable, xpFraction, type AttentionItem } from './hudModel'
 import { Icon, type IconName } from './Icon'
 import { TerminalClock } from './TerminalClock'
 
@@ -51,12 +51,12 @@ function Pill({ icon, label, value, sub, plusLabel, onPlus }: { icon: IconName; 
   )
 }
 
-const ACTION_VERB: Partial<Record<ClientAction['type'], string>> = { finishConstruction: 'Finish', collectEgg: 'Collect', harvest: 'Harvest' }
+const ACTION_VERB: Partial<Record<ClientAction['type'], string>> = { finishConstruction: 'Finish', collectEgg: 'Collect', harvest: 'Harvest', claimGoal: 'Claim' }
 
 function Shortcut({ item, nowMs, onOpen }: { item: AttentionItem; nowMs: number; onOpen: (k: DialogKey) => void }) {
   const { run, pending } = useAction()
-  const open = () => onOpen({ kind: 'target', target: item.panel })
-  const icon: IconName = item.id.startsWith('construction') ? 'build' : item.id === 'crops' ? 'food' : 'breed'
+  const open = () => onOpen(item.open ?? { kind: 'target', target: item.panel })
+  const icon: IconName = item.id.startsWith('construction') ? 'build' : item.id === 'crops' ? 'food' : item.id === 'goal' ? 'quests' : 'breed'
   return (
     <li className={`hud-shortcut${item.ready ? ' hud-shortcut--ready' : ''}`}>
       <button type="button" className="hud-shortcut__open" onClick={open}>
@@ -150,7 +150,8 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
             <RoundButton icon="dragons" label="Dragon Book" active={isPanel(open, 'book')} onClick={panel('book')} />
             <RoundButton icon="battle" label="Battle" active={isPanel(open, 'battle')} onClick={panel('battle')} />
             <RoundButton icon="wings" label="Wings" disabledReason={COMING_LATER} />
-            <RoundButton icon="quests" label="Quests" disabledReason={COMING_LATER} />
+            <RoundButton icon="quests" label="Quests" active={isPanel(open, 'quests')} onClick={panel('quests')}
+              badge={goalClaimable(s) ? <span className="hud-dot" role="img" aria-label="Goal ready" /> : undefined} />
             <RoundButton icon="inbox" label="Inbox" disabledReason={COMING_LATER} />
           </nav>
         )}

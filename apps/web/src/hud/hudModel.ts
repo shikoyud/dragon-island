@@ -1,7 +1,8 @@
-import { xpToNext, type BreederKind, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
+import { currentGoal, goalProgress, LAUNCH_CATALOG, xpToNext, type BreederKind, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import type { Target } from '../game/bridge'
 import { hatcheryHasRoom } from '../game/islandModel'
+import type { DialogKey } from './Hud'
 
 /** Pure numbers and lists the HUD shows; no React, so they are tested directly. */
 
@@ -22,6 +23,16 @@ export interface AttentionItem {
   action?: ClientAction
   /** What the shortcut opens otherwise: the same panel a click on the island would. */
   panel: Target
+  /** Opens instead of `panel` when set (a named HUD panel, such as Quests). */
+  open?: DialogKey
+}
+
+/** The current Goal is done and waiting for Claim (§1.4). */
+export function goalClaimable(s: PlayerState): boolean {
+  const g = currentGoal(s)
+  if (!g) return false
+  const p = goalProgress(s, g, LAUNCH_CATALOG)
+  return p.have >= p.need
 }
 
 export const MAX_ATTENTION = 5
@@ -89,6 +100,9 @@ export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
   const waiting = s.dragons.filter(d => d.habitatId === null).length
   if (waiting > 0) {
     items.push({ id: 'noRoom', label: waiting === 1 ? 'Hatchling: no room' : `${waiting} hatchlings: no room`, ready: true, panel: { kind: 'hatcheryBuilding' } })
+  }
+  if (goalClaimable(s)) {
+    items.push({ id: 'goal', label: 'Goal ready', ready: true, action: { type: 'claimGoal' }, panel: { kind: 'empty' }, open: { kind: 'panel', id: 'quests' } })
   }
   const ordered = items.sort((p, q) => Number(q.ready) - Number(p.ready) || (p.readyAtMs ?? 0) - (q.readyAtMs ?? 0))
   return ordered.slice(0, MAX_ATTENTION)

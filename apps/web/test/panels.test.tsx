@@ -9,6 +9,7 @@ import { DragonPanel } from '../src/panels/DragonPanel'
 import { FarmPanel } from '../src/panels/FarmPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
 import { HatcheryPanel } from '../src/panels/HatcheryPanel'
+import { QuestsPanel } from '../src/panels/QuestsPanel'
 import { ResourcesBar } from '../src/panels/ResourcesBar'
 import { ShopPanel } from '../src/panels/ShopPanel'
 import { StartPlacingProvider } from '../src/state/startPlacing'
@@ -529,4 +530,47 @@ describe('ShopPanel Store tab food pack', () => {
   })
 
 
+})
+
+describe('QuestsPanel (§1.4)', () => {
+  const done = (n: number): PlayerState => ({ ...base, goalIndex: n })
+  it('shows an unmet Goal with its progress and no Claim', () => {
+    harness(base).wrap(<QuestsPanel />)
+    expect(screen.getByText('Goal 1 of 14')).toBeInTheDocument()
+    expect(screen.getByText('Collect Gold from a habitat')).toBeInTheDocument()
+    expect(screen.getByText('0 / 1')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Claim' })).toBeNull()
+  })
+
+  it('shows Claim when done, and sends claimGoal', async () => {
+    const h = harness({ ...base, goalStats: { ...base.goalStats, collects: 1 } })
+    h.wrap(<QuestsPanel />)
+    expect(screen.getByText('1 / 1')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Claim' }))
+    expect(h.action).toHaveBeenCalledWith({ type: 'claimGoal' }, expect.any(String))
+  })
+
+  it('shows XP after the preset multiplier: 300 under Flash-14, 200 under Flash-28', () => {
+    harness(base, 0, 'flash14').wrap(<QuestsPanel />)
+    expect(screen.getByText('+300 XP · +200 gold')).toBeInTheDocument()
+    cleanup()
+    harness(base, 0, 'flash28').wrap(<QuestsPanel />)
+    expect(screen.getByText('+200 XP · +200 gold')).toBeInTheDocument()
+  })
+
+  it('counts through the later Goals and ends with All goals done', () => {
+    harness(done(3)).wrap(<QuestsPanel />)
+    expect(screen.getByText('Goal 4 of 14')).toBeInTheDocument()
+    cleanup()
+    harness(done(14)).wrap(<QuestsPanel />)
+    expect(screen.getByText('All goals done')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Claim' })).toBeNull()
+  })
+
+  it('opens where a Goal is done: Goal 2 opens the Farm', async () => {
+    const onOpen = vi.fn()
+    harness(done(1)).wrap(<QuestsPanel onOpen={onOpen} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Go to Farm' }))
+    expect(onOpen).toHaveBeenCalledWith({ kind: 'target', target: { kind: 'farm', plot: 0 } })
+  })
 })

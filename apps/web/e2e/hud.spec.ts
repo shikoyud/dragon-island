@@ -50,7 +50,8 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
         await expect(bar.getByRole('button', { name: b, exact: true })).toBeVisible()
         expect((await bar.getByRole('button', { name: b, exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(44)
       }
-      for (const b of ['Wings', 'Quests', 'Inbox']) await expect(bar.getByRole('button', { name: b, exact: true })).toBeDisabled()
+      for (const b of ['Wings', 'Inbox']) await expect(bar.getByRole('button', { name: b, exact: true })).toBeDisabled()
+      await expect(bar.getByRole('button', { name: 'Quests', exact: true })).toBeEnabled()
       await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toContainText(/^(Launch in|Finals lock in) \d+d \d\d:\d\d:\d\d$/)
       await expect(page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name: 'Map', exact: true })).toBeVisible()
       for (const b of ['Hoard', 'Season', 'Ranks', 'Referral']) await expect(page.getByRole('button', { name: b, exact: true })).toHaveCount(0)

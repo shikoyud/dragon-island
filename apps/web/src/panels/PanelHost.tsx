@@ -16,6 +16,7 @@ import { HabitatPanel } from './HabitatPanel'
 import { IslandMapPanel } from './IslandMapPanel'
 import { HatcheryPanel } from './HatcheryPanel'
 import { ObstaclePanel } from './ObstaclePanel'
+import { QuestsPanel } from './QuestsPanel'
 import { RoostPanel } from './RoostPanel'
 import { ShopPanel } from './ShopPanel'
 import { WalletPanel } from './WalletPanel'
@@ -48,8 +49,8 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
       case 'breed': return <BreedPanel nowMs={nowMs} onClose={close} />
       case 'book': return <DragonBookPanel art={bridge.art} onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
       case 'battle': return <BattleHub nowMs={nowMs} onPve={onPve} onPvp={onPvp} onClose={close} />
+      case 'quests': return <QuestsPanel onClose={close} onOpen={onOpen} />
       case 'wings':
-      case 'quests':
       case 'inbox': return null // not built until a later milestone; the bar buttons are disabled
       case 'settings': return <div className="settings-dialog"><WalletPanel onClose={close} /><div className="settings-dialog__account"><SignIn /></div></div>
     }

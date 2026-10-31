@@ -204,3 +204,7 @@
 }
 /* The island map lists islands over the sea-chart backdrop (map.backdrop), dimmed behind the rows. */
 .map-chart { padding: 10px; background: var(--bg) center / cover no-repeat; image-rendering: pixelated; box-shadow: inset 0 0 0 999px rgba(15, 19, 36, 0.45); }
+
+/* A small dot on a menu button: something is ready there. */
+.hud-dot { display: block; width: 8px; height: 8px; border-radius: 50%; }
+.hud-round__badge:has(.hud-dot) { padding: 0; width: 14px; height: 14px; display: grid; place-items: center; }
