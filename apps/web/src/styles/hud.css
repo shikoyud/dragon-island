@@ -8,7 +8,7 @@
 
 /* The overlay takes no pointer events itself; only its controls do, so the island stays draggable between them. */
 .hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
-.hud button, .hud a, .hud-pill, .hud-shortcut, .placement-bar, .hud-xp { pointer-events: auto; }
+.hud button, .hud a, .hud-pill, .hud-shortcut, .placement-bar, .hud-xp, .map-list { pointer-events: auto; }
 .hud-icon { display: block; image-rendering: pixelated; flex: none; }
 .outlined, .hud-round__label, .hud-xp__text { text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink); }
 
@@ -163,7 +163,6 @@
   .hud-right { top: 132px; right: 6px; gap: 6px; }
   /* Shortcuts shrink to icon + timer (the label stays for screen readers) so they cover little of the island. */
   .hud-left { top: 132px; left: 6px; width: auto; }
-  .map-list:focus-within { top: 132px; left: 6px; right: 60px; }
   .hud-shortcut__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .hud-shortcut__open { padding: 4px; }
   .hud-shortcut__open { font-size: 11px; }
@@ -222,7 +221,7 @@
   .skin-round .hud-round__plate { width: 48px; height: 48px; }
   .skin-round .hud-round--small .hud-round__plate { width: 38px; height: 38px; }
 }
-/* The island map lists islands over the sea-chart backdrop (map.backdrop), dimmed behind the rows. */
+/* An island's panel on the Map sits on the sea-chart backdrop (map.backdrop), dimmed behind its contents. */
 .map-chart { padding: 10px; background: var(--bg) center / cover no-repeat; image-rendering: pixelated; box-shadow: inset 0 0 0 999px rgba(15, 19, 36, 0.45); }
 
 /* The Map's list of islands for the keyboard and screen readers (R60): out of sight until a button in it has focus. */
@@ -230,6 +229,8 @@
 .map-list:focus-within { position: absolute; left: 10px; top: 78px; z-index: 1; padding: 8px; background: var(--glass); border: 2px solid var(--ink); }
 .map-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .map-list .btn { width: 100%; min-height: 44px; }
+/* Below the pills and the clock on a phone. After the rule above: same specificity. */
+@media (max-width: 699px) { .map-list:focus-within { top: 132px; left: 6px; right: 60px; } }
 .map-island { display: grid; gap: 8px; justify-items: center; text-align: center; }
 
 /* A small dot on a menu button: something is ready there. */

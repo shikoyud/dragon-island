@@ -135,6 +135,19 @@ test('Escape and the scrim close the island panel to the Map; the Map button and
   await expect.poll(() => page.evaluate(() => (window as unknown as { __bridge: TestBridge }).__bridge.mapOpen)).toBe(false)
 })
 
+test('on a phone the focused island list sits clear of the pills and the clock', async ({ page, request }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await load(page, request, { level: 5, gold: 1_000 })
+  await openMap(page)
+  await page.getByRole('navigation', { name: 'Islands' }).getByRole('button', { name: /Home Isle/ }).focus()
+  const list = (await page.getByRole('navigation', { name: 'Islands' }).boundingBox())!
+  const pills = (await page.getByRole('status', { name: 'Resources' }).boundingBox())!
+  const clock = (await page.getByRole('timer', { name: 'Terminal countdown' }).boundingBox())!
+  expect(list.y).toBeGreaterThanOrEqual(pills.y + pills.height)
+  expect(list.y).toBeGreaterThanOrEqual(clock.y + clock.height)
+  expect(list.x + list.width).toBeLessThanOrEqual(390)
+})
+
 test('coming back from the Map, the island\'s camera is where it was and its land is baked, even after a lost context', async ({ page, request }) => {
   await load(page, request, { level: 6, gold: 50_000 })
   const grass = async () => {

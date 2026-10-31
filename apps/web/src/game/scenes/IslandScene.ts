@@ -62,6 +62,7 @@ export class IslandScene extends Phaser.Scene {
     range: () => this.range(),
     size: () => ({ w: this.scale.width, h: this.scale.height }),
   })
+  private levelUpOnWake = false
   private lastCell = ''
   private groundKey = ''
   private view: View | null = null
@@ -91,9 +92,10 @@ export class IslandScene extends Phaser.Scene {
         if (e.placing && !this.sys.isSleeping()) this.reveal(anchor(e.placing.col, e.placing.row, e.placing.size))
       }),
       this.bridge.on('levelUp', () => {
-        if (!this.alive() || this.sys.isSleeping() || !this.art().fx.levelUp) return
-        const c = this.cameras.main.midPoint
-        this.playOnce('fx.levelUp', { x: c.x, y: c.y })
+        if (!this.alive()) return
+        // The screen can open before the island wakes (a level gained in a battle): play it then.
+        if (this.sys.isSleeping()) this.levelUpOnWake = true
+        else this.playLevelUp()
       }),
     ]
     const cellToScreen = (col: number, row: number) => this.toScreen(cellCentre(col, row))
@@ -107,7 +109,11 @@ export class IslandScene extends Phaser.Scene {
     const onResize = () => { if (this.alive() && !this.sys.isSleeping()) this.frame() }
     this.scale.on(Phaser.Scale.Events.RESIZE, onResize)
     // Back from the Map or a battle: the camera is where it was (or opens on a new island), and the bake catches up.
-    this.events.on(Phaser.Scenes.Events.WAKE, () => this.sync())
+    this.events.on(Phaser.Scenes.Events.WAKE, () => {
+      this.sync()
+      if (this.levelUpOnWake) this.playLevelUp()
+      this.levelUpOnWake = false
+    })
     this.events.on(Phaser.Scenes.Events.SLEEP, () => this.gestures.reset())
     // A lost WebGL context empties every render target. Phaser restores its textures and then says so: bake the land again.
     const renderer = this.game.renderer as Phaser.Renderer.WebGL.WebGLRenderer | Phaser.Renderer.Canvas.CanvasRenderer | undefined
@@ -314,6 +320,12 @@ export class IslandScene extends Phaser.Scene {
       return
     }
     this.tweens.add({ targets: badge, y: badge.y - 12 / (this.view?.zoom ?? 1), alpha: 0, duration: 450, ease: 'Quad.easeOut' })
+  }
+
+  /** The level-up burst in the middle of what the player sees, if the art has it. The view, as the camera's midpoint is a frame old on waking. */
+  private playLevelUp(): void {
+    if (!this.art().fx.levelUp || !this.view) return
+    this.playOnce('fx.levelUp', { x: this.view.cx, y: this.view.cy })
   }
 
   /** Plays a one-shot effect at a world point: its sheet once, or a fade for a still; nothing with reduced motion. */

@@ -1,6 +1,6 @@
 import { gameDay, xpToNext } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import type { Bridge, Target } from '../game/bridge'
 import { timerLabel } from '../game/islandModel'
 import { FALLBACK_ART } from '../art/slots'
@@ -116,6 +116,14 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
     return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
   }, [bridge, placing])
 
+  const mapOpen = isMapDialog(open)
+  const playerState = me.data?.state
+  // The HUD renders on every clock tick; the list changes only with the state.
+  const mapIslands = useMemo(
+    () => (mapOpen && playerState ? buildMapModel(playerState, bridge.art ?? FALLBACK_ART, bridge.view).islands : []),
+    [mapOpen, playerState, bridge.art, bridge.view],
+  )
+
   const data = me.data
   if (!data) return null
   const s = data.state
@@ -124,7 +132,6 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
   const limited = barText.startsWith(XP_LIMIT_SHORT)
   const panel = (id: PanelId) => () => onOpen({ kind: 'panel', id })
   const openStore = () => onOpen({ kind: 'panel', id: 'shop', tab: 'store' })
-  const mapOpen = isMapDialog(open)
 
   return (
     <div className="hud">
@@ -162,7 +169,7 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
       {mapOpen && (
         <nav className="map-list" aria-label="Islands">
           <ul>
-            {buildMapModel(s, bridge.art ?? FALLBACK_ART, bridge.view).islands.map(i => (
+            {mapIslands.map(i => (
               <li key={i.id}><button type="button" className="btn" aria-current={i.state === 'current' ? 'true' : undefined} onClick={() => onOpen({ kind: 'target', target: { kind: 'mapIsland', id: i.id } })}>{i.label}</button></li>
             ))}
           </ul>

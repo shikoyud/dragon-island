@@ -1,7 +1,9 @@
 import { newPlayer, type BattlePreview } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
+import type { GameArtSet } from '../src/art/types'
 import { createBridge } from '../src/game/bridge'
 import { createGame } from '../src/game/config'
 import { MAP_SPOTS } from '../src/game/mapModel'
@@ -19,9 +21,9 @@ class LoadedImage {
 }
 vi.stubGlobal('Image', LoadedImage)
 
-async function boot() {
+async function boot(art: GameArtSet = FALLBACK_ART) {
   const bridge = createBridge()
-  bridge.setArt(FALLBACK_ART)
+  bridge.setArt(art)
   bridge.setState(newPlayer(0))
   vi.spyOn(Phaser.Textures.CanvasTexture.prototype, 'refresh').mockReturnThis()
   const host = document.createElement('div')
@@ -31,6 +33,8 @@ async function boot() {
   await up
   return { bridge, game }
 }
+
+const PREVIEW = { attacker: [], defender: [], log: [] } as unknown as BattlePreview
 
 describe('the scene switch', () => {
   const games: Phaser.Game[] = []
@@ -113,13 +117,52 @@ describe('the scene switch', () => {
     games.push(game)
     bridge.setMapOpen(true)
     await shown(game, 'map')
-    bridge.setMapOpen(false)
-    bridge.setBattle({ attacker: [], defender: [], log: [] } as unknown as BattlePreview)
+    // The Map is still open on the bridge when the battle starts: the battle wins.
+    bridge.setBattle(PREVIEW)
+    expect(bridge.mapOpen).toBe(true)
     await shown(game, 'battle')
     expect(game.scene.isActive('map')).toBe(false)
+    bridge.setMapOpen(false)
     bridge.setBattle(null)
     await shown(game, 'island')
     expect(game.scene.isActive('battle')).toBe(false)
+  })
+
+  describe('fx.levelUp', () => {
+    const WITH_FX: GameArtSet = { ...FALLBACK_ART, fx: { ...FALLBACK_ART.fx, levelUp: { src: '', w: 32, h: 32, frames: 1, fps: 0 } } }
+    const played = (s: { mock: { calls: unknown[][] } }) => s.mock.calls.filter(c => c[2] === textureKey('fx.levelUp')).length
+
+    it('a level gained in a battle plays on the island, once, though the screen opens before the island wakes', async () => {
+      const { bridge, game } = await boot(WITH_FX)
+      games.push(game)
+      await shown(game, 'island')
+      const island = game.scene.getScene('island') as Phaser.Scene
+      bridge.setBattle(PREVIEW)
+      await shown(game, 'battle')
+      const sprites = vi.spyOn(island.add, 'sprite')
+      // closeBattle: the battle clears and the level-up screen opens in one commit, before the next frame's switch.
+      bridge.setBattle(null)
+      bridge.emit({ type: 'levelUp' })
+      expect(game.scene.isSleeping('island')).toBe(true)
+      expect(played(sprites)).toBe(0)
+      await shown(game, 'island')
+      expect(played(sprites)).toBe(1)
+      // It is not played again by the next sleep and wake.
+      bridge.setMapOpen(true)
+      await shown(game, 'map')
+      bridge.setMapOpen(false)
+      await shown(game, 'island')
+      expect(played(sprites)).toBe(1)
+    })
+
+    it('plays at once on an island that is awake', async () => {
+      const { bridge, game } = await boot(WITH_FX)
+      games.push(game)
+      await shown(game, 'island')
+      const sprites = vi.spyOn((game.scene.getScene('island') as Phaser.Scene).add, 'sprite')
+      bridge.emit({ type: 'levelUp' })
+      expect(played(sprites)).toBe(1)
+    })
   })
 
   it('the art swap with the Map up: the next game comes back to the Map', async () => {
