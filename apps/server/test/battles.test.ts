@@ -1,6 +1,7 @@
 import {
   createRng, newPlayer, simulateBattle, type BattleDragonSpec, type OpponentSnapshot, type PlayerState,
 } from '@wyrmhaven/game-core'
+import type { PlayerMove } from '@wyrmhaven/game-core'
 import type { Offer } from '@wyrmhaven/shared'
 import { eq } from 'drizzle-orm'
 import { hexToBytes } from 'viem'
@@ -11,7 +12,7 @@ import { bearer, testApp, type TestApp } from './helpers/testApp'
 import { TEST_KEYS, wallet } from './helpers/wallet'
 
 const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
-const SWEEP = [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }]
+const SWEEP: PlayerMove[] = [{ kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }]
 let t: TestApp
 let A: { token: string; playerId: string }
 let B: { token: string; playerId: string }

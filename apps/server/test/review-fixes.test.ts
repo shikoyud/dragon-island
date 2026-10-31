@@ -87,7 +87,7 @@ describe('I2: the action log records the seed a battle actually used', () => {
       state: { ...base, level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'sea', level: 20, feeds: 0, habitatId: 'h2' })) },
       level: 8, defenceTeam: TEAM,
     }).where(eq(players.id, A.playerId))
-    const pve = await act(A.token, { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }] })
+    const pve = await act(A.token, { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }] })
     expect(pve.statusCode).toBe(200)
     const [log] = await t.db.select().from(actionLog).where(eq(actionLog.playerId, A.playerId))
     const g = await ensureGame(t.db, t.clock)

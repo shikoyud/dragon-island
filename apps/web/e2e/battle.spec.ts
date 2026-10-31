@@ -7,13 +7,19 @@ test('clears campaign stage 1 and gets offers in the arena', async ({ page, requ
   await resetPlayer(request, { level: 8, dragons: seaTeam(20), defenceTeam: ['d1', 'd2', 'd3'] })
   await page.reload()
 
-  // Campaign: stage 1 is three level-3 commons; a level-20 team wins whatever moves it picks.
+  // Campaign: stage 1 is three level-3 commons; a level-20 team wins with Strike alone (the first button).
   await openPanel(page, 'Campaign')
   await page.getByRole('list', { name: /stages/i }).getByRole('button', { name: /^stage 1 ·/i }).click()
-  for (let turn = 0; turn < 30; turn++) {
+  const moves = page.getByRole('group', { name: /^move$/i }).getByRole('button')
+  await expect(moves).toHaveCount(4)
+  for (const box of [await moves.first().boundingBox(), await page.getByRole('group', { name: /^swap$/i }).getByRole('button').first().boundingBox()]) {
+    expect(box!.height).toBeGreaterThanOrEqual(44)
+  }
+  const replacement = page.getByRole('group', { name: /^replacement$/i }).getByRole('button')
+  for (let i = 0; i < 45; i++) {
     if (await page.getByText(/you win/i).isVisible()) break
-    await page.getByRole('group', { name: /^move$/i }).getByRole('button', { disabled: false }).first().click()
-    await page.getByRole('group', { name: /^target$/i }).getByRole('button', { disabled: false }).first().click()
+    if (await replacement.first().isVisible()) await replacement.first().click()
+    else await moves.first().click()
   }
   await expect(page.getByText(/you win/i)).toBeVisible()
   await page.getByRole('button', { name: /^submit$/i }).click()

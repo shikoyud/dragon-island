@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { applyAction } from '../src/actions/apply'
 import type { Action } from '../src/actions/types'
 import type { BattleDragonSpec } from '../src/battle/stats'
-import type { PlayerMove } from '../src/battle/sim'
+import type { PlayerMove } from '../src/battle/machine'
 import type { OpponentSnapshot } from '../src/matchmaking'
 import { createRng } from '../src/rng'
 import { newPlayer, type Dragon, type PlayerState } from '../src/state'
@@ -13,7 +13,7 @@ import { err, ok } from './helpers'
 const run = (st: PlayerState, a: Action, t = 0) => applyAction(st, a, t, createRng(1), FIXTURE_CATALOG)
 const raw = (st: PlayerState, a: unknown, t = 0) => run(st, a as Action, t)
 const three = (id: string, level: number): BattleDragonSpec[] => [{ speciesId: id, level }, { speciesId: id, level }, { speciesId: id, level }]
-const AI: PlayerMove[] = [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }]
+const AI: PlayerMove[] = [{ kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }]
 const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
 const bot: OpponentSnapshot = { playerId: null, trophies: 0, level: 8, team: three('nature', 1) }
 const human: OpponentSnapshot = { ...bot, playerId: 'p2' }
@@ -25,7 +25,7 @@ const weak: PlayerState = { ...s8, dragons: flameTeam(1) }
 const sSea: PlayerState = { ...s8, dragons: flameTeam(30, 'sea') }
 const pvp = (opponent: OpponentSnapshot, moves = AI, team = TEAM): Action => ({ type: 'pvpBattle', team, opponent, moves })
 const pve = (stage: number, moves = AI, team = TEAM): Action => ({ type: 'pveBattle', stage, team, moves })
-const MANY: PlayerMove[] = Array(90).fill({ move: 0, target: 0 })
+const MANY: PlayerMove[] = Array(45).fill({ kind: 'attack', move: 0 })
 
 describe('dayCounterAt', () => {
   it('resets only when the day moves forward', () => {
@@ -79,7 +79,9 @@ describe('pvpBattle', () => {
 
   it('handles a loss: trophies floor at 0, defender gains', () => {
     const legend: OpponentSnapshot = { ...human, team: three('fw-legend', 30) }
-    const r = run({ ...weak, trophies: 10 }, pvp(legend, MANY))
+    // Any hit from the legend KOs flame L1, so each Strike is answered by a KO to replace.
+    const strike: PlayerMove = { kind: 'attack', move: 0 }
+    const r = run({ ...weak, trophies: 10 }, pvp(legend, [strike, { kind: 'replace', to: 1 }, strike, { kind: 'replace', to: 2 }, strike]))
     expect(r.ok && r.battle?.winner).toBe('defender')
     expect(r.ok && r.effects).toEqual([{ type: 'defenceResult', playerId: 'p2', trophyDelta: 5 }])
     const a = ok(r)
@@ -125,7 +127,7 @@ describe('pveBattle', () => {
 
 describe('malformed battle payloads', () => {
   it('are rejected at the boundary', () => {
-    err(raw(s8, { type: 'pvpBattle', team: TEAM, opponent: bot, moves: [{ move: '0', target: 0 }] }), 'INVALID_ACTION')
+    err(raw(s8, { type: 'pvpBattle', team: TEAM, opponent: bot, moves: [{ kind: 'attack', move: '0' }] }), 'INVALID_ACTION')
     err(raw(s8, { type: 'pvpBattle', team: ['d1', 'd2'], opponent: bot, moves: AI }), 'INVALID_ACTION')
     err(raw(s8, { type: 'pvpBattle', team: TEAM, opponent: { ...bot, team: bot.team.slice(0, 2) }, moves: AI }), 'INVALID_ACTION')
     err(raw(s8, { type: 'pvpBattle', team: TEAM, opponent: { ...bot, trophies: 'lots' }, moves: AI }), 'INVALID_ACTION')

@@ -1,4 +1,4 @@
-import type { BattleOutcome, PlayerMove } from '../battle/sim'
+import type { BattleOutcome, PlayerMove } from '../battle/machine'
 import type { Catalog } from '../catalog'
 import type { Preset } from '../data/presets'
 import type { Element } from '../elements'

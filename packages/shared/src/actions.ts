@@ -1,4 +1,4 @@
-import { CROP_IDS, DECORATIONS, ELEMENTS, ISLAND_ORDER, ISLAND_TILES, MAX_DRAGON_LEVEL, MAX_ROUNDS, PLOTS_PER_SIDE, TEAM_SIZE, type Action, type CropId, type DecorationId, type Element, type IslandId } from '@wyrmhaven/game-core'
+import { CROP_IDS, DECORATIONS, ELEMENTS, ISLAND_ORDER, ISLAND_TILES, KIT_SIZE, MAX_BATTLE_MOVES, MAX_DRAGON_LEVEL, PLOTS_PER_SIDE, TEAM_SIZE, type Action, type CropId, type DecorationId, type Element, type IslandId } from '@wyrmhaven/game-core'
 import { z } from 'zod'
 
 // Mirrors game-core's isValidAction: the client sends JSON, this is the wire-level shape check.
@@ -43,8 +43,13 @@ const movableRefSchema = z.discriminatedUnion('type', [
 ])
 
 export const teamIdsSchema = z.tuple([id, id, id])
-export const playerMoveSchema = z.object({ move: index, target: index })
-const movesSchema = z.array(playerMoveSchema).max(MAX_ROUNDS * TEAM_SIZE)
+const teamSlot = index.max(TEAM_SIZE - 1)
+export const playerMoveSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('attack'), move: index.max(KIT_SIZE - 1) }),
+  z.object({ kind: z.literal('swap'), to: teamSlot }),
+  z.object({ kind: z.literal('replace'), to: teamSlot }),
+])
+const movesSchema = z.array(playerMoveSchema).max(MAX_BATTLE_MOVES)
 
 export const storeItemSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('skip'), target: z.enum(['breeder', 'hatchery', 'farm', 'construction']), index }),

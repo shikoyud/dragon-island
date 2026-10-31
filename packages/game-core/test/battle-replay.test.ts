@@ -1,11 +1,11 @@
 import { expect, it } from 'vitest'
-import { applyAction, createRng, newPlayer, type Action, type ActionResult, type Effect, type PlayerState } from '../src/index'
+import { applyAction, createRng, newPlayer, type Action, type ActionResult, type Effect, type PlayerMove, type PlayerState } from '../src/index'
 import { FIXTURE_CATALOG } from './fixtures'
 
 const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
-// fw-legend L30: move 0 (flame) one-shots nature L1; move 1 (sea) one-shots the flame-primary stage-1 team.
-const flame = [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }]
-const sea = [{ move: 1, target: 0 }, { move: 1, target: 1 }, { move: 1, target: 2 }]
+// fw-legend L30: T1 (flame) one-shots nature L1; T2 (sea) one-shots the flame-primary stage-1 team.
+const flame: PlayerMove[] = [{ kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }]
+const sea: PlayerMove[] = [{ kind: 'attack', move: 2 }, { kind: 'attack', move: 2 }, { kind: 'attack', move: 2 }]
 const human = { playerId: 'p2', trophies: 20, level: 8, team: [1, 2, 3].map(() => ({ speciesId: 'nature', level: 1 })) }
 const script: Action[] = [
   { type: 'pvpBattle', team: TEAM, opponent: human, moves: flame },
@@ -33,4 +33,5 @@ it('replays battles to an identical state', () => {
   expect(a.state.trophies).toBe(30)
   expect(a.state.pve).toEqual({ cleared: 1, replays: { day: 0, count: 1 } })
   expect(a.effects).toEqual([{ type: 'defenceResult', playerId: 'p2', trophyDelta: -10 }])
+  expect(a.battles.every(x => x !== undefined)).toBe(true)
 })

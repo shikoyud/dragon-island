@@ -41,7 +41,6 @@ export type GameEvent =
   | { type: 'hover'; target: Target | null }
   /** A tap on a habitat's gold badge; React runs the `collectGold` action. */
   | { type: 'collectGold'; habitatId: string }
-  | { type: 'battleTarget'; slot: number }
   | { type: 'battle'; preview: BattlePreview | null }
   | { type: 'state'; state: PlayerState | null }
   | { type: 'cell'; col: number; row: number }

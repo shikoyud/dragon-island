@@ -4,7 +4,7 @@ import { actionSchema, clientActionSchema, storeItemSchema } from '../src/action
 
 const TEAM = ['d1', 'd2', 'd3']
 const PL = { island: 'home', col: 6, row: 7, facing: 0 }
-const moves = [{ move: 0, target: 0 }]
+const moves = [{ kind: 'attack', move: 0 }]
 const bot = { playerId: null, trophies: 0, level: 8, team: [1, 2, 3].map(() => ({ speciesId: 'nature', level: 1 })) }
 
 // Same accepted set as game-core's isValidAction for every shape except pvpBattle.
@@ -112,8 +112,16 @@ const payloads: unknown[] = [
   { type: 'setDefenceTeam', dragonIds: ['d1', 'd2'] },
   { type: 'pveBattle', stage: 1, team: TEAM, moves },
   { type: 'pveBattle', stage: 1.5, team: TEAM, moves },
-  { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ move: '0', target: 0 }] },
-  { type: 'pveBattle', stage: 1, team: TEAM, moves: Array(91).fill({ move: 0, target: 0 }) },
+  { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ kind: 'attack', move: '0' }] },
+  { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ move: 0, target: 0 }] },
+  { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ kind: 'attack', move: 4 }] },
+  { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ kind: 'attack', move: -1 }] },
+  { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ kind: 'swap', to: 3 }] },
+  { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ kind: 'replace', to: 3 }] },
+  { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ kind: 'nope' }] },
+  { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ kind: 'attack', move: 3 }, { kind: 'swap', to: 2 }, { kind: 'replace', to: 0 }] },
+  { type: 'pveBattle', stage: 1, team: TEAM, moves: Array(45).fill({ kind: 'attack', move: 0 }) },
+  { type: 'pveBattle', stage: 1, team: TEAM, moves: Array(46).fill({ kind: 'attack', move: 0 }) },
   { type: 'nope' },
   null,
 ]
@@ -135,6 +143,18 @@ describe('actionSchema', () => {
 })
 
 describe('clientActionSchema', () => {
+  it('refuses a move outside the kit or the team, and a list over 45 moves', () => {
+    const parse = (m: unknown[]) => clientActionSchema.safeParse({ type: 'pvpBattle', offerId: 'abc', team: TEAM, moves: m }).success
+    expect(parse([{ kind: 'attack', move: 4 }])).toBe(false)
+    expect(parse([{ kind: 'swap', to: 3 }])).toBe(false)
+    expect(parse([{ kind: 'replace', to: 3 }])).toBe(false)
+    expect(parse([{ kind: 'nope' }])).toBe(false)
+    expect(parse([{ move: 0, target: 0 }])).toBe(false)
+    expect(parse(Array(46).fill({ kind: 'attack', move: 0 }))).toBe(false)
+    expect(parse([{ kind: 'attack', move: 3 }, { kind: 'swap', to: 2 }, { kind: 'replace', to: 0 }])).toBe(true)
+    expect(parse(Array(45).fill({ kind: 'attack', move: 0 }))).toBe(true)
+  })
+
   it('takes an offerId for pvpBattle and never an opponent', () => {
     expect(clientActionSchema.safeParse({ type: 'pvpBattle', offerId: 'abc', team: TEAM, moves }).success).toBe(true)
     expect(clientActionSchema.safeParse({ type: 'pvpBattle', team: TEAM, opponent: bot, moves }).success).toBe(false)

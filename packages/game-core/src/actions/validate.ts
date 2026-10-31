@@ -1,4 +1,4 @@
-import { MAX_ROUNDS, TEAM_SIZE } from '../battle/sim'
+import { KIT_SIZE, MAX_BATTLE_MOVES, TEAM_SIZE } from '../data/battle'
 import { MAX_DRAGON_LEVEL } from '../dragon'
 import { DECORATIONS } from '../decorations'
 import { ELEMENTS } from '../elements'
@@ -118,10 +118,15 @@ function isMovable(v: unknown): boolean {
   }
 }
 const isTeam = (v: unknown): boolean => Array.isArray(v) && v.length === 3 && v.every(isId)
-const MAX_MOVES = MAX_ROUNDS * TEAM_SIZE
 const isLevel = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= MAX_DRAGON_LEVEL
-const isMoves = (v: unknown): boolean => Array.isArray(v) && v.length <= MAX_MOVES && v.every(m =>
-  typeof m === 'object' && m !== null && isIndex((m as Record<string, unknown>)['move']) && isIndex((m as Record<string, unknown>)['target']))
+const isSlot = (v: unknown, size: number): boolean => isIndex(v) && (v as number) < size
+const isMove = (v: unknown): boolean => {
+  if (typeof v !== 'object' || v === null) return false
+  const m = v as Record<string, unknown>
+  if (m['kind'] === 'attack') return isSlot(m['move'], KIT_SIZE)
+  return (m['kind'] === 'swap' || m['kind'] === 'replace') && isSlot(m['to'], TEAM_SIZE)
+}
+const isMoves = (v: unknown): boolean => Array.isArray(v) && v.length <= MAX_BATTLE_MOVES && v.every(isMove)
 
 function isOpponent(v: unknown): boolean {
   if (typeof v !== 'object' || v === null) return false

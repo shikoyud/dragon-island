@@ -1,5 +1,5 @@
 import {
-  battleSeed32, createRng, newPlayer, simulateBattle, type BattleDragonSpec, type OpponentSnapshot, type PlayerState,
+  battleSeed32, createRng, newPlayer, simulateBattle, type BattleDragonSpec, type OpponentSnapshot, type PlayerMove, type PlayerState,
 } from '@wyrmhaven/game-core'
 import type { Offer } from '@wyrmhaven/shared'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -21,6 +21,7 @@ const three = (id: string, level: number): BattleDragonSpec[] => [{ speciesId: i
 const SEED_HEX = `0x${'ab'.repeat(32)}` as const
 const bot: OpponentSnapshot = { playerId: null, trophies: 0, level: 8, team: three('nature', 1) }
 const offer: Offer = { offerId: 'offer-1', opponent: bot, seedHex: SEED_HEX }
+const T1: PlayerMove = { kind: 'attack', move: 1 }
 
 function harness(state: PlayerState) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -34,27 +35,30 @@ function harness(state: PlayerState) {
   return { wrapper, action, qc }
 }
 
-// Flame is ×2 against nature, so a flame L20 team one-shots the nature L1 bots (sea would be ×0.5).
-const flameTeam = (level: number) => TEAM.map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))
-const s8: PlayerState = { ...newPlayer(0), level: 8, dragons: flameTeam(20), defenceTeam: TEAM }
+// Flame is 2x against nature, so a flame L20 team one-shots the nature L1 bots with T1.
+const dragons = (speciesId: string, level: number) => TEAM.map(id => ({ id, speciesId, level, feeds: 0, habitatId: 'h1' }))
+const s8: PlayerState = { ...newPlayer(0), level: 8, dragons: dragons('flame', 20), defenceTeam: TEAM }
 
 describe('useBattle', () => {
   it('previews with the offer seed, offers only legal moves, and submits exactly the chosen list', async () => {
     const { wrapper, action } = harness(s8)
     const { result } = renderHook(() => useBattle(), { wrapper })
     act(() => result.current.startPvp(offer, TEAM))
-    expect(result.current.preview?.next).toEqual({ side: 'attacker', slot: 0 })
-    expect(result.current.legalMoves()).toHaveLength(6) // 2 moves (flame, Strike) × 3 living targets
-    act(() => result.current.choose(0, 0))
-    act(() => result.current.choose(0, 1))
-    expect(result.current.legalMoves().every(m => m.target === 2)).toBe(true)
-    act(() => result.current.choose(0, 2))
+    expect(result.current.preview?.state.toAct).toBe('attacker')
+    expect(result.current.legal).toEqual([
+      { kind: 'attack', move: 0 }, { kind: 'attack', move: 1 }, { kind: 'attack', move: 2 }, { kind: 'attack', move: 3 },
+      { kind: 'swap', to: 1 }, { kind: 'swap', to: 2 },
+    ])
+    act(() => result.current.choose(T1))
+    act(() => result.current.choose(T1))
+    act(() => result.current.choose(T1))
     const done = result.current.preview!.done!
     expect(done.ok && done.winner).toBe('attacker')
-    const local = simulateBattle(three('flame', 20), bot.team, [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }], createRng(battleSeed32(SEED_HEX)), result.current.catalog)
+    expect(result.current.legal).toEqual([])
+    const local = simulateBattle(three('flame', 20), bot.team, [T1, T1, T1], createRng(battleSeed32(SEED_HEX)), result.current.catalog)
     expect(done).toEqual(local)
     await act(async () => { await result.current.submit() })
-    expect(action).toHaveBeenCalledWith({ type: 'pvpBattle', offerId: 'offer-1', team: TEAM, moves: [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }] }, expect.any(String))
+    expect(action).toHaveBeenCalledWith({ type: 'pvpBattle', offerId: 'offer-1', team: TEAM, moves: [T1, T1, T1] }, expect.any(String))
   })
 
   it('undoes the last move and labels PvE previews approximate', () => {
@@ -62,34 +66,83 @@ describe('useBattle', () => {
     const { result } = renderHook(() => useBattle(), { wrapper })
     act(() => result.current.startPve(1, TEAM))
     expect(result.current.exactPreview).toBe(false)
-    act(() => result.current.choose(0, 0))
+    act(() => result.current.choose(T1))
     expect(result.current.moves).toHaveLength(1)
     act(() => result.current.undo())
     expect(result.current.moves).toHaveLength(0)
   })
 })
 
+const host = (state: PlayerState, opp: Offer = offer) => {
+  const { wrapper } = harness(state)
+  const Host = () => {
+    const b = useBattle()
+    if (!b.preview) { b.startPvp(opp, TEAM); return null }
+    return <BattlePanel battle={b} />
+  }
+  render(<Host />, { wrapper })
+}
+const moveGroup = () => within(screen.getByRole('group', { name: /^move$/i }))
+
 describe('BattlePanel', () => {
-  it('disables KO’d targets and enables Submit only when the preview is complete', async () => {
-    const { wrapper } = harness(s8)
-    const Host = () => {
-      const b = useBattle()
-      if (!b.preview) { b.startPvp(offer, TEAM); return null }
-      return <BattlePanel battle={b} />
+  it('shows the four moves and the swaps, and has no target to pick', async () => {
+    host(s8)
+    expect(moveGroup().getAllByRole('button').map(b => b.textContent)).toEqual(['Strike', 'Cinder Spit', 'Blaze Lash', 'Inferno Crown'])
+    expect(within(screen.getByRole('group', { name: /^swap$/i })).getAllByRole('button')).toHaveLength(2)
+    expect(screen.queryByRole('group', { name: /target/i })).toBeNull()
+  })
+
+  it('every battle button asks for a 44 px tap target', () => {
+    host(s8)
+    for (const group of [/^move$/i, /^swap$/i]) {
+      for (const b of within(screen.getByRole('group', { name: group })).getAllByRole('button')) expect(b).toHaveStyle({ minHeight: '44px' })
     }
-    render(<Host />, { wrapper })
-    const submit = await screen.findByRole('button', { name: /submit/i })
-    expect(submit).toBeDisabled()
-    await userEvent.click(screen.getByRole('button', { name: /^flame$/i }))
-    await userEvent.click(screen.getByRole('button', { name: /target 1/i }))
-    // slot 0 is now KO'd (flame L20 one-shots nature L1)
-    expect(screen.getByRole('button', { name: /target 1/i })).toBeDisabled()
-    await userEvent.click(screen.getByRole('button', { name: /^flame$/i }))
-    await userEvent.click(screen.getByRole('button', { name: /target 2/i }))
-    await userEvent.click(screen.getByRole('button', { name: /^flame$/i }))
-    await userEvent.click(screen.getByRole('button', { name: /target 3/i }))
+  })
+
+  it('disables a level-locked move', () => {
+    host({ ...s8, dragons: dragons('flame', 9) })
+    expect(moveGroup().getByRole('button', { name: 'Strike' })).toBeEnabled()
+    expect(moveGroup().getByRole('button', { name: 'Cinder Spit' })).toBeEnabled()
+    expect(moveGroup().getByRole('button', { name: 'Blaze Lash' })).toBeDisabled()
+    expect(moveGroup().getByRole('button', { name: 'Inferno Crown' })).toBeDisabled()
+  })
+
+  it('a Tier 3 used is disabled on the next action', async () => {
+    host(s8, { ...offer, opponent: { ...bot, team: three('terra', 1) } })
+    await userEvent.click(moveGroup().getByRole('button', { name: 'Inferno Crown' }))
+    expect(moveGroup().getByRole('button', { name: 'Inferno Crown' })).toBeDisabled()
+  })
+
+  it('a swap changes the active dragon and uses the turn', async () => {
+    host(s8, { ...offer, opponent: { ...bot, team: three('sea', 1) } })
+    await userEvent.click(within(screen.getByRole('group', { name: /^swap$/i })).getAllByRole('button')[0]!)
+    expect(screen.getByText(/turn 2 of 30/i)).toBeInTheDocument()
+  })
+
+  it('asks for a replacement after a KO, and nothing else until then', async () => {
+    // Flame L1 falls to the first hit from Sea L40, on the defender's reply.
+    host({ ...s8, dragons: dragons('flame', 1) }, { ...offer, opponent: { ...bot, team: three('sea', 40) } })
+    await userEvent.click(moveGroup().getByRole('button', { name: 'Strike' }))
+    const group = within(screen.getByRole('group', { name: /^replacement$/i }))
+    expect(screen.queryByRole('group', { name: /^move$/i })).toBeNull()
+    expect(group.getAllByRole('button')).toHaveLength(2)
+    expect(group.getAllByRole('button')[0]).toHaveStyle({ minHeight: '44px' })
+    await userEvent.click(group.getAllByRole('button')[1]!)
+    expect(screen.getByRole('group', { name: /^move$/i })).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: /^replacement$/i })).toBeNull()
+  })
+
+  it('enables Submit only when the preview is complete, and Undo steps back', async () => {
+    host(s8)
+    expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled()
+    await userEvent.click(moveGroup().getByRole('button', { name: 'Cinder Spit' }))
+    await userEvent.click(moveGroup().getByRole('button', { name: 'Cinder Spit' }))
+    await userEvent.click(moveGroup().getByRole('button', { name: 'Cinder Spit' }))
     expect(screen.getByRole('button', { name: /submit/i })).toBeEnabled()
     expect(screen.getByText(/you win/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /undo/i }))
+    expect(screen.queryByText(/you win/i)).toBeNull()
+    expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled()
   })
 })
 

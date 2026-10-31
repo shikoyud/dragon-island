@@ -1,53 +1,62 @@
-import { useState } from 'react'
+import { TURN_LIMIT, type Fighter, type PlayerMove } from '@wyrmhaven/game-core'
+import type { CSSProperties } from 'react'
 import type { BattleHook } from '../state/battle'
 import { ActionButton, Panel } from '../ui/Panel'
 
-/** Move/target picker for the attacker whose turn it is, with the live preview and the result. */
+const TAP: CSSProperties = { minHeight: 44 }
+
+/** Plain buttons for the player's move, with the live preview and the result. The full battle screen is Task 8. */
 export function BattlePanel({ battle, onClose }: { battle: BattleHook; onClose?: () => void }) {
-  const [pendingMove, setPendingMove] = useState<number | null>(null)
   const p = battle.preview
   if (!battle.setup || !p) return null
-  const legal = battle.legalMoves()
-  const actor = p.next ? p.attacker[p.next.slot] : null
-  const moveNames = actor ? actor.moves.map(m => m.name) : []
-  const legalMoveIdx = new Set(legal.map(m => m.move))
-  const legalTargets = pendingMove === null ? new Set<number>() : new Set(legal.filter(m => m.move === pendingMove).map(m => m.target))
+  const { sides, turn, awaiting } = p.state
+  const mine = sides.attacker
+  const actor = mine.team[mine.active]!
   const done = p.done
   const title = battle.setup.mode === 'pvp' ? 'Battle' : `Stage ${battle.setup.stage}`
+  const can = (m: PlayerMove) => battle.legal.some(x => JSON.stringify(x) === JSON.stringify(m))
+  const replacing = !done && awaiting === 'replace'
+  const bench = mine.team.flatMap((f, to) => (f.hp > 0 && to !== mine.active ? [{ f, to }] : []))
 
   return (
     <Panel title={title} onClose={onClose}>
       {!battle.exactPreview && <p><small>Preview only: the server rolls the real battle, so damage may differ. Turns you leave unplanned are played by the AI.</small></p>}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Team label="Your team" fighters={p.attacker} />
-        <Team label="Opponent" fighters={p.defender} />
+        <Team label="Your team" fighters={mine.team} active={mine.active} />
+        <Team label="Opponent" fighters={sides.defender.team} active={sides.defender.active} />
       </div>
-      <p>Round {p.round}{p.next ? ` · ${actor?.species.name} (slot ${p.next.slot + 1}) to act` : ''}</p>
+      <p>Turn {turn} of {TURN_LIMIT}{done ? '' : ` · ${replacing ? 'Send in your next dragon' : `${actor.species.name} to act`}`}</p>
 
-      {p.next && !done && (
+      {!done && !replacing && (
         <>
           <div role="group" aria-label="Move" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {moveNames.map((name, i) => (
-              <button key={name} type="button" className={`btn ${pendingMove === i ? 'btn--primary' : ''}`} disabled={!legalMoveIdx.has(i)} aria-pressed={pendingMove === i} onClick={() => setPendingMove(i)}>
-                {name}
+            {actor.moves.map((m, move) => (
+              <button key={move} type="button" className="btn" style={TAP} disabled={!can({ kind: 'attack', move })} onClick={() => battle.choose({ kind: 'attack', move })}>
+                {m.name}
               </button>
             ))}
           </div>
-          <div role="group" aria-label="Target" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-            {p.defender.map((d, i) => (
-              <button
-                key={i} type="button" className="btn"
-                disabled={pendingMove === null || !legalTargets.has(i)}
-                onClick={() => { if (pendingMove !== null) { battle.choose(pendingMove, i); setPendingMove(null) } }}
-              >
-                Target {i + 1}{d.hp === 0 ? ' (KO)' : ''}
+          <div role="group" aria-label="Swap" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+            {bench.map(({ f, to }) => (
+              <button key={to} type="button" className="btn" style={TAP} disabled={!can({ kind: 'swap', to })} onClick={() => battle.choose({ kind: 'swap', to })}>
+                Swap to {f.species.name}
               </button>
             ))}
           </div>
         </>
       )}
 
-      {done && done.ok && <p role="status" style={{ fontFamily: 'var(--font-display)' }}>{done.winner === 'attacker' ? 'You win!' : 'You lose.'} ({done.rounds} rounds)</p>}
+      {replacing && (
+        <div role="group" aria-label="Replacement" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {bench.map(({ f, to }) => (
+            <button key={to} type="button" className="btn" style={TAP} disabled={!can({ kind: 'replace', to })} onClick={() => battle.choose({ kind: 'replace', to })}>
+              Send in {f.species.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {done && done.ok && <p role="status" style={{ fontFamily: 'var(--font-display)' }}>{done.winner === 'attacker' ? 'You win!' : 'You lose.'} ({done.turns} turns)</p>}
       {done && !done.ok && <p role="alert">That move is not legal. Undo and pick again.</p>}
 
       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -66,14 +75,14 @@ export function BattlePanel({ battle, onClose }: { battle: BattleHook; onClose?:
   )
 }
 
-function Team({ label, fighters }: { label: string; fighters: BattleHook['preview'] extends infer P ? (P extends { attacker: infer A } ? A : never) : never }) {
+function Team({ label, fighters, active }: { label: string; fighters: readonly Fighter[]; active: number }) {
   return (
     <div>
       <h3 style={{ fontSize: 12 }}>{label}</h3>
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {fighters.map((f, i) => (
-          <li key={i}>
-            {f.species.name} L{f.spec.level} · <span aria-label={`hp ${f.hp} of ${f.stats.hp}`}>{f.hp}/{f.stats.hp}</span>
+          <li key={i} aria-current={i === active ? 'true' : undefined}>
+            {i === active ? '> ' : ''}{f.species.name} L{f.spec.level} · <span aria-label={`hp ${f.hp} of ${f.stats.hp}`}>{f.hp}/{f.stats.hp}</span>
             <div style={{ height: 4, background: 'var(--bg-panel-2)', marginTop: 2 }}>
               <div style={{ height: 4, width: `${Math.round((100 * f.hp) / f.stats.hp)}%`, background: f.hp > 0 ? 'var(--ok)' : 'var(--danger)' }} />
             </div>

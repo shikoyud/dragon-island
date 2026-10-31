@@ -33,7 +33,7 @@ describe('I5: pve battles fall back to the AI for missing moves instead of forfe
     await t.db.update(players).set({
       state: { ...(p!.state as PlayerState), level: 8, dragons: TEAM.map(id => ({ id, speciesId: 'sea', level: 20, feeds: 0, habitatId: 'h2' })) }, level: 8,
     }).where(eq(players.id, playerId))
-    const r = await t.app.inject({ method: 'POST', url: '/actions', headers: bearer(token), payload: { action: { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ move: 0, target: 0 }] }, idempotencyKey: 'k' } })
+    const r = await t.app.inject({ method: 'POST', url: '/actions', headers: bearer(token), payload: { action: { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ kind: 'attack', move: 1 }] }, idempotencyKey: 'k' } })
     expect(r.statusCode).toBe(200)
     expect(r.json().battle.winner).toBe('attacker')
     expect(r.json().state.pve.cleared).toBe(1)

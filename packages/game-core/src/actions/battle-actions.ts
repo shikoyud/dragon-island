@@ -1,5 +1,9 @@
+import { aiChoice, runDefender } from '../battle/ai'
+import { battleOutcome, initBattle, step, type PlayerMove } from '../battle/machine'
 import { simulateBattle } from '../battle/sim'
 import type { BattleDragonSpec } from '../battle/stats'
+import type { Catalog } from '../catalog'
+import type { Rng } from '../rng'
 import { addXp } from '../progression'
 import {
   PVE_REPLAYS_PER_DAY, PVE_STAGES, PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL,
@@ -61,6 +65,20 @@ export const pvpBattle: Handler<'pvpBattle'> = (s, a, ctx) => {
   return success(next, effects, outcome.ok ? outcome : undefined)
 }
 
+/**
+ * Until Task 4: the PvE seed is never revealed, so the client's plan can only be a guess, and the AI
+ * plays for a missing or illegal attacker move.
+ */
+function runPve(team: BattleDragonSpec[], enemies: BattleDragonSpec[], moves: readonly PlayerMove[], rng: Rng, c: Catalog): BattleReport {
+  let b = initBattle(team, enemies, c)
+  for (let at = 0; b.winner === null; at++) {
+    const given = moves[at]
+    const next = (given && step(b, 'attacker', given, rng)) ?? step(b, 'attacker', aiChoice(b, 'attacker', rng), rng)
+    b = runDefender(next!, rng)
+  }
+  return battleOutcome(b)
+}
+
 export const pveBattle: Handler<'pveBattle'> = (s, a, ctx) => {
   if (!isUnlocked('pve', s.level)) return failure('LEVEL_TOO_LOW')
   if (a.stage < 1 || a.stage > PVE_STAGES) return failure('NOT_FOUND')
@@ -71,12 +89,10 @@ export const pveBattle: Handler<'pveBattle'> = (s, a, ctx) => {
   const replays = dayCounterAt(s.pve.replays, ctx.nowMs)
   if (!firstClear && replays.count >= PVE_REPLAYS_PER_DAY) return failure('DAILY_CAP_REACHED')
 
-  // The PvE seed is never revealed, so the client's plan can only be a guess: the AI finishes it.
-  const outcome = simulateBattle(team, stageTeam(a.stage, ctx.catalog), a.moves, ctx.rng, ctx.catalog, { aiFallback: true })
-  const report: BattleReport | undefined = outcome.ok ? outcome : undefined
+  const report = runPve(team, stageTeam(a.stage, ctx.catalog), a.moves, ctx.rng, ctx.catalog)
 
   let next: PlayerState = firstClear ? s : { ...s, pve: { ...s.pve, replays: { ...replays, count: replays.count + 1 } } }
-  if (outcome.ok && outcome.winner === 'attacker') {
+  if (report.winner === 'attacker') {
     const reward = stageRewards(a.stage, firstClear)
     next = addXp(earnGold({ ...next, food: next.food + reward.food }, reward.gold), reward.xp, ctx.preset, ctx.day)
     if (firstClear) next = { ...next, pve: { ...next.pve, cleared: a.stage } }

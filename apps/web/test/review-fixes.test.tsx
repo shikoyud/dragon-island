@@ -131,11 +131,11 @@ describe('I4: a finished battle cannot be submitted twice', () => {
   it('disables Submit and Undo after a result', async () => {
     const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
     const s8: PlayerState = { ...newPlayer(0), level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'flame', level: 20, feeds: 0, habitatId: 'h1' })) }
-    const api = { action: vi.fn(async () => ({ state: s8, effects: [], battle: { ok: true, winner: 'attacker', rounds: 1, log: [], attacker: [1, 1, 1], defender: [0, 0, 0] } })) }
+    const api = { action: vi.fn(async () => ({ state: s8, effects: [], battle: { ok: true, winner: 'attacker', turns: 1, log: [], attacker: [1, 1, 1], defender: [0, 0, 0], attackerKos: 0 } })) }
     const h = harness(s8, api)
     const { result } = renderHook(() => useBattle(), { wrapper: h.wrapper })
     act(() => result.current.startPve(1, TEAM))
-    act(() => result.current.choose(0, 0))
+    act(() => result.current.choose({ kind: 'attack', move: 0 }))
     expect(result.current.canSubmit).toBe(true)
     await act(async () => { await result.current.submit() })
     expect(result.current.canSubmit).toBe(false)

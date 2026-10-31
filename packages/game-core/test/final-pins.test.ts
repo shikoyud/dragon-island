@@ -3,7 +3,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
-  applyAction, basicPriceGold, createRng, ELEMENTS, generateBotTeam, LAUNCH_CATALOG, MAX_ROUNDS, newPlayer, simulateBattle, stageTeam,
+  aiChoice, applyAction, basicPriceGold, createRng, ELEMENTS, generateBotTeam, initBattle, LAUNCH_CATALOG, newPlayer, runDefender, stageTeam, step, TURN_LIMIT,
   type Action, type BattleDragonSpec, type PlayerState,
 } from '../src/index'
 import { ok } from './helpers'
@@ -13,9 +13,10 @@ const run = (s: PlayerState, a: Action) => ok(applyAction(s, a, 0, createRng(1),
 describe('the battle sim finishes on the launch catalog (Review Focus)', () => {
   const tri: BattleDragonSpec[] = [{ speciesId: 'flame-ice-sea', level: 20 }, { speciesId: 'ice-sea', level: 20 }, { speciesId: 'terra-flame', level: 20 }]
   const check = (a: readonly BattleDragonSpec[], b: readonly BattleDragonSpec[], seed: number) => {
-    const o = simulateBattle(a, b, [], createRng(seed), LAUNCH_CATALOG, { attackerAi: true, aiFallback: true })
-    expect(o.ok).toBe(true)
-    if (o.ok) expect(o.rounds).toBeLessThanOrEqual(MAX_ROUNDS)
+    const rng = createRng(seed)
+    let s = initBattle(a, b, LAUNCH_CATALOG)
+    while (s.winner === null) s = runDefender(step(s, 'attacker', aiChoice(s, 'attacker', rng), rng)!, rng)
+    expect(s.turn).toBeLessThanOrEqual(TURN_LIMIT)
   }
 
   it('over every campaign stage against a seeded bot team', () => {
@@ -29,10 +30,10 @@ describe('the battle sim finishes on the launch catalog (Review Focus)', () => {
     }
   })
 
-  it('with the AI fallback alone, from an empty move list', () => {
-    const o = simulateBattle(tri, stageTeam(1, LAUNCH_CATALOG), [], createRng(1), LAUNCH_CATALOG, { aiFallback: true })
-    expect(o.ok).toBe(true)
-    if (o.ok) expect(o.rounds).toBeLessThanOrEqual(MAX_ROUNDS)
+  it('with the PvE handler playing an empty move list', () => {
+    const s: PlayerState = { ...newPlayer(0), level: 8, dragons: tri.map((d, i) => ({ id: `d${i}`, speciesId: d.speciesId, level: d.level, feeds: 0, habitatId: 'h1' })) }
+    const r = applyAction(s, { type: 'pveBattle', stage: 1, team: ['d0', 'd1', 'd2'], moves: [] }, 0, createRng(1), LAUNCH_CATALOG)
+    expect(r.ok && r.battle!.turns).toBeLessThanOrEqual(TURN_LIMIT)
   })
 })
 
