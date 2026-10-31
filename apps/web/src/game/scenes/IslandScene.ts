@@ -1,15 +1,15 @@
-import { FOOTPRINT, LAUNCH_CATALOG, ownedPlots, plotOrigin, TILES_PER_PLOT, type Catalog } from '@wyrmhaven/game-core'
+import { FOOTPRINT, ISLAND_TILES, LAUNCH_CATALOG, ownedPlots, plotOrigin, TILES_PER_PLOT, type Catalog } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
 import { animateWater, isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet } from '../../art/types'
 import type { Bridge, Target } from '../bridge'
 import {
-  cameraBounds, clampView, fitZoom, groundCell, isClick, lockedTiles, panBy, screenToWorld, shownSize, SKIRT, stepZoom, zoomAt,
+  cameraBounds, clampView, groundCell, isClick, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, stepZoom, zoomAt,
   zoomRange, type View,
 } from '../camera'
 import { badgeY, buildIslandModel, type IslandMarkers, type IslandObject } from '../islandModel'
-import { anchor, cellCentre, cellTop, footprintDiamond, pointerToCell, type Box, type Pos } from '../layout'
+import { anchor, cellCentre, cellTop, footprintDiamond, islandBox, pointerToCell, tapBox, type Box, type Pos } from '../layout'
 
 const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontFamily: 'Silkscreen, monospace', fontSize: '8px', color: '#f2f1ea', stroke: '#0f1324', strokeThickness: 2,
@@ -21,7 +21,7 @@ const GROUND = {
 }
 const EMPTY: IslandMarkers = {
   habitats: [], dragons: [], waiting: [], breeders: [], hatchery: [], farms: [],
-  obstacles: [], decorations: [], constructions: 0, ghost: null, signs: [],
+  obstacles: [], decorations: [], ghost: null, signs: [],
 }
 /** On-screen height of badge text in CSS pixels (the font is 8 px in world space). */
 const BADGE_PX = 14
@@ -29,6 +29,12 @@ const BADGE_PX = 14
 const BADGE_HIT_LOCAL = 28
 /** Pinch distance ratio that counts as one zoom step. */
 const PINCH_STEP = 1.25
+
+/** World box of the baked landmass: the island's diamond and the cliff skirt under it. */
+const groundBox = (): Box => {
+  const b = islandBox(ISLAND_TILES, ISLAND_TILES)
+  return { x: b.x, y: b.y, w: b.w, h: b.h + SKIRT }
+}
 
 const points = (pts: Pos[]) => pts.map(p => new Phaser.Math.Vector2(p.x, p.y))
 
@@ -39,14 +45,18 @@ const points = (pts: Pos[]) => pts.map(p => new Phaser.Math.Vector2(p.x, p.y))
  * `select`, `hover` and `cell` events only.
  */
 export class IslandScene extends Phaser.Scene {
+  /** Placeholder diamonds and the cliff skirt are drawn here, then baked into `groundRt`. */
   private ground!: Phaser.GameObjects.Graphics
-  private groundTiles!: Phaser.GameObjects.Container
+  /** The whole landmass (ground, fog, cliff) baked into one texture per island and holding, instead of ~1,100 images. */
+  private groundRt: Phaser.GameObjects.RenderTexture | null = null
   private water: Phaser.GameObjects.TileSprite | null = null
   private hatchView: string | null = null
   private outline!: Phaser.GameObjects.Graphics
   private layer!: Phaser.GameObjects.Container
   private drawn: Phaser.GameObjects.GameObject[] = []
   private badges: Phaser.GameObjects.Text[] = []
+  /** Sprites that must be at least `minTap` CSS px to tap: their hit box follows the zoom (see `fitTapTargets`). */
+  private tapTargets: { spr: Phaser.GameObjects.Sprite; minTap: number; pixel: Phaser.Types.Input.HitAreaCallback; area: unknown }[] = []
   private current: IslandMarkers = EMPTY
   private catalog: Catalog = LAUNCH_CATALOG
   private down: { x: number; y: number } | null = null
@@ -63,8 +73,10 @@ export class IslandScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.ground = this.add.graphics()
-    this.groundTiles = this.add.container(0, 0)
+    this.ground = this.add.graphics().setVisible(false)
+    const land = groundBox()
+    // A headless game (tests) has no renderer to hold a texture: it bakes nothing.
+    if (this.game.config.renderType !== Phaser.HEADLESS) this.groundRt = this.add.renderTexture(land.x, land.y, land.w, land.h).setOrigin(0, 0)
     this.layer = this.add.container(0, 0)
     // Over the sprites: an illegal footprint must show even where it overlaps a building.
     this.outline = this.add.graphics()
@@ -97,6 +109,10 @@ export class IslandScene extends Phaser.Scene {
     this.bridge.focusCell = focusCell
     const onResize = () => { if (this.alive()) this.frame() }
     this.scale.on(Phaser.Scale.Events.RESIZE, onResize)
+    // A lost WebGL context empties every render target. Phaser restores its textures and then says so: bake the land again.
+    const renderer = this.game.renderer as Phaser.Renderer.WebGL.WebGLRenderer | Phaser.Renderer.Canvas.CanvasRenderer | undefined
+    const onRestore = () => { if (this.alive()) { this.groundKey = ''; this.sync() } }
+    renderer?.on?.(Phaser.Renderer.Events.RESTORE_WEBGL, onRestore)
     this.events.once(Phaser.Scenes.Events.DESTROY, () => {
       offs.forEach(off => off())
       // StrictMode boots a second game while this one is torn down: clear only the hooks this scene set, so the
@@ -104,6 +120,7 @@ export class IslandScene extends Phaser.Scene {
       if (this.bridge.cellToScreen === cellToScreen) this.bridge.cellToScreen = null
       if (this.bridge.focusCell === focusCell) this.bridge.focusCell = null
       this.scale.off(Phaser.Scale.Events.RESIZE, onResize)
+      renderer?.off?.(Phaser.Renderer.Events.RESTORE_WEBGL, onRestore)
     })
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p))
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p))
@@ -136,14 +153,21 @@ export class IslandScene extends Phaser.Scene {
 
   /** Camera bounds grown by the HUD insets at a zoom, so the island centres in the band the HUD leaves free. */
   private bounds(zoom: number): Box {
-    const b = cameraBounds(this.bridge.state, this.bridge.view)
+    const b = cameraBounds()
     const { top, bottom } = this.bridge.insets
     return { x: b.x, y: b.y - top / zoom, w: b.w, h: b.h + (top + bottom) / zoom }
   }
 
-  private fit(): number {
+  /** The opening view (R58): owned land centred in the band the HUD leaves free, at the whole-number zoom that fits it. */
+  private opening(): View {
     const { top, bottom } = this.bridge.insets
-    return fitZoom(this.scale.width, Math.max(1, this.scale.height - top - bottom), cameraBounds(this.bridge.state, this.bridge.view))
+    const v = openingView(this.bridge.state, this.bridge.view, this.scale.width, Math.max(1, this.scale.height - top - bottom))
+    // The free band's middle sits (top - bottom) / 2 below the screen's: look that much higher in the world.
+    return { ...v, cy: v.cy + (bottom - top) / 2 / v.zoom }
+  }
+
+  private fit(): number {
+    return this.opening().zoom
   }
 
   private range(): { min: number; max: number } {
@@ -157,18 +181,39 @@ export class IslandScene extends Phaser.Scene {
     cam.centerOn(this.view.cx, this.view.cy)
     const scale = this.badgeScale()
     for (const t of this.badges) if (t.active) t.setScale(scale)
+    this.fitTapTargets()
   }
 
-  /** Frames the island when the view, its shown size or the screen changes; otherwise only re-clamps. */
+  /**
+   * Gives each small tap target (a plot sign) a box of at least its `minTap` CSS px at the current zoom, centred on the
+   * sprite. Once the sprite is drawn that big the pixel-perfect hit comes back, so the transparent corners of a big sign
+   * do not take taps meant for the ground.
+   */
+  private fitTapTargets(): void {
+    const zoom = this.view?.zoom ?? 1
+    for (const { spr, minTap, pixel, area } of this.tapTargets) {
+      if (!spr.active || !spr.input) continue
+      const shown = { w: spr.displayWidth, h: spr.displayHeight }
+      const box = tapBox(shown, zoom, minTap)
+      if (box.w === shown.w && box.h === shown.h) {
+        spr.input.hitArea = area
+        spr.input.hitAreaCallback = pixel
+      } else {
+        const w = box.w / spr.scaleX
+        const h = box.h / spr.scaleY
+        spr.input.hitArea = new Phaser.Geom.Rectangle((spr.width - w) / 2, (spr.height - h) / 2, w, h)
+        spr.input.hitAreaCallback = Phaser.Geom.Rectangle.Contains
+      }
+    }
+  }
+
+  /** Opens the camera on the owned land when the view, the state's arrival or the screen changes; otherwise only re-clamps. */
   private frame(): void {
     const s = this.bridge.state
-    const size = s ? shownSize() : { w: 0, h: 0 }
-    const key = `${this.bridge.view}:${size.w}x${size.h}:${this.scale.width}x${this.scale.height}`
+    const key = `${this.bridge.view}:${s ? 'state' : 'none'}:${this.scale.width}x${this.scale.height}`
     if (key === this.framed && this.view) return this.apply(this.view)
     this.framed = key
-    const zoom = this.fit()
-    const b = this.bounds(zoom)
-    this.apply({ cx: b.x + b.w / 2, cy: b.y + b.h / 2, zoom })
+    this.apply(this.opening())
   }
 
   private zoomTo(zoom: number, sx: number, sy: number): void {
@@ -248,7 +293,7 @@ export class IslandScene extends Phaser.Scene {
   /** Emits the cell under a screen point; while placing, the pointer holds the footprint's centre. */
   private emitCell(p: { x: number; y: number }, always: boolean): boolean {
     const w = this.toWorld(p)
-    const c = groundCell(this.bridge.state, this.bridge.view, w.x, w.y)
+    const c = groundCell(this.bridge.state, w.x, w.y)
     if (!c) return false
     const off = this.bridge.placing ? Math.floor((this.bridge.placing.size - 1) / 2) : 0
     const cell = { col: c.col - off, row: c.row - off }
@@ -286,6 +331,7 @@ export class IslandScene extends Phaser.Scene {
     for (const obj of this.drawn) obj.destroy()
     this.drawn = []
     this.badges = []
+    this.tapTargets = []
     const model = buildIslandModel(state, this.art(), this.catalog, this.bridge.nowMs, view, this.bridge.placing, this.bridge.preset)
     // Fewer eggs in the hatchery on the same island than a moment ago: one hatched (or was sold). Burst once.
     const hatched = state && view === this.hatchView && model.markers.hatchery.length < this.current.hatchery.length
@@ -299,6 +345,7 @@ export class IslandScene extends Phaser.Scene {
     for (const o of model.objects) this.draw(o)
     // Badges go on top of every sprite, so a dragon never hides its habitat's gold.
     for (const o of model.objects) if (o.badge) this.drawBadge(o, o.badge)
+    this.fitTapTargets()
   }
 
   /**
@@ -328,8 +375,9 @@ export class IslandScene extends Phaser.Scene {
 
   /**
    * The landmass: grass diamonds for owned plots, fog for the rest and a cliff skirt under the two front edges, over
-   * the sea. Uses the `ground.*` tiles when the manifest has them and drawn diamonds otherwise. Redrawn only when the
-   * view or its owned plots change.
+   * the sea. Uses the `ground.*` tiles when the manifest has them and drawn diamonds otherwise. All of it is baked into
+   * one render texture and only drawn again when the view or its owned plots change (buying a plot, a Bridge, a switch of
+   * island) or after the WebGL context comes back. The sea stays a separate animated tile sprite behind it.
    */
   private drawGround(): void {
     const { state, view } = this.bridge
@@ -337,20 +385,23 @@ export class IslandScene extends Phaser.Scene {
     if (key === this.groundKey) return
     this.groundKey = key
     const g = this.ground.clear()
-    this.groundTiles.removeAll(true)
+    const rt = this.groundRt?.clear() ?? null
     this.water?.destroy()
     this.water = null
     if (!state) return
     const tiles = this.art().ground
-    const tile = (k: string, x: number, y: number) => this.groundTiles.add(this.add.image(x, y, textureKey(k)).setOrigin(0, 0))
+    const land = groundBox()
+    // Tiles are drawn at their world position less the texture's own corner.
     const shown = shownSize()
     if (tiles.water) {
-      const b = cameraBounds(state, view)
+      const b = cameraBounds()
       const pad = 2048 // the sea also fills the screen beyond the camera bounds when zoomed out
       this.water = this.add.tileSprite(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, textureKey('ground.water'), 0).setOrigin(0, 0).setDepth(-1).setAlpha(0.4) // softened: the sea is backdrop, not the subject
       const w = tiles.water
       animateWater(this, this.water, textureKey('ground.water'), w.frames, w.fps, this.bridge.reducedMotion)
     }
+    if (!rt) return
+    const at = (k: string, x: number, y: number) => rt.batchDrawFrame(textureKey(k), undefined, x - land.x, y - land.y)
     const left = cellTop(0, shown.h)
     const bottom = cellTop(shown.w, shown.h)
     const right = cellTop(shown.w, 0)
@@ -366,10 +417,16 @@ export class IslandScene extends Phaser.Scene {
       g.fillPoints(points([left, bottom, down(bottom, 2), down(left, 2)]), true)
       g.fillPoints(points([bottom, right, down(right, 2), down(bottom, 2)]), true)
     }
+    // Placeholder diamonds, for any tile the manifest has no art for.
+    const diamond = (palette: readonly number[], col: number, row: number) => g.fillStyle(palette[(col + row) % 2]!, 1).fillPoints(points(footprintDiamond(col, row, 1)), true)
+    rt.beginDraw()
+    // The skirt first (it is the backing), then everything else over it in the order the sprites used to go.
+    rt.batchDraw(g, -land.x, -land.y)
+    g.clear()
     if (tiles.cliffSw && tiles.cliffSe) {
       // A 16x16 piece per front edge cell, drawn over the cell's bounding box; its face hangs below the cell's edge.
-      for (let col = 0; col < shown.w; col++) { const t = cellTop(col, shown.h - 1); tile('ground.cliff.sw', t.x - 8, t.y) }
-      for (let row = 0; row < shown.h; row++) { const t = cellTop(shown.w - 1, row); tile('ground.cliff.se', t.x - 8, t.y) }
+      for (let col = 0; col < shown.w; col++) { const t = cellTop(col, shown.h - 1); at('ground.cliff.sw', t.x - 8, t.y) }
+      for (let row = 0; row < shown.h; row++) { const t = cellTop(shown.w - 1, row); at('ground.cliff.se', t.x - 8, t.y) }
     }
     // A diamond's 16x8 tile has its top-left corner 8 px left of the cell's top vertex.
     for (const plot of ownedPlots(state, view)) {
@@ -377,20 +434,23 @@ export class IslandScene extends Phaser.Scene {
       for (let row = o.row; row < o.row + TILES_PER_PLOT; row++) for (let col = o.col; col < o.col + TILES_PER_PLOT; col++) {
         if (tiles.grass.length > 0) {
           const t = cellTop(col, row)
-          tile(`ground.grass.${(col * 7 + row * 13) % tiles.grass.length}`, t.x - 8, t.y)
+          at(`ground.grass.${(col * 7 + row * 13) % tiles.grass.length}`, t.x - 8, t.y)
         } else {
-          g.fillStyle(GROUND.grass[(col + row) % 2]!, 1).fillPoints(points(footprintDiamond(col, row, 1)), true)
+          diamond(GROUND.grass, col, row)
         }
       }
     }
     for (const c of lockedTiles(state, view)) {
       if (tiles.fog) {
         const t = cellTop(c.col, c.row)
-        tile('ground.fog', t.x - 8, t.y)
+        at('ground.fog', t.x - 8, t.y)
       } else {
-        g.fillStyle(GROUND.fog[(c.col + c.row) % 2]!, 1).fillPoints(points(footprintDiamond(c.col, c.row, 1)), true)
+        diamond(GROUND.fog, c.col, c.row)
       }
     }
+    rt.batchDraw(g, -land.x, -land.y)
+    g.clear()
+    rt.endDraw()
   }
 
   /** The placement ghost's footprint: a translucent, outlined diamond tinted by legality, over everything. */
@@ -420,6 +480,7 @@ export class IslandScene extends Phaser.Scene {
       spr.setData('target', o.target)
       // Pixel-perfect hits: a click on the transparent sky above a platform reaches the ground or what is behind it.
       spr.setInteractive({ useHandCursor: true, pixelPerfect: true, alphaTolerance: 1 })
+      if (o.minTap) this.tapTargets.push({ spr, minTap: o.minTap, pixel: spr.input!.hitAreaCallback, area: spr.input!.hitArea })
       spr.on('pointerover', () => this.bridge.emit({ type: 'hover', target: o.target }))
       spr.on('pointerout', () => this.bridge.emit({ type: 'hover', target: null }))
     }

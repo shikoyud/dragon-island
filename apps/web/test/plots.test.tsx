@@ -3,11 +3,12 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { messageFor } from '../src/api/errors'
+import { artSetFromManifest } from '../src/art/fromManifest'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge, type Placing } from '../src/game/bridge'
 import { cameraBounds, groundCell, lockedTiles, shownSize } from '../src/game/camera'
 import { buildIslandModel } from '../src/game/islandModel'
-import { cellCentre, cellTop, ISO, islandBox } from '../src/game/layout'
+import { cellCentre, cellTop, islandBox } from '../src/game/layout'
 import { levelUnlockLines } from '../src/hud/hudModel'
 import { MapIslandPanel } from '../src/panels/MapIslandPanel'
 import { PlotPanel } from '../src/panels/PlotPanel'
@@ -27,16 +28,15 @@ describe('fog and ground on 32x32 (R43, R58)', () => {
     expect(lockedTiles(withPlots(base, Array.from({ length: 16 }, (_, i) => i)), 'home')).toEqual([])
   })
   it('groundCell returns tiles anywhere on 32x32, so a red ghost can go over fog', () => {
-    const at = (col: number, row: number) => { const c = cellCentre(col, row); return groundCell(base, 'home', c.x, c.y) }
+    const at = (col: number, row: number) => { const c = cellCentre(col, row); return groundCell(base, c.x, c.y) }
     expect(at(0, 0)).toEqual({ col: 0, row: 0 })
     expect(at(31, 31)).toEqual({ col: 31, row: 31 })
     expect(at(32, 0)).toBeNull()
-    expect(groundCell(null, 'home', 0, 4)).toBeNull()
+    expect(groundCell(null, 0, 4)).toBeNull()
   })
   it('the shown size is always 32x32', () => {
     expect(shownSize()).toEqual({ w: 32, h: 32 })
-    expect(cameraBounds(base, 'home').w).toBeGreaterThan(islandBox(32, 32).w)
-    expect(cameraBounds(null, 'home')).toEqual(cameraBounds(base, 'isle2'))
+    expect(cameraBounds().w).toBeGreaterThan(islandBox(32, 32).w)
   })
 })
 
@@ -74,19 +74,31 @@ describe('plot signs', () => {
 })
 
 describe('art scale until it lands at final size (R61)', () => {
-  it('draws habitats and farms at footprint width over sprite width', () => {
-    const { objects } = model(base)
-    const h = objects.find(o => o.id === 'habitat:h1')!
-    const f = objects.find(o => o.id === 'farm:0')!
-    expect(h.scale).toBeCloseTo(4 * ISO.w / h.sprite.w)
-    expect(f.scale).toBeCloseTo(3 * ISO.w / f.sprite.w)
+  const sheet = (w: number, h: number) => ({ file: 'x.png', w, h, frames: 1, fps: 0 })
+  const draw = (assets: Record<string, ReturnType<typeof sheet>>, s: PlayerState = base) => buildIslandModel(s, artSetFromManifest('t', { assets }, LAUNCH_CATALOG), LAUNCH_CATALOG, 0, 'home', null).objects
+  const ghost = (assets: Record<string, ReturnType<typeof sheet>>, what: Placing['what'], size: Placing['size']) =>
+    buildIslandModel(base, artSetFromManifest('t', { assets }, LAUNCH_CATALOG), LAUNCH_CATALOG, 0, 'home', { what, size, col: 20, row: 12, facing: 0 }).objects.find(o => o.id === 'ghost')!
+
+  it('an 80x64 habitat sheet draws at 0.8, a final 64-wide one at 1', () => {
+    expect(draw({ 'habitat.terra': sheet(80, 64) }).find(o => o.id === 'habitat:h1')!.scale).toBe(0.8)
+    expect(draw({ 'habitat.terra': sheet(64, 64) }).find(o => o.id === 'habitat:h1')!.scale).toBe(1)
   })
-  it('the ghost of a habitat or farm matches', () => {
-    const ghost = (what: Placing['what'], size: Placing['size']) => model(base, 'home', { what, size, col: 20, row: 12, facing: 0 }).objects.find(o => o.id === 'ghost')!
-    const h = ghost({ kind: 'habitat', element: 'terra' }, 4)
-    expect(h.scale).toBeCloseTo(4 * ISO.w / h.sprite.w)
-    const f = ghost({ kind: 'farm' }, 3)
-    expect(f.scale).toBeCloseTo(3 * ISO.w / f.sprite.w)
+  it('a 32-wide Farm sheet draws at 1.5, a final 48-wide one at 1', () => {
+    expect(draw({ 'building.farmPlot': sheet(32, 32) }).find(o => o.id === 'farm:0')!.scale).toBe(1.5)
+    expect(draw({ 'building.farmPlot': sheet(48, 48) }).find(o => o.id === 'farm:0')!.scale).toBe(1)
+  })
+  it('the Golden Aerie draws at 0.8 on its own 80-wide sheet and on the Nexus fallback, and at 1 on a 64-wide sheet', () => {
+    const aerie: PlayerState = { ...base, habitats: [...base.habitats, { ...base.habitats[0]!, id: 'a1', element: 'aerie', placement: { island: 'home', col: 20, row: 12, facing: 0 } }] }
+    expect(draw({ 'building.goldenAerie': sheet(80, 64) }, aerie).find(o => o.id === 'habitat:a1')!.scale).toBe(0.8)
+    expect(draw({ 'building.goldenAerie': sheet(64, 64) }, aerie).find(o => o.id === 'habitat:a1')!.scale).toBe(1)
+    expect(draw({}, aerie).find(o => o.id === 'habitat:a1')!.scale).toBe(0.8) // the Nexus sheet is 80 wide
+  })
+  it('the ghost of a habitat, a farm, a moved Aerie and a purchase of one match', () => {
+    expect(ghost({ 'habitat.terra': sheet(80, 64) }, { kind: 'habitat', element: 'terra' }, 4).scale).toBe(0.8)
+    expect(ghost({ 'habitat.terra': sheet(64, 64) }, { kind: 'habitat', element: 'terra' }, 4).scale).toBe(1)
+    expect(ghost({ 'building.farmPlot': sheet(32, 32) }, { kind: 'farm' }, 3).scale).toBe(1.5)
+    expect(ghost({ 'building.farmPlot': sheet(48, 48) }, { kind: 'farm' }, 3).scale).toBe(1)
+    expect(ghost({ 'building.goldenAerie': sheet(80, 64) }, { kind: 'goldenAerie' }, 4).scale).toBe(0.8)
   })
 })
 

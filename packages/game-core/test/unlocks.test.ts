@@ -13,7 +13,7 @@ import { err, ok } from './helpers'
 import { FREE, HOME_BUY_ORDER, withPlots } from './helpers/land'
 
 const sorted = (xs: readonly string[]) => [...xs].sort()
-/** Home expansions past the first keep today's values until M4 (R32); §4.4 lists only the first. */
+/** §4.4 lists only the first Home plot (home:0); plots 2 to 12 get their levels from R46, pinned in the R32, R46 test below. */
 const notLaterHome = (k: string) => !/^home:([1-9]|\d\d)$/.test(k)
 const at = (pl: number) => sorted(unlocksAt(pl).filter(notLaterHome))
 

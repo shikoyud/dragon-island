@@ -15,12 +15,12 @@ describe('isometric layout', () => {
   })
 
   it('anchors a size-n footprint at the bottom vertex of its n x n diamond', () => {
-    // 5x5 habitat at (5,0): the diamond is 80 wide and 40 tall, the bottom vertex is the top of cell (10,5).
-    expect(anchor(5, 0, 5)).toEqual({ x: 40, y: 60 })
-    const d = footprintDiamond(5, 0, 5)
-    expect(d).toEqual([{ x: 40, y: 20 }, { x: 80, y: 40 }, { x: 40, y: 60 }, { x: 0, y: 40 }])
-    expect(d[1]!.x - d[3]!.x).toBe(80)
-    expect(d[2]!.y - d[0]!.y).toBe(40)
+    // A 4x4 habitat at (5,0): the diamond is 64 wide and 32 tall, the bottom vertex is the top of cell (9,4).
+    expect(anchor(5, 0, 4)).toEqual({ x: 40, y: 52 })
+    const d = footprintDiamond(5, 0, 4)
+    expect(d).toEqual([{ x: 40, y: 20 }, { x: 72, y: 36 }, { x: 40, y: 52 }, { x: 8, y: 36 }])
+    expect(d[1]!.x - d[3]!.x).toBe(64)
+    expect(d[2]!.y - d[0]!.y).toBe(32)
   })
 
   it('maps a pointer back to the cell it is over (exact inverse, floors outside the island)', () => {
@@ -53,15 +53,18 @@ describe('isometric layout', () => {
     expect([...items].sort(depthOrder).map(i => i.id)).toEqual(['big', 'leftTie', 'rightTie', 'front'])
   })
 
-  it('keeps dragon spots unique, on whole pixels and over the platform art', () => {
-    const a = anchor(0, 0, 5)
+  it('keeps every dragon spot unique, on whole pixels and with its feet inside the 4x4 habitat diamond', () => {
+    const a = anchor(8, 8, 4)
+    // The diamond is 64 wide and 32 tall, its bottom vertex at the anchor: centre (0, -16), half-axes 32 and 16.
+    const inside = (p: { x: number; y: number }) => Math.abs(p.x - a.x) / 32 + Math.abs(p.y - (a.y - 16)) / 16
     const spots = [0, 1, 2, 3, 4, 5, 6].map(i => dragonSpot(a, i))
     expect(new Set(spots.map(p => `${p.x},${p.y}`)).size).toBe(7)
     for (const p of spots) {
       expect(Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true)
-      expect(Math.abs(p.x - a.x)).toBeLessThanOrEqual(40)
-      expect(p.y).toBeLessThan(a.y)
+      expect(inside(p)).toBeLessThanOrEqual(0.9)
     }
+    expect(spots[0]).toEqual({ x: a.x, y: a.y - 16 }) // the first dragon stands in the middle
+    expect(dragonSpot(a, 12)).toEqual(spots[6]) // past the last, they share it
   })
 
   it('puts hatchery eggs in the niches along the front of the 64x64 hatchery', () => {

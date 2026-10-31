@@ -10,7 +10,7 @@ import { upgradeBlockReason } from '../src/panels/UpgradeSection'
 import { harness, TestHost } from './harness'
 
 const base = newPlayer(0)
-const rock: Obstacle = { id: 'home-s1-rock', kind: 'smallRock', island: 'home', col: 20, row: 12 }
+const rock: Obstacle = { id: 'home-start-rock', kind: 'smallRock', island: 'home', col: 20, row: 12 }
 const withRock = (over: Partial<PlayerState> = {}): PlayerState => ({
   ...base, gold: 1_000, islands: { ...base.islands, obstacles: [rock] }, ...over,
 })
@@ -35,11 +35,11 @@ describe('MapIslandPanel art', () => {
 describe('ObstaclePanel', () => {
   it('clears for gold and shows rewards', async () => {
     const h = harness(withRock())
-    h.wrap(<ObstaclePanel obstacleId="home-s1-rock" nowMs={0} />)
+    h.wrap(<ObstaclePanel obstacleId="home-start-rock" nowMs={0} />)
     expect(screen.getByText(/\+300 XP/)).toBeInTheDocument() // 25 classic XP x the Flash-14 multiplier
     expect(screen.getByText('10 % chance: 100–300 gold')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /Clear · 500 gold · 50s/ }))
-    expect(h.action).toHaveBeenCalledWith({ type: 'clearObstacle', obstacleId: 'home-s1-rock' }, expect.any(String))
+    expect(h.action).toHaveBeenCalledWith({ type: 'clearObstacle', obstacleId: 'home-start-rock' }, expect.any(String))
   })
 
   it('shows an Ancient Tree\'s cost, timer, XP and drop (§5.6)', () => {
@@ -53,7 +53,7 @@ describe('ObstaclePanel', () => {
   it('says two clears are running, and builds say nothing of clears', () => {
     const second: Obstacle = { ...rock, id: 'second', col: 22 }
     const third: Obstacle = { ...rock, id: 'third', col: 12 }
-    const running = [{ kind: 'clear' as const, obstacleId: 'home-s1-rock', readyAtMs: 9 }, { kind: 'clear' as const, obstacleId: 'second', readyAtMs: 9 }]
+    const running = [{ kind: 'clear' as const, obstacleId: 'home-start-rock', readyAtMs: 9 }, { kind: 'clear' as const, obstacleId: 'second', readyAtMs: 9 }]
     const s = withRock({ islands: { ...base.islands, obstacles: [rock, second, third] }, constructions: running })
     harness(s).wrap(<ObstaclePanel obstacleId="third" nowMs={0} />)
     expect(screen.getByRole('button', { name: /Clear · 500 gold/ })).toBeDisabled()
@@ -63,19 +63,19 @@ describe('ObstaclePanel', () => {
 
   it('disables Clear without gold and explains', () => {
     const { wrap } = harness(withRock({ gold: 10 }))
-    wrap(<ObstaclePanel obstacleId="home-s1-rock" nowMs={0} />)
+    wrap(<ObstaclePanel obstacleId="home-start-rock" nowMs={0} />)
     expect(screen.getByRole('button', { name: /Clear · 500 gold/ })).toBeDisabled()
     expect(screen.getByText('Not enough gold')).toBeInTheDocument()
   })
 
   it('shows timer and Skip while clearing and a manual Finish when ready', async () => {
-    const s = withRock({ constructions: [{ kind: 'clear', obstacleId: 'home-s1-rock', readyAtMs: 300_000 }] })
+    const s = withRock({ constructions: [{ kind: 'clear', obstacleId: 'home-start-rock', readyAtMs: 300_000 }] })
     const h = harness(s)
-    const { rerender } = h.wrap(<ObstaclePanel obstacleId="home-s1-rock" nowMs={0} />)
+    const { rerender } = h.wrap(<ObstaclePanel obstacleId="home-start-rock" nowMs={0} />)
     expect(screen.getByText('5m')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /Skip/ }))
     expect(h.action).toHaveBeenCalledWith({ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, expect.any(String))
-    rerender(<ObstaclePanel obstacleId="home-s1-rock" nowMs={300_000} />)
+    rerender(<ObstaclePanel obstacleId="home-start-rock" nowMs={300_000} />)
     expect(h.action).toHaveBeenCalledTimes(1)
     await userEvent.click(screen.getByRole('button', { name: 'Finish' }))
     expect(h.action).toHaveBeenLastCalledWith({ type: 'finishConstruction', index: 0 }, expect.any(String))
@@ -87,7 +87,7 @@ describe('PanelHost targets', () => {
     const bridge = createBridge()
     const { wrap } = harness(withRock({ level: 2 }))
     wrap(<TestHost bridge={bridge} />)
-    bridge.emit({ type: 'select', target: { kind: 'obstacle', id: 'home-s1-rock' } })
+    bridge.emit({ type: 'select', target: { kind: 'obstacle', id: 'home-start-rock' } })
     expect(await screen.findByRole('button', { name: /Clear · 500 gold/ })).toBeInTheDocument()
   })
 })

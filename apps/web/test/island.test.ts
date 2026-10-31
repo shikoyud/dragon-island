@@ -4,7 +4,7 @@ import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
-import { badgeY, BREEDER_ART_SCALE, buildIslandModel, dragonKey, goldBadgeThreshold, ROOST_ART_SCALE, timerLabel } from '../src/game/islandModel'
+import { badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, timerLabel } from '../src/game/islandModel'
 import { NEST_EGG_SCALE } from '../src/game/layout'
 import { nearestLegalCell } from '../src/state/placing'
 import { FREE, FREE_2, withIsland } from './land'
@@ -296,20 +296,30 @@ describe('island model', () => {
     expect(artEntries(withLevel({ 'building.mountain.2': b('m2.png') }, 2).art).map(r => r.key)).toContain('art:building.mountain.2')
   })
 
-  it('draws 80x80 breeder sheets at BREEDER_ART_SCALE on the 2-cell footprint until M4; the nest keeps its native scale', () => {
-    expect(BREEDER_ART_SCALE).toBeGreaterThan(0)
-    expect(BREEDER_ART_SCALE).toBeLessThan(1)
+  it('draws the 80x80 Mountain and Grove sheets at scale 1 on the 5x5 footprint, ghost and move too; the nest keeps its native scale', () => {
     const s = newPlayer(0)
     const sheet = { file: 'b.png', w: 80, h: 80, frames: 1, fps: 0 }
     const art = artSetFromManifest('t', { assets: { 'building.mountain.1': sheet, 'building.grove.1': sheet } }, C)
-    // The sheet stays specified at 80x80: only the drawing is scaled.
     expect(art.building.breeder.mountain[1]).toMatchObject({ w: 80, h: 80 })
-    expect(buildIslandModel(s, art, C, 0, 'home', null).objects.find(o => o.id === 'breeder:0')!.scale).toBe(BREEDER_ART_SCALE)
+    // 5 cells x 16 px = the sheet's 80 px: scale 1, not 0.5.
+    expect(buildIslandModel(s, art, C, 0, 'home', null).objects.find(o => o.id === 'breeder:0')!.scale ?? 1).toBe(1)
     const ghost = buildIslandModel(s, art, C, 0, 'home', { what: { kind: 'grove' }, size: 5, col: FREE.col, row: FREE.row, facing: 0 }).objects.find(o => o.id === 'ghost')!
-    expect(ghost.scale).toBe(BREEDER_ART_SCALE)
+    expect(ghost.key).toBe(textureKey('building.grove.1'))
+    expect(ghost.scale ?? 1).toBe(1)
     const moved = buildIslandModel(s, art, C, 0, 'home', { what: { kind: 'move', target: { type: 'breeder', index: 0 } }, size: 5, col: FREE.col, row: FREE.row, facing: 0 }).objects.find(o => o.id === 'ghost')!
-    expect(moved.scale).toBe(BREEDER_ART_SCALE)
+    expect(moved.scale ?? 1).toBe(1)
     expect(buildIslandModel(s, FALLBACK_ART, C, 0, 'home', null).objects.find(o => o.id === 'breeder:0')!.scale).toBeUndefined()
+  })
+
+  it('draws every hatchery level sheet at scale 1 on its 4x4 footprint', () => {
+    const b = { file: 'h.png', w: 64, h: 64, frames: 1, fps: 0 }
+    const art = artSetFromManifest('t', { assets: { 'building.hatchery': b, 'building.hatchery.2': b, 'building.hatchery.3': b, 'building.hatchery.4': b } }, C)
+    const s = newPlayer(0)
+    for (const level of [1, 2, 3, 4]) {
+      const h = buildIslandModel({ ...s, hatcheryLevel: level }, art, C, 0, 'home', null).objects.find(o => o.id === 'hatchery')!
+      expect(h.sprite.w).toBe(64)
+      expect(h.scale ?? 1).toBe(1)
+    }
   })
 
   it('draws the Hatchery by level with the same fallbacks, and the Grove ghost with its level 1 sheet', () => {
@@ -324,7 +334,7 @@ describe('island model', () => {
     expect(g.objects.find(o => o.id === 'ghost')!.key).toBe(textureKey('building.grove.1'))
   })
 
-  it('draws the Roost by tier: its own sheet, else a lower tier, else the nest; at ROOST_ART_SCALE; no request for an absent key', () => {
+  it('draws the Roost by tier: its own sheet, else a lower tier, else the nest; at scale 1; no request for an absent key', () => {
     const b = (file: string) => ({ file, w: 64, h: 64, frames: 1, fps: 0 })
     const s0 = newPlayer(0)
     const at = FREE
@@ -332,11 +342,9 @@ describe('island model', () => {
       const art = artSetFromManifest('t', { assets }, C)
       return { art, obj: buildIslandModel({ ...s0, roostPlacement: at, roostTier: tier }, art, C, 0, 'home', null).objects.find(o => o.id === 'roost')! }
     }
-    expect(ROOST_ART_SCALE).toBeGreaterThan(0)
-    expect(ROOST_ART_SCALE).toBeLessThan(1)
     const three = roost({ 'building.roost.1': b('1.png'), 'building.roost.2': b('2.png'), 'building.roost.3': b('3.png') }, 3)
     expect(three.obj.key).toBe(textureKey('building.roost.3'))
-    expect(three.obj.scale).toBe(ROOST_ART_SCALE)
+    expect(three.obj.scale ?? 1).toBe(1)
     expect(roost({ 'building.roost.1': b('1.png'), 'building.roost.2': b('2.png') }, 3).obj.key).toBe(textureKey('building.roost.2'))
     expect(roost({ 'building.roost.1': b('1.png') }, 3).obj.key).toBe(textureKey('building.roost.1'))
     // A higher sheet is never used for a lower tier.
@@ -346,13 +354,13 @@ describe('island model', () => {
     expect(none.obj.scale).toBeUndefined()
     expect(artEntries(none.art).map(r => r.key).some(k => k.startsWith('art:building.roost'))).toBe(false)
     expect(artEntries(roost({ 'building.roost.2': b('2.png') }, 2).art).map(r => r.key)).toContain('art:building.roost.2')
-    // The sheet stays specified at 64x64; only the drawing is scaled.
+    // 4 cells x 16 px = the 64 px sheet.
     expect(three.art.building.roostTier[3]).toMatchObject({ w: 64, h: 64 })
     // The ghost: placing a new Roost previews Tier 1; moving one previews its own tier.
     const g1 = artSetFromManifest('t', { assets: { 'building.roost.1': b('1.png'), 'building.roost.3': b('3.png') } }, C)
     const placing = buildIslandModel(s0, g1, C, 0, 'home', { what: { kind: 'roost' }, size: 4, col: FREE_2.col, row: FREE_2.row, facing: 0 }).objects.find(o => o.id === 'ghost')!
     expect(placing.key).toBe(textureKey('building.roost.1'))
-    expect(placing.scale).toBe(ROOST_ART_SCALE)
+    expect(placing.scale ?? 1).toBe(1)
     const moving = buildIslandModel({ ...s0, roostPlacement: at, roostTier: 3 }, g1, C, 0, 'home', { what: { kind: 'move', target: { type: 'roost' } }, size: 4, col: FREE_2.col, row: FREE_2.row, facing: 0 }).objects.find(o => o.id === 'ghost')!
     expect(moving.key).toBe(textureKey('building.roost.3'))
   })
@@ -383,7 +391,6 @@ describe('island model', () => {
     const s = { ...newPlayer(0), constructions: [{ kind: 'upgrade' as const, building: { type: 'habitat' as const, id: 'h1' }, readyAtMs: 90_000 }] }
     const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', null)
     expect(m.objects.find(o => o.id === 'habitat:h1')).toMatchObject({ badge: '2m', tint: 'building' })
-    expect(m.markers.constructions).toBe(1)
   })
 
   it('draws the construction effect over each building being built or upgraded, right after it', () => {

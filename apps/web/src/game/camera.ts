@@ -1,5 +1,5 @@
-import { ISLAND_TILES, ownedPlots, plotOfTile, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
-import { islandBox, pointerToCell, type Box } from './layout'
+import { ISLAND_TILES, ownedPlots, plotOfTile, plotOrigin, TILES_PER_PLOT, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { footprintDiamond, islandBox, pointerToCell, type Box } from './layout'
 
 /** Height in world pixels of the cliff drawn under the island's two front edges. */
 export const SKIRT = 12
@@ -14,15 +14,15 @@ export function shownSize(): { w: number; h: number } {
   return { w: ISLAND_TILES, h: ISLAND_TILES }
 }
 
-/** World box the camera may show: the shown island's diamond, its cliff skirt and a margin of sea. */
-export function cameraBounds(_state: PlayerState | null, _view: IslandId): Box {
+/** World box the camera may show: the island's diamond (every island is 32x32), its cliff skirt and a margin of sea. */
+export function cameraBounds(): Box {
   const { w, h } = shownSize()
   const b = islandBox(w, h)
   return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + SKIRT + 2 * MARGIN }
 }
 
 /** The tile under a world position, or null off the island. Land not owned counts: a red ghost can go over fog. */
-export function groundCell(state: PlayerState | null, _view: IslandId, worldX: number, worldY: number): { col: number; row: number } | null {
+export function groundCell(state: PlayerState | null, worldX: number, worldY: number): { col: number; row: number } | null {
   if (!state) return null
   const c = pointerToCell(worldX, worldY)
   return plotOfTile(c.col, c.row) === null ? null : c
@@ -67,6 +67,34 @@ export function clampView(v: View, viewportW: number, viewportH: number, b: Box)
 export function fitZoom(viewportW: number, viewportH: number, b: Box): number {
   const f = Math.min(viewportW / b.w, viewportH / b.h)
   return Math.max(1, viewportH > viewportW ? Math.ceil(f) : Math.round(f + 0.1))
+}
+
+/** World px of sea-less margin kept round owned land when fitting it, so a building on its edge is not cropped. */
+const OPENING_PAD = 16
+
+/**
+ * World box round the diamonds of the plots owned on an island. With none owned (or no state) it is the whole island's, so
+ * the camera has somewhere to open.
+ */
+export function ownedLandBox(state: PlayerState | null, view: IslandId): Box {
+  const owned = state ? ownedPlots(state, view) : []
+  if (owned.length === 0) return islandBox(ISLAND_TILES, ISLAND_TILES)
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+  for (const plot of owned) {
+    const o = plotOrigin(plot)
+    for (const p of footprintDiamond(o.col, o.row, TILES_PER_PLOT)) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y) }
+  }
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+}
+
+/**
+ * Where the camera opens (R58): the middle of the owned land, at the whole-number zoom that fits it with a margin
+ * (`fitZoom`, never below 1). `viewportH` is the height the HUD leaves free. Drag or zoom reaches the rest of the island.
+ */
+export function openingView(state: PlayerState | null, view: IslandId, viewportW: number, viewportH: number): View {
+  const b = ownedLandBox(state, view)
+  const padded = { x: b.x - OPENING_PAD, y: b.y - OPENING_PAD, w: b.w + 2 * OPENING_PAD, h: b.h + 2 * OPENING_PAD }
+  return { cx: b.x + b.w / 2, cy: b.y + b.h / 2, zoom: fitZoom(viewportW, viewportH, padded) }
 }
 
 /** A press that ended within 4 px of where it began is a click, not a pan. */

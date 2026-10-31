@@ -80,3 +80,35 @@ describe('the default cell leaves room for a habitat (final fix 2)', () => {
     expect(cell).toEqual(nearestLegalCell(tight, { kind: 'farm' }, 'home', midFor(size)))
   })
 })
+
+describe('on a fresh island with its starting obstacles (R50, M4 Task 6)', () => {
+  const fresh = { ...newPlayer(0), level: 12, gold: 1_000_000_000 }
+  const sea = { kind: 'habitat', element: 'sea' } as const
+  const foci = [undefined, null, { col: 0, row: 0 }, { col: 16, row: 16 }, { col: 31, row: 31 }, { col: 20, row: 10 }, { col: 9, row: 25 }]
+
+  it('a habitat opens on a legal cell wherever the screen is centred', () => {
+    for (const focus of foci) {
+      const { island, cell } = placementStart(fresh, sea, FOOTPRINT.habitat, 'home', focus)
+      expect(island).toBe('home')
+      expect(placingAction(fresh, 'home', { what: sea, size: FOOTPRINT.habitat, ...cell!, facing: 0 })).not.toBeNull()
+    }
+  })
+
+  for (const [what, size] of [[{ kind: 'roost' }, FOOTPRINT.roost], [{ kind: 'farm' }, FOOTPRINT.farm], [{ kind: 'grove' }, FOOTPRINT.breeder]] as const) {
+    it(`a new ${what.kind} opens on a legal cell that leaves a legal 4x4 free, wherever the screen is centred`, () => {
+      for (const focus of foci) {
+        const { island, cell } = placementStart(fresh, what, size, 'home', focus)
+        expect(island).toBe('home')
+        const action = placingAction(fresh, 'home', { what, size, ...cell!, facing: 0 })
+        expect(action).not.toBeNull()
+        const r = applyAction(fresh, action as Action, 0, createRng(1), LAUNCH_CATALOG)
+        if (!r.ok) throw new Error(r.error)
+        expect(hasLegalCell(r.state, sea)).toBe(true)
+      }
+    })
+  }
+
+  it('with the screen over the fog corner, a farm opens on the first clear cell past the Mountain, not in the fog', () => {
+    expect(placementStart(fresh, { kind: 'farm' }, FOOTPRINT.farm, 'home', { col: 0, row: 0 })).toEqual({ island: 'home', cell: { col: 13, row: 12 } })
+  })
+})

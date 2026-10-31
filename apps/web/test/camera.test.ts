@@ -1,33 +1,33 @@
-import { newPlayer } from '@wyrmhaven/game-core'
+import { LAUNCH_CATALOG, newPlayer } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
+import { FALLBACK_ART } from '../src/art/slots'
+import { buildIslandModel } from '../src/game/islandModel'
+import { withPlots } from './land'
 import {
-  cameraBounds, clampView, fitZoom, groundCell, isClick, lockedTiles, panBy, screenToWorld, SKIRT, stepZoom, zoomAt, zoomRange,
+  cameraBounds, clampView, fitZoom, groundCell, isClick, lockedTiles, openingView, ownedLandBox, panBy, screenToWorld, SKIRT, stepZoom, zoomAt, zoomRange,
   type View,
 } from '../src/game/camera'
-import { cellCentre } from '../src/game/layout'
+import { cellCentre, tapBox } from '../src/game/layout'
 
 const vp = { w: 1280, h: 720 }
 
 describe('island camera logic', () => {
-  it('bounds the whole diamond of the island plus the cliff skirt and a margin', () => {
-    const s = newPlayer(0)
-    const home = cameraBounds(s, 'home')
-    expect(home.w).toBeGreaterThan(32 * 16)
-    expect(home.x).toBeLessThan(-32 * 8)
-    expect(home.y + home.h).toBeGreaterThan(32 * 8 + SKIRT)
-    expect(cameraBounds(s, 'isle2')).toEqual(home)
+  it('bounds the whole 32x32 diamond of any island plus the cliff skirt and a margin', () => {
+    // The 32x32 island's diamond is 512 wide and 256 tall; the skirt adds 12 below and the sea margin 24 on every side.
+    expect(SKIRT).toBe(12)
+    expect(cameraBounds()).toEqual({ x: -280, y: -24, w: 560, h: 316 })
   })
 
   it('a ground click yields the cell, or nothing outside the island', () => {
     const s = newPlayer(0)
     const c = cellCentre(6, 8)
-    expect(groundCell(s, 'home', c.x, c.y)).toEqual({ col: 6, row: 8 })
+    expect(groundCell(s, c.x, c.y)).toEqual({ col: 6, row: 8 })
     const out = cellCentre(32, 0)
-    expect(groundCell(s, 'home', out.x, out.y)).toBeNull()
+    expect(groundCell(s, out.x, out.y)).toBeNull()
     const corner = cellCentre(31, 31)
-    expect(groundCell(s, 'home', corner.x, corner.y)).toEqual({ col: 31, row: 31 })
-    expect(groundCell(s, 'home', 0, -2)).toBeNull()
-    expect(groundCell(null, 'home', 5, 5)).toBeNull()
+    expect(groundCell(s, corner.x, corner.y)).toEqual({ col: 31, row: 31 })
+    expect(groundCell(s, 0, -2)).toBeNull()
+    expect(groundCell(null, 5, 5)).toBeNull()
   })
 
   it('maps screen pixels to world pixels through the view centre and zoom', () => {
@@ -65,10 +65,10 @@ describe('island camera logic', () => {
     expect(fitZoom(390, 844, box)).toBe(2) // 1.6 rounds up: a little of the edge is cropped
     expect(fitZoom(844, 390, { x: 0, y: 0, w: 160, h: 300 })).toBe(1) // landscape 1.3 rounds down
     expect(fitZoom(390, 844, { x: 0, y: 0, w: 400, h: 160 })).toBe(1)
-    // A phone showing the starting home island (14x14 shown) opens at 2: buildings readable, edges a drag away.
+    // A phone showing a box 272 wide opens at 2: buildings readable, edges a drag away.
     expect(fitZoom(390, 680, { x: 0, y: 0, w: 272, h: 172 })).toBe(2)
     expect(fitZoom(1280, 550, { x: 0, y: 0, w: 272, h: 172 })).toBe(3)
-    // Portrait screens are width-limited with height to spare: round up (an expanded home, 16x16 shown, opens at 2).
+    // Portrait screens are width-limited with height to spare: round up (a box 304 wide opens at 2, 420 wide at 1).
     expect(fitZoom(390, 680, { x: 0, y: 0, w: 304, h: 188 })).toBe(2)
     expect(fitZoom(390, 680, { x: 0, y: 0, w: 420, h: 230 })).toBe(1)
   })
@@ -94,5 +94,70 @@ describe('island camera logic', () => {
     expect(tiles).not.toContainEqual({ col: 8, row: 8 })
     expect(lockedTiles({ ...s, islands: { ...s.islands, plots: { home: Array.from({ length: 16 }, (_, i) => i) } } }, 'home')).toEqual([])
     expect(lockedTiles(s, 'isle2').length).toBe(32 * 32)
+  })
+
+})
+
+describe('the opening view (R58)', () => {
+  const fresh = newPlayer(0)
+  const PHONE = { w: 390, h: 844 }
+  const DESKTOP = { w: 1440, h: 900 }
+
+  it('boxes the owned plots: the fresh island is the middle 16x16 tiles, and a plot at a corner extends it', () => {
+    // Plots 5, 6, 9, 10 are tiles 8-23: top (0, 64), right (128, 128), bottom (0, 192), left (-128, 128).
+    expect(ownedLandBox(fresh, 'home')).toEqual({ x: -128, y: 64, w: 256, h: 128 })
+    // Plot 15 is tiles 24-31 in both axes: its bottom vertex is the island's, (0, 256).
+    expect(ownedLandBox(withPlots(fresh, [5, 6, 9, 10, 15]), 'home')).toEqual({ x: -128, y: 64, w: 256, h: 192 })
+    // Plot 0 is tiles 0-7: its top vertex is the island's, (0, 0).
+    expect(ownedLandBox(withPlots(fresh, [5, 6, 9, 10, 0]), 'home')).toEqual({ x: -128, y: 0, w: 256, h: 192 })
+    expect(ownedLandBox(withPlots(fresh, Array.from({ length: 16 }, (_, i) => i)), 'home')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
+  })
+
+  it('an island with no owned land, or no state, boxes the whole island', () => {
+    expect(ownedLandBox(fresh, 'isle2')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
+    expect(ownedLandBox(null, 'home')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
+  })
+
+  it('centres on the owned land at a fresh start, at whole-number zoom', () => {
+    expect(openingView(fresh, 'home', PHONE.w, PHONE.h)).toEqual({ cx: 0, cy: 128, zoom: 2 })
+    expect(openingView(fresh, 'home', DESKTOP.w, DESKTOP.h)).toEqual({ cx: 0, cy: 128, zoom: 5 })
+  })
+
+  it('centres on the owned land after buying an outer corner plot', () => {
+    expect(openingView(withPlots(fresh, [5, 6, 9, 10, 15]), 'home', PHONE.w, PHONE.h)).toEqual({ cx: 0, cy: 160, zoom: 2 })
+    expect(openingView(withPlots(fresh, [5, 6, 9, 10, 0]), 'home', PHONE.w, PHONE.h)).toEqual({ cx: 0, cy: 96, zoom: 2 })
+    // Plot 12 (col 0, row 24) is the island's left corner: the box grows to x -256..128, and a phone then opens at 1.
+    expect(openingView(withPlots(fresh, [5, 6, 9, 10, 12]), 'home', PHONE.w, PHONE.h)).toEqual({ cx: -64, cy: 128, zoom: 1 })
+  })
+
+  it('a full island opens at 1 on a phone, and zoom never goes below 1', () => {
+    const all = withPlots(fresh, Array.from({ length: 16 }, (_, i) => i))
+    expect(openingView(all, 'home', PHONE.w, PHONE.h)).toEqual({ cx: 0, cy: 128, zoom: 1 })
+    expect(zoomRange(openingView(all, 'home', PHONE.w, PHONE.h).zoom).min).toBe(1)
+    expect(openingView(all, 'home', 200, 200).zoom).toBe(1)
+  })
+
+  it('a plot sign is at least 44 CSS px to tap at the opening view on a 390x844 phone', () => {
+    const holdings = [[5, 6, 9, 10], [5, 6, 9, 10, 4, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]]
+    for (const plots of holdings) {
+      const s = withPlots({ ...fresh, level: 12 }, plots)
+      const { zoom } = openingView(s, 'home', PHONE.w, PHONE.h)
+      const signs = buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, 'home', null).objects.filter(o => o.id.startsWith('sign:'))
+      expect(signs.length).toBeGreaterThan(0)
+      for (const sign of signs) {
+        // The sign sprite is 32 px: its tap box on screen is what the scene gives it at the opening zoom.
+        expect(sign.minTap).toBe(44)
+        const box = tapBox({ w: sign.sprite.w, h: sign.sprite.h }, zoom, sign.minTap)
+        expect(box.w * zoom).toBeGreaterThanOrEqual(44)
+        expect(box.h * zoom).toBeGreaterThanOrEqual(44)
+      }
+    }
+    // Why the sprite alone is not enough: a 32 px sign opens at zoom 1 once enough land is owned.
+    expect(openingView(withPlots(fresh, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]), 'home', PHONE.w, PHONE.h).zoom).toBe(1)
+    // The box is the sign itself once the sign is drawn that big, and 44 CSS px below that.
+    expect(tapBox({ w: 32, h: 32 }, 1)).toEqual({ w: 44, h: 44 })
+    expect(tapBox({ w: 32, h: 32 }, 2)).toEqual({ w: 32, h: 32 })
+    expect(tapBox({ w: 32, h: 32 }, 5)).toEqual({ w: 32, h: 32 })
+    expect(tapBox({ w: 32, h: 32 }, 1, 0)).toEqual({ w: 32, h: 32 })
   })
 })

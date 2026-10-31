@@ -4,16 +4,16 @@ import { nearestLegalCell, placingAction, placingReducer } from '../src/state/pl
 import { FREE } from './land'
 
 describe('placing', () => {
-  it('a new building opens on the free cell nearest the given one, so Confirm works at once', () => {
+  it('a new building opens on the legal cell nearest the given one, so Confirm works at once', () => {
     const s = newPlayer(0)
-    // (0,0) is under habitat h1; the nearest free 2x2 spot to it is just below the habitats.
+    // (0,0) is fog; the nearest legal 3x3 farm spot to it is the first clear cell past the Mountain (cols 8-12, rows 12-16).
     const c = nearestLegalCell(s, { kind: 'farm' }, 'home', { col: 0, row: 0 })!
     expect(placingAction(s, 'home', { what: { kind: 'farm' }, size: 3, ...c, facing: 0 })).not.toBeNull()
-    expect(Math.hypot(c.col, c.row)).toBeLessThan(18)
+    expect(c).toEqual({ col: 13, row: 12 })
     const mid = nearestLegalCell(s, { kind: 'farm' }, 'home', { col: FREE.col, row: FREE.row })!
     expect(mid).toEqual({ col: FREE.col, row: FREE.row })
     // The start event puts the ghost on that cell.
-    expect(placingReducer(null, { type: 'start', what: { kind: 'farm' }, size: 2, island: 'home', cell: mid })).toMatchObject(mid)
+    expect(placingReducer(null, { type: 'start', what: { kind: 'farm' }, size: 3, island: 'home', cell: mid })).toMatchObject(mid)
     // Nowhere legal: a full grid gives null.
     expect(nearestLegalCell({ ...s, gold: 0 }, { kind: 'habitat', element: 'flame' }, 'isle2', { col: 0, row: 0 })).toBeNull()
   })

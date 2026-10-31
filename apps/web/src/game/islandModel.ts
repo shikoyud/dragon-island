@@ -6,7 +6,7 @@ import {
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
 import { placementSubject, type Placing, type Target } from './bridge'
-import { anchor, cellTop, depthOrder, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, ISO, NEST_EGG_SCALE } from './layout'
+import { anchor, cellTop, depthOrder, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, ISO, NEST_EGG_SCALE, TAP_PX } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
 export interface IslandObject {
@@ -28,6 +28,11 @@ export interface IslandObject {
   flipX?: boolean
   /** ok/bad colour a placement ghost; building marks a construction in progress. */
   tint?: 'ok' | 'bad' | 'building'
+  /**
+   * The least this is tapped at on screen, in CSS px: something drawn smaller than that at the current zoom (a 32 px plot
+   * sign at zoom 1) gets a tap box of this size, centred on it, in place of its own pixels.
+   */
+  minTap?: number
 }
 
 export interface IslandMarkers {
@@ -39,8 +44,6 @@ export interface IslandMarkers {
   farms: { plot: number; crop: string | null }[]
   obstacles: string[]
   decorations: string[]
-  /** Constructions running anywhere (the builder count). */
-  constructions: number
   /** The placement ghost's footprint, drawn as a diamond outline tinted by legality. */
   ghost: { legal: boolean; col: number; row: number; size: number } | null
   /** One per unowned plot touching owned land; `price` is null when the island's price list has run out. */
@@ -135,19 +138,14 @@ const decorationLook = (art: GameArtSet, kind: DecorationKind) => ({
   sprite: art.decoration[kind],
 })
 /**
- * Mountain and Grove sheets stay specified at 80x80, their footprint size from M4 (docs/art/gdd-m2-art-list.md). Until
- * then this constant keeps them at their old drawn size on the new footprint. Change this constant, not the sheet sizes;
- * M4 sets it back to 1. The `building.nest` fallback is 32x32 already and keeps its native scale.
+ * A Mountain or Grove at `level`: its own `building.<kind>.<level>` sheet (80x80, the 5x5 footprint's width, so it draws
+ * at scale 1), else the nearest lower level's, else the small nest sprite (which stands on the footprint's bottom vertex
+ * like any building).
  */
-export const BREEDER_ART_SCALE = 0.5
-/**
- * A Mountain or Grove at `level`: its own `building.<kind>.<level>` sheet, else the nearest lower level's, else the small
- * nest sprite (which stands on the footprint's bottom vertex like any building).
- */
-function breederLook(art: GameArtSet, kind: BreederKind, level: number): { key: string; sprite: Sprite; scale?: number } {
+function breederLook(art: GameArtSet, kind: BreederKind, level: number): { key: string; sprite: Sprite } {
   for (let l = level; l >= 1; l--) {
     const s = art.building.breeder[kind][l]
-    if (s) return { key: textureKey(`building.${kind}.${l}`), sprite: s, scale: BREEDER_ART_SCALE }
+    if (s) return { key: textureKey(`building.${kind}.${l}`), sprite: s }
   }
   return { key: textureKey('building.nest'), sprite: art.building.nest }
 }
@@ -160,19 +158,13 @@ function hatcheryLook(art: GameArtSet, level: number): { key: string; sprite: Sp
   return { key: textureKey('building.hatchery'), sprite: art.building.hatchery }
 }
 /**
- * Roost sheets stay specified at 64x64, their footprint size from M4 (docs/art/gdd-m3-art-list.md). Until then the Roost
- * keeps its old drawn size on the new footprint. Change this constant, not the sheet sizes;
- * M4 sets it back to 1. The `building.nest` fallback keeps its native scale.
+ * The Dragon Roost at `tier`: `building.roost.<tier>` (64x64, the 4x4 footprint's width, so scale 1), else the nearest
+ * lower tier's, else the small nest sprite. Tier 0 (still being built) and a missing sheet both use the nest.
  */
-export const ROOST_ART_SCALE = 0.5
-/**
- * The Dragon Roost at `tier`: `building.roost.<tier>`, else the nearest lower tier's, else the small nest sprite. Tier 0
- * (still being built) and a missing sheet both use the nest.
- */
-function roostLook(art: GameArtSet, tier: number): { key: string; sprite: Sprite; scale?: number } {
+function roostLook(art: GameArtSet, tier: number): { key: string; sprite: Sprite } {
   for (let t = tier; t >= 1; t--) {
     const s = art.building.roostTier[t]
-    if (s) return { key: textureKey(`building.roost.${t}`), sprite: s, scale: ROOST_ART_SCALE }
+    if (s) return { key: textureKey(`building.roost.${t}`), sprite: s }
   }
   return { key: textureKey('building.nest'), sprite: art.building.nest }
 }
@@ -233,10 +225,9 @@ export function buildIslandModel(
   const objects: IslandObject[] = []
   const markers: IslandMarkers = {
     habitats: [], dragons: [], waiting: [], breeders: [], hatchery: [], farms: [],
-    obstacles: [], decorations: [], constructions: 0, ghost: null, signs: [],
+    obstacles: [], decorations: [], ghost: null, signs: [],
   }
   if (!state) return { objects, markers }
-  markers.constructions = state.constructions.length
 
   const groups: { col: number; row: number; size: number; objects: IslandObject[] }[] = []
   const add = (p: { col: number; row: number }, size: number, group: IslandObject[]) => groups.push({ col: p.col, row: p.row, size, objects: group })
@@ -370,7 +361,7 @@ export function buildIslandModel(
     // The sign stands on the plot's centre: depth-sorted as a 2x2 around it.
     const mid = TILES_PER_PLOT / 2
     add({ col: o.col + mid - 1, row: o.row + mid - 1 }, 2, [{
-      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot },
+      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot }, minTap: TAP_PX,
     }])
     markers.signs.push({ plot, price })
   }
