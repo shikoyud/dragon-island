@@ -8,6 +8,7 @@ import { createBridge } from './game/bridge'
 import { GameCanvas } from './game/GameCanvas'
 import { Dialog } from './hud/Dialog'
 import { Hud, type DialogKey } from './hud/Hud'
+import { LevelUp, useLevelUp } from './hud/LevelUp'
 import { HudArtContext } from './hud/Icon'
 import { hudSkin } from './hud/skin'
 import { Admin } from './pages/Admin'
@@ -55,11 +56,15 @@ function Game() {
   const { placing, view, dispatch } = usePlacing(bridge)
   const { run, pending } = useAction()
   useAutoFinish(nowMs)
+  // Waits out placement and battles; a rise from any source (/me, an action reply) counts, the first load does not.
+  const levelUp = useLevelUp(me.data?.state.level, placing !== null || Boolean(battle.setup))
 
   useEffect(() => { void loadActiveArt().then(setArt) }, [])
   useEffect(() => { bridge.setBattle(battle.preview) }, [bridge, battle.preview])
   useEffect(() => { if (battle.error) toasts.error(battle.error) }, [battle.error, toasts])
   useEffect(() => { if (me.error) toasts.error(me.error) }, [me.error, toasts])
+  const levelUpOpen = levelUp !== null
+  useEffect(() => { if (levelUpOpen) bridge.emit({ type: 'levelUp' }) }, [bridge, levelUpOpen])
   const close = useCallback(() => setDialog(null), [setDialog])
   const skin = useMemo(() => hudSkin(art.hud), [art])
 
@@ -101,6 +106,8 @@ function Game() {
     : dialog && !placing
       ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} onPve={startPve} onPvp={startPvp} />, onClose: close }
       : null
+  // Escape belongs to the level-up screen while it is up; the panel under it stays open.
+  if (content && levelUp) content.onClose = () => {}
 
   return (
     <HudArtContext.Provider value={art.hud}>
@@ -119,6 +126,7 @@ function Game() {
             ) : undefined}
           />
           {content && <Dialog label={content.label} onClose={content.onClose} modal={content.modal ?? true}>{content.node}</Dialog>}
+          {levelUp && <LevelUp from={levelUp.from} to={levelUp.to} onClose={levelUp.dismiss} />}
           {me.data.termsRequired && <Dialog label="Updated terms" onClose={() => {}}><TermsPrompt version={me.data.termsRequired} /></Dialog>}
         </div>
       </StartPlacingProvider>

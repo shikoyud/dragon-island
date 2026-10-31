@@ -57,7 +57,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     obstacle: Object.fromEntries((Object.keys(OBSTACLES) as ObstacleKind[]).map(k => [k, get(`obstacle.${k}`, footprintPx(OBSTACLES[k].size))])) as Record<ObstacleKind, Sprite>,
     decoration: Object.fromEntries((Object.keys(DECORATIONS) as DecorationId[]).map(d => [d, get(`decoration.${d}`, footprintPx(DECORATIONS[d].size))])) as Record<DecorationId, Sprite>,
     map: Object.fromEntries(ISLAND_ORDER.map(i => [i, get(`map.${i}`, 'map')])) as Record<IslandId, Sprite>,
-    fx: { construction: get('fx.construction', 'fxConstruction'), hatch: get('fx.hatch', 'fxHatch'), coins: get('fx.coins', 'fxCoins') },
+    fx: { construction: get('fx.construction', 'fxConstruction'), hatch: get('fx.hatch', 'fxHatch'), coins: get('fx.coins', 'fxCoins'), ...(manifest.assets['fx.levelUp'] ? { levelUp: get('fx.levelUp', 'fxHatch') } : {}) },
     ground: {
       grass: [0, 1, 2].map(i => present(`ground.grass.${i}`)).filter((g): g is Sprite => g !== null),
       fog: present('ground.fog'), water: present('ground.water'), cliffSw: present('ground.cliff.sw'), cliffSe: present('ground.cliff.se'),

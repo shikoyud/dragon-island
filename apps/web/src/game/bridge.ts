@@ -45,6 +45,8 @@ export type GameEvent =
   | { type: 'view'; view: IslandId }
   | { type: 'placing'; placing: Placing | null }
   | { type: 'insets' }
+  /** The level-up screen opened: the island plays `fx.levelUp` once if the art has it. */
+  | { type: 'levelUp' }
   | { type: 'ready' }
 
 type Handler<T extends GameEvent['type']> = (e: Extract<GameEvent, { type: T }>) => void

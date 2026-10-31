@@ -1,4 +1,4 @@
-import { currentGoal, goalProgress, LAUNCH_CATALOG, xpToNext, type BreederKind, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
+import { CROPS, currentGoal, goalProgress, LAUNCH_CATALOG, unlocksAt, xpToNext, type BreederKind, type CropId, type UnlockKey, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import type { Target } from '../game/bridge'
 import { hatcheryHasRoom } from '../game/islandModel'
@@ -10,6 +10,42 @@ import type { DialogKey } from './Hud'
 export function xpFraction(s: PlayerState): number {
   const need = xpToNext(s.level)
   return Number.isFinite(need) ? Math.min(1, Math.max(0, s.xp / need)) : 1
+}
+
+const ISLAND_NAMES: Record<string, string> = { isle2: 'Second island', isle3: 'Third island', isle4: 'Fourth island', isle5: 'Fifth island', dawnspire: 'Dawnspire' }
+
+/** One unlock key in plain words; null for what the level-up screen leaves out (`wings`, and `home:n`, which is one shared line). */
+function unlockLine(key: UnlockKey): string | null {
+  const [kind, arg = ''] = key.split(':') as [string, string?]
+  switch (kind) {
+    case 'habitat': return `${cap(arg)} Habitat`
+    case 'basic': return `${cap(arg)} Basic`
+    case 'crop': return `Crop: ${CROPS[arg as CropId].name}`
+    case 'farm': return `Farm ${arg}`
+    case 'mountain': return `Breeding Mountain level ${arg}`
+    case 'grove': return `Breeding Grove level ${arg}`
+    case 'hatchery': return `Hatchery level ${arg}`
+    case 'hatcheryFifthSlot': return 'Hatchery fifth slot'
+    case 'roost': return `Roost Tier ${arg}`
+    case 'pve': return 'PvE battles'
+    case 'island': return ISLAND_NAMES[arg] ?? 'New island'
+    default: return null
+  }
+}
+
+/** What opened between two levels (`from` exclusive, `to` inclusive), in plain words, once each: the level-up screen's list. */
+export function levelUnlockLines(from: number, to: number): string[] {
+  const lines: string[] = []
+  let home = false
+  for (let pl = from + 1; pl <= to; pl++) {
+    for (const key of unlocksAt(pl)) {
+      if (key.startsWith('home:')) { home = true; continue }
+      const line = unlockLine(key)
+      if (line && !lines.includes(line)) lines.push(line)
+    }
+  }
+  if (home) lines.push('Island expansion')
+  return lines
 }
 
 /** Something waiting for the player, shown as a shortcut in the HUD's left column. */

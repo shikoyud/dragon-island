@@ -42,6 +42,7 @@ export function artEntries(art: GameArtSet): Entry[] {
   add('fx.construction', art.fx.construction, 'fx', 'terra')
   add('fx.hatch', art.fx.hatch, 'fx', 'light')
   add('fx.coins', art.fx.coins, 'fxCoins', 'light')
+  if (art.fx.levelUp) add('fx.levelUp', art.fx.levelUp, 'fx', 'light')
   // Ground tiles load only when they exist: without them the island scene draws its own diamonds.
   const ground = art.ground
   ground.grass.forEach((s, i) => add(`ground.grass.${i}`, s, 'island', 'nature'))

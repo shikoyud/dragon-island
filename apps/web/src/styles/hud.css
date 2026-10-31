@@ -108,6 +108,7 @@
 
 /* ---- dialogs ---- */
 .hud-dialog-layer { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.hud-levelup { z-index: 30; }
 .hud-scrim { position: absolute; inset: 0; background: rgba(8, 10, 20, 0.55); }
 .hud-dialog { position: relative; width: min(560px, 100%); max-height: min(82vh, 760px); overflow: auto; overscroll-behavior: contain; }
 .hud-dialog > .panel, .hud-dialog .panel { box-shadow: 0 4px 0 var(--ink); }

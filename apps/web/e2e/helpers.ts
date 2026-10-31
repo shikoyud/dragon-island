@@ -59,6 +59,9 @@ export async function signIn(page: Page, opts: { fresh?: boolean } = {}) {
  * Farm. Any dialog already open is closed first (its scrim covers the HUD).
  */
 export async function openPanel(page: Page, label: string) {
+  // A level-up screen (R38) sits over everything until the player continues.
+  const levelUp = page.getByRole('dialog', { name: 'Level up' }).getByRole('button', { name: 'Continue' })
+  if (await levelUp.isVisible().catch(() => false)) await levelUp.click()
   if (await page.getByTestId('dialog-scrim').isVisible().catch(() => false)) await page.keyboard.press('Escape')
   const main = (name: string) => page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).click()
   const side = (name: string) => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name, exact: true }).click()

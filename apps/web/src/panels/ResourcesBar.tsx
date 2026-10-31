@@ -11,7 +11,7 @@ export function ResourcesBar() {
     <div className="resources" role="status" aria-label="Resources" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'baseline' }}>
       <span title="Gold">🪙 <strong>{formatGold(s.gold)}</strong></span>
       <span title="Food">🍖 <strong>{formatGold(s.food)}</strong></span>
-      <span title="Level">Lv <strong>{s.level}</strong> <small>{Number.isFinite(xpToNext(s.level)) ? `${s.xp} / ${xpToNext(s.level)} XP` : 'MAX'}</small></span>
+      <span title="Level">Lv <strong>{s.level}</strong> <small>{Number.isFinite(xpToNext(s.level)) ? `${formatGold(s.xp)} / ${formatGold(xpToNext(s.level))} XP` : 'MAX'}</small></span>
       <span title="Trophies">🏆 <strong>{s.trophies}</strong></span>
       <span title="Game balance"><Tokens wei={me.data.balanceWei} /></span>
     </div>
