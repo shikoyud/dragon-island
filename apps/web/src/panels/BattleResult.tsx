@@ -1,4 +1,5 @@
 import type { ActionResponse } from '@wyrmhaven/shared'
+import { Stars } from '../hud/ArtMark'
 import { formatGold } from '../ui/Money'
 import { TOKEN_NAMES } from './SpeedUpButton'
 
@@ -17,7 +18,7 @@ export function BattleResult({ result }: { result: ActionResponse }) {
       {trial ? (
         trial.won ? (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            <li><span className="battle-result__stars" aria-label={`${trial.stars} stars`}>{'★'.repeat(trial.stars)}</span></li>
+            <li><Stars className="battle-result__stars" filled={trial.stars} /></li>
             <li>{formatGold(trial.gold)} gold · {formatGold(trial.food)} food · {formatGold(trial.xp)} XP</li>
             {trial.tokens && <li>{trial.tokens.count} × {TOKEN_NAMES[trial.tokens.token]} speed-up</li>}
             {trial.egg && <li>{capital(trial.egg.rarity)} {capital(trial.egg.element)} egg</li>}

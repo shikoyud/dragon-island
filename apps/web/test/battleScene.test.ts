@@ -2,12 +2,15 @@
 import { battlePreview, createRng, LAUNCH_CATALOG, newPlayer, type BattleDragonSpec, type BattlePreview, type PlayerMove } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { artEntries } from '../src/art/phaserLoader'
+import { artSetFromManifest } from '../src/art/fromManifest'
 import { FALLBACK_ART } from '../src/art/slots'
+import type { GameArtSet } from '../src/art/types'
 import { backdropFill, dragonFlip } from '../src/game/battleModel'
 import { createBridge } from '../src/game/bridge'
 import { createGame } from '../src/game/config'
 import { dragonKey } from '../src/game/islandModel'
-import { BATTLE_SPOT } from '../src/game/layout'
+import { BATTLE, BATTLE_SPOT } from '../src/game/layout'
 import type { BattleScene } from '../src/game/scenes/BattleScene'
 
 vi.mock('phaser', async () => {
@@ -26,9 +29,9 @@ const c = LAUNCH_CATALOG
 const three = (id: string, level: number): BattleDragonSpec[] => [0, 1, 2].map(() => ({ speciesId: id, level }))
 const STRIKE: PlayerMove = { kind: 'attack', move: 0 }
 
-async function boot() {
+async function boot(art: GameArtSet = FALLBACK_ART) {
   const bridge = createBridge()
-  bridge.setArt(FALLBACK_ART)
+  bridge.setArt(art)
   bridge.setState(newPlayer(0))
   vi.spyOn(Phaser.Textures.CanvasTexture.prototype, 'refresh').mockReturnThis()
   const host = document.createElement('div')
@@ -40,10 +43,12 @@ async function boot() {
 }
 
 const games: Phaser.Game[] = []
-async function fight(me: BattleDragonSpec[], foe: BattleDragonSpec[], moves: PlayerMove[] = [], opts: { reduced?: boolean; backdrop?: 'flame' | null } = {}) {
-  const { bridge, game } = await boot()
+async function fight(me: BattleDragonSpec[], foe: BattleDragonSpec[], moves: PlayerMove[] = [], opts: { reduced?: boolean; backdrop?: 'flame' | null; art?: GameArtSet } = {}) {
+  const { bridge, game } = await boot(opts.art)
   games.push(game)
   bridge.setReducedMotion(opts.reduced ?? false)
+  // jsdom loads no images: the battle sheets the art set names stand in as blank canvases, as if they had loaded.
+  if (opts.art) for (const e of artEntries(opts.art).filter(x => x.optional)) game.textures.createCanvas(e.key, e.sprite.w, e.sprite.h)
   const preview: BattlePreview = battlePreview(me, foe, moves, createRng(7), c)
   bridge.setBattle(preview, opts.backdrop ?? null)
   await vi.waitFor(() => expect(game.scene.isActive('battle')).toBe(true), { timeout: 3000 })
@@ -135,5 +140,93 @@ describe('BattleScene', () => {
     expect(scene.dragon('defender').alpha).toBeGreaterThanOrEqual(0)
     expect(bridge.battleShown).toBe(preview.state.log.length)
     expect(scene.playedEvents).toBe(0)
+  })
+
+  describe('art', () => {
+    const e = (file: string, w: number, h: number, frames = 1, fps = 0) => ({ file, w, h, frames, fps })
+    const withArt = (assets: Record<string, ReturnType<typeof e>>): GameArtSet => artSetFromManifest('v1', { assets }, c)
+    const FX = {
+      'fx.move.sea': e('a.png', 384, 64, 6, 14), 'fx.move.physical': e('b.png', 384, 64, 6, 14), 'fx.hit': e('c.png', 256, 64, 4, 14), 'fx.crit': e('d.png', 256, 64, 4, 14),
+      'fx.immune': e('f.png', 256, 64, 4, 14), 'fx.ko': e('g.png', 384, 64, 6, 14), 'fx.swap': e('h.png', 320, 64, 5, 14),
+    }
+    /** What the scene is showing with this texture, whatever the object. */
+    const showing = (scene: BattleScene, key: string) => scene.children.list.filter(o => (o as Phaser.GameObjects.Sprite).texture?.key === `art:${key}` && (o as Phaser.GameObjects.Sprite).visible)
+
+    it('draws the chapter backdrop over the whole stage, and none without art', async () => {
+      const plain = await fight(three('flame', 20), three('sea', 1), [], { backdrop: 'flame' })
+      expect(showing(plain.scene, 'battle.backdrop.flame')).toHaveLength(0)
+      const { scene } = await fight(three('flame', 20), three('sea', 1), [], { backdrop: 'flame', art: withArt({ 'battle.backdrop.flame': e('bd.png', 360, 420) }) })
+      const [img] = showing(scene, 'battle.backdrop.flame') as Phaser.GameObjects.Image[]
+      expect([img!.x, img!.y, img!.displayWidth, img!.displayHeight]).toEqual([0, 0, BATTLE.w, BATTLE.h])
+      // Behind the platforms and the dragons.
+      expect(scene.children.list.indexOf(img!)).toBeLessThan(scene.children.list.indexOf(scene.dragon('attacker')))
+    })
+
+    it('an Arena fight, or a chapter without its backdrop, keeps the colour fill', async () => {
+      const art = withArt({ 'battle.backdrop.flame': e('bd.png', 360, 420) })
+      const arena = await fight(three('flame', 20), three('sea', 1), [], { art })
+      expect(showing(arena.scene, 'battle.backdrop.flame')).toHaveLength(0)
+      expect(arena.scene.cameras.main.backgroundColor.color & 0xffffff).toBe(backdropFill(null).sky)
+    })
+
+    it('stands each dragon on ui.battle.platform when it exists, the drawn ellipse otherwise', async () => {
+      const { scene } = await fight(three('flame', 20), three('sea', 1), [], { art: withArt({ 'ui.battle.platform': e('p.png', 64, 32) }) })
+      const spots = showing(scene, 'ui.battle.platform') as Phaser.GameObjects.Image[]
+      expect(spots).toHaveLength(2)
+      expect(spots.map(p => p.x).sort((a, b) => a - b)).toEqual([BATTLE_SPOT.attacker.x, BATTLE_SPOT.defender.x])
+      for (const p of spots) expect(p.depth).toBeLessThanOrEqual(scene.dragon('attacker').depth)
+      const plain = await fight(three('flame', 20), three('sea', 1))
+      expect(showing(plain.scene, 'ui.battle.platform')).toHaveLength(0)
+    })
+
+    it('a Sea move bursts fx.move.sea and fx.hit over the target; a Physical one fx.move.physical', async () => {
+      const art = withArt(FX)
+      const sea = await fight(three('sea', 20), three('flame', 40), [{ kind: 'attack', move: 1 }], { art })
+      sea.bridge.setBattleShown(1)
+      const [burst] = showing(sea.scene, 'fx.move.sea') as Phaser.GameObjects.Sprite[]
+      expect(burst).toBeDefined()
+      expect(burst!.x).toBe(BATTLE_SPOT.defender.x)
+      expect(burst!.y).toBeLessThan(BATTLE_SPOT.defender.y)
+      expect(showing(sea.scene, 'fx.hit')).toHaveLength(1)
+      expect(showing(sea.scene, 'fx.move.physical')).toHaveLength(0)
+      const phys = await fight(three('sea', 20), three('flame', 40), [{ kind: 'attack', move: 0 }], { art })
+      phys.bridge.setBattleShown(1)
+      expect(showing(phys.scene, 'fx.move.physical')).toHaveLength(1)
+    })
+
+    it('IMMUNE shows fx.immune and no hit; a KO adds fx.ko; a swap fx.swap', async () => {
+      const art = withArt(FX)
+      const immune = await fight(three('flame', 20), three('flame', 40), [{ kind: 'attack', move: 1 }], { art })
+      immune.bridge.setBattleShown(1)
+      expect(showing(immune.scene, 'fx.immune')).toHaveLength(1)
+      expect(showing(immune.scene, 'fx.hit')).toHaveLength(0)
+      const ko = await fight(three('sea', 40), three('flame', 1), [{ kind: 'attack', move: 1 }], { art })
+      ko.bridge.setBattleShown(1)
+      expect(showing(ko.scene, 'fx.ko')).toHaveLength(1)
+      const team: BattleDragonSpec[] = [{ speciesId: 'flame', level: 20 }, { speciesId: 'sea', level: 20 }, { speciesId: 'terra', level: 20 }]
+      const swap = await fight(team, three('nature', 1), [{ kind: 'swap', to: 1 }], { art })
+      swap.bridge.setBattleShown(1)
+      expect(showing(swap.scene, 'fx.swap')).toHaveLength(1)
+    })
+
+    it('a manifest with none of the M5 art plays a whole battle, swap and KO replacement included', async () => {
+      const team: BattleDragonSpec[] = [{ speciesId: 'sea', level: 40 }, { speciesId: 'flame', level: 20 }, { speciesId: 'terra', level: 20 }]
+      const moves: PlayerMove[] = [{ kind: 'attack', move: 1 }, { kind: 'swap', to: 1 }, { kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }]
+      const { scene, bridge, preview } = await fight(team, three('flame', 5), moves)
+      const total = preview.state.log.length
+      expect(total).toBeGreaterThan(3)
+      for (let i = 1; i <= total; i++) bridge.setBattleShown(i)
+      expect(scene.playedEvents).toBe(total)
+      expect(scene.children.list.filter(o => /^art:(fx|battle|ui\.battle)/.test((o as Phaser.GameObjects.Sprite).texture?.key ?? ''))).toHaveLength(0)
+    })
+
+    it('with no fx art, or with reduced motion, nothing bursts and nothing throws', async () => {
+      const none = await fight(three('sea', 20), three('flame', 40), [{ kind: 'attack', move: 1 }])
+      none.bridge.setBattleShown(1)
+      expect(none.scene.children.list.filter(o => /^art:fx\./.test((o as Phaser.GameObjects.Sprite).texture?.key ?? ''))).toHaveLength(0)
+      const reduced = await fight(three('sea', 20), three('flame', 40), [{ kind: 'attack', move: 1 }], { art: withArt(FX), reduced: true })
+      reduced.bridge.setBattleShown(1)
+      expect(showing(reduced.scene, 'fx.move.sea')).toHaveLength(0)
+    })
   })
 })

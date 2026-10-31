@@ -9,6 +9,8 @@ import userEvent from '@testing-library/user-event'
 import { useEffect, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiProvider } from '../src/api/ApiProvider'
+import { HudArtContext } from '../src/hud/Icon'
+import type { Sprite } from '../src/art/types'
 import type { Api } from '../src/api/client'
 import { ApiError } from '../src/api/client'
 import { errorMessages, messageFor } from '../src/api/errors'
@@ -48,11 +50,13 @@ function harness(state: PlayerState, api: Record<string, unknown> = {}) {
   )
   return { wrapper, api: fake, qc }
 }
-const panel = (state: PlayerState, onFight = vi.fn(), onResume = vi.fn(), nowMs = 0) => {
+const panel = (state: PlayerState, onFight = vi.fn(), onResume = vi.fn(), nowMs = 0, art: Record<string, Sprite> = {}) => {
   const h = harness(state)
-  render(<TrialsPanel nowMs={nowMs} onFight={onFight} onResume={onResume} />, { wrapper: h.wrapper })
-  return { ...h, onFight, onResume }
+  const ui = (now: number) => <HudArtContext.Provider value={art}><TrialsPanel nowMs={now} onFight={onFight} onResume={onResume} /></HudArtContext.Provider>
+  const view = render(ui(nowMs), { wrapper: h.wrapper })
+  return { ...h, onFight, onResume, at: (now: number) => view.rerender(ui(now)) }
 }
+const mark = (name: string): Sprite => ({ src: `/art/v1/${name}.png`, w: 16, h: 16, frames: 1, fps: 0 })
 /** The moves that finish `active`'s battle on SEED_HEX, as the client would choose them. */
 function complete(): PlayerMove[] {
   const moves: PlayerMove[] = []
@@ -429,7 +433,7 @@ describe('useBattle, PvE', () => {
 
   describe('on the battle screen', () => {
     const WON = { state: base, effects: [], trial: { won: true, stars: 3, gold: 1_000, food: 50, xp: 20, first: true }, battle: { winner: 'attacker', turns: 5 } }
-    const mount = (state: PlayerState, onClose: () => void) => {
+    const mount = (state: PlayerState, onClose: () => void, art: Record<string, Sprite> = {}) => {
       const h = harness(state, { action: vi.fn(async () => WON) })
       const bridge = createBridge()
       bridge.setReducedMotion(true)
@@ -438,11 +442,11 @@ describe('useBattle, PvE', () => {
         useEffect(() => { void b.resumeTrial() }, []) // eslint-disable-line
         return b.preview ? <BattlePanel battle={b} bridge={bridge} onClose={onClose} /> : null
       }
-      render(<Host />, { wrapper: h.wrapper })
+      render(<HudArtContext.Provider value={art}><Host /></HudArtContext.Provider>, { wrapper: h.wrapper })
       return h
     }
-    const screenFor = async (trial: ActiveTrial, onClose = vi.fn()) => {
-      const h = mount({ ...base, pve: { ...base.pve, active: trial, battles: 3 } }, onClose)
+    const screenFor = async (trial: ActiveTrial, onClose = vi.fn(), art: Record<string, Sprite> = {}) => {
+      const h = mount({ ...base, pve: { ...base.pve, active: trial, battles: 3 } }, onClose, art)
       await screen.findByRole('group', { name: /^move$/i })
       return { ...h, onClose }
     }
@@ -457,6 +461,22 @@ describe('useBattle, PvE', () => {
     it('marks the Boss', async () => {
       await screenFor({ ...active, node: 10 })
       expect(within(screen.getByRole('group', { name: 'Enemy' })).getByText('Boss')).toBeInTheDocument()
+    })
+
+    it('draws the crown from battle.boss.marker on the Boss only, and the tier pips from ui.tier.*', async () => {
+      const art = { 'battle.boss.marker': mark('crown'), 'ui.tier.1': mark('t1'), 'ui.tier.2': mark('t2'), 'ui.tier.3': mark('t3') }
+      await screenFor({ ...active, node: 10 }, vi.fn(), art)
+      expect(within(screen.getByRole('group', { name: 'Enemy' })).getByText('Boss').querySelector('img[src="/art/v1/crown.png"]')).not.toBeNull()
+      expect(screen.getByRole('group', { name: 'Yours' }).querySelector('img')).toBeNull()
+      const moves = screen.getByRole('group', { name: /^move$/i })
+      for (const t of ['t1', 't2', 't3']) expect(moves.querySelectorAll(`img[src="/art/v1/${t}.png"]`)).toHaveLength(1)
+      expect(moves).toHaveTextContent('Tier 1')
+    })
+
+    it('with no battle art the Boss is a word and the tiers are text', async () => {
+      await screenFor({ ...active, node: 10 })
+      expect(document.querySelector('.battle img')).toBeNull()
+      expect(screen.getByText('Boss')).toBeInTheDocument()
     })
 
     it('exit states the cost; confirming abandons and goes back', async () => {
@@ -555,5 +575,78 @@ describe('useBattle, PvE', () => {
     } finally {
       get.mockRestore(); set.mockRestore(); remove.mockRestore()
     }
+  })
+})
+
+describe('TrialsPanel: reasons, clocks and saved teams (Task 7 review)', () => {
+  it('a Trial in progress is the reason on every node, a locked one too: the server checks TRIAL_ACTIVE first', async () => {
+    panel(withActive)
+    await openChapter(/terra wilds/i)
+    expect(node(2)).toHaveAccessibleDescription('Finish the Trial in progress first')
+    expect(node(10)).toHaveAccessibleDescription('Finish the Trial in progress first')
+    expect(node(1)).toHaveAccessibleDescription('Finish the Trial in progress first')
+  })
+
+  it('without a Trial in progress a locked node still says what locks it', async () => {
+    panel(base)
+    await openChapter(/terra wilds/i)
+    expect(node(2)).toHaveAccessibleDescription('Clear the previous node first')
+  })
+
+  it('HP on a team card follows the clock', async () => {
+    const [d1, d2, d3] = sea(20)
+    const state: PlayerState = { ...base, dragons: [d1!, d2!, d3!].map(d => ({ ...d, ...hurt(Math.floor(maxHp(d, LAUNCH_CATALOG) * 0.5)) })) }
+    const p = panel(state)
+    await toTeam()
+    const pct = () => Number(within(cardsOf()[0]!).getByRole('progressbar', { name: 'HP' }).getAttribute('aria-valuenow'))
+    const before = pct()
+    expect(before).toBe(Math.floor((currentHp(state.dragons[0]!, LAUNCH_CATALOG, 0, DEFAULT_PRESET) * 100) / maxHp(state.dragons[0]!, LAUNCH_CATALOG)))
+    p.at(30 * 60_000)
+    expect(pct()).toBe(Math.floor((currentHp(state.dragons[0]!, LAUNCH_CATALOG, 30 * 60_000, DEFAULT_PRESET) * 100) / maxHp(state.dragons[0]!, LAUNCH_CATALOG)))
+    expect(pct()).toBeGreaterThan(before)
+    expect(within(cardsOf()[0]!).getByText(new RegExp(`${pct()} %`))).toBeInTheDocument()
+  })
+
+  it('a saved team with a sold dragon is not sent: the picker falls back to dragons the player has', async () => {
+    const owned = ['d1', 'd3', 'd4'].map(id => ({ id, speciesId: 'sea', level: 20, feeds: 0, habitatId: 'h2' }))
+    localStorage.setItem('dris.trialTeam.p1', JSON.stringify(['d1', 'd2', 'd3']))
+    const { onFight } = panel({ ...base, dragons: owned })
+    await toTeam()
+    expect(cardsOf().filter(b => b.getAttribute('aria-pressed') === 'true')).toHaveLength(3)
+    await userEvent.click(screen.getByRole('button', { name: 'Fight' }))
+    expect(onFight).toHaveBeenCalledWith(1, 1, ['d1', 'd3', 'd4'])
+    expect(JSON.parse(localStorage.getItem('dris.trialTeam.p1')!)).toEqual(['d1', 'd3', 'd4'])
+  })
+
+  it('draws the chapter card and node marks from trial.* art, and the stars from ui.star', async () => {
+    const art = { 'trial.chapter.terra': mark('tc-terra'), 'trial.node': mark('n'), 'trial.node.boss': mark('nb'), 'trial.node.locked': mark('nl'), 'ui.star': mark('s'), 'ui.star.empty': mark('s0') }
+    panel({ ...base, pve: { ...base.pve, stars: { '1:1': 2 } } }, vi.fn(), vi.fn(), 0, art)
+    expect(chapters().getAllByRole('button')[0]!.querySelector('img[src="/art/v1/tc-terra.png"]')).not.toBeNull()
+    // A chapter without its card keeps the element icon.
+    expect(chapters().getAllByRole('button')[1]!.querySelector('[data-icon="flame"]')).not.toBeNull()
+    await openChapter(/terra wilds/i)
+    expect(node(1).querySelector('img[src="/art/v1/n.png"]')).not.toBeNull()
+    expect(node(2).querySelector('img[src="/art/v1/n.png"]')).not.toBeNull()
+    expect(node(3).querySelector('img[src="/art/v1/nl.png"]')).not.toBeNull() // node 2 is not cleared
+    expect(node(10).querySelector('img[src="/art/v1/nb.png"]')).toBeNull() // a locked Boss reads as locked
+    expect(node(10).querySelector('img[src="/art/v1/nl.png"]')).not.toBeNull()
+    const stars = node(1).querySelector('[aria-label="2 stars"]')!
+    expect(stars.querySelectorAll('img[src="/art/v1/s.png"]')).toHaveLength(2)
+    expect(stars.querySelectorAll('img[src="/art/v1/s0.png"]')).toHaveLength(1)
+  })
+
+  it('an opened Boss node is marked with trial.node.boss', async () => {
+    const stars = Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`1:${i + 1}`, 1])) as PlayerState['pve']['stars']
+    panel({ ...base, pve: { ...base.pve, stars } }, vi.fn(), vi.fn(), 0, { 'trial.node.boss': mark('nb'), 'trial.node': mark('n') })
+    await openChapter(/terra wilds/i)
+    expect(node(10).querySelector('img[src="/art/v1/nb.png"]')).not.toBeNull()
+    expect(node(9).querySelector('img[src="/art/v1/n.png"]')).not.toBeNull()
+  })
+
+  it('with no trial art the text stars and no marks remain', async () => {
+    panel({ ...base, pve: { ...base.pve, stars: { '1:1': 2 } } })
+    await openChapter(/terra wilds/i)
+    expect(node(1).querySelector('img')).toBeNull()
+    expect(node(1).querySelector('[aria-label="2 stars"]')).toHaveTextContent('★★☆')
   })
 })

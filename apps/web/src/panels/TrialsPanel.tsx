@@ -1,9 +1,10 @@
 import {
   anyHurt, BOSS_NODE, canFight, currentHp, elementMultiplier, gameDay, getSpecies, HEAL_ALL_MICRO_USD, LAUNCH_CATALOG, maxHp, MIN_FIGHT_PCT,
   NODES_PER_CHAPTER, nodeKey, nodeLevel, nodeLocked, nodeRewards, nodeTeam, REPLAYS_PER_NODE_PER_DAY, TRIAL_CHAPTERS, unlockPl,
-  type Catalog, type Dragon, type Preset, type TeamIds, type UnlockKey,
+  type Catalog, type Dragon, type Element, type Preset, type TeamIds, type UnlockKey,
 } from '@wyrmhaven/game-core'
 import { useCallback, useState, type CSSProperties } from 'react'
+import { ArtMark, Stars, useHudSprite } from '../hud/ArtMark'
 import { Icon } from '../hud/Icon'
 import { useAction } from '../state/actions'
 import { clearTrialDraft, TRIAL_ABANDON_COST } from '../state/battle'
@@ -45,6 +46,17 @@ function loadTeam(playerId: string): string[] {
 }
 function saveTeam(playerId: string, team: readonly string[]): void {
   try { localStorage.setItem(teamKey(playerId), JSON.stringify(team)) } catch { /* a convenience, never needed */ }
+}
+
+/** A chapter's card (`trial.chapter.<element>`, 64x64 shown at 32), else its element icon. */
+function ChapterCard({ element }: { element: Element }) {
+  const card = useHudSprite(`trial.chapter.${element}`)
+  return card ? <img className="pixel trials__card-art" src={card.src} width={32} height={32} alt="" aria-hidden="true" /> : <Icon name={element} size={28} />
+}
+
+/** The node's mark: locked, Boss or plain, each from its `trial.node*` art when the manifest has it. A locked Boss reads as locked. */
+function NodeMark({ locked, boss }: { locked: boolean; boss: boolean }) {
+  return <ArtMark name={locked ? 'trial.node.locked' : boss ? 'trial.node.boss' : 'trial.node'} size={16} className="trials__mark" />
 }
 
 type View = { screen: 'chapters' } | { screen: 'nodes'; chapter: number } | { screen: 'team'; chapter: number; node: number }
@@ -101,12 +113,12 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
     if (n > 1 && !s.pve.stars[nodeKey(n - 1, BOSS_NODE)]) return `Beat the ${TRIAL_CHAPTERS[n - 2]!.theme} Boss first`
     return ''
   }
-  /** Why a node can't be started now ('' if it can); the lock first, then the Trial in progress, the dragons, the day's replays. */
+  /** Why a node can't be started now ('' if it can), in the order the server checks: the Trial in progress, the lock, the dragons, the day's replays. */
   const nodeReason = (chapter: number, node: number): string => {
+    if (active) return FINISH_FIRST
     const lock = nodeLocked(s, chapter, node)
     if (lock === 'LEVEL') return `Needs player level ${pl(chapter)}`
     if (lock === 'PREVIOUS') return node === 1 ? `Beat the ${TRIAL_CHAPTERS[chapter - 2]!.theme} Boss first` : 'Clear the previous node first'
-    if (active) return FINISH_FIRST
     if (!enough) {
       if (s.dragons.length < 3) return NEED_THREE
       const waits = s.dragons.map(d => fightsInMs(d, c, nowMs, preset)).filter(w => w > 0).sort((a, b) => a - b)
@@ -156,7 +168,7 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
               return (
                 <li key={ch.chapter}>
                   <button type="button" className={`btn trials__chapter${reason ? ' trials__chapter--locked' : ''}`} style={TAP} onClick={() => setView({ screen: 'nodes', chapter: ch.chapter })}>
-                    <Icon name={ch.element} size={28} />
+                    <ChapterCard element={ch.element} />
                     <span className="trials__main">
                       <span className="trials__name">{ch.theme}</span>
                       <span className="trials__sub">PL {pl(ch.chapter)} · ★ {chapterStars(ch.chapter)} / {STARS_PER_CHAPTER}</span>
@@ -200,8 +212,8 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
                   <ActionButton id={`trial-node-${n}`} disabled={Boolean(reason)} reason={reason} primary={n === next} onClick={() => setView({ screen: 'team', chapter: ch.chapter, node: n })}>
                     <span className={`trials__node${n === next ? ' trials__node--next' : ''}`}>
                       <span className="trials__node-head">
-                        <span>Node {n}{n === BOSS_NODE ? ' · Boss' : ''} · L{nodeLevel(ch.chapter, n)}</span>
-                        {stars > 0 && <span className="trials__stars" aria-label={`${stars} stars`}>{'★'.repeat(stars)}{'☆'.repeat(3 - stars)}</span>}
+                        <span><NodeMark locked={nodeLocked(s, ch.chapter, n) !== null} boss={n === BOSS_NODE} />Node {n}{n === BOSS_NODE ? ' · Boss' : ''} · L{nodeLevel(ch.chapter, n)}</span>
+                        {stars > 0 && <Stars className="trials__stars" filled={stars} total={3} />}
                       </span>
                       <span className="trials__enemies">
                         {enemies.map((e, i) => {

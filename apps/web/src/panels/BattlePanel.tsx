@@ -4,6 +4,7 @@ import { messageFor } from '../api/errors'
 import type { Bridge } from '../game/bridge'
 import { battleLine, battleView, INPUT_GUARD_MS, pipState, turnLabel, type BattleView } from '../game/battleModel'
 import { BATTLE_CONTROLS_H, battleStage } from '../game/layout'
+import { ArtMark } from '../hud/ArtMark'
 import { Icon } from '../hud/Icon'
 import { moveCard, pvpForfeitCost, TRIAL_ABANDON_COST, useBattlePlayback, type BattleHook } from '../state/battle'
 import { formatGold } from '../ui/Money'
@@ -39,7 +40,7 @@ function Plate({ label, state, side, view, boss }: { label: 'Enemy' | 'Yours'; s
         <Icon name={f.species.elements[0]!} size={16} />
         <span className="battle__name">{f.species.name}</span>
         <span className="battle__level">L{f.spec.level}</span>
-        {boss && <span className="battle__boss">Boss</span>}
+        {boss && <span className="battle__boss"><ArtMark name="battle.boss.marker" size={16} className="battle__crown" />Boss</span>}
       </div>
       <div className="battle__hp" role="progressbar" aria-label="HP" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
         <span className={`battle__hp-fill${pct <= 25 ? ' battle__hp-fill--low' : ''}`} style={{ transform: `scaleX(${hp / f.stats.hp})` }} />
@@ -73,7 +74,7 @@ function Moves({ state, disabled, onMove, onSwap, canSwap }: { state: BattleStat
                 <span>{card.name}</span>
               </span>
               <span className="battle__move-hint">
-                {card.disabledReason ?? <>{card.tier === 'physical' ? 'Physical' : `Tier ${card.tier}`} · <b>{card.hint}</b></>}
+                {card.disabledReason ?? <>{card.tier === 'physical' ? 'Physical' : <><ArtMark name={`ui.tier.${card.tier}`} size={12} className="battle__tier" />{`Tier ${card.tier}`}</>} · <b>{card.hint}</b></>}
               </span>
             </button>
           )

@@ -9,6 +9,10 @@ const PIECES = [
   ['--ui-xp', 'skin-xp', 'ui.xpBar'],
   ['--ui-close', 'skin-close', 'ui.close'],
   ['--ui-tab', 'skin-tab', 'ui.tab'],
+  ['--ui-battle-hp', 'skin-battle-hp', 'ui.battle.hpFrame'],
+  ['--ui-battle-move', 'skin-battle-move', 'ui.battle.moveButton'],
+  ['--ui-battle-swap', 'skin-battle-swap', 'ui.battle.swap'],
+  ['--ui-battle-turn', 'skin-battle-turn', 'ui.battle.turn'],
 ] as const
 
 /**

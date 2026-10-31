@@ -1,4 +1,4 @@
-import { hatcherySlots, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
+import { hatcherySlots, newPlayer, type ActiveTrial, type PlayerState } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { attentionItems, MAX_ATTENTION, xpFraction } from '../src/hud/hudModel'
 
@@ -60,5 +60,17 @@ describe('HUD model', () => {
     const s = { ...base(), constructions: [0, 1, 2, 3, 4, 5].map(i => ({ kind: 'build' as const, building: { type: 'farm' as const, index: i }, readyAtMs: 1000 * i })) }
     const items = attentionItems(s, 0)
     expect(items).toHaveLength(MAX_ATTENTION)
+  })
+
+  it('a Trial left open sorts ahead of a claimable Goal, and both ahead of anything not ready', () => {
+    const active: ActiveTrial = { chapter: 1, node: 1, team: ['a', 'b', 'c'], index: 0, startedAtMs: 0, replay: false, specs: [] }
+    const b = base()
+    const s = {
+      ...b, goalStats: { ...b.goalStats, collects: 1 }, pve: { ...b.pve, active },
+      constructions: [{ kind: 'build' as const, building: { type: 'farm' as const, index: 0 }, readyAtMs: 5_000 }],
+    } satisfies PlayerState
+    expect(attentionItems(s, 1_000).map(i => i.id)).toEqual(['trial', 'goal', 'construction:0'])
+    // Whatever order they were found in.
+    expect(attentionItems({ ...s, constructions: [] }, 1_000).map(i => i.id)).toEqual(['trial', 'goal'])
   })
 })

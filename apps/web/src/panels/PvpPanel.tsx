@@ -1,4 +1,4 @@
-import { PVP_MIN_PLAYER_LEVEL, type TeamIds } from '@wyrmhaven/game-core'
+import { LAUNCH_CATALOG, PVP_MIN_PLAYER_LEVEL, type TeamIds } from '@wyrmhaven/game-core'
 import type { Offer } from '@wyrmhaven/shared'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -6,6 +6,8 @@ import { useApi } from '../api/ApiProvider'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { ActionButton, Panel } from '../ui/Panel'
+
+const nameOf = (speciesId: string): string => LAUNCH_CATALOG.species.get(speciesId)?.name ?? speciesId
 
 /** Opponent offers from the server (a new fetch retires the old set), team pick, defence team. */
 export function PvpPanel({ onFight, onClose }: { onFight: (offer: Offer, team: TeamIds) => void; onClose?: () => void }) {
@@ -28,7 +30,7 @@ export function PvpPanel({ onFight, onClose }: { onFight: (offer: Offer, team: T
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {s.dragons.map(d => (
             <button key={d.id} type="button" className={`btn ${team.includes(d.id) ? 'btn--primary' : ''}`} aria-pressed={team.includes(d.id)} onClick={() => toggle(d.id)}>
-              {d.id} · {d.speciesId} L{d.level}
+              {nameOf(d.speciesId)} L{d.level}
             </button>
           ))}
         </div>
@@ -46,7 +48,7 @@ export function PvpPanel({ onFight, onClose }: { onFight: (offer: Offer, team: T
         <ul style={{ listStyle: 'none', padding: 0, marginTop: 8 }} aria-label="Opponents">
           {offers.data.offers.map(o => (
             <li key={o.offerId} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-              <span>{o.opponent.playerId ? 'Player' : 'Bot'} · Lv {o.opponent.level} · 🏆 {o.opponent.trophies} · {o.opponent.team.map(t => `${t.speciesId} L${t.level}`).join(', ')}</span>
+              <span>{o.opponent.playerId ? 'Player' : 'Bot'} · Lv {o.opponent.level} · 🏆 {o.opponent.trophies} · {o.opponent.team.map(t => `${nameOf(t.speciesId)} L${t.level}`).join(', ')}</span>
               <ActionButton id={`fight-${o.offerId}`} primary disabled={!teamOk || !s.defenceTeam} reason={!s.defenceTeam ? 'Save a defence team first' : 'Pick three dragons'} onClick={() => onFight(o, team as TeamIds)}>
                 Fight
               </ActionButton>

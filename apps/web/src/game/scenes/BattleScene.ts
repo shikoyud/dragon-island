@@ -1,6 +1,7 @@
 import type { BattleEvent, BattlePreview, Side } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
-import { playOrStill } from '../../art/phaserLoader'
+import { playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
+import type { Sprite } from '../../art/types'
 import { FALLBACK_ART } from '../../art/slots'
 import { backdropFill, battleView, dragonFlip, hitFx } from '../battleModel'
 import type { Bridge } from '../bridge'
@@ -17,6 +18,13 @@ const FADE_MS = 320
 const SLIDE_MS = 170
 const FLOAT_PX = 26
 const FLOAT_MS = 520
+const FX_DEPTH = 8
+/** A still fx fades over this long; a sheet plays its own length. */
+const FX_MS = 420
+/** Art platform (64x32) and fx (64x64) draw at these scales: a Tier 3 move reads stronger by size alone. */
+const PLATFORM_SCALE = 2
+const FX_SCALE = 2
+const MOVE_FX_SCALE: Record<'physical' | 1 | 2 | 3, number> = { physical: 2, 1: 2, 2: 2.5, 3: 3.5 }
 const TEXT_DEPTH = 10
 const TEXT: Phaser.Types.GameObjects.Text.TextStyle = { fontFamily: 'Silkscreen, monospace', fontSize: '20px', color: '#ffffff', stroke: '#141627', strokeThickness: 4 }
 
@@ -34,6 +42,8 @@ export class BattleScene extends Phaser.Scene {
   private slots!: Record<Side, Slot>
   private ground!: Phaser.GameObjects.Rectangle
   private platforms!: Phaser.GameObjects.Graphics
+  private backdrop!: Phaser.GameObjects.Image
+  private platformArt!: Record<Side, Phaser.GameObjects.Image>
   private shown = 0
   private painted: BattlePreview | null = null
   private fx: Phaser.GameObjects.GameObject[] = []
@@ -46,7 +56,11 @@ export class BattleScene extends Phaser.Scene {
 
   create(): void {
     this.ground = this.add.rectangle(BATTLE.w / 2, BATTLE_HORIZON_Y, BATTLE_BLEED * 2, BATTLE_BLEED, 0xffffff).setOrigin(0.5, 0)
+    // Backdrop art covers the stage (the fill shows only past its edges); the drawn platforms, or the platform art, sit on it.
+    this.backdrop = this.add.image(0, 0, FALLBACK_KEY).setOrigin(0, 0).setVisible(false)
     this.platforms = this.add.graphics()
+    const platformImage = (side: Side) => this.add.image(BATTLE_SPOT[side].x, BATTLE_SPOT[side].y - 4, FALLBACK_KEY).setScale(PLATFORM_SCALE).setVisible(false)
+    this.platformArt = { attacker: platformImage('attacker'), defender: platformImage('defender') }
     const sprite = (side: Side) => this.add.sprite(BATTLE_SPOT[side].x, BATTLE_SPOT[side].y, FALLBACK_KEY).setOrigin(0.5, 1).setScale(BATTLE_DRAGON_SCALE).setVisible(false)
     this.slots = { attacker: { sprite: sprite('attacker'), look: null }, defender: { sprite: sprite('defender'), look: null } }
 
@@ -80,9 +94,18 @@ export class BattleScene extends Phaser.Scene {
     const fill = backdropFill(this.bridge.battleBackdrop)
     this.cameras.main.setBackgroundColor(fill.sky)
     this.ground.setFillStyle(fill.ground)
+    const art = this.bridge.art ?? FALLBACK_ART
+    const element = this.bridge.battleBackdrop
+    const backdropKey = element && art.battle.backdrop[element] ? textureKey(`battle.backdrop.${element}`) : null
+    if (backdropKey && this.textures.exists(backdropKey)) this.backdrop.setTexture(backdropKey).setDisplaySize(BATTLE.w, BATTLE.h).setVisible(true)
+    else this.backdrop.setVisible(false)
+    const platformKey = art.battle.platform ? textureKey('ui.battle.platform') : null
+    const platformArt = platformKey !== null && this.textures.exists(platformKey)
     const g = this.platforms.clear()
     for (const side of SIDES) {
       const { x, y } = BATTLE_SPOT[side]
+      if (platformArt) { this.platformArt[side].setTexture(platformKey).setVisible(true); continue }
+      this.platformArt[side].setVisible(false)
       g.fillStyle(fill.rim).fillEllipse(x, y + 2, BATTLE_PLATFORM.w, BATTLE_PLATFORM.h)
       g.fillStyle(fill.platform).fillEllipse(x, y - 2, BATTLE_PLATFORM.w - 6, BATTLE_PLATFORM.h - 8)
     }
@@ -158,6 +181,13 @@ export class BattleScene extends Phaser.Scene {
       foe.sprite.setTint(fx.tint)
       this.time.delayedCall(TINT_MS, () => { if (this.alive()) foe.sprite.clearTint() })
     }
+    const move = preview.state.sides[e.side].team[e.slot]?.moves[e.move]
+    const bodyY = y - Math.round(foe.sprite.displayHeight * 0.5)
+    this.burst(`fx.move.${move?.element ?? 'physical'}`, this.art().battle.moveFx[move?.element ?? 'physical'], x, bodyY, MOVE_FX_SCALE[move?.tier ?? 'physical'])
+    if (e.immune) this.burst('fx.immune', this.art().battle.fx.immune, x, bodyY, FX_SCALE)
+    else this.burst('fx.hit', this.art().battle.fx.hit, x, bodyY, FX_SCALE)
+    if (e.crit) this.burst('fx.crit', this.art().battle.fx.crit, x, bodyY, FX_SCALE)
+    if (e.ko) this.burst('fx.ko', this.art().battle.fx.ko, x, bodyY, FX_SCALE)
     const after = this.lookAt(preview, foeSide, shown)
     if (fx.ko && after) {
       // A KO fades; `look` already says so, so a repaint leaves the fade running.
@@ -180,8 +210,26 @@ export class BattleScene extends Phaser.Scene {
     }
     slot.look = { key: look.key, ko: look.ko }
     if (e.kind === 'replace') return enter()
+    this.burst('fx.swap', this.art().battle.fx.swap, x, BATTLE_SPOT[e.side].y - Math.round(slot.sprite.displayHeight * 0.5), FX_SCALE)
     this.tweens.killTweensOf(slot.sprite)
     this.tweens.add({ targets: slot.sprite, x: OFF_STAGE[e.side], duration: SLIDE_MS, ease: 'Quad.easeIn', onComplete: enter })
+  }
+
+  private art() {
+    return this.bridge.art ?? FALLBACK_ART
+  }
+
+  /**
+   * A one-shot effect centred on (x, y): the sheet plays once and goes; a still fades. Nothing when the manifest has no such
+   * sheet or it did not load, so a game without fx art plays the same battle with only its text and tints.
+   */
+  private burst(path: string, sprite: Sprite | undefined, x: number, y: number, scale: number): void {
+    const key = textureKey(path)
+    if (!sprite || !this.textures.exists(key)) return
+    const fx = this.add.sprite(x, y, key).setScale(scale).setDepth(FX_DEPTH)
+    this.fx.push(fx)
+    fx.once(Phaser.GameObjects.Events.DESTROY, () => { this.fx = this.fx.filter(o => o !== fx) })
+    if (!playOneShot(fx, key, sprite)) this.tweens.add({ targets: fx, alpha: 0, duration: FX_MS, onComplete: () => fx.destroy() })
   }
 
   private floatText(x: number, y: number, text: string, color: string, size?: number): void {

@@ -1,6 +1,6 @@
 import type { Element } from '@wyrmhaven/game-core'
 import { createContext, memo, useContext, type ReactElement } from 'react'
-import type { Sprite } from '../art/types'
+import type { GameArtSet, Sprite } from '../art/types'
 
 export type IconName =
   | 'food' | 'gold' | 'dris' | 'xp' | 'timer' | 'build' | 'map' | 'settings'
@@ -8,6 +8,15 @@ export type IconName =
 
 /** HUD art from the manifest (`art.hud`), keyed `icon.<name>.16` / `icon.<name>.32`; provided once by the App. */
 export const HudArtContext = createContext<Record<string, Sprite>>({})
+
+/**
+ * What the App provides through `HudArtContext`: `art.hud` plus the element icons (`art.elementIcon`, manifest keys
+ * `icon.flame`, `icon.terra`, ...) that have a file, so `Icon` finds them by name.
+ */
+export function hudArtOf(art: GameArtSet): Record<string, Sprite> {
+  const icons = Object.entries(art.elementIcon).filter(([, s]) => s.src).map(([el, s]) => [`icon.${el}`, s] as const)
+  return { ...Object.fromEntries(icons), ...art.hud }
+}
 
 const C: Record<string, string> = {
   k: '#141627', W: '#f2efe6', R: '#c0563a', r: '#e88a6a', Y: '#f4d03f', y: '#b89a1a', P: '#9b6bd6', p: '#d9c2ff',
@@ -51,12 +60,13 @@ export function glyphRects(name: string): ReactElement[] | undefined {
 
 /**
  * A HUD icon: the manifest's `icon.<name>.32` (or .16) when it exists, else a built-in pixel glyph.
- * Element names (`flame`, `war`, ...) are accepted too; with no art yet they draw a diamond in the element colour.
+ * Element names (`flame`, `war`, ...) are accepted too and read the element's own icon (`icon.<element>`, from `hudArtOf`);
+ * with none they draw a diamond in the element colour.
  * Decorative unless `label` is given, which makes it an image with that accessible name.
  */
 export const Icon = memo(function Icon({ name, size = 24, label }: { name: IconName | Element; size?: number; label?: string }) {
   const art = useContext(HudArtContext)
-  const sprite = art[`icon.${name}.${size > 16 ? 32 : 16}`] ?? art[`icon.${name}.32`] ?? art[`icon.${name}.16`]
+  const sprite = art[`icon.${name}.${size > 16 ? 32 : 16}`] ?? art[`icon.${name}.32`] ?? art[`icon.${name}.16`] ?? art[`icon.${name}`]
   const a11y = label ? { role: 'img' as const, 'aria-label': label } : { 'aria-hidden': true as const }
   if (sprite?.src) return <img className="pixel hud-icon" src={sprite.src} width={size} height={size} alt={label ?? ''} {...(label ? {} : a11y)} />
   const rects = glyphRects(name)

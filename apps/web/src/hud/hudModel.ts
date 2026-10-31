@@ -179,7 +179,7 @@ export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
   if (goalClaimable(s)) {
     items.push({ id: 'goal', label: 'Goal ready', ready: true, action: { type: 'claimGoal' }, open: { kind: 'panel', id: 'quests' } })
   }
-  // Ready first, then by time; among equals the Goal goes first, so MAX_ATTENTION never cuts the one claim the player can take.
+  // Ready first, then by time; among equals a Trial left open goes first (it blocks every Trial and heal), then the Goal, so MAX_ATTENTION never cuts the two things the player must act on.
   const ordered = items.sort((p, q) => Number(q.ready) - Number(p.ready) || (p.readyAtMs ?? 0) - (q.readyAtMs ?? 0) || Number(q.id === 'trial') - Number(p.id === 'trial') || Number(q.id === 'goal') - Number(p.id === 'goal'))
   return ordered.slice(0, MAX_ATTENTION)
 }

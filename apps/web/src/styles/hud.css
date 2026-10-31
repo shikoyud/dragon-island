@@ -347,3 +347,13 @@
 .battle-confirm__card h2 { margin: 0 0 6px; font-size: 16px; }
 .battle-confirm__card p { margin: 0 0 12px; }
 .battle-confirm__row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+/* ---- battle ui.* art (docs/art/gdd-m5-art-list.md): nine-sliced over the 2 px border each piece already has, so the layout
+   does not move; the turn banner is stretched. Applied per piece when the manifest has it (hud/skin.ts). ---- */
+.skin-battle-hp .battle__plate { border-image: var(--ui-battle-hp) 2 fill / 2px stretch; box-shadow: none; image-rendering: pixelated; }
+.skin-battle-move .battle__move { border-image: var(--ui-battle-move) 2 fill / 2px stretch; box-shadow: none; image-rendering: pixelated; }
+.skin-battle-swap .battle__swap { border-image: var(--ui-battle-swap) 2 fill / 2px stretch; box-shadow: none; image-rendering: pixelated; }
+.skin-battle-turn .battle__turn { background: var(--ui-battle-turn) center / 100% 100% no-repeat; padding: 0 6px; image-rendering: pixelated; }
+.battle__crown, .battle__tier, .trials__mark { vertical-align: -3px; margin-right: 3px; image-rendering: pixelated; }
+.trials__card-art { flex: none; image-rendering: pixelated; }
+.hud-star { image-rendering: pixelated; }

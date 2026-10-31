@@ -9,7 +9,7 @@ import { GameCanvas } from './game/GameCanvas'
 import { Dialog } from './hud/Dialog'
 import { Hud, isMapDialog, type DialogKey } from './hud/Hud'
 import { LevelUp, useLevelUp } from './hud/LevelUp'
-import { HudArtContext } from './hud/Icon'
+import { HudArtContext, hudArtOf } from './hud/Icon'
 import { hudSkin } from './hud/skin'
 import { Admin } from './pages/Admin'
 import { BattlePanel } from './panels/BattlePanel'
@@ -90,6 +90,7 @@ function Game() {
     if (battleSetup?.mode === 'pve') setDialog({ kind: 'panel', id: 'battle', chapter: battleSetup.trial.chapter })
   }, [resetBattle, bridge, battleSetup, setDialog])
   const skin = useMemo(() => hudSkin(art.hud), [art])
+  const hudArt = useMemo(() => hudArtOf(art), [art])
   // The Island buttons scan every unlocked island for room: only when the state, the thing being placed or the view changes.
   const stateNow = me.data?.state
   const placingWhat = placing?.what
@@ -139,7 +140,7 @@ function Game() {
     : null
 
   return (
-    <HudArtContext.Provider value={art.hud}>
+    <HudArtContext.Provider value={hudArt}>
       <StartPlacingProvider value={startPlacing}>
         <div className={`game-root ${skin.className}`} style={skin.style} data-testid="shell">
           <GameCanvas bridge={bridge} art={art} nowMs={nowMs} />

@@ -111,11 +111,26 @@ export function badgeY(o: Pick<IslandObject, 'y' | 'sprite' | 'scale'>): number 
  * sheet when the manifest has one (else the dragon sheet), Adult the dragon sheet. A species without art falls back to
  * its primary Basic (R23).
  */
+/** A hatchling's sheet: the species' own (`hatchling.trial-champion`) when the manifest has one, else its primary element's. */
+export function hatchlingLook(speciesId: string, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): { key: string; sprite: Sprite } {
+  const own = art.special.hatchling[speciesId]
+  if (own) return { key: textureKey(`hatchling.${speciesId}`), sprite: own }
+  const el = catalog.species.get(speciesId)?.elements[0] ?? 'flame'
+  return { key: textureKey(`hatchling.${el}`), sprite: art.hatchling[el] }
+}
+
+/** An egg's sheet: the species' own when the manifest has one, else its primary element's. */
+export function eggLook(speciesId: string, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): { key: string; sprite: Sprite } {
+  const own = art.special.egg[speciesId]
+  if (own) return { key: textureKey(`egg.${speciesId}`), sprite: own }
+  const el = getSpecies(catalog, speciesId).elements[0]!
+  return { key: textureKey(`egg.${el}`), sprite: art.egg[el] }
+}
+
 export function dragonLook(speciesId: string, level: number, art: GameArtSet, catalog: Catalog = LAUNCH_CATALOG): { key: string; sprite: Sprite } {
   const stage = stageOf(level)
   if (stage === 'baby') {
-    const el = catalog.species.get(speciesId)?.elements[0] ?? 'flame'
-    return { key: textureKey(`hatchling.${el}`), sprite: art.hatchling[el] }
+    return hatchlingLook(speciesId, art, catalog)
   }
   const juvenile = stage === 'juvenile' ? art.juvenile[speciesId] : undefined
   if (juvenile) return { key: textureKey(`juvenile.${speciesId}`), sprite: juvenile }
@@ -324,8 +339,7 @@ export function buildIslandModel(
       target: { kind: 'breeder', index }, ...look({ type: 'breeder', index }, breeder.placement),
     }]
     if (breeder.egg) {
-      const el = getSpecies(catalog, breeder.egg.speciesId).elements[0]!
-      group.push({ id: `egg:${index}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], x: a.x, y: a.y - 9, scale: NEST_EGG_SCALE, target: { kind: 'breeder', index }, badge: eggBadge(state, breeder.egg.readyAtMs, nowMs) })
+      group.push({ id: `egg:${index}`, ...eggLook(breeder.egg.speciesId, art, catalog), x: a.x, y: a.y - 9, scale: NEST_EGG_SCALE, target: { kind: 'breeder', index }, badge: eggBadge(state, breeder.egg.readyAtMs, nowMs) })
     }
     add(breeder.placement, FOOTPRINT.breeder, group)
     markers.breeders.push({ index, egg: breeder.egg !== null })
@@ -346,14 +360,12 @@ export function buildIslandModel(
     }]
     let spot = 0
     state.hatchery.forEach((egg, slot) => {
-      const el = getSpecies(catalog, egg.speciesId).elements[0]!
-      group.push({ id: `hatchery:${slot}`, key: textureKey(`egg.${el}`), sprite: art.egg[el], ...hatcherySpot(a, spot++), scale: HATCHERY_ITEM_SCALE, target: { kind: 'hatchery', slot } })
+      group.push({ id: `hatchery:${slot}`, ...eggLook(egg.speciesId, art, catalog), ...hatcherySpot(a, spot++), scale: HATCHERY_ITEM_SCALE, target: { kind: 'hatchery', slot } })
       markers.hatchery.push({ slot })
     })
     for (const d of state.dragons.filter(x => x.habitatId === null)) {
-      const el = getSpecies(catalog, d.speciesId).elements[0]!
       const at = hatcherySpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel, state.hatcheryFifthSlot) - 1))
-      group.push({ id: `dragon:${d.id}`, key: textureKey(`hatchling.${el}`), sprite: art.hatchling[el], ...at, scale: HATCHERY_ITEM_SCALE, target: { kind: 'dragon', id: d.id } })
+      group.push({ id: `dragon:${d.id}`, ...hatchlingLook(d.speciesId, art, catalog), ...at, scale: HATCHERY_ITEM_SCALE, target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
       markers.waiting.push({ id: d.id, noRoom: true })
     }
