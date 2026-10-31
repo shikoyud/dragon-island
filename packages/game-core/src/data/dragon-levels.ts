@@ -1,5 +1,5 @@
-import { BASE_LEVEL_CAP, ROOST_TIERS } from './roost'
 // GDD §4.1 (levels, food curve, evolution stages), §4.2 (Roost level caps), §4.3 (feed XP); ruling R5.
+import { BASE_LEVEL_CAP, ROOST_TIERS } from './roost'
 export const MAX_DRAGON_LEVEL = 40
 export const FEEDS_PER_LEVEL = 4
 /** Breeding needs both parents at the Juvenile stage (§4.1). */

@@ -31,6 +31,11 @@ describe('first-time hatch (R30)', () => {
   it('doubles the XP when the species is new to the Book', () => {
     expect(hatchRare(['terra', 'flame']).xp).toBe(1_920)
   })
+  it('a hatchling that has no room (it waits with no habitat) still pays the double', () => {
+    const noRoom = ok(run({ ...base, level: 50, habitats: [], discovered: ['terra', 'flame'], hatchery: [{ speciesId: 'terra-flame', readyAtMs: 0 }] }, { type: 'hatch', slot: 0 }))
+    expect(noRoom.dragons.at(-1)!.habitatId).toBeNull()
+    expect(noRoom.xp).toBe(1_920)
+  })
   it('pays the plain XP for a second one', () => {
     expect(hatchRare(['terra', 'flame', 'terra-flame']).xp).toBe(960)
   })
@@ -86,6 +91,16 @@ describe('build XP is paid when the Gold is spent (R31)', () => {
     expect(farm.xp).toBe(0)
     const aerie = ok(run({ ...base, level: 50 }, { type: 'buy', item: { kind: 'goldenAerie', placement: P(7, 7) } }))
     expect(aerie.xp).toBe(0)
+  })
+  it('no Gold spent pays no build XP: buildXp(0) is 0, not the paid-build minimum', () => {
+    expect(buildXp(0, { ...base, level: 1 })).toBe(0)
+    expect(buildXp(1, { ...base, level: 1 })).toBe(BUILD_XP_MIN)
+  })
+  it('a refused build changes nothing: no Gold, no XP', () => {
+    const st: PlayerState = { ...base, level: 3, gold: 4_999, xp: 40 }
+    const r = run(st, { type: 'placeBuilding', building: { kind: 'habitat', element: 'sea' }, placement: P(7, 7) })
+    expect(r).toEqual({ ok: false, error: 'INSUFFICIENT_GOLD' })
+    expect(st).toMatchObject({ gold: 4_999, xp: 40 })
   })
   it('collecting Gold awards 0', () => {
     expect(ok(run(base, { type: 'collectGold', habitatId: 'h1' }, 600_000)).xp).toBe(0)

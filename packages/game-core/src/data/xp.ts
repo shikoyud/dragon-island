@@ -1,4 +1,4 @@
-// GDD §4.3 (Player XP), classic values before the preset XP multiplier; §7.2 (level by day), M3 Q1 (c), R40.
+// GDD §4.3 (Player XP), classic values before the preset XP multiplier; §7.2 (level by day), M3 Q1 (c), R41.
 import type { Rarity } from '../rarity'
 import type { PresetId } from './presets'
 
@@ -18,6 +18,12 @@ export const BUILD_XP_MIN = 5
 
 /** §4.3 "Start a breed". */
 export const START_BREED_XP = 5
+
+/** R30: the first hatch of a species new to the Dragon Book pays this many times its XP. */
+export const FIRST_HATCH_XP_MULT = 2
+
+/** §4.3: the top Player Level; its XP bar reads MAX. */
+export const MAX_PLAYER_LEVEL = 50
 
 /** §4.3 XP to leave each Player Level: index = PL - 1, ceil(50 x PL^1.8) for PL 1..49, as literal integers. */
 export const XP_TO_NEXT: readonly number[] = [

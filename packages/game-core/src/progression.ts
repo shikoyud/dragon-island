@@ -1,9 +1,9 @@
 import type { Preset } from './data/presets'
 import type { Species } from './catalog'
-import { BUILD_XP_GOLD_PER_XP, BUILD_XP_MIN, XP_LEVEL_LIMITS, XP_TO_NEXT } from './data/xp'
+import { BUILD_XP_GOLD_PER_XP, BUILD_XP_MIN, MAX_PLAYER_LEVEL, XP_LEVEL_LIMITS, XP_TO_NEXT } from './data/xp'
 import type { PlayerState } from './state'
 
-export const MAX_PLAYER_LEVEL = 50
+export { MAX_PLAYER_LEVEL } from './data/xp'
 
 /** XP to leave `level` (§4.3, ceil(50 x PL^1.8)); Infinity at max level. The curve is not scaled by the preset (R29). */
 export function xpToNext(level: number): number {
@@ -27,7 +27,7 @@ export function breedXpApplies(a: Species, b: Species, child: Species): boolean 
   return !(a.rarity === 'common' && b.rarity === 'common' && child.rarity === 'common')
 }
 
-/** The only place levels rise. It stops at the day's limit and keeps the XP (R40). XP keeps accumulating at max level. */
+/** The only place levels rise. It stops at the day's limit and keeps the XP (R41). XP keeps accumulating at max level. */
 export function settleLevels(s: PlayerState, preset: Preset, day: number): PlayerState {
   const top = levelLimit(day, preset) ?? MAX_PLAYER_LEVEL
   let level = s.level
@@ -44,8 +44,9 @@ export function addRawXp(s: PlayerState, xp: number, preset: Preset, day: number
   return settleLevels({ ...s, xp: s.xp + xp }, preset, day)
 }
 
-/** Build XP for `goldSpent` (R31): 1 per 20 Gold, at least 5, never more than one level's worth. */
+/** Build XP for `goldSpent` (R31): 1 per 20 Gold, at least 5 for any Gold spent (none for none), never more than one level's worth. */
 export function buildXp(goldSpent: number, s: PlayerState): number {
+  if (goldSpent <= 0) return 0
   return Math.min(Math.max(BUILD_XP_MIN, Math.floor(goldSpent / BUILD_XP_GOLD_PER_XP)), xpToNext(s.level))
 }
 

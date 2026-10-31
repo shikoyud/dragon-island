@@ -5,7 +5,7 @@ import { isUnfinished } from '../construction'
 import { breedTimerMs } from '../data/breeding-timers'
 import { FIRST_HYBRID_MS, basicPriceGold } from '../data/breeding'
 import { BREED_MIN_LEVEL } from '../data/dragon-levels'
-import { HATCH_XP, START_BREED_XP } from '../data/xp'
+import { FIRST_HATCH_XP_MULT, HATCH_XP, START_BREED_XP } from '../data/xp'
 import { canLiveIn, habitatSlots, residents } from '../habitat'
 import { addXp, breedXpApplies } from '../progression'
 import { spendGold } from '../wallet'
@@ -111,5 +111,5 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
   if (egg.xpFree) return success(next)
   // R30: a species new to the Dragon Book pays double.
   const firstTime = !s.discovered.includes(egg.speciesId)
-  return success(addXp(next, HATCH_XP[species.rarity] * (firstTime ? 2 : 1), ctx.preset, ctx.day))
+  return success(addXp(next, HATCH_XP[species.rarity] * (firstTime ? FIRST_HATCH_XP_MULT : 1), ctx.preset, ctx.day))
 }

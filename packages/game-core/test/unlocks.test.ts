@@ -133,6 +133,12 @@ const probes = (): [UnlockKey, Probe][] => {
     state: { ...rich(base, l), hatcheryLevel: n - 1 }, action: { type: 'startUpgrade', building: { type: 'hatchery' } },
   })])
   list.push(['hatcheryFifthSlot', l => ({ state: rich(base, l), action: { type: 'buy', item: { kind: 'hatcheryL5' } } })])
+  // Roost Tiers 1-5: the build (PL 5), the three upgrades (PL 10, 15, 22), and Ascension (PL 30).
+  list.push(['roost:1', l => ({ state: rich(base, l), action: { type: 'placeBuilding', building: { kind: 'roost' }, placement: P(7, 7) } })])
+  for (const n of [2, 3, 4]) list.push([`roost:${n}` as UnlockKey, l => ({
+    state: { ...rich(base, l), roostPlacement: P(7, 7), roostTier: n - 1 }, action: { type: 'startUpgrade', building: { type: 'roost' } },
+  })])
+  list.push(['roost:5', l => ({ state: { ...rich(base, l), roostPlacement: P(7, 7), roostTier: 4 }, action: { type: 'buy', item: { kind: 'ascension' } } })])
   list.push(['pve', l => ({ state: rich(base, l), action: { type: 'pveBattle', stage: 1, team: ['d1', 'd2', 'dX'], moves: [] } })])
   for (let i = 0; i < 12; i++) list.push([`home:${i}`, l => ({ state: { ...rich(base, l), islands: { ...base.islands, homeStep: i } }, action: { type: 'expandIsland' } })])
   const order: IslandId[] = ['home', 'isle2', 'isle3', 'isle4', 'isle5', 'dawnspire']
@@ -148,10 +154,10 @@ const probes = (): [UnlockKey, Probe][] => {
 }
 
 describe('every gate refuses at PL - 1 and opens at PL', () => {
-  // `wings` and `roost:n` have no action behind them yet (Task 4 wires the Roost); `hatchery:1` is the free starting level.
+  // `wings` has no action behind it yet; `hatchery:1` is the free starting level.
   const covered = probes()
   it('covers every key that has an action', () => {
-    const missing = (Object.keys(UNLOCKS) as UnlockKey[]).filter(k => k !== 'wings' && k !== 'hatchery:1' && !k.startsWith('roost:') && !covered.some(([c]) => c === k))
+    const missing = (Object.keys(UNLOCKS) as UnlockKey[]).filter(k => k !== 'wings' && k !== 'hatchery:1' && !covered.some(([c]) => c === k))
     expect(missing).toEqual([])
   })
   for (const [key, probe] of covered) {
@@ -171,7 +177,7 @@ describe('every gate refuses at PL - 1 and opens at PL', () => {
     })
   }
   it('actions that spend a gate succeed at PL (Gold and room given)', () => {
-    for (const k of ['habitat:war', 'basic:sea', 'crop:seaMelon', 'farm:3', 'mountain:1', 'mountain:2', 'grove:1', 'grove:2', 'grove:3', 'hatchery:2', 'hatcheryFifthSlot', 'home:0', 'island:isle2'] as UnlockKey[]) {
+    for (const k of ['habitat:war', 'roost:1', 'roost:2', 'roost:3', 'roost:4', 'basic:sea', 'crop:seaMelon', 'farm:3', 'mountain:1', 'mountain:2', 'grove:1', 'grove:2', 'grove:3', 'hatchery:2', 'hatcheryFifthSlot', 'home:0', 'island:isle2'] as UnlockKey[]) {
       const { state, action } = covered.find(([c]) => c === k)![1](unlockPl(k))
       ok(run(state, action))
     }

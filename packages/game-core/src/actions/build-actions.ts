@@ -121,7 +121,7 @@ export const startUpgrade: Handler<'startUpgrade'> = (s, a, ctx) => {
 export function completeConstruction(s: PlayerState, index: number, c: Catalog, nowMs: number, preset: Preset, day: number): PlayerState {
   const con = s.constructions[index]!
   const rest = { ...s, constructions: s.constructions.filter((_, i) => i !== index) }
-  if (con.kind === 'build') return con.building.type === 'roost' ? { ...rest, roostTier: 1 } : rest
+  if (con.kind === 'build') return con.building.type === 'roost' ? { ...rest, roostTier: ROOST_TIERS[0]!.tier } : rest
   if (con.kind === 'clear') {
     const o = rest.islands.obstacles.find(x => x.id === con.obstacleId)
     const cleared = { ...rest, islands: { ...rest.islands, obstacles: rest.islands.obstacles.filter(x => x.id !== con.obstacleId) } }
