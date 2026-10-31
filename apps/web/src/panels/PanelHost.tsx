@@ -19,6 +19,7 @@ import { PlotPanel } from './PlotPanel'
 import { QuestsPanel } from './QuestsPanel'
 import { RoostPanel } from './RoostPanel'
 import { ShopPanel } from './ShopPanel'
+import { SpeedUpsRow } from './SpeedUpsRow'
 import { WalletPanel } from './WalletPanel'
 
 /** The one open dialog; a click on something in the island scene opens its panel (replacing what was open). */
@@ -52,7 +53,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
       case 'quests': return <QuestsPanel onClose={close} onOpen={onOpen} />
       case 'wings':
       case 'inbox': return null // not built until a later milestone; the bar buttons are disabled
-      case 'settings': return <div className="settings-dialog"><WalletPanel onClose={close} /><div className="settings-dialog__account"><SignIn /></div></div>
+      case 'settings': return <div className="settings-dialog"><WalletPanel onClose={close} /><SpeedUpsRow /><div className="settings-dialog__account"><SignIn /></div></div>
     }
   }
   const t = dialog.target

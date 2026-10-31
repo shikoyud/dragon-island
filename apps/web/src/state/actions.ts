@@ -5,6 +5,8 @@ import { useApi } from '../api/ApiProvider'
 import { ApiError } from '../api/client'
 import { sessionStore } from '../api/session'
 import { useToasts } from '../ui/Toast'
+import type { Me } from '../api/client'
+import { dropMessages } from './drops'
 import { applyStateFromResponse, ME_KEY } from './me'
 
 export interface ActionHook {
@@ -44,7 +46,10 @@ export function useAction(): ActionHook {
         // Network failure before any reply: the server may or may not have seen the key; retry once with it.
         res = await api.action(action, key)
       }
+      const before = qc.getQueryData<Me>(ME_KEY)?.state
       await applyStateFromResponse(qc, res.state)
+      // A completed clear can drop Gold, Food or a speed-up token (R54/R55): said once, here, whichever way it finished.
+      if (before) for (const text of dropMessages(before, res.state)) toasts.info(text)
       // Token charges change balanceWei, which only /me carries.
       if (res.effects.some(ef => ef.type === 'charge')) void qc.invalidateQueries({ queryKey: ME_KEY })
       return res
