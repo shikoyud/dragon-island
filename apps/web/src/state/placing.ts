@@ -64,18 +64,38 @@ export function placementStart(
   // The free spot nearest the middle of the screen (the island's middle after a switch).
   const f = island === view ? focus : null
   const mid = f ? { col: f.col - Math.floor((size - 1) / 2), row: f.row - Math.floor((size - 1) / 2) } : { col: 4, row: 4 }
-  const cell = nearestLegalCell(s, what, island, mid)
+  // Something smaller than a habitat prefers a cell that leaves a 5x5 free (a fresh island has exactly one), else the nearest.
+  const cell = (size < HABITAT_FOOTPRINT ? nearestLegalCell(s, what, island, mid, c => leavesHabitatRoom(s, island, c, size)) : null) ?? nearestLegalCell(s, what, island, mid)
   return cell ? { island, cell } : { island }
 }
 
-/** The legal top-left cell for `what` closest to `near` on an island (by straight-line distance), or null when none is. */
-export function nearestLegalCell(s: PlayerState, what: Placing['what'], island: IslandId, near: { col: number; row: number }): { col: number; row: number } | null {
+const HABITAT_FOOTPRINT = 5
+const HABITAT_PROBE = { kind: 'habitat', element: 'terra' } as const
+
+/** True when a thing of `size` at `cell` would still leave some legal habitat-sized spot clear of it (footprints are squares). */
+function leavesHabitatRoom(s: PlayerState, island: IslandId, cell: { col: number; row: number }, size: number): boolean {
+  const { w, h } = islandSize(s, island)
+  for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
+    if (placementRuleError(s, HABITAT_PROBE, { island, col, row, facing: 0 }) !== null) continue
+    const apart = cell.col + size <= col || col + HABITAT_FOOTPRINT <= cell.col || cell.row + size <= row || row + HABITAT_FOOTPRINT <= cell.row
+    if (apart) return true
+  }
+  return false
+}
+
+/**
+ * The legal top-left cell for `what` closest to `near` on an island (by straight-line distance), or null when none is.
+ * `accept` narrows the candidates (the default cell uses it to keep room for a habitat).
+ */
+export function nearestLegalCell(
+  s: PlayerState, what: Placing['what'], island: IslandId, near: { col: number; row: number }, accept?: (cell: { col: number; row: number }) => boolean,
+): { col: number; row: number } | null {
   const { w, h } = islandSize(s, island)
   let best: { col: number; row: number } | null = null
   let bestD = Infinity
   for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
     const d = (col - near.col) ** 2 + (row - near.row) ** 2
-    if (d >= bestD || placementRuleError(s, placementSubject(what), { island, col, row, facing: 0 }) !== null) continue
+    if (d >= bestD || placementRuleError(s, placementSubject(what), { island, col, row, facing: 0 }) !== null || (accept && !accept({ col, row }))) continue
     best = { col, row }
     bestD = d
   }

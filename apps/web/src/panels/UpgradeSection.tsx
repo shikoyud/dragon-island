@@ -31,6 +31,13 @@ function topLevelNote(s: PlayerState, b: BuildingRef): string {
   return 'Max level'
 }
 
+/** Why an upgrade of `cost` Gold that opens at player level `minLevel` cannot start now; '' when it can. Shared with the Roost panel. */
+export function upgradeBlockReason(s: PlayerState, minLevel: number, cost: number): string {
+  return s.level < minLevel ? `Needs player level ${minLevel}`
+    : s.gold < cost ? 'Not enough gold'
+    : s.constructions.length >= MAX_BUILDERS ? 'Both builders are busy' : ''
+}
+
 const idOf = (b: BuildingRef): string => (b.type === 'habitat' ? b.id : b.type === 'hatchery' || b.type === 'roost' ? b.type : `${b.type}-${b.index}`)
 
 /** Level, upgrade (or its timer, skip and manual finish), Move and Turn for one building. */
@@ -47,9 +54,7 @@ export function UpgradeSection({ building, nowMs }: { building: BuildingRef; now
   const info = upgradeInfo(s, building, preset)
   const id = idOf(building)
 
-  const reason = !info ? '' : s.level < info.minLevel ? `Needs player level ${info.minLevel}`
-    : s.gold < info.cost ? 'Not enough gold'
-    : s.constructions.length >= MAX_BUILDERS ? 'Both builders are busy' : ''
+  const reason = !info ? '' : upgradeBlockReason(s, info.minLevel, info.cost)
 
   return (
     <div className="upgrade-section" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', margin: '6px 0' }}>

@@ -1,4 +1,4 @@
-import { ASCENSION_TIER, constructionFor, levelCap, MAX_BUILDERS, ROOST_TIERS, unlockPl, upgradeInfo, type UnlockKey } from '@wyrmhaven/game-core'
+import { ASCENSION_TIER, constructionFor, levelCap, ROOST_TIERS, unlockPl, upgradeInfo, type UnlockKey } from '@wyrmhaven/game-core'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { usePreset } from '../state/preset'
@@ -6,6 +6,7 @@ import { formatDuration, formatGold, formatMicroUsd } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { ConstructionStatus } from './ConstructionStatus'
 import { MoveTurn } from './MoveTurn'
+import { upgradeBlockReason } from './UpgradeSection'
 
 /**
  * The Dragon Roost (§4.2): its tier and dragon level cap, the next tier's price (Tiers 2 to 4 in Gold, Tier 5 as
@@ -27,9 +28,7 @@ export function RoostPanel({ nowMs, onClose }: { nowMs: number; onClose?: () => 
   const nextMs = next ? Math.floor(next.classicMs / preset.timerDiv) : 0
   const price = next ? `${formatGold(next.gold)} gold${next.usdMicro !== null ? ` + ${formatMicroUsd(next.usdMicro)}` : ''}` : ''
   const minLevel = next ? unlockPl(`roost:${next.tier}` as UnlockKey) : 0
-  const reason = !next ? '' : s.level < minLevel ? `Needs player level ${minLevel}`
-    : s.gold < next.gold ? 'Not enough gold'
-    : s.constructions.length >= MAX_BUILDERS ? 'Both builders are busy' : ''
+  const reason = !next ? '' : upgradeBlockReason(s, minLevel, next.gold)
 
   return (
     <Panel title="Dragon Roost" onClose={onClose}>

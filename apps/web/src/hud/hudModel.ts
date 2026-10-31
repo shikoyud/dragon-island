@@ -12,7 +12,7 @@ export function xpFraction(s: PlayerState): number {
   return Number.isFinite(need) ? Math.min(1, Math.max(0, s.xp / need)) : 1
 }
 
-/** More XP than the level needs: it stopped at the day's limit, and the rest pays on the next day's first action (R40). */
+/** More XP than the level needs: it stopped at the day's limit, and the rest pays on the next day's first action (R41). */
 export function xpBanked(s: PlayerState): boolean {
   return s.xp >= xpToNext(s.level)
 }
@@ -63,7 +63,7 @@ function unlockLine(key: UnlockKey): string | null {
     case 'hatchery': return `Hatchery level ${arg}`
     case 'hatcheryFifthSlot': return 'Hatchery fifth slot'
     case 'roost': return `Roost Tier ${arg}`
-    case 'pve': return 'PvE battles'
+    case 'pve': return 'Campaign'
     case 'island': return ISLAND_NAMES[arg] ?? 'New island'
     default: return null
   }
@@ -85,7 +85,7 @@ export function levelUnlockLines(from: number, to: number): string[] {
 }
 
 /** Something waiting for the player, shown as a shortcut in the HUD's left column. */
-export interface AttentionItem {
+interface AttentionBase {
   id: string
   label: string
   /** Ready now (the timer has run out, or there is nothing to wait for). */
@@ -93,11 +93,12 @@ export interface AttentionItem {
   readyAtMs?: number
   /** Sent by the shortcut's button when ready. */
   action?: ClientAction
-  /** What the shortcut opens otherwise: the same panel a click on the island would. */
-  panel: Target
-  /** Opens instead of `panel` when set (a named HUD panel, such as Quests). */
-  open?: DialogKey
 }
+
+/** What a shortcut opens: the panel of the thing on the island, or a named HUD panel (such as Quests). */
+export type AttentionTarget = { panel: Target; open?: undefined } | { open: DialogKey; panel?: undefined }
+
+export type AttentionItem = AttentionBase & AttentionTarget
 
 /** The current Goal is done and waiting for Claim (§1.4). */
 export function goalClaimable(s: PlayerState): boolean {
@@ -174,8 +175,9 @@ export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
     items.push({ id: 'noRoom', label: waiting === 1 ? 'Hatchling: no room' : `${waiting} hatchlings: no room`, ready: true, panel: { kind: 'hatcheryBuilding' } })
   }
   if (goalClaimable(s)) {
-    items.push({ id: 'goal', label: 'Goal ready', ready: true, action: { type: 'claimGoal' }, panel: { kind: 'empty' }, open: { kind: 'panel', id: 'quests' } })
+    items.push({ id: 'goal', label: 'Goal ready', ready: true, action: { type: 'claimGoal' }, open: { kind: 'panel', id: 'quests' } })
   }
-  const ordered = items.sort((p, q) => Number(q.ready) - Number(p.ready) || (p.readyAtMs ?? 0) - (q.readyAtMs ?? 0))
+  // Ready first, then by time; among equals the Goal goes first, so MAX_ATTENTION never cuts the one claim the player can take.
+  const ordered = items.sort((p, q) => Number(q.ready) - Number(p.ready) || (p.readyAtMs ?? 0) - (q.readyAtMs ?? 0) || Number(q.id === 'goal') - Number(p.id === 'goal'))
   return ordered.slice(0, MAX_ATTENTION)
 }

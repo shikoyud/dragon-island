@@ -50,6 +50,8 @@ export const errorMessages: Record<string, string> = {
   NO_LEGENDARY: 'Own a legendary dragon to unlock Dawnspire.',
   MAX_EXPANSION: 'The home island is at its full size.',
   AERIE_EXISTS: 'You already own a Golden Aerie.',
+  GOAL_NOT_DONE: 'That Goal is not finished yet.',
+  NO_GOAL: 'You have finished every Goal.',
   WITHDRAWALS_DISABLED: 'Withdrawals are not enabled on this server.',
 }
 

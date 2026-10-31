@@ -87,7 +87,7 @@ describe('HUD', () => {
     cleanup()
     const done = { ...base(), goalStats: { ...base().goalStats, collects: 1 } }
     const r = renderHud(done)
-    expect(screen.getByRole('img', { name: 'Goal ready' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Quests' })).toHaveAccessibleDescription('Goal ready')
     const list = screen.getByRole('complementary', { name: 'Needs attention' })
     expect(within(list).getByText('Goal ready')).toBeInTheDocument()
     await userEvent.click(within(list).getByRole('button', { name: 'Claim' }))

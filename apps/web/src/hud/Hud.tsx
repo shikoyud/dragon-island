@@ -25,14 +25,18 @@ const isPanel = (open: DialogKey | null, id: PanelId) => open?.kind === 'panel' 
 /** A round HUD button: icon in a plate, label under it (or only for screen readers), optional badge. */
 const COMING_LATER = 'Coming in a later milestone'
 
-function RoundButton({ icon, label, onClick, active, badge, size = 'large', showLabel = true, disabledReason }: {
+function RoundButton({ icon, label, onClick, active, badge, size = 'large', showLabel = true, disabledReason, description }: {
   icon: IconName; label: string; onClick?: () => void; active?: boolean; badge?: ReactNode; size?: 'large' | 'small'; showLabel?: boolean
   /** Makes the button inert and says why (as its tooltip and accessible description). */
   disabledReason?: string
+  /** A state the button's name does not carry (Quests: a Goal is ready), read after the name; the name stays the label. */
+  description?: string
 }) {
+  const descId = description ? `hud-desc-${label.replace(/\W+/g, '-').toLowerCase()}` : undefined
   return (
     <button type="button" className={`hud-round hud-round--${size}${active ? ' hud-round--active' : ''}`} aria-label={label} aria-pressed={active} onClick={onClick}
-      disabled={disabledReason !== undefined} title={disabledReason}>
+      disabled={disabledReason !== undefined} title={disabledReason} aria-describedby={descId}>
+      {description && <span id={descId} hidden>{description}</span>}
       <span className="hud-round__plate"><Icon name={icon} size={size === 'large' ? 28 : 22} /></span>
       {badge !== undefined && badge !== null && <span className="hud-round__badge">{badge}</span>}
       {showLabel && <span className="hud-round__label" aria-hidden="true">{label}</span>}
@@ -163,7 +167,8 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
             <RoundButton icon="battle" label="Battle" active={isPanel(open, 'battle')} onClick={panel('battle')} />
             <RoundButton icon="wings" label="Wings" disabledReason={COMING_LATER} />
             <RoundButton icon="quests" label="Quests" active={isPanel(open, 'quests')} onClick={panel('quests')}
-              badge={goalClaimable(s) ? <span className="hud-dot" role="img" aria-label="Goal ready" /> : undefined} />
+              description={goalClaimable(s) ? 'Goal ready' : undefined}
+              badge={goalClaimable(s) ? <span className="hud-dot" aria-hidden="true" /> : undefined} />
             <RoundButton icon="inbox" label="Inbox" disabledReason={COMING_LATER} />
           </nav>
         )}
