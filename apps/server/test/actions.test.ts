@@ -181,6 +181,22 @@ describe('POST /actions', () => {
     expect(await t.db.select().from(spendBatches)).toHaveLength(1)
   })
 
+  it('claimGoal posted twice with one idempotency key pays the reward once', async () => {
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const before = p!.state as PlayerState
+    await setState({ goalStats: { ...before.goalStats, collects: 1 } })
+    const first = await post({ type: 'claimGoal' }, 'goal-1')
+    const replay = await post({ type: 'claimGoal' }, 'goal-1')
+    expect([first.statusCode, replay.statusCode]).toEqual([200, 200])
+    expect(replay.json()).toEqual(first.json())
+    expect(first.json().state.gold).toBe(before.gold + 200) // Goal 1: +200 gold
+    const paidXp = first.json().state.xp as number // Goal 1's XP after the server's preset multiplier
+    expect(paidXp).toBeGreaterThan(0)
+    const [after] = await t.db.select().from(players).where(eq(players.id, playerId))
+    expect(after!.state).toMatchObject({ gold: before.gold + 200, xp: paidXp, goalIndex: 1 })
+    expect(await t.db.select().from(actionLog).where(eq(actionLog.idempotencyKey, 'goal-1'))).toHaveLength(1)
+  })
+
   it('a fresh key while the Ascension builds is a 422 UNDER_CONSTRUCTION with no second charge', async () => {
     const at = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
     await setState({ roostPlacement: at, roostTier: 4, level: 30, gold: 20_000_000 })

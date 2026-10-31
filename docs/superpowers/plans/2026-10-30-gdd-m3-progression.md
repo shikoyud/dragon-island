@@ -47,7 +47,7 @@ Each Dragon Bush also yields 60 Food, worth up to 72 more XP when fed. Removing 
 - Original art and names only (CLAUDE.md). Goal text is ours; shiko may edit it.
 - Conventional commits, one commit per task, TDD: failing test first, and run it.
 - Mobile-first portrait layout; every tap target at least 44 px.
-- No save migration: `STATE_VERSION` becomes 4 and old saves reset (R2).
+- No save migration: `STATE_VERSION` bumps on each shape change on this branch (7 at the end; the plan first said 4), so a stale local save resets rather than misbehaves (R2).
 - Do not touch `contracts/`. Do not start PixelLab generation; Task 9 only writes the list. Run e2e through a temporary `channel: 'chrome'` config unless Playwright's browser has been installed; don't commit that config.
 
 ## Review Focus
@@ -88,7 +88,7 @@ docs/superpowers/reports/2026-10-30-m3-report.md
 ### Task 1: The §4.3 XP curve (§4.3, §7.2, R28, R29)
 
 **Files:**
-- Modify: `packages/game-core/src/data/xp.ts`, `src/progression.ts`, `src/state.ts` (`STATE_VERSION = 4`), `src/actions/apply.ts`, `test/progression.test.ts`, `test/xp-mult.test.ts`, `apps/web/src/hud/hudModel.ts`, tests that pin levels
+- Modify: `packages/game-core/src/data/xp.ts`, `src/progression.ts`, `src/state.ts` (`STATE_VERSION` bumped; it rises on each shape change on this branch), `src/actions/apply.ts`, `test/progression.test.ts`, `test/xp-mult.test.ts`, `apps/web/src/hud/hudModel.ts`, tests that pin levels
 
 **Interfaces:**
 - Produces:
