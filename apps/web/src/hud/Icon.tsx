@@ -1,5 +1,5 @@
 import type { Element } from '@wyrmhaven/game-core'
-import { createContext, useContext } from 'react'
+import { createContext, memo, useContext, type ReactElement } from 'react'
 import type { Sprite } from '../art/types'
 
 export type IconName =
@@ -35,18 +35,32 @@ const GLYPHS: Record<IconName, string[]> = {
   inbox: ['............', '............', 'kkkkkkkkkkkk', 'kWkWWWWWWkWk', 'kWWkWWWWkWWk', 'kWWWkWWkWWWk', 'kWWWWkkWWWWk', 'kWWWWWWWWWWk', 'kWWWWWWWWWWk', 'kkkkkkkkkkkk', '............', '............'],
 }
 
+const glyphCache = new Map<string, ReactElement[]>()
+
+/** A glyph's pixels as React elements, made once per glyph: the same elements every time cost React nothing to render again. */
+export function glyphRects(name: string): ReactElement[] | undefined {
+  const rows = (GLYPHS as Partial<Record<string, string[]>>)[name]
+  if (!rows) return undefined
+  let rects = glyphCache.get(name)
+  if (!rects) {
+    rects = rows.flatMap((row, y) => [...row].flatMap((ch, x) => (C[ch] ? [<rect key={`${x},${y}`} x={x} y={y} width={1} height={1} fill={C[ch]} />] : [])))
+    glyphCache.set(name, rects)
+  }
+  return rects
+}
+
 /**
  * A HUD icon: the manifest's `icon.<name>.32` (or .16) when it exists, else a built-in pixel glyph.
  * Element names (`flame`, `war`, ...) are accepted too; with no art yet they draw a diamond in the element colour.
  * Decorative unless `label` is given, which makes it an image with that accessible name.
  */
-export function Icon({ name, size = 24, label }: { name: IconName | Element; size?: number; label?: string }) {
+export const Icon = memo(function Icon({ name, size = 24, label }: { name: IconName | Element; size?: number; label?: string }) {
   const art = useContext(HudArtContext)
   const sprite = art[`icon.${name}.${size > 16 ? 32 : 16}`] ?? art[`icon.${name}.32`] ?? art[`icon.${name}.16`]
   const a11y = label ? { role: 'img' as const, 'aria-label': label } : { 'aria-hidden': true as const }
   if (sprite?.src) return <img className="pixel hud-icon" src={sprite.src} width={size} height={size} alt={label ?? ''} {...(label ? {} : a11y)} />
-  const rows = (GLYPHS as Partial<Record<string, string[]>>)[name]
-  if (!rows) {
+  const rects = glyphRects(name)
+  if (!rects) {
     return (
       <svg className="hud-icon" width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" data-icon={name} {...a11y}>
         <path d="M6 0 L12 6 L6 12 L0 6 Z" fill="#141627" />
@@ -56,7 +70,7 @@ export function Icon({ name, size = 24, label }: { name: IconName | Element; siz
   }
   return (
     <svg className="hud-icon" width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" data-icon={name} {...a11y}>
-      {rows.flatMap((row, y) => [...row].map((ch, x) => (C[ch] ? <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} fill={C[ch]} /> : null)))}
+      {rects}
     </svg>
   )
-}
+})

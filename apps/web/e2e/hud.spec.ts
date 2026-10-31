@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openPanel, resetPlayer, setServerClock, signIn } from './helpers'
+import { dismissLevelUp, openPanel, resetPlayer, setServerClock, signIn } from './helpers'
 
 /**
  * The HUD over the full-screen island, at a desktop and a phone size: resources, menus, dialogs, the placement
@@ -154,6 +154,35 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await expect(strip).toBeHidden()
       await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
       await expect(page.getByRole('complementary', { name: 'Needs attention' })).toContainText(/Building Farm plot 2/)
+    })
+
+    test('a real Bush clear finishing with its panel open closes the dialog and scrim, and the Shop opens with one tap', async ({ page, request }) => {
+      test.setTimeout(60_000)
+      await signIn(page)
+      await resetPlayer(request, { gold: 5_000, level: 3 })
+      await page.reload()
+      await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: B }).__bridge?.cellToScreen))
+      await dismissLevelUp(page)
+      const id = await page.evaluate(() => (window as unknown as { __bridge: { state: { islands: { obstacles: { id: string; kind: string }[] } } } }).__bridge.state.islands.obstacles.find(o => o.kind === 'bush')!.id)
+      await page.evaluate(i => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: { kind: 'obstacle', id: i } }), id)
+      const dialog = page.getByRole('dialog', { name: 'obstacle' })
+      await dialog.getByRole('button', { name: /^Clear · / }).click()
+      await expect(dialog).toContainText('Clearing')
+      // The clear finishes by itself while the panel stays open.
+      await expect(dialog).toHaveCount(0, { timeout: 30_000 })
+      await expect(page.getByTestId('dialog-scrim')).toHaveCount(0)
+      expect(await page.evaluate(i => (window as unknown as { __bridge: { state: { islands: { obstacles: { id: string }[] } } } }).__bridge.state.islands.obstacles.some(o => o.id === i), id)).toBe(false)
+      await page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name: 'Shop', exact: true }).click()
+      await expect(page.getByRole('dialog', { name: 'Shop' })).toBeVisible()
+    })
+
+    test('toasts sit above the bottom menu', async ({ page, request }) => {
+      await signIn(page)
+      await resetPlayer(request)
+      await page.reload()
+      const nav = (await page.getByRole('navigation', { name: 'Main menu' }).boundingBox())!
+      const toasts = (await page.locator('.toasts').boundingBox())!
+      expect(toasts.y + toasts.height).toBeLessThanOrEqual(nav.y)
     })
 
     test('a build whose timer has run out finishes by itself', async ({ page, request }) => {

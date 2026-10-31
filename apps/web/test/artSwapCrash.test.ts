@@ -63,7 +63,9 @@ describe('the art swap: a game waiting to be destroyed', () => {
     const { bridge, game, scene } = await bootOnFallbacks()
     games.push(game)
     const sprites = vi.spyOn(scene.add, 'sprite')
-    bridge.setState({ ...newPlayer(0) })
+    // Something new to draw: a sprite whose look did not change is kept.
+    const s = newPlayer(0)
+    bridge.setState({ ...s, islands: { ...s.islands, obstacles: [...s.islands.obstacles, { id: 'new', kind: 'bush', island: 'home', col: 16, row: 13 }] } })
     expect(sprites).toHaveBeenCalled()
   })
 })

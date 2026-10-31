@@ -2,7 +2,7 @@ import {
   BREEDER_LEVELS, DECORATIONS, ISLANDS, basicHome, basicPriceGold, canLiveIn, getSpecies, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, ROOST_FOOTPRINT, ROOST_TIERS, farmBuildGold, MAX_FARMS, priceMicroUsd, unlockPl,
   type DecorationId, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem, type UnlockKey,
 } from '@wyrmhaven/game-core'
-import { useMemo, useState, type ReactNode } from 'react'
+import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Placing } from '../game/bridge'
 import { breederName } from '../hud/hudModel'
 import { hasLegalCell } from '../state/placing'
@@ -66,6 +66,10 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [view, s?.islands, s?.habitats, s?.breeders, s?.farms, s?.decorations, s?.hatcheryPlacement, s?.roostPlacement, s?.constructions],
   )
+  // The host passes a new onPlace every render; the rows call the latest through one that stays the same, so the Build tab, which reads no clock, sits out the tick.
+  const latestPlace = useRef(onPlace)
+  latestPlace.current = onPlace
+  const place = useCallback<ShopPanelProps['onPlace']>((what, size) => latestPlace.current(what, size), [])
   if (!s) return null
   return (
     <Panel title="Shop" onClose={onClose}>
@@ -74,7 +78,7 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
         <button type="button" role="tab" className="hud-tab" aria-selected={tab === 'store'} onClick={() => setTab('store')}>Store</button>
       </div>
       <div role="tabpanel" aria-label={tab === 'build' ? 'Build' : 'Store'}>
-        {tab === 'build' ? <BuildTab s={s} onPlace={onPlace} view={view} room={room} groveRoom={groveRoom} roostRoom={roostRoom} farmRoom={farmRoom} decoRoom={decoRoom} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
+        {tab === 'build' ? <BuildTab s={s} onPlace={place} view={view} room={room} groveRoom={groveRoom} roostRoom={roostRoom} farmRoom={farmRoom} decoRoom={decoRoom} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
       </div>
     </Panel>
   )
@@ -88,7 +92,7 @@ const section = (key: string, title: string, items: ReactNode) => (
 )
 
 /** Gold-and-level shop for everything that goes on the grid (spec section 8). */
-function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom, farmRoom, decoRoom }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean; groveRoom: boolean; roostRoom: boolean; farmRoom: boolean; decoRoom: Record<DecorationId, boolean> }) {
+const BuildTab = memo(function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom, farmRoom, decoRoom }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean; groveRoom: boolean; roostRoom: boolean; farmRoom: boolean; decoRoom: Record<DecorationId, boolean> }) {
   const card = (id: string, label: string, price: string, reason: string | undefined, what: Placing['what'], size: Footprint) => (
     <li key={id}>
       <ActionButton id={`shop-${id}`} disabled={Boolean(reason)} reason={reason} onClick={() => onPlace(what, size)}>
@@ -143,7 +147,7 @@ function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom, farmRoom, deco
       }))}
     </>
   )
-}
+})
 
 interface TimerRow { id: string; label: string; target: SkipTarget; index: number; readyAtMs: number }
 

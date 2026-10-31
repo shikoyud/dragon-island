@@ -7,7 +7,7 @@ import type { Bridge, Target } from '../bridge'
 import {
   cameraBounds, clampView, groundCell, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
 } from '../camera'
-import { badgeY, buildIslandModel, groundTiles, groundVariant, type IslandMarkers, type IslandObject } from '../islandModel'
+import { badgeY, buildIslandModel, groundTiles, groundVariant, objectSignature, type IslandMarkers, type IslandObject } from '../islandModel'
 import { anchor, cellCentre, cellTop, footprintDiamond, islandBox, pointerToCell, tapHit, type Box, type Pos } from '../layout'
 import { createPanZoom, heldPointers } from '../panZoom'
 import { pickTarget, type Hit } from '../pickTarget'
@@ -38,7 +38,7 @@ const points = (pts: Pos[]) => pts.map(p => new Phaser.Math.Vector2(p.x, p.y))
 
 /**
  * Draws one island of the player's base in an isometric (2:1) projection from `buildIslandModel` (pure, tested) on
- * every state, view or placing change and once a second for timers. The camera is a pure `View` (camera.ts) moved by
+ * every state, view or placing change and once a second for timers; a sprite whose look is unchanged is kept. The camera is a pure `View` (camera.ts) moved by
  * `panZoom`. The scene owns no game logic: it emits `select`, `hover` and `cell` events only. While the Map or a battle
  * shows it sleeps: no drawing and no clock, its camera and bake kept, and it catches up when it wakes.
  */
@@ -52,8 +52,11 @@ export class IslandScene extends Phaser.Scene {
   private hatchView: string | null = null
   private outline!: Phaser.GameObjects.Graphics
   private layer!: Phaser.GameObjects.Container
+  /** What is on the layer, in draw order. Kept across syncs: only what changed is made again (see `reconcile`). */
   private drawn: Phaser.GameObjects.GameObject[] = []
   private badges: Phaser.GameObjects.Text[] = []
+  /** The sprite or badge text standing for each object id (`badge:` + id for a badge) and the look it was made with. */
+  private live = new Map<string, { obj: Phaser.GameObjects.Sprite | Phaser.GameObjects.Text; sig: string }>()
   /** Sprites that must be at least `minTap` CSS px to tap: their hit box follows the zoom (see `fitTapTargets`). */
   private tapTargets: { spr: Phaser.GameObjects.Sprite; minTap: number; always: boolean; pixel: Phaser.Types.Input.HitAreaCallback; area: unknown }[] = []
   private current: IslandMarkers = EMPTY
@@ -118,7 +121,11 @@ export class IslandScene extends Phaser.Scene {
       if (this.levelUpOnWake) this.playLevelUp()
       this.levelUpOnWake = false
     })
-    this.events.on(Phaser.Scenes.Events.SLEEP, () => this.gestures.reset())
+    this.events.on(Phaser.Scenes.Events.SLEEP, () => {
+      this.gestures.reset()
+      this.hoverKey = ''
+      this.input.setDefaultCursor('')
+    })
     // A lost WebGL context empties every render target. Phaser restores its textures and then says so: bake the land again.
     const renderer = this.game.renderer as Phaser.Renderer.WebGL.WebGLRenderer | Phaser.Renderer.Canvas.CanvasRenderer | undefined
     const onRestore = () => { if (this.alive()) { this.groundKey = ''; this.sync() } }
@@ -259,7 +266,12 @@ export class IslandScene extends Phaser.Scene {
     if (!p.wasTouch) {
       const hover = this.bridge.placing ? null : this.targetAt(p, over)
       const key = hover ? JSON.stringify(hover) : ''
-      if (key !== this.hoverKey) { this.hoverKey = key; this.bridge.emit({ type: 'hover', target: hover }) }
+      if (key !== this.hoverKey) {
+        this.hoverKey = key
+        this.bridge.emit({ type: 'hover', target: hover })
+        // From the same answer a tap would get: a sprite's own hand cursor stays an arrow between overlapping tap boxes.
+        this.input.setDefaultCursor(hover ? 'pointer' : '')
+      }
     }
     // The placement reducer tracks the cursor, so hover moves matter only while placing (and not for touches).
     if (!this.bridge.placing || p.wasTouch) return
@@ -316,16 +328,12 @@ export class IslandScene extends Phaser.Scene {
 
   // ---- drawing -----------------------------------------------------------------------------------------------
 
-  /** Rebuilds the ground, camera framing and every dynamic object from the current state. */
+  /** Brings the ground, camera framing and every dynamic object up to the current state, making only what changed. */
   sync(): void {
     if (!this.alive() || this.sys.isSleeping()) return
     const { state, view } = this.bridge
     this.drawGround()
     this.frame()
-    for (const obj of this.drawn) obj.destroy()
-    this.drawn = []
-    this.badges = []
-    this.tapTargets = []
     const model = buildIslandModel(state, this.art(), this.catalog, this.bridge.nowMs, view, this.bridge.placing, this.bridge.preset)
     // Fewer eggs in the hatchery on the same island than a moment ago: one hatched (or was sold). Burst once.
     const hatched = state && view === this.hatchView && model.markers.hatchery.length < this.current.hatchery.length
@@ -336,10 +344,40 @@ export class IslandScene extends Phaser.Scene {
       this.playOnce('fx.hatch', anchor(p.col, p.row, FOOTPRINT.hatchery))
     }
     this.drawOutline(model.markers.ghost)
-    for (const o of model.objects) this.draw(o)
-    // Badges go on top of every sprite, so a dragon never hides its habitat's gold.
-    for (const o of model.objects) if (o.badge) this.drawBadge(o, o.badge)
+    this.reconcile(model.objects)
     this.fitTapTargets()
+  }
+
+  /**
+   * Makes the layer show `objects`: an object whose id and look are unchanged keeps its sprite (and its running animation),
+   * anything else is made again, and what has gone is destroyed. Destroying and remaking ~100 sprites a second did nothing a
+   * player could see, and each pixel-perfect `setInteractive` and badge canvas has a cost. Badges go on top of every sprite,
+   * so a dragon never hides its habitat's gold.
+   */
+  private reconcile(objects: IslandObject[]): void {
+    const motion = this.bridge.reducedMotion
+    const next = new Map<string, { obj: Phaser.GameObjects.Sprite | Phaser.GameObjects.Text; sig: string }>()
+    const sprites: Phaser.GameObjects.GameObject[] = []
+    const badges: Phaser.GameObjects.Text[] = []
+    const keep = (id: string, sig: string, make: () => Phaser.GameObjects.Sprite | Phaser.GameObjects.Text) => {
+      const had = this.live.get(id)
+      if (had) this.live.delete(id)
+      const entry = had && had.sig === sig ? had : { obj: (had?.obj.destroy(), make()), sig }
+      next.set(id, entry)
+      return entry.obj
+    }
+    for (const o of objects) sprites.push(keep(o.id, objectSignature(o, motion), () => this.draw(o)))
+    for (const o of objects) {
+      if (!o.badge) continue
+      badges.push(keep(`badge:${o.id}`, JSON.stringify([o.badge, o.x, badgeY(o), o.target]), () => this.drawBadge(o, o.badge!)) as Phaser.GameObjects.Text)
+    }
+    for (const { obj } of this.live.values()) obj.destroy()
+    this.live = next
+    this.drawn = [...sprites, ...badges]
+    this.badges = badges
+    this.tapTargets = this.tapTargets.filter(t => t.spr.active)
+    // The order is the model's, whatever was made when. Same members, so the list can simply be replaced.
+    if (this.drawn.some((o, i) => this.layer.list[i] !== o)) this.layer.list = [...this.drawn]
   }
 
   /**
@@ -349,6 +387,8 @@ export class IslandScene extends Phaser.Scene {
   private collect(badge: Phaser.GameObjects.Text): void {
     this.bridge.emit({ type: 'collectGold', habitatId: badge.getData('collect') as string })
     badge.disableInteractive()
+    // Spent: it hides and floats away below. If the collect comes to nothing, the next sync draws a fresh one.
+    for (const entry of this.live.values()) if (entry.obj === badge) entry.sig = ''
     if (this.bridge.reducedMotion) return
     if (isSheet(this.art().fx.coins)) {
       badge.setVisible(false)
@@ -474,7 +514,7 @@ export class IslandScene extends Phaser.Scene {
     return this.current
   }
 
-  private draw(o: IslandObject): void {
+  private draw(o: IslandObject): Phaser.GameObjects.Sprite {
     const spr = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1)
     playOrStill(spr, o.key, o.sprite.frames, o.sprite.fps, this.bridge.reducedMotion)
     if (o.frame) spr.setFrame(o.frame)
@@ -490,7 +530,7 @@ export class IslandScene extends Phaser.Scene {
       if (o.minTap) this.tapTargets.push({ spr, minTap: o.minTap, always: !!o.boxAlways, pixel: spr.input!.hitAreaCallback, area: spr.input!.hitArea })
     }
     this.layer.add(spr)
-    this.drawn.push(spr)
+    return spr
   }
 
   /** Badges keep one on-screen size (BADGE_PX tall) at every zoom instead of growing with the art. */
@@ -498,7 +538,7 @@ export class IslandScene extends Phaser.Scene {
     return BADGE_PX / 8 / (this.view?.zoom ?? 1)
   }
 
-  private drawBadge(o: IslandObject, badge: string): void {
+  private drawBadge(o: IslandObject, badge: string): Phaser.GameObjects.Text {
     const tappable = (badge === 'gold' || badge === 'full') && o.target.kind === 'habitat'
     const label = badge === 'gold' ? 'GOLD' : badge === 'full' ? 'FULL' : badge
     const t = this.add.text(o.x, badgeY(o), label, TEXT_STYLE).setOrigin(0.5, 1).setResolution(4).setScale(this.badgeScale())
@@ -511,7 +551,6 @@ export class IslandScene extends Phaser.Scene {
       t.setInteractive({ hitArea: new Phaser.Geom.Rectangle((t.width - w) / 2, t.height - h, w, h), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true })
     }
     this.layer.add(t)
-    this.drawn.push(t)
-    this.badges.push(t)
+    return t
   }
 }

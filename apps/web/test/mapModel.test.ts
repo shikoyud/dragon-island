@@ -182,15 +182,15 @@ describe('mapIslandAt', () => {
 })
 
 describe('mapOpeningView', () => {
-  // The free band the HUD leaves, from the real insets: 390x844 (pills and the Finals banner 130 over, menu 72 under) and 1440x900 (100 / 88).
+  // The free band the HUD leaves, from the real insets: 390x844 (pills and the Finals banner 127 over, menu 77 under) and 1440x900 (94 / 89), as measured in the browser.
   const SCREENS = [
-    { name: '390x844', top: 130, bottom: 72, screenH: 844 },
-    { name: '1440x900', top: 100, bottom: 88, screenH: 900 },
-    { name: '1440x1080', top: 100, bottom: 88, screenH: 1080 },
+    { name: '390x844', top: 127, bottom: 77, screenH: 844 },
+    { name: '1440x900', top: 94, bottom: 89, screenH: 900 },
+    { name: '1440x1080', top: 94, bottom: 89, screenH: 1080 },
   ]
   const BANDS = SCREENS.map(s => ({ ...s, h: s.screenH - s.top - s.bottom }))
   const range = (id: IslandId, s: { h: number; top: number; bottom: number }) => {
-    const v = mapOpeningView(id, s.h, { top: s.top, bottom: s.bottom })
+    const v = mapOpeningView(id, s.h)
     return { v, top: v.cy - s.h / 2, bottom: v.cy + s.h / 2 }
   }
   const labelOf = (id: IslandId) => ({ y: MAP_SPOTS[id].y + MAP_CELL.labelTop, b: MAP_SPOTS[id].y + MAP_CELL.bottom })
@@ -208,52 +208,63 @@ describe('mapOpeningView', () => {
     }
   })
 
-  const labelsBehindHud = (id: IslandId, s: (typeof BANDS)[number]) => {
+  const labelHidden = (id: IslandId, s: (typeof BANDS)[number]) => {
     const { top, bottom } = range(id, s)
-    return ISLAND_ORDER.filter(other => {
-      const l = labelOf(other)
-      return (l.y < top && l.b > top - s.top) || (l.y < bottom + s.bottom && l.b > bottom)
-    })
+    const l = labelOf(id)
+    return l.y < top || l.b > bottom
   }
 
-  it('no island label sits behind the resource pills or the menu on the first and last island (390: Frostspire under the pills)', () => {
-    for (const s of BANDS) for (const id of ['home', 'isle6'] as const) expect(labelsBehindHud(id, s), `${s.name} view ${id}`).toEqual([])
+  it('the viewed island\'s label is never behind the resource pills or the menu, at any size', () => {
+    for (const s of BANDS) for (const id of ISLAND_ORDER) expect(labelHidden(id, s), `${s.name} view ${id}`).toBe(false)
   })
 
-  it('on an island in the middle, no window clears every label at 300 px spacing: at most one label\'s worth of text is under the HUD', () => {
+  const NEXT_DOOR: Record<IslandId, IslandId> = { home: 'isle2', isle2: 'isle3', isle3: 'isle4', isle4: 'isle5', isle5: 'isle6', isle6: 'isle5' }
+
+  it('centres the midpoint of the viewed island and its next-door island in the band; the last island pairs with the one before', () => {
     for (const s of BANDS) for (const id of ISLAND_ORDER) {
-      const { top, bottom } = range(id, s)
-      let px = 0
-      for (const other of ISLAND_ORDER) {
-        const l = labelOf(other)
-        px += Math.max(0, Math.min(l.b, top) - Math.max(l.y, top - s.top)) + Math.max(0, Math.min(l.b, bottom + s.bottom) - Math.max(l.y, bottom))
-      }
-      expect(px, `${s.name} view ${id}`).toBeLessThanOrEqual(labelOf(id).b - labelOf(id).y)
+      const a = mapBoxOf(id)
+      const b = mapBoxOf(NEXT_DOOR[id])
+      const { v, top, bottom } = range(id, s)
+      const y0 = Math.min(a.y, b.y)
+      const y1 = Math.max(a.y + a.h, b.y + b.h)
+      expect(v.cy, `${s.name} ${id}`).toBeCloseTo((y0 + y1) / 2, 5)
+      // Both whole, labels included.
+      expect(y0).toBeGreaterThanOrEqual(top)
+      expect(y1).toBeLessThanOrEqual(bottom)
+      expect(labelHidden(NEXT_DOOR[id], s), `${s.name} next door of ${id}`).toBe(false)
     }
   })
 
-  it('shows a neighbour: Home opens with Ember Reach\'s label whole above it', () => {
-    for (const s of BANDS) {
-      const { top } = range('home', s)
-      expect(labelOf('isle2').y).toBeGreaterThanOrEqual(top)
-    }
+  // Where the islands land on screen: the band's middle is (top + screenH - bottom) / 2, and the scene shifts for the insets.
+  const screenYs = (id: IslandId, s: (typeof BANDS)[number]) => {
+    const { v } = range(id, s)
+    const mid = (s.top + s.screenH - s.bottom) / 2
+    return [MAP_SPOTS[id].y - v.cy + mid, MAP_SPOTS[NEXT_DOOR[id]].y - v.cy + mid].sort((p, q) => p - q)
+  }
+
+  it('390x844: pinned for each island, the pair between the pills (127) and the menu (767), with no empty lower third', () => {
+    const s = BANDS.find(x => x.name === '390x844')!
+    for (const id of ISLAND_ORDER) expect(screenYs(id, s), id).toEqual([335, 635])
   })
 
-  it('is centred in the band whenever centring puts no label under the HUD', () => {
-    let centred = 0
-    for (const s of BANDS) for (const id of ISLAND_ORDER) {
+  it('1440x900: pinned for each island', () => {
+    const s = BANDS.find(x => x.name === '1440x900')!
+    for (const id of ISLAND_ORDER) expect(screenYs(id, s), id).toEqual([340.5, 640.5])
+  })
+
+  it('a band too short for both centres the viewed island alone', () => {
+    for (const id of ISLAND_ORDER) {
       const b = mapBoxOf(id)
-      const want = b.y + b.h / 2 - s.h / 2
-      const hiddenAt = (top: number) => ISLAND_ORDER.some(o => {
-        const l = labelOf(o)
-        return (l.y < top && l.b > top - s.top - 6) || (l.y < top + s.h + s.bottom + 6 && l.b > top + s.h)
-      })
-      const bb = mapBounds()
-      if (hiddenAt(want) || want < bb.y || want + s.h > bb.y + bb.h) continue
-      centred++
-      expect(range(id, s).top, `${s.name} ${id}`).toBeCloseTo(want, 0)
+      const v = mapOpeningView(id, 400)
+      expect(v.cy).toBeCloseTo(b.y + b.h / 2, 5)
+      expect(v.cx).toBe(b.x + b.w / 2)
     }
-    expect(centred).toBeGreaterThan(0)
+  })
+
+  it('a screen too narrow for both centres the viewed island alone', () => {
+    // Ironhold and Shadowmere are the widest pair: 150 apart, 160 wide each, 310 in all.
+    expect(mapOpeningView('isle4', 642, 300).cx).toBe(MAP_SPOTS.isle4.x)
+    expect(mapOpeningView('isle4', 642, 390).cx).toBe((MAP_SPOTS.isle4.x + MAP_SPOTS.isle5.x) / 2)
   })
 
   it('only the chain\'s height gets the wide sea margin; its width keeps a narrow one', () => {

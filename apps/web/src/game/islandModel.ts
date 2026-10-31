@@ -37,6 +37,14 @@ export interface IslandObject {
   boxAlways?: boolean
 }
 
+/**
+ * Everything a sprite shows or does, as one string. The scene keeps a sprite while its id and this stay the same, and makes
+ * it again otherwise. The badge is not in it: that is an object of its own, kept by its own label.
+ */
+export function objectSignature(o: IslandObject, reducedMotion: boolean): string {
+  return JSON.stringify([o.key, o.sprite.frames, o.sprite.fps, o.x, o.y, o.target, o.scale, o.frame, o.flipX, o.tint, o.minTap, o.boxAlways, reducedMotion])
+}
+
 export interface IslandMarkers {
   habitats: string[]
   dragons: string[]

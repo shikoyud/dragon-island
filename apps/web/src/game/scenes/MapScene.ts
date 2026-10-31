@@ -129,7 +129,7 @@ export class MapScene extends Phaser.Scene {
 
   private opening(): View {
     const { top, bottom } = this.bridge.insets
-    const v = mapOpeningView(this.bridge.view, Math.max(1, this.scale.height - top - bottom), { top, bottom })
+    const v = mapOpeningView(this.bridge.view, Math.max(1, this.scale.height - top - bottom), this.scale.width)
     // The free band's middle sits (top - bottom) / 2 below the screen's: look that much higher in the world.
     return { ...v, cy: v.cy + (bottom - top) / 2 / v.zoom }
   }

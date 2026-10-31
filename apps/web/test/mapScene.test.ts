@@ -65,7 +65,9 @@ describe('the scene switch', () => {
     bridge.setMapOpen(true)
     await shown(game, 'map')
     const sprites = vi.spyOn(island.add, 'sprite')
-    bridge.setState({ ...newPlayer(0), gold: 5 })
+    // Something new to draw: a sprite whose look did not change is kept.
+    const fresh = newPlayer(0)
+    bridge.setState({ ...fresh, islands: { ...fresh.islands, obstacles: [...fresh.islands.obstacles, { id: 'new', kind: 'bush', island: 'home', col: 16, row: 13 }] } })
     expect(sprites).not.toHaveBeenCalled()
     bridge.setMapOpen(false)
     await shown(game, 'island')
@@ -89,6 +91,135 @@ describe('the scene switch', () => {
     bridge.setMapOpen(true)
     await shown(game, 'map')
     expect(bridge.mapIslandToScreen!('home')).toEqual(home)
+  })
+
+  describe('the island keeps its sprites across a sync', () => {
+    type Island = Phaser.Scene & {
+      drawn: Phaser.GameObjects.GameObject[]; badges: Phaser.GameObjects.Text[]; layer: Phaser.GameObjects.Container
+      sync(): void; collect(b: Phaser.GameObjects.Text): void
+    }
+    const up = async () => {
+      const { bridge, game } = await boot()
+      games.push(game)
+      await shown(game, 'island')
+      return { bridge, island: game.scene.getScene('island') as unknown as Island }
+    }
+    const obstacleSprite = (s: Island, id: string) => s.drawn.find(o => (o.getData?.('target') as { id?: string } | undefined)?.id === id)!
+
+    it('the same objects, by identity, when nothing changed: a sync makes and destroys nothing', async () => {
+      const { island } = await up()
+      const before = [...island.drawn]
+      expect(before.length).toBeGreaterThan(5)
+      const sprites = vi.spyOn(island.add, 'sprite')
+      island.sync()
+      island.sync()
+      expect(sprites).not.toHaveBeenCalled()
+      expect(island.drawn).toHaveLength(before.length)
+      island.drawn.forEach((o, i) => { expect(o).toBe(before[i]); expect(o.active).toBe(true) })
+    })
+
+    it('badges too: a badge text is kept while its label is the same, and only a changed one is remade', async () => {
+      const { bridge, island } = await up()
+      bridge.setClock(3_600_000) // Gold to collect in the starting habitats
+      island.sync()
+      const first = [...island.badges]
+      expect(first.length).toBeGreaterThan(0)
+      const text = vi.spyOn(island.add, 'text')
+      bridge.setClock(3_601_000)
+      island.sync()
+      expect(text).not.toHaveBeenCalled()
+      island.badges.forEach((b, i) => expect(b).toBe(first[i]))
+    })
+
+    it('only what changed is remade: a removed obstacle goes, the rest stay, and a new one is drawn in the model\'s order', async () => {
+      const { bridge, island } = await up()
+      const s = bridge.state!
+      const [gone, kept] = s.islands.obstacles
+      const goneSprite = obstacleSprite(island, gone!.id)
+      const keptSprite = obstacleSprite(island, kept!.id)
+      const order = () => island.layer.list.map(o => JSON.stringify(o.getData('target') ?? null))
+      const before = order()
+      bridge.setState({ ...s, islands: { ...s.islands, obstacles: s.islands.obstacles.slice(1) } })
+      expect(goneSprite.active).toBe(false)
+      expect(island.drawn).not.toContain(goneSprite)
+      expect(obstacleSprite(island, kept!.id)).toBe(keptSprite)
+      // Back again: made last, but drawn exactly where the model puts it, not on top of everything.
+      bridge.setState(s)
+      expect(obstacleSprite(island, gone!.id)).not.toBe(goneSprite)
+      expect(order()).toEqual(before)
+      expect(island.layer.list).toEqual(island.drawn)
+    })
+
+    it('a moved sprite is remade at its new place, not left where it stood', async () => {
+      const { bridge, island } = await up()
+      const s = bridge.state!
+      const [o] = s.islands.obstacles
+      const old = obstacleSprite(island, o!.id) as Phaser.GameObjects.Sprite
+      bridge.setState({ ...s, islands: { ...s.islands, obstacles: [{ ...o!, col: o!.col + 1 }, ...s.islands.obstacles.slice(1)] } })
+      const moved = obstacleSprite(island, o!.id) as Phaser.GameObjects.Sprite
+      expect(moved).not.toBe(old)
+      expect(moved.x).not.toBe(old.x)
+    })
+
+    it('a tapped badge whose collect came to nothing comes back on the next sync', async () => {
+      const { bridge, island } = await up()
+      bridge.setClock(3_600_000)
+      island.sync()
+      const badge = island.badges.find(b => b.getData('collect'))!
+      const habitat = badge.getData('collect') as string
+      island.collect(badge)
+      island.sync()
+      const again = island.badges.find(b => b.getData('collect') === habitat)!
+      expect(again).not.toBe(badge)
+      expect(again.visible).toBe(true)
+      expect(again.input?.enabled).toBe(true)
+    })
+
+    it('the tap targets follow: a kept sprite stays one, a removed one is gone', async () => {
+      const { bridge, island } = await up()
+      const targets = () => (island as unknown as { tapTargets: { spr: unknown }[] }).tapTargets.map(t => t.spr)
+      const s = bridge.state!
+      const [gone, kept] = s.islands.obstacles
+      const goneSprite = obstacleSprite(island, gone!.id)
+      expect(targets()).toContain(goneSprite)
+      island.sync()
+      expect(targets().filter(t => t === goneSprite)).toHaveLength(1)
+      bridge.setState({ ...s, islands: { ...s.islands, obstacles: s.islands.obstacles.slice(1) } })
+      expect(targets()).not.toContain(goneSprite)
+      expect(targets()).toContain(obstacleSprite(island, kept!.id))
+    })
+  })
+
+  it('the desktop cursor is a hand wherever a tap would open something, also between overlapping tap boxes, and an arrow off them', async () => {
+    const { game } = await boot()
+    games.push(game)
+    await shown(game, 'island')
+    const island = game.scene.getScene('island') as unknown as Phaser.Scene & { drawn: Phaser.GameObjects.Sprite[]; onMove(p: unknown, over: unknown[]): void }
+    const spr = island.drawn.find(o => o.getData?.('target'))!
+    const cursor = vi.spyOn(island.input, 'setDefaultCursor')
+    const p = { x: 10, y: 10, wasTouch: false, isDown: false, id: 1 }
+    island.onMove(p, [spr])
+    expect(cursor).toHaveBeenLastCalledWith('pointer')
+    island.onMove(p, [])
+    expect(cursor).toHaveBeenLastCalledWith('')
+    // A touch has no cursor.
+    cursor.mockClear()
+    island.onMove({ ...p, wasTouch: true }, [spr])
+    expect(cursor).not.toHaveBeenCalled()
+  })
+
+  it('placing never shows the hand: every click there is a cell', async () => {
+    const { bridge, game } = await boot()
+    games.push(game)
+    await shown(game, 'island')
+    const island = game.scene.getScene('island') as unknown as Phaser.Scene & { drawn: Phaser.GameObjects.Sprite[]; onMove(p: unknown, over: unknown[]): void }
+    const spr = island.drawn.find(o => o.getData?.('target'))!
+    const p = { x: 10, y: 10, wasTouch: false, isDown: false, id: 1 }
+    island.onMove(p, [spr])
+    const cursor = vi.spyOn(island.input, 'setDefaultCursor')
+    bridge.setPlacing({ what: { kind: 'farm' }, size: 3, col: 14, row: 14, facing: 0 })
+    island.onMove(p, [spr])
+    expect(cursor).toHaveBeenLastCalledWith('')
   })
 
   it('open, close, open within one frame lands on the Map, with no restart of either scene', async () => {

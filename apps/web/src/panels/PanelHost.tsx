@@ -1,8 +1,9 @@
-import { ISLANDS, type TeamIds } from '@wyrmhaven/game-core'
-import type { Offer } from '@wyrmhaven/shared'
+import { ISLANDS, ownedPlots, type PlayerState, type TeamIds } from '@wyrmhaven/game-core'
+import type { GameInfo, Offer } from '@wyrmhaven/shared'
 import { useEffect, useState, type ReactElement } from 'react'
 import type { Bridge } from '../game/bridge'
 import type { DialogKey } from '../hud/Hud'
+import { useMe } from '../state/me'
 import { useStartPlacing } from '../state/startPlacing'
 import { SignIn } from '../wallet/SignIn'
 import { BattleHub } from './BattleHub'
@@ -22,11 +23,44 @@ import { ShopPanel } from './ShopPanel'
 import { SpeedUpsRow } from './SpeedUpsRow'
 import { WalletPanel } from './WalletPanel'
 
-/** The one open dialog; a click on something in the island scene opens its panel (replacing what was open). */
+/**
+ * True while the dialog's panel has something to show: what it is about still exists (an obstacle not yet cleared, a dragon
+ * not sold, a plot not yet bought). Its answers match the `return null`s in the panels; test/dialogSubject.test.tsx pins that.
+ */
+export function dialogHasSubject(s: PlayerState, dialog: DialogKey, game: Pick<GameInfo, 'launchAtMs'> | undefined): boolean {
+  if (dialog.kind === 'panel') {
+    if (dialog.id === 'breed') return game !== undefined
+    return dialog.id !== 'wings' && dialog.id !== 'inbox' // not built until a later milestone
+  }
+  const t = dialog.target
+  switch (t.kind) {
+    case 'habitat': return s.habitats.some(h => h.id === t.id)
+    case 'dragon': return s.dragons.some(d => d.id === t.id)
+    case 'decoration': return s.decorations.some(d => d.id === t.id)
+    case 'obstacle': return s.islands.obstacles.some(o => o.id === t.id)
+    case 'farm': return s.farms[t.plot] !== undefined
+    case 'roost': return s.roostPlacement !== null
+    case 'plot': return !ownedPlots(s, t.island).includes(t.plot)
+    case 'breeder': return game !== undefined
+    case 'hatchery':
+    case 'hatcheryBuilding':
+    case 'mapIsland': return true
+    case 'cell':
+    case 'empty': return false
+  }
+}
+
+/**
+ * The one open dialog; a click on something in the island scene opens its panel (replacing what was open). When what it
+ * is about goes away while it is open (a clear finishes, a dragon is sold) the dialog closes: no empty box or scrim stays.
+ */
 export function useDialog(bridge: Bridge, initial: DialogKey | null = null): [DialogKey | null, (k: DialogKey | null) => void] {
   const [dialog, setDialog] = useState<DialogKey | null>(initial)
+  const me = useMe().data
   useEffect(() => bridge.on('select', e => setDialog(e.target.kind === 'empty' || e.target.kind === 'cell' ? null : { kind: 'target', target: e.target })), [bridge])
-  return [dialog, setDialog]
+  const gone = dialog !== null && me !== undefined && !dialogHasSubject(me.state, dialog, me.game)
+  useEffect(() => { if (gone) setDialog(null) }, [gone])
+  return [gone ? null : dialog, setDialog]
 }
 
 export interface PanelHostProps {

@@ -125,8 +125,8 @@ export function playOrStill(sprite: Phaser.GameObjects.Sprite, key: string, fram
   if (!anims.exists(animKey(key))) {
     anims.create({ key: animKey(key), frames: anims.generateFrameNumbers(key, { start: 0, end: frames - 1 }), frameRate: fps, repeat: -1 })
   }
-  // The island rebuilds its sprites every second; start where the loop would be on the scene clock (plus a position offset
-  // so neighbours are out of step) so the rebuild does not restart every animation at frame 0.
+  // The island makes a sprite again when its look changes; start where the loop would be on the scene clock (plus a position
+  // offset so neighbours are out of step) so that does not restart the animation at frame 0.
   const now = sprite.scene.time?.now ?? 0
   const spread = Math.abs(Math.floor((sprite.x ?? 0) * 7 + (sprite.y ?? 0) * 13)) % frames
   const startFrame = (Math.floor((now / 1000) * fps) + spread) % frames
