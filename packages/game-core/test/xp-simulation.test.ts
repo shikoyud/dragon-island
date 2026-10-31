@@ -10,7 +10,7 @@ import { createRng } from '../src/rng'
 import { newPlayer, type BreederEgg, type PlayerState } from '../src/state'
 import { ok } from './helpers'
 import { withObstacleField } from './helpers/land'
-import { breedLoop, casual, harvestAndFeed, harvestLoop, runBot, type BotPlan, type BotResult } from './helpers/xpBots'
+import { breedLoop, casual, harvestAndFeed, harvestLoop, nonStop, runBot, withTrials, type BotPlan, type BotResult } from './helpers/xpBots'
 
 const base = newPlayer(0)
 const run = (st: PlayerState, a: Action, day: number, preset: Preset = FLASH_14, seed = 1, t = 0) =>
@@ -306,4 +306,49 @@ describe('a bot with no room clears what blocks it', () => {
     expect(r.final.roostPlacement).not.toBeNull()
     expect(cleared).toBe(1) // measured: one Boulder is all the best cell holds
   }, BOT_TIMEOUT_MS)
+})
+
+/** The same bot with Trials on (Task 6): casual and non-stop, both presets. Memoised: a run is the slow part. */
+const trialRuns = new Map<string, BotResult>()
+const trialRun = (key: string, plan: BotPlan): BotResult => {
+  if (!trialRuns.has(key)) trialRuns.set(key, runBot(plan))
+  return trialRuns.get(key)!
+}
+const FLASH_14_ROWS = [12, 18, 25, 30, 32, 33, 34, 36, 37, 38, 39, 40]
+
+describe('bots that fight Trials stay on §7.2 (R40, R41, Review Focus 5)', () => {
+  for (const make of [casual, nonStop]) {
+    it(`Flash-14 ${make.name}+trials: endOfDay holds on the rows for Days 1-12`, () => {
+      const r = trialRun(`14-${make.name}`, withTrials(make(FLASH_14, 50, 12)))
+      expect(r.trials.fights.length).toBeGreaterThan(0)
+      expect(r.endOfDay).toEqual(FLASH_14_ROWS)
+    }, BOT_TIMEOUT_MS)
+
+    it(`Flash-28 ${make.name}+trials: endOfDay stays on its rows, as the same bot without Trials`, () => {
+      const r = trialRun(`28-${make.name}`, withTrials(make(FLASH_28, 50, 12)))
+      expect(r.trials.fights.length).toBeGreaterThan(0)
+      expect(r.endOfDay.every((pl, i) => pl <= (levelLimit(i + 1, FLASH_28) ?? 50))).toBe(true)
+      expect(r.endOfDay).toEqual(runBot(make(FLASH_28, 50, 12)).endOfDay)
+    }, BOT_TIMEOUT_MS)
+  }
+
+  it('Flash-14 breedLoop+trials (grants, seed 1) holds the rows too', () => {
+    const r = trialRun('14-breedLoop', withTrials(breedLoop(FLASH_14, 50, 12, 1)))
+    expect(r.endOfDay).toEqual(FLASH_14_ROWS)
+  }, BOT_TIMEOUT_MS)
+
+  it('XP is never lost: the total (cumulativeXp(level) + xp) only rises, by exactly the sum of the awards', () => {
+    const r = trialRun('14-casual', withTrials(casual(FLASH_14, 50, 12)))
+    expect(r.trials.xpWorstFall).toBe(0)
+    expect(r.trials.trialXpSeen).toBe(r.trials.trialXpAwarded)
+    expect(r.trials.trialXpAwarded).toBeGreaterThan(0)
+    expect(cumulativeXp(r.final.level) + r.final.xp).toBe(r.trials.xpRises)
+  }, BOT_TIMEOUT_MS)
+
+  for (const preset of [FLASH_14, FLASH_28]) {
+    it(`${preset.id}: the casual bot with Trials still claims all 14 Goals with no grants`, () => {
+      const r = runBot(withTrials(casual(preset, 50, 6)))
+      expect(r.final.goalIndex).toBe(14)
+    }, BOT_TIMEOUT_MS)
+  }
 })
