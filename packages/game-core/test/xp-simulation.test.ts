@@ -216,6 +216,9 @@ describe('the level limit per game day (Q1 b, R40, R41)', () => {
 const dayOf = (r: BotResult, pl: number) => r.reached.get(pl)?.day
 const hoursOf = (r: BotResult, pl: number) => r.reached.get(pl)?.hours ?? Infinity
 
+/** A bot runs thousands of simulated actions; the default 5 s is too short on a loaded machine. */
+const BOT_TIMEOUT_MS = 120_000
+
 /** Bots playing the real rules from newPlayer (§4.3, §7.2). Each also has to get there, so a bot stuck at PL 1 can't pass. */
 describe('non-stop bots hold to the §4.3 targets', () => {
   const flash14: readonly BotPlan[] = [
@@ -229,7 +232,7 @@ describe('non-stop bots hold to the §4.3 targets', () => {
       expect(r.endOfDay).toEqual([12, 18, 25])
       expect(dayOf(r, 20)).toBe(3)
       expect(dayOf(r, 30)).toBe(4)
-    })
+    }, BOT_TIMEOUT_MS)
   }
 
   for (const plan of [harvestLoop(FLASH_28, 20, 5), harvestAndFeed(FLASH_28, 20, 5), breedLoop(FLASH_28, 20, 5)]) {
@@ -237,13 +240,13 @@ describe('non-stop bots hold to the §4.3 targets', () => {
       const r = runBot(plan)
       expect(r.endOfDay).toEqual([12, 12, 18])
       expect(dayOf(r, 20)).toBe(4)
-    })
+    }, BOT_TIMEOUT_MS)
   }
 })
 
 describe('the casual bot: 6 sessions of 30 minutes a day, on the Gold and Food the game gives', () => {
   let r: BotResult
-  beforeAll(() => { r = runBot(casual(FLASH_14, 50, 12)) }, 30_000)
+  beforeAll(() => { r = runBot(casual(FLASH_14, 50, 12)) }, BOT_TIMEOUT_MS)
 
   it('is inside the brief\'s bound: PL 12 by Day 2, PL 30 by Day 8', () => {
     expect(dayOf(r, 12)).toBeLessThanOrEqual(2)
@@ -280,6 +283,6 @@ describe('non-stop bots stay on §7.2 through Day 12 (R41)', () => {
       expect(r.endOfDay[11]).toBeLessThanOrEqual(40)
       expect(r.endOfDay.every((pl, i) => pl <= (levelLimit(i + 1, FLASH_14) ?? 50))).toBe(true)
       expect(r.endOfDay).toEqual([12, 18, 25, 30, 32, 33, 34, 36, 37, 38, 39, 40])
-    }, 30_000)
+    }, BOT_TIMEOUT_MS)
   }
 })

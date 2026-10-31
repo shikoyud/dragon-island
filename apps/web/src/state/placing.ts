@@ -1,4 +1,4 @@
-import { islandSize, placementRuleError, type Facing, type Footprint, type IslandId, type Placement, type PlayerState } from '@wyrmhaven/game-core'
+import { FOOTPRINT, islandSize, placementRuleError, type Facing, type Footprint, type IslandId, type Placement, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import { placementSubject, type Placing } from '../game/bridge'
 
@@ -65,11 +65,10 @@ export function placementStart(
   const f = island === view ? focus : null
   const mid = f ? { col: f.col - Math.floor((size - 1) / 2), row: f.row - Math.floor((size - 1) / 2) } : { col: 4, row: 4 }
   // Something smaller than a habitat prefers a cell that leaves a 5x5 free (a fresh island has exactly one), else the nearest.
-  const cell = (size < HABITAT_FOOTPRINT ? nearestLegalCell(s, what, island, mid, c => leavesHabitatRoom(s, island, c, size)) : null) ?? nearestLegalCell(s, what, island, mid)
+  const cell = (size < FOOTPRINT.habitat ? nearestLegalCell(s, what, island, mid, c => leavesHabitatRoom(s, island, c, size)) : null) ?? nearestLegalCell(s, what, island, mid)
   return cell ? { island, cell } : { island }
 }
 
-const HABITAT_FOOTPRINT = 5
 const HABITAT_PROBE = { kind: 'habitat', element: 'terra' } as const
 
 /** True when a thing of `size` at `cell` would still leave some legal habitat-sized spot clear of it (footprints are squares). */
@@ -77,7 +76,7 @@ function leavesHabitatRoom(s: PlayerState, island: IslandId, cell: { col: number
   const { w, h } = islandSize(s, island)
   for (let row = 0; row < h; row++) for (let col = 0; col < w; col++) {
     if (placementRuleError(s, HABITAT_PROBE, { island, col, row, facing: 0 }) !== null) continue
-    const apart = cell.col + size <= col || col + HABITAT_FOOTPRINT <= cell.col || cell.row + size <= row || row + HABITAT_FOOTPRINT <= cell.row
+    const apart = cell.col + size <= col || col + FOOTPRINT.habitat <= cell.col || cell.row + size <= row || row + FOOTPRINT.habitat <= cell.row
     if (apart) return true
   }
   return false

@@ -67,7 +67,7 @@ export function LevelUp({ from, to, onClose, onShown }: { from: number; to: numb
           <small>Level up!</small>
           <h2 style={{ margin: '4px 0 12px' }}>{title}</h2>
           {lines.length > 0
-            ? <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 12px', display: 'grid', gap: 4 }}>{lines.map(l => <li key={l}>{l}</li>)}</ul>
+            ? <ul className="hud-levelup__list" style={{ listStyle: 'none', padding: 0, margin: '0 0 12px', display: 'grid', gap: 4 }}>{lines.map(l => <li key={l}>{l}</li>)}</ul>
             : <p style={{ margin: '0 0 12px' }}>No new unlocks</p>}
           <button type="button" className="btn btn--primary" onClick={onClose} autoFocus>Continue</button>
         </section>

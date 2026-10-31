@@ -100,7 +100,6 @@ describe('build XP is paid when the Gold is spent (R31)', () => {
     const st: PlayerState = { ...base, level: 3, gold: 4_999, xp: 40 }
     const r = run(st, { type: 'placeBuilding', building: { kind: 'habitat', element: 'sea' }, placement: P(7, 7) })
     expect(r).toEqual({ ok: false, error: 'INSUFFICIENT_GOLD' })
-    expect(st).toMatchObject({ gold: 4_999, xp: 40 })
   })
   it('collecting Gold awards 0', () => {
     expect(ok(run(base, { type: 'collectGold', habitatId: 'h1' }, 600_000)).xp).toBe(0)

@@ -86,6 +86,35 @@ describe('level-up screen (R38)', () => {
     expect(screen.getByRole('heading', { name: 'Level 6' })).toBeInTheDocument()
   })
 
+  it('a rise held back, then a reload (unmount and mount): the new mount shows the screen, since nothing was closed', async () => {
+    const KEY = 'dragon-island:levelShown:p1'
+    const h = harness(at(5))
+    const first = h.wrap(<Host hold />)
+    await screen.findByLabelText('Level 5')
+    h.setState(at(6))
+    await screen.findByLabelText('Level 6')
+    expect(screen.queryByRole('dialog', { name: 'Level up' })).toBeNull()
+    expect(localStorage.getItem(KEY)).toBe('5')
+    first.unmount()
+    h.wrap(<Host />)
+    expect(await screen.findByRole('heading', { name: 'Level 6' })).toBeInTheDocument()
+  })
+
+  it('a long list scrolls between the title and Continue: the list carries the scrolling class', () => {
+    harness(at(30)).wrap(<LevelUp from={1} to={30} onClose={() => {}} />)
+    const d = screen.getByRole('dialog', { name: 'Level up' })
+    const list = d.querySelector('ul.hud-levelup__list')
+    expect(list).not.toBeNull()
+    expect(list!.querySelectorAll('li').length).toBeGreaterThan(20)
+    const heading = within(d).getByRole('heading')
+    const button = within(d).getByRole('button', { name: 'Continue' })
+    // Title above, list in the middle, Continue below, all siblings in the card (so only the list scrolls).
+    expect(heading.compareDocumentPosition(list!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(list!.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(heading.parentElement).toBe(button.parentElement)
+    expect(list!.parentElement).toBe(button.parentElement)
+  })
+
   it('a level with no plain unlock says so', () => {
     expect(levelUnlockLines(1, 2).length).toBeGreaterThan(0)
     expect(levelUnlockLines(40, 41)).toEqual([])
@@ -267,6 +296,32 @@ describe('level-up screen (R38)', () => {
       expect(spy).toHaveBeenCalledWith({ queryKey: ['me'] })
       rerender({ nowMs: DAY + 60_000 })
       expect(spy).toHaveBeenCalledTimes(1)
+    })
+
+    it('before launch (day 0) nothing is fetched; the turn from 0 to Day 1 fetches once', () => {
+      const qc = new QueryClient()
+      const spy = vi.spyOn(qc, 'invalidateQueries')
+      const game = { launchAtMs: 10 * DAY, serverNowMs: 0, day: 0 }
+      const { rerender } = renderHook(({ nowMs }: { nowMs: number }) => useRefreshOnNewDay(game, nowMs), { wrapper: wrapperFor(qc), initialProps: { nowMs: 5 } })
+      rerender({ nowMs: 5 * DAY })
+      rerender({ nowMs: 10 * DAY - 1 })
+      expect(spy).not.toHaveBeenCalled()
+      rerender({ nowMs: 10 * DAY })
+      expect(spy).toHaveBeenCalledTimes(1)
+      rerender({ nowMs: 10 * DAY + 1_000 })
+      expect(spy).toHaveBeenCalledTimes(1)
+    })
+
+    it('a day that flips backwards (a clock resync) fetches at most once and never loops', () => {
+      const qc = new QueryClient()
+      const spy = vi.spyOn(qc, 'invalidateQueries')
+      const game = { launchAtMs: 0, serverNowMs: 0, day: 1 }
+      const { rerender } = renderHook(({ nowMs }: { nowMs: number }) => useRefreshOnNewDay(game, nowMs), { wrapper: wrapperFor(qc), initialProps: { nowMs: 2 * DAY + 5 } })
+      rerender({ nowMs: DAY + 5 })
+      const afterBack = spy.mock.calls.length
+      expect(afterBack).toBeLessThanOrEqual(1)
+      for (const t of [DAY + 10, DAY + 20_000, DAY + 40_000]) rerender({ nowMs: t })
+      expect(spy.mock.calls.length).toBe(afterBack)
     })
 
     it('without game info it never refetches', () => {
