@@ -9,6 +9,7 @@ import { addRawXp, addXp, breedXpApplies, buildXp, cumulativeXp, levelLimit, set
 import { createRng } from '../src/rng'
 import { newPlayer, type BreederEgg, type PlayerState } from '../src/state'
 import { ok } from './helpers'
+import { withObstacleField } from './helpers/land'
 import { breedLoop, casual, harvestAndFeed, harvestLoop, runBot, type BotPlan, type BotResult } from './helpers/xpBots'
 
 const base = newPlayer(0)
@@ -294,4 +295,15 @@ describe('the 14 Goals finish on the Gold and Food the game gives, on both prese
       expect(r.final.goalIndex).toBe(14)
     }, BOT_TIMEOUT_MS)
   }
+})
+
+describe('a bot with no room clears what blocks it', () => {
+  it('clears the Boulder that blocks the Roost, and no more', () => {
+    const start = { ...withObstacleField(newPlayer(0)), level: 5 }
+    const plan: BotPlan = { name: 'blocked', preset: FLASH_14, untilLevel: 6, maxDay: 1, grantGold: true, roost: true, start }
+    const r = runBot(plan)
+    const cleared = start.islands.obstacles.length - r.final.islands.obstacles.length
+    expect(r.final.roostPlacement).not.toBeNull()
+    expect(cleared).toBe(1) // measured: one Boulder is all the best cell holds
+  }, BOT_TIMEOUT_MS)
 })
