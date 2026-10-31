@@ -239,3 +239,44 @@
 /* A small dot on a menu button: something is ready there. */
 .hud-dot { display: block; width: 8px; height: 8px; border-radius: 50%; }
 .hud-round__badge:has(.hud-dot) { padding: 0; width: 14px; height: 14px; display: grid; place-items: center; }
+
+/* ---- Elemental Trials: chapters, nodes and the team, three screens in one panel (mobile first, 44 px targets) ---- */
+.trials { display: grid; gap: 8px; min-width: 0; }
+.trials p { margin: 0; }
+.trials__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.trials .action-button { display: block; }
+.trials .action-button > .btn { width: 100%; min-height: 44px; text-align: left; }
+.trials__row { display: flex; gap: 8px; flex-wrap: wrap; }
+.trials__banner { padding: 8px; display: grid; gap: 8px; background: var(--bg-panel-2); border: 2px solid var(--accent); }
+.trials__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.trials__back { padding: 0 12px; }
+.trials__title { margin: 0; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.trials__chapter { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 10px; }
+.trials__chapter--locked { opacity: 0.75; }
+.trials__main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.trials__name { font-family: var(--font-display); font-size: 13px; overflow-wrap: break-word; }
+.trials__sub { font-size: 12px; color: var(--text-muted); }
+.trials__why { font-size: 12px; color: var(--accent); }
+.trials__node { display: grid; gap: 4px; width: 100%; font-size: 12px; }
+.trials__node-head { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-display); font-size: 12px; }
+.trials__stars { color: var(--accent); letter-spacing: 1px; }
+.trials__enemies { display: flex; gap: 4px; }
+.trials__reward, .trials__replays { color: var(--text-muted); }
+.trials__heal { display: flex; justify-content: flex-end; }
+.trials__slots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.trials__slot { width: 100%; display: grid; gap: 2px; justify-items: start; padding: 4px 8px; font-size: 12px; }
+.trials__slot:disabled { opacity: 0.6; }
+.trials__slot-n { font-family: var(--font-display); font-size: 10px; color: var(--accent); }
+.trials__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.trials__card { display: grid; gap: 4px; text-align: left; padding: 6px 8px; min-width: 0; }
+.trials__card--picked { border-color: var(--accent); }
+.trials__card-top { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; }
+.trials__card-top .trials__name { flex: 1; min-width: 0; }
+.trials__card-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.btn--primary .trials__reward, .btn--primary .trials__replays, .btn--primary .trials__sub { color: inherit; }
+.trials__counter { font: 11px var(--font-display); padding: 0 4px; color: #1b1300; background: var(--ok); border: 2px solid var(--ink, #141627); }
+.trials__slot-badge { font: 10px var(--font-display); padding: 0 4px; color: #1b1300; background: var(--accent); }
+.trials__hp { display: block; height: 8px; background: var(--bg); border: 2px solid var(--border); }
+.trials__hp-fill { display: block; height: 100%; background: var(--ok); }
+.trials__hp-fill--low { background: var(--danger); }
+.trials__actions { align-items: flex-start; justify-content: space-between; }

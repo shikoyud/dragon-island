@@ -174,10 +174,12 @@ export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
   if (waiting > 0) {
     items.push({ id: 'noRoom', label: waiting === 1 ? 'Hatchling: no room' : `${waiting} hatchlings: no room`, ready: true, panel: { kind: 'hatcheryBuilding' } })
   }
+  // A Trial left open (a reload, another tab) turns every Trial and heal into IN_TRIAL: this leads to the banner with Resume and Abandon.
+  if (s.pve.active) items.push({ id: 'trial', label: 'Trial in progress', ready: true, open: { kind: 'panel', id: 'battle' } })
   if (goalClaimable(s)) {
     items.push({ id: 'goal', label: 'Goal ready', ready: true, action: { type: 'claimGoal' }, open: { kind: 'panel', id: 'quests' } })
   }
   // Ready first, then by time; among equals the Goal goes first, so MAX_ATTENTION never cuts the one claim the player can take.
-  const ordered = items.sort((p, q) => Number(q.ready) - Number(p.ready) || (p.readyAtMs ?? 0) - (q.readyAtMs ?? 0) || Number(q.id === 'goal') - Number(p.id === 'goal'))
+  const ordered = items.sort((p, q) => Number(q.ready) - Number(p.ready) || (p.readyAtMs ?? 0) - (q.readyAtMs ?? 0) || Number(q.id === 'trial') - Number(p.id === 'trial') || Number(q.id === 'goal') - Number(p.id === 'goal'))
   return ordered.slice(0, MAX_ATTENTION)
 }

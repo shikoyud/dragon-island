@@ -10,7 +10,9 @@ test('plays a real Trial node, resumes after a reload, and gets offers in the ar
   // Chapter 1 node 1 is three level-1 enemies; a level-20 team wins with Strike alone (the first button), Physical never being immune.
   await openPanel(page, 'Trials')
   await expect(page.getByRole('list', { name: 'Chapters' }).getByRole('button')).toHaveCount(10)
+  await page.getByRole('list', { name: 'Chapters' }).getByRole('button', { name: /^terra wilds/i }).click()
   await page.getByRole('list', { name: 'Nodes' }).getByRole('button', { name: /^node 1 ·/i }).click()
+  await page.getByRole('button', { name: 'Fight', exact: true }).click()
   const moves = page.getByRole('group', { name: /^move$/i }).getByRole('button')
   await expect(moves).toHaveCount(4)
   for (const box of [await moves.first().boundingBox(), await page.getByRole('group', { name: /^swap$/i }).getByRole('button').first().boundingBox()]) {

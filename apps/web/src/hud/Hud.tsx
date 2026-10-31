@@ -67,7 +67,7 @@ const ACTION_VERB: Partial<Record<ClientAction['type'], string>> = { finishConst
 function Shortcut({ item, nowMs, onOpen }: { item: AttentionItem; nowMs: number; onOpen: (k: DialogKey) => void }) {
   const { run, pending } = useAction()
   const open = () => onOpen(item.open ?? { kind: 'target', target: item.panel })
-  const icon: IconName = item.id.startsWith('construction') ? 'build' : item.id === 'crops' ? 'food' : item.id === 'goal' ? 'quests' : 'breed'
+  const icon: IconName = item.id.startsWith('construction') ? 'build' : item.id === 'crops' ? 'food' : item.id === 'goal' ? 'quests' : item.id === 'trial' ? 'battle' : 'breed'
   return (
     <li className={`hud-shortcut${item.ready ? ' hud-shortcut--ready' : ''}`}>
       <button type="button" className="hud-shortcut__open" onClick={open}>
