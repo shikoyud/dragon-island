@@ -1,14 +1,15 @@
 import { gameDay, xpToNext } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import type { Bridge, Target } from '../game/bridge'
 import { timerLabel } from '../game/islandModel'
 import { TOKEN_KEY as ADMIN_TOKEN_KEY } from '../pages/Admin'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
+import { useToasts } from '../ui/Toast'
 import { presetOf } from '../state/preset'
 import { formatGold, formatWei } from '../ui/Money'
-import { attentionItems, goalClaimable, xpBarText, xpFraction, type AttentionItem } from './hudModel'
+import { attentionItems, goalClaimable, XP_LIMIT_SHORT, xpBarText, xpFraction, type AttentionItem } from './hudModel'
 import { Icon, type IconName } from './Icon'
 import { TerminalClock } from './TerminalClock'
 
@@ -85,6 +86,7 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
   battle?: boolean
 }) {
   const me = useMe()
+  const toasts = useToasts()
   const top = useRef<HTMLElement>(null)
   const foot = useRef<HTMLDivElement>(null)
 
@@ -108,6 +110,9 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
   const data = me.data
   if (!data) return null
   const s = data.state
+  const barText = xpBarText(s, formatGold, data.game ? { preset: presetOf(data), day: gameDay(data.game.launchAtMs, nowMs) } : undefined)
+  // At the day's limit the sentence is too long for the bar on a phone: the bar shows a short label, the sentence stays its title and value text, and a tap shows it.
+  const limited = barText.startsWith(XP_LIMIT_SHORT)
   const panel = (id: PanelId) => () => onOpen({ kind: 'panel', id })
   const openStore = () => onOpen({ kind: 'panel', id: 'shop', tab: 'store' })
 
@@ -116,9 +121,15 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
       <header className="hud-top" ref={top}>
         <div className="hud-avatar">
           <span className="hud-avatar__badge" aria-label={`Level ${s.level}`}>{s.level}</span>
-          <div className="hud-xp" role="progressbar" aria-label="Experience" aria-valuemin={0} aria-valuemax={Number.isFinite(xpToNext(s.level)) ? xpToNext(s.level) : s.xp} aria-valuenow={Number.isFinite(xpToNext(s.level)) ? Math.min(s.xp, xpToNext(s.level)) : s.xp}>
+          <div className={`hud-xp${limited ? ' hud-xp--limit' : ''}`} role="progressbar" aria-label="Experience" aria-valuemin={0} aria-valuemax={Number.isFinite(xpToNext(s.level)) ? xpToNext(s.level) : s.xp} aria-valuenow={Number.isFinite(xpToNext(s.level)) ? Math.min(s.xp, xpToNext(s.level)) : s.xp}
+            {...(limited ? { title: barText, 'aria-valuetext': barText, tabIndex: 0, onClick: () => toasts.info(barText), onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toasts.info(barText) } } } : {})}>
             <span className="hud-xp__fill" style={{ width: `${Math.round(xpFraction(s) * 100)}%` }} />
-            <span className="hud-xp__text">{xpBarText(s, formatGold, data.game ? { preset: presetOf(data), day: gameDay(data.game.launchAtMs, nowMs) } : undefined)}</span>
+            {limited
+              ? <>
+                <span className="hud-xp__text hud-xp__text--short" aria-hidden="true">{XP_LIMIT_SHORT}</span>
+                <span className="hud-xp__text hud-xp__text--full">{barText}</span>
+              </>
+              : <span className="hud-xp__text">{barText}</span>}
           </div>
         </div>
         <div className="hud-pills" role="status" aria-label="Resources">

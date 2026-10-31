@@ -19,7 +19,7 @@ import { useAutoFinish } from './panels/useAutoFinish'
 import { useAction } from './state/actions'
 import { useBattle } from './state/battle'
 import { useGameClock } from './state/clock'
-import { useMe } from './state/me'
+import { useMe, useRefreshOnNewDay } from './state/me'
 import { placementStart, placingAction } from './state/placing'
 import { StartPlacingProvider, type StartPlacing } from './state/startPlacing'
 import { usePlacing } from './state/usePlacing'
@@ -56,8 +56,9 @@ function Game() {
   const { placing, view, dispatch } = usePlacing(bridge)
   const { run, pending } = useAction()
   useAutoFinish(nowMs)
-  // Waits out placement and battles; a rise from any source (/me, an action reply) counts, the first load does not.
-  const levelUp = useLevelUp(me.data?.state.level, placing !== null || Boolean(battle.setup))
+  useRefreshOnNewDay(me.data?.game, nowMs)
+  // Waits out placement and battles; a rise from any source (/me, an action reply) counts, and a returning player's stored level decides the first load.
+  const levelUp = useLevelUp(me.data?.state.level, placing !== null || Boolean(battle.setup), me.data?.playerId)
 
   useEffect(() => { void loadActiveArt().then(setArt) }, [])
   useEffect(() => { bridge.setBattle(battle.preview) }, [bridge, battle.preview])

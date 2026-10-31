@@ -9,13 +9,16 @@ import { LevelUp, useLevelUp } from '../src/hud/LevelUp'
 import { levelUnlockLines, xpFraction } from '../src/hud/hudModel'
 import { useMe } from '../src/state/me'
 import { harness } from './harness'
+import { renderHook, waitFor } from '@testing-library/react'
+import { useRefreshOnNewDay } from '../src/state/me'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const at = (level: number, xp = 0): PlayerState => ({ ...newPlayer(0), level, xp })
 
 /** The App's wiring in miniature: the HUD, and the level-up screen over it unless something holds it back. */
 function Host({ hold = false, nowMs = 0 }: { hold?: boolean; nowMs?: number }) {
-  const level = useMe().data?.state.level
-  const up = useLevelUp(level, hold)
+  const me = useMe().data
+  const up = useLevelUp(me?.state.level, hold, me?.playerId)
   const [bridge] = useState(() => createBridge())
   return (
     <>
@@ -163,6 +166,150 @@ describe('level-up screen (R38)', () => {
     expect(within(d).getByRole('heading')).toHaveTextContent('Level 12 → 15')
     expect(screen.getAllByRole('dialog', { name: 'Level up' })).toHaveLength(1)
     expect(screen.getByRole('progressbar', { name: 'Experience' })).toHaveTextContent(`7 / ${xpToNext(15).toLocaleString('en-US')} XP`)
+  })
+
+  describe('a returning player (item 8): the last level shown is kept per player', () => {
+    const KEY = (id: string) => `dragon-island:levelShown:${id}`
+
+    it('first load with a stored 12 and a settled 18 lists PL 13 to 18 once, with no home: lines', async () => {
+      localStorage.setItem(KEY('p1'), '12')
+      harness(at(18)).wrap(<Host />)
+      const d = await screen.findByRole('dialog', { name: 'Level up' })
+      expect(within(d).getByRole('heading')).toHaveTextContent('Level 12 → 18')
+      for (const line of ['Hatchery level 3', 'Dark Habitat', 'Light Habitat', 'War Habitat', 'Roost Tier 3', 'Third island']) expect(within(d).getByText(line)).toBeInTheDocument()
+      expect(within(d).queryByText(/home:/)).toBeNull()
+      expect(within(d).queryByText('Electric Habitat')).toBeNull() // PL 6 is below the range
+    })
+
+    it('a reload after closing it shows nothing', async () => {
+      localStorage.setItem(KEY('p1'), '12')
+      const h = harness(at(18))
+      const first = h.wrap(<Host />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Continue' }))
+      expect(localStorage.getItem(KEY('p1'))).toBe('18')
+      first.unmount()
+      h.wrap(<Host />)
+      await screen.findByLabelText('Level 18')
+      expect(screen.queryByRole('dialog', { name: 'Level up' })).toBeNull()
+    })
+
+    it('a new device (nothing stored) shows nothing and takes the level as its baseline', async () => {
+      harness(at(18)).wrap(<Host />)
+      await screen.findByLabelText('Level 18')
+      expect(screen.queryByRole('dialog', { name: 'Level up' })).toBeNull()
+      expect(localStorage.getItem(KEY('p1'))).toBe('18')
+    })
+
+    it('a stored level above the current one (a reset) shows nothing and is replaced', async () => {
+      localStorage.setItem(KEY('p1'), '30')
+      harness(at(5)).wrap(<Host />)
+      await screen.findByLabelText('Level 5')
+      expect(screen.queryByRole('dialog', { name: 'Level up' })).toBeNull()
+      expect(localStorage.getItem(KEY('p1'))).toBe('5')
+    })
+
+    it('a storage that throws still renders, and still shows an in-page rise', async () => {
+      const get = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
+      const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
+      try {
+        const h = harness(at(5))
+        h.wrap(<Host />)
+        await screen.findByLabelText('Level 5')
+        expect(screen.queryByRole('dialog', { name: 'Level up' })).toBeNull()
+        h.setState(at(6))
+        await userEvent.click(await screen.findByRole('button', { name: 'Continue' }))
+        expect(screen.queryByRole('dialog', { name: 'Level up' })).toBeNull()
+      } finally { get.mockRestore(); set.mockRestore() }
+    })
+
+    it('the key is per player: another account at the same level keeps its own baseline', () => {
+      localStorage.setItem(KEY('p1'), '12')
+      const { result, rerender } = renderHook(({ id }: { id: string }) => useLevelUp(18, false, id), { initialProps: { id: 'p1' } })
+      expect(result.current).toMatchObject({ from: 12, to: 18 })
+      rerender({ id: 'p2' }) // p2 has nothing stored: baseline, no screen
+      expect(result.current).toBeNull()
+      expect(localStorage.getItem(KEY('p2'))).toBe('18')
+      expect(localStorage.getItem(KEY('p1'))).toBe('12')
+    })
+
+    it('the day turns in an open tab at PL 12, /me settles at 15: one screen from 12 to 15; a reload shows none', async () => {
+      const h = harness(at(12, xpToNext(12) + 5))
+      const first = h.wrap(<Host />)
+      await screen.findByLabelText('Level 12')
+      expect(screen.queryByRole('dialog', { name: 'Level up' })).toBeNull()
+      expect(localStorage.getItem(KEY('p1'))).toBe('12')
+      h.setState(at(15, 7)) // the refetch after the turn
+      const d = await screen.findByRole('dialog', { name: 'Level up' })
+      expect(within(d).getByRole('heading')).toHaveTextContent('Level 12 → 15')
+      expect(screen.getAllByRole('dialog', { name: 'Level up' })).toHaveLength(1)
+      expect(within(d).getByText('Dark Habitat')).toBeInTheDocument() // PL 14
+      await userEvent.click(within(d).getByRole('button', { name: 'Continue' }))
+      first.unmount()
+      h.wrap(<Host />)
+      await screen.findByLabelText('Level 15')
+      expect(screen.queryByRole('dialog', { name: 'Level up' })).toBeNull()
+    })
+  })
+
+  describe('the day turning in an open tab (item 9)', () => {
+    const DAY = 86_400_000
+    const wrapperFor = (qc: QueryClient) => ({ children }: { children: React.ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+    it('refetches /me when the game day changes, not before and not for the first reading', () => {
+      const qc = new QueryClient()
+      const spy = vi.spyOn(qc, 'invalidateQueries')
+      const game = { launchAtMs: 0, serverNowMs: 0, day: 1 }
+      const { rerender } = renderHook(({ nowMs }: { nowMs: number }) => useRefreshOnNewDay(game, nowMs), { wrapper: wrapperFor(qc), initialProps: { nowMs: 5 } })
+      expect(spy).not.toHaveBeenCalled()
+      rerender({ nowMs: DAY - 1 })
+      expect(spy).not.toHaveBeenCalled()
+      rerender({ nowMs: DAY + 1 })
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(spy).toHaveBeenCalledWith({ queryKey: ['me'] })
+      rerender({ nowMs: DAY + 60_000 })
+      expect(spy).toHaveBeenCalledTimes(1)
+    })
+
+    it('without game info it never refetches', () => {
+      const qc = new QueryClient()
+      const spy = vi.spyOn(qc, 'invalidateQueries')
+      const { rerender } = renderHook(({ nowMs }: { nowMs: number }) => useRefreshOnNewDay(undefined, nowMs), { wrapper: wrapperFor(qc), initialProps: { nowMs: 5 } })
+      rerender({ nowMs: 3 * DAY })
+      expect(spy).not.toHaveBeenCalled()
+    })
+
+    it('after the turn and before the refetch lands, the bar never reads an over-full count', () => {
+      const need = xpToNext(12)
+      harness(at(12, need + 40), DAY + 5, 'flash14', { launchAtMs: 0, serverNowMs: 0, day: 1 }).wrap(<Host nowMs={DAY + 5} />)
+      const text = screen.getByRole('progressbar', { name: 'Experience' }).textContent ?? ''
+      expect(text).not.toContain((need + 40).toLocaleString('en-US'))
+      expect(text).toContain(`${need.toLocaleString('en-US')} / ${need.toLocaleString('en-US')} XP`)
+    })
+  })
+
+  describe('the bar at the day limit (item 18)', () => {
+    const banked = (): PlayerState => at(12, xpToNext(12) + 40)
+    it('shows a short label in the bar, with the whole sentence as its title and value text', () => {
+      harness(banked(), 0, 'flash28', { launchAtMs: 0, serverNowMs: 0, day: 1 }).wrap(<Host nowMs={0} />)
+      const bar = screen.getByRole('progressbar', { name: 'Experience' })
+      expect(bar).toHaveAttribute('title', 'Level limit today · more on Day 3')
+      expect(bar).toHaveAttribute('aria-valuetext', 'Level limit today · more on Day 3')
+      expect(bar.querySelector('.hud-xp__text--short')).toHaveTextContent('Level limit')
+      expect(bar.querySelector('.hud-xp__text--short')).toHaveAttribute('aria-hidden', 'true')
+    })
+
+    it('tapping it shows the whole sentence as a notice', async () => {
+      harness(banked()).wrap(<Host />)
+      await userEvent.click(screen.getByRole('progressbar', { name: 'Experience' }))
+      await waitFor(() => expect(document.querySelector('.toast')).toHaveTextContent('Level limit today · more tomorrow'))
+    })
+
+    it('a bar with room under it (not at the limit) keeps its plain numbers, no title, and is not a button', () => {
+      harness(at(2, 50)).wrap(<Host />)
+      const bar = screen.getByRole('progressbar', { name: 'Experience' })
+      expect(bar).not.toHaveAttribute('title')
+      expect(bar).not.toHaveAttribute('tabindex')
+      expect(bar).toHaveTextContent('50 / 175 XP')
+    })
   })
 
   it('plays fx.levelUp once when the screen opens (onShown)', () => {

@@ -1,5 +1,6 @@
-import type { PlayerState } from '@wyrmhaven/game-core'
+import { gameDay, type PlayerState } from '@wyrmhaven/game-core'
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { useEffect, useRef } from 'react'
 import { useApi } from '../api/ApiProvider'
 import type { Me } from '../api/client'
 import { useSession } from '../api/session'
@@ -30,4 +31,20 @@ export async function applyStateFromResponse(qc: QueryClient, state: PlayerState
 export function useInvalidateMe() {
   const qc = useQueryClient()
   return () => qc.invalidateQueries({ queryKey: ME_KEY })
+}
+
+/**
+ * An open tab turns with the game day: when the synced day changes, /me is refetched, so the server settles the XP banked
+ * at the old limit and the bar, the unlock reasons and the level-up screen follow (the first reading is not a turn).
+ */
+export function useRefreshOnNewDay(game: { launchAtMs: number } | undefined, nowMs: number): void {
+  const qc = useQueryClient()
+  const day = game ? gameDay(game.launchAtMs, nowMs) : null
+  const last = useRef<number | null>(null)
+  useEffect(() => {
+    if (day === null) { last.current = null; return }
+    const prev = last.current
+    last.current = day
+    if (prev !== null && prev !== day) void qc.invalidateQueries({ queryKey: ME_KEY })
+  }, [day, qc])
 }

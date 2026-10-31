@@ -39,10 +39,14 @@ export function xpBarText(s: PlayerState, format: (n: number) => string, clock?:
   if (!xpBanked(s)) return plain
   if (!clock) return 'Level limit today · more tomorrow'
   const limit = levelLimit(clock.day, clock.preset)
-  if (limit === null || limit > s.level) return plain // the day has turned; the next action pays it
+  // The day has turned and the next action (or the refetch the App starts at the turn) pays it: until then the bar is full, never over-full.
+  if (limit === null || limit > s.level) return `${format(Math.min(s.xp, need))} / ${format(need)} XP`
   const raise = nextRaiseDay(clock)
   return raise === null || raise === clock.day + 1 ? 'Level limit today · more tomorrow' : `Level limit today · more on Day ${raise}`
 }
+
+/** What the bar shows in its small form while the day's limit holds; the whole sentence is its title and value text. */
+export const XP_LIMIT_SHORT = 'Level limit'
 
 const ISLAND_NAMES: Record<string, string> = { isle2: 'Second island', isle3: 'Third island', isle4: 'Fourth island', isle5: 'Fifth island', dawnspire: 'Dawnspire' }
 
