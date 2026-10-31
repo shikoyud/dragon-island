@@ -4,7 +4,7 @@ import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import {
-  buildMapModel, MAP_CELL, MAP_ICON_W, MAP_SPOTS, mapBoxOf, mapIslandAt, mapOpeningView, mapPrice, wantedScene,
+  buildMapModel, MAP_CELL, MAP_ICON_W, MAP_SPOTS, mapBounds, mapBoxOf, mapIslandAt, mapOpeningView, mapPrice, wantedScene,
 } from '../src/game/mapModel'
 
 const fresh = newPlayer(0)
@@ -182,15 +182,70 @@ describe('mapIslandAt', () => {
 })
 
 describe('mapOpeningView', () => {
-  it('centres on the viewed island\'s box at a whole zoom of at least 1', () => {
-    for (const id of ISLAND_ORDER) {
-      const v = mapOpeningView(id, 390, 640)
+  // The free band the HUD leaves, from the real insets: 390x844 (pills and the Finals banner 130 over, menu 72 under) and 1440x900 (100 / 88).
+  const SCREENS = [
+    { name: '390x844', top: 130, bottom: 72, screenH: 844 },
+    { name: '1440x900', top: 100, bottom: 88, screenH: 900 },
+    { name: '1440x1080', top: 100, bottom: 88, screenH: 1080 },
+  ]
+  const BANDS = SCREENS.map(s => ({ ...s, h: s.screenH - s.top - s.bottom }))
+  const range = (id: IslandId, s: { h: number; top: number; bottom: number }) => {
+    const v = mapOpeningView(id, s.h, { top: s.top, bottom: s.bottom })
+    return { v, top: v.cy - s.h / 2, bottom: v.cy + s.h / 2 }
+  }
+  const labelOf = (id: IslandId) => ({ y: MAP_SPOTS[id].y + MAP_CELL.labelTop, b: MAP_SPOTS[id].y + MAP_CELL.bottom })
+
+  it('opens at the smallest whole zoom, 1, at every size: icons stay 128 px and labels are screen-sized', () => {
+    for (const s of BANDS) for (const id of ISLAND_ORDER) expect(range(id, s).v.zoom).toBe(1)
+  })
+
+  it('keeps the viewed island whole inside the band, whichever island it is', () => {
+    for (const s of BANDS) for (const id of ISLAND_ORDER) {
+      const { top, bottom } = range(id, s)
       const b = mapBoxOf(id)
-      expect(v).toEqual({ cx: b.x + b.w / 2, cy: b.y + b.h / 2, zoom: 1 })
+      expect(b.y, `${s.name} ${id} top`).toBeGreaterThanOrEqual(top)
+      expect(b.y + b.h, `${s.name} ${id} bottom`).toBeLessThanOrEqual(bottom)
     }
-    expect(mapOpeningView('home', 200, 200).zoom).toBe(1)
-    expect(Number.isInteger(mapOpeningView('home', 1440, 750).zoom)).toBe(true)
-    expect(mapOpeningView('home', 3840, 2000).zoom).toBeGreaterThan(1)
+  })
+
+  const labelsBehindHud = (id: IslandId, s: (typeof BANDS)[number]) => {
+    const { top, bottom } = range(id, s)
+    return ISLAND_ORDER.filter(other => {
+      const l = labelOf(other)
+      return (l.y < top && l.b > top - s.top) || (l.y < bottom + s.bottom && l.b > bottom)
+    })
+  }
+
+  it('no island label sits behind the resource pills or the menu on the first and last island (390: Frostspire under the pills)', () => {
+    for (const s of BANDS) for (const id of ['home', 'isle6'] as const) expect(labelsBehindHud(id, s), `${s.name} view ${id}`).toEqual([])
+  })
+
+  it('on an island in the middle, no window clears every label at 300 px spacing: at most one label\'s worth of text is under the HUD', () => {
+    for (const s of BANDS) for (const id of ISLAND_ORDER) {
+      const { top, bottom } = range(id, s)
+      let px = 0
+      for (const other of ISLAND_ORDER) {
+        const l = labelOf(other)
+        px += Math.max(0, Math.min(l.b, top) - Math.max(l.y, top - s.top)) + Math.max(0, Math.min(l.b, bottom + s.bottom) - Math.max(l.y, bottom))
+      }
+      expect(px, `${s.name} view ${id}`).toBeLessThanOrEqual(labelOf(id).b - labelOf(id).y)
+    }
+  })
+
+  it('shows a neighbour: Home opens with Ember Reach\'s label whole above it', () => {
+    for (const s of BANDS) {
+      const { top } = range('home', s)
+      expect(labelOf('isle2').y).toBeGreaterThanOrEqual(top)
+    }
+  })
+
+  it('stays inside the chain bounds, so the scene\'s clamp leaves it alone', () => {
+    const bounds = mapBounds()
+    for (const s of BANDS) for (const id of ISLAND_ORDER) {
+      const { top, bottom } = range(id, s)
+      expect(top).toBeGreaterThanOrEqual(bounds.y - 1e-6)
+      expect(bottom).toBeLessThanOrEqual(bounds.y + bounds.h + 1e-6)
+    }
   })
 })
 

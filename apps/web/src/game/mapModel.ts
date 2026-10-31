@@ -35,10 +35,11 @@ export const MAP_SPOTS: Record<IslandId, Pos> = {
   home: { x: 0, y: 1700 },
 }
 
-/** Sea kept round the chain at the camera's edges. */
-const MAP_MARGIN = 24
-/** What the opening zoom keeps in view: an island and most of its neighbours. */
-const MAP_OPEN = { w: 360, h: 540 } as const
+/**
+ * Sea kept round the chain at the camera's edges. Wide enough that the opening window can sit its first or last island
+ * (Home at the foot, Warlord's Crown at the head) clear of the HUD with a neighbour beside it, on a tall screen too.
+ */
+const MAP_MARGIN = 300
 
 export type MapIslandState = 'current' | 'open' | 'next' | 'locked'
 
@@ -127,11 +128,53 @@ export function mapIslandAt(model: Pick<MapModel, 'islands'>, worldX: number, wo
   return null
 }
 
-/** Where the Map opens: centred on the viewed island, at a whole-number zoom of at least 1. `viewportH` is what the HUD leaves free. */
-export function mapOpeningView(view: IslandId, viewportW: number, viewportH: number): View {
+/** Sea left between an island's label and the HUD strip it is kept clear of. */
+const OPEN_GAP = 6
+
+/** World box of an island's label (its name, level and price: up to three lines under the plots). */
+function mapLabelBox(id: IslandId): { y: number; h: number } {
+  const { y } = MAP_SPOTS[id]
+  return { y: y + MAP_CELL.labelTop, h: MAP_CELL.bottom - MAP_CELL.labelTop }
+}
+
+/**
+ * Where the Map opens. `bandH` is the free band CSS px tall between the HUD's top and bottom, and `insets` are the
+ * heights of the strips the HUD covers over and under it, where the sea chart still shows between the pills and the menu.
+ * Zoom is 1, the smallest whole number: icons are 128 px and labels are screen-sized at every zoom, so a step up only
+ * costs neighbours. The window is centred on the viewed island and moved the least that keeps that island whole inside
+ * the band and every label out of both HUD strips (a name half behind the resource pills is unreadable). An icon may
+ * sit part-way behind the HUD: it is art, and the label under it stays whole. `cy` is the middle of the band in world px;
+ * the scene shifts it for the insets.
+ */
+export function mapOpeningView(view: IslandId, bandH: number, insets: { top: number; bottom: number } = { top: 0, bottom: 0 }): View {
+  const zoom = 1
+  const h = Math.max(1, bandH) / zoom
   const b = mapBoxOf(view)
-  const zoom = Math.max(1, Math.floor(Math.min(viewportW / MAP_OPEN.w, viewportH / MAP_OPEN.h)))
-  return { cx: b.x + b.w / 2, cy: b.y + b.h / 2, zoom }
+  const bounds = mapBounds()
+  const lo = bounds.y
+  const hi = bounds.y + bounds.h - h
+  const want = b.y + b.h / 2 - h / 2
+  const labels = ISLAND_ORDER.map(mapLabelBox)
+  const holdsView = (top: number) => b.y >= top && b.y + b.h <= top + h
+  // How much label is behind a strip: the overlap with the strip's world range [from, to], in px.
+  const behind = (l: { y: number; h: number }, from: number, to: number) => Math.max(0, Math.min(l.y + l.h, to) - Math.max(l.y, from))
+  const strips = (top: number) => [{ from: top - insets.top / zoom - OPEN_GAP, to: top }, { from: top + h, to: top + h + insets.bottom / zoom + OPEN_GAP }]
+  // Text counts ten times an icon: a name behind the pills is lost, an icon part behind them still reads.
+  const ICON_WEIGHT = 1
+  const LABEL_WEIGHT = 10
+  const icons = ISLAND_ORDER.map(id => ({ y: MAP_SPOTS[id].y + MAP_CELL.top, h: MAP_CELL.labelTop - MAP_CELL.top }))
+  const hidden = (top: number) => strips(top).reduce(
+    (n, s) => n + labels.reduce((m, l) => m + LABEL_WEIGHT * behind(l, s.from, s.to), 0) + icons.reduce((m, i) => m + ICON_WEIGHT * behind(i, s.from, s.to), 0), 0)
+  // The centred window, the ones whose strips just clear a label on either side, and a sweep for the least bad one: on
+  // some screens no window clears every label (islands are 300 apart, a label 50 tall, the strips 130 and 72).
+  const tops = [want, ...labels.flatMap(l => [
+    l.y - OPEN_GAP, l.y + l.h + insets.top / zoom + OPEN_GAP * 2,
+    l.y + l.h + OPEN_GAP - h, l.y - insets.bottom / zoom - OPEN_GAP * 2 - h,
+  ]), ...Array.from({ length: 61 }, (_, i) => want - 300 + i * 10)]
+  const near = (p: number, q: number) => Math.abs(p - want) - Math.abs(q - want)
+  const best = tops.filter(t => t >= lo && t <= hi && holdsView(t)).sort((p, q) => hidden(p) - hidden(q) || near(p, q))[0]
+  const top = best ?? (hi >= lo ? Math.min(hi, Math.max(lo, want)) : want)
+  return { cx: b.x + b.w / 2, cy: top + h / 2, zoom }
 }
 
 /** The scene that should be on screen: a battle over the Map, the Map over the island. */
