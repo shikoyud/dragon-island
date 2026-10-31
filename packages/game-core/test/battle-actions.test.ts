@@ -106,7 +106,7 @@ describe('pveBattle', () => {
 
   it('pays a first clear in full and unlocks the next stage', () => {
     const a = ok(run(sSea, pve(1)))
-    expect([a.gold, a.food, a.xp, a.pve]).toEqual([1100, 70, 15 * 12, { cleared: 1, replays: { day: 0, count: 0 } }])
+    expect([a.gold, a.food, a.xp, a.pve]).toEqual([1100, 70, 15 * 12, { cleared: 1, replays: { day: 0, count: 0 }, stars: {} }])
     expect(ok(run({ ...a, dragons: flameTeam(30) }, pve(2))).pve.cleared).toBe(2)
   })
 
@@ -114,11 +114,11 @@ describe('pveBattle', () => {
     const cleared = ok(run(sSea, pve(1)))
     const r = ok(run(cleared, pve(1)))
     expect([r.gold, r.food, r.xp, r.pve.replays]).toEqual([1125, 70, 15 * 12, { day: 0, count: 1 }])
-    err(run({ ...cleared, pve: { cleared: 1, replays: { day: 0, count: 10 } } }, pve(1)), 'DAILY_CAP_REACHED')
+    err(run({ ...cleared, pve: { cleared: 1, replays: { day: 0, count: 10 }, stars: {} } }, pve(1)), 'DAILY_CAP_REACHED')
   })
 
   it('changes nothing on a lost first clear', () => {
-    const r = run({ ...weak, pve: { cleared: 29, replays: { day: 0, count: 0 } } }, pve(30, MANY))
+    const r = run({ ...weak, pve: { cleared: 29, replays: { day: 0, count: 0 }, stars: {} } }, pve(30, MANY))
     expect(r.ok && r.battle?.winner).toBe('defender')
     const a = ok(r)
     expect([a.gold, a.food, a.xp, a.pve.cleared]).toEqual([1000, 50, 0, 29])

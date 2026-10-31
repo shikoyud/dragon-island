@@ -112,4 +112,6 @@ export const SPECIES_ROWS: readonly SpeciesRow[] = [
   { id: 'radiant-aegis', name: 'Radiant Aegis', elements: ['light', 'metal'], rarity: 'legendary' },
   { id: 'last-light', name: 'Last Light', elements: ['light', 'war'], rarity: 'legendary' },
   { id: 'final-dawn', name: 'Final Dawn', elements: ['light', 'terra'], rarity: 'legendary' },
+  // A21: the Chapter 10 Boss and its one-time reward. No event recipe or window, so no breeding pool holds it; not sellable.
+  { id: 'trial-champion', name: 'Trial Champion', elements: ['war', 'metal'], rarity: 'legendary' },
 ]

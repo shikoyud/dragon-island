@@ -101,9 +101,15 @@ describe('level-up screen merges and resets (final fix 4)', () => {
       }
     }
   })
-  it('names the PvE gate as Campaign, as the panel does', () => {
-    expect(levelUnlockLines(3, 4)).toContain('Campaign')
-    expect(levelUnlockLines(3, 4)).not.toContain('PvE battles')
+  it('names the PvE gate as the Elemental Trials chapter, one line for pve and trial:1 (R71)', () => {
+    const lines = levelUnlockLines(3, 4)
+    expect(lines.filter(l => l.startsWith('Elemental Trials'))).toEqual(['Elemental Trials: Terra Wilds'])
+    expect(lines).not.toContain('Campaign')
+    expect(lines).not.toContain('PvE battles')
+  })
+  it('names each Trials chapter by its theme', () => {
+    expect(levelUnlockLines(4, 5)).toContain('Elemental Trials: Flame Peaks')
+    expect(levelUnlockLines(27, 28)).toContain('Elemental Trials: War Citadel')
   })
 })
 

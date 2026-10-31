@@ -32,11 +32,11 @@ describe('a short or illegal move list is a forfeit, not a free cancel', () => {
   })
 
   it('pve replay: counts the attempt; a first-clear forfeit changes nothing', () => {
-    const cleared = { ...s8, dragons: dragons(1), pve: { cleared: 1, replays: { day: 0, count: 0 } } }
+    const cleared = { ...s8, dragons: dragons(1), pve: { cleared: 1, replays: { day: 0, count: 0 }, stars: {} } }
     const r = ok(run(cleared, { type: 'pveBattle', stage: 1, team: TEAM, moves: SWEEP }))
     expect([r.pve.replays.count, r.gold, r.pve.cleared]).toEqual([1, 1000, 1])
-    const first = ok(run({ ...cleared, pve: { cleared: 0, replays: { day: 0, count: 0 } } }, { type: 'pveBattle', stage: 1, team: TEAM, moves: SWEEP }))
-    expect(first).toEqual({ ...cleared, pve: { cleared: 0, replays: { day: 0, count: 0 } } })
+    const first = ok(run({ ...cleared, pve: { cleared: 0, replays: { day: 0, count: 0 }, stars: {} } }, { type: 'pveBattle', stage: 1, team: TEAM, moves: SWEEP }))
+    expect(first).toEqual({ ...cleared, pve: { cleared: 0, replays: { day: 0, count: 0 }, stars: {} } })
   })
 })
 

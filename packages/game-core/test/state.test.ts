@@ -13,9 +13,9 @@ describe('newPlayer', () => {
       hatcheryLevel: 1, hatcheryFifthSlot: false, hatcheryPlacement: { island: 'home', col: 8, row: 13, facing: 0 },
       decorations: [], islands: { unlocked: ['home'], plots: { home: [5, 6, 9, 10] }, obstacles: HOME_OBSTACLES }, constructions: [], speedUps: { '15m': 0, '1h': 0, '3h': 0 },
       farms: [{ crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 21, row: 8, facing: 0 } }],
-      version: 9, firstHybridDone: false, discovered: ['terra', 'flame'],
+      version: 10, firstHybridDone: false, discovered: ['terra', 'flame'],
       goalIndex: 0, goalStats: { collects: 0, harvests: 0, feeds: 0, breeds: 0, hatches: 0 }, nextId: 3,
-      defenceTeam: null, trophies: 0, pvp: { day: 0, count: 0 }, pve: { cleared: 0, replays: { day: 0, count: 0 } },
+      defenceTeam: null, trophies: 0, pvp: { day: 0, count: 0 }, pve: { cleared: 0, replays: { day: 0, count: 0 }, stars: {} },
     })
   })
 
@@ -61,7 +61,7 @@ describe('newPlayer', () => {
   it('new players carry the state version and no removed fields', () => {
     const s = newPlayer(0)
     expect(s.version).toBe(STATE_VERSION)
-    expect(STATE_VERSION).toBe(9)
+    expect(STATE_VERSION).toBe(10)
     expect(s).not.toHaveProperty('hoardLevel')
     expect(s).not.toHaveProperty('eligibleGold')
     expect(s).not.toHaveProperty('ledger')

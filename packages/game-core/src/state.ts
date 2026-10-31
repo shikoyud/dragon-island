@@ -1,5 +1,6 @@
 import { HOME_OBSTACLES, HOME_START } from './data/island-start'
 import type { SpeedUpToken } from './data/speedups'
+import type { NodeKey } from './data/trials'
 import type { Element } from './elements'
 import { STARTING_PLOTS } from './plots'
 import { utcDay, type DayCounter } from './time'
@@ -31,7 +32,7 @@ export type Construction =
   | { kind: 'clear'; obstacleId: string; readyAtMs: number }
 
 /** Bumped when the saved shape changes; there is no save migration (R2). */
-export const STATE_VERSION = 9
+export const STATE_VERSION = 10
 
 /** Counters the Goals read (§1.4, R37); each rises only when its action succeeds. */
 export interface GoalStats { collects: number; harvests: number; feeds: number; breeds: number; hatches: number }
@@ -74,7 +75,8 @@ export interface PlayerState {
   trophies: number
   /** PvP attacks today. */
   pvp: DayCounter
-  pve: { cleared: number; replays: DayCounter }
+  /** `cleared` and `replays` are the old campaign's, until Task 4 replaces its handler. `stars`: best stars per Trial node; a node with stars is cleared (R71, R74). */
+  pve: { cleared: number; replays: DayCounter; stars: Record<NodeKey, 1 | 2 | 3> }
 }
 
 const home = (cell: { col: number; row: number }): Placement => ({ island: 'home', col: cell.col, row: cell.row, facing: 0 })
@@ -109,6 +111,6 @@ export function newPlayer(nowMs: number): PlayerState {
     defenceTeam: null,
     trophies: 0,
     pvp: { day: utcDay(nowMs), count: 0 },
-    pve: { cleared: 0, replays: { day: utcDay(nowMs), count: 0 } },
+    pve: { cleared: 0, replays: { day: utcDay(nowMs), count: 0 }, stars: {} },
   }
 }

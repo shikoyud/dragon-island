@@ -1,4 +1,4 @@
-import { CROPS, currentGoal, goalProgress, ISLANDS, LAUNCH_CATALOG, levelLimit, unlocksAt, xpToNext, type Preset, type BreederKind, type CropId, type UnlockKey, type BuildingRef, type Construction, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { CROPS, currentGoal, goalProgress, ISLANDS, LAUNCH_CATALOG, levelLimit, TRIAL_CHAPTERS, unlocksAt, xpToNext, type Preset, type BreederKind, type CropId, type UnlockKey, type BuildingRef, type Construction, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import type { Target } from '../game/bridge'
 import { hatcheryHasRoom } from '../game/islandModel'
@@ -49,7 +49,7 @@ export function xpBarText(s: PlayerState, format: (n: number) => string, clock?:
 /** What the bar shows in its small form while the day's limit holds; the whole sentence is its title and value text. */
 export const XP_LIMIT_SHORT = 'Level limit'
 
-/** One unlock key in plain words; null for what the level-up screen leaves out (`wings`, and `home:n`, which is one shared line). */
+/** One unlock key in plain words; null for what the level-up screen leaves out (`wings`, `pve`, and `home:n`, which is one shared line). */
 function unlockLine(key: UnlockKey): string | null {
   const [kind, arg = ''] = key.split(':') as [string, string?]
   switch (kind) {
@@ -62,7 +62,8 @@ function unlockLine(key: UnlockKey): string | null {
     case 'hatchery': return `Hatchery level ${arg}`
     case 'hatcheryFifthSlot': return 'Hatchery fifth slot'
     case 'roost': return `Roost Tier ${arg}`
-    case 'pve': return 'Campaign'
+    case 'pve': return null // the same level opens `trial:1`, which names it: one line (R71)
+    case 'trial': return `Elemental Trials: ${TRIAL_CHAPTERS[Number(arg) - 1]!.theme}`
     case 'island': return `Bridge to ${ISLANDS[arg as IslandId].name}`
     default: return null
   }

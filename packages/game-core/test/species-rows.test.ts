@@ -27,6 +27,7 @@ const LEGENDARIES: [string, Element[]][] = [
   ['radiant-aegis', ['light', 'metal']],
   ['last-light', ['light', 'war']],
   ['final-dawn', ['light', 'terra']],
+  ['trial-champion', ['war', 'metal']],
 ]
 
 const all = [...LAUNCH_CATALOG.species.values()]
@@ -52,9 +53,9 @@ describe('species rows (§3.4)', () => {
     expect(n('uncommon')).toBe(48)
     expect(n('rare')).toBe(34)
     expect(n('epic')).toBe(8 + 1)
-    expect(n('legendary')).toBe(5)
-    expect(all).toHaveLength(106)
-    expect(SPECIES_ROWS).toHaveLength(106)
+    expect(n('legendary')).toBe(5 + 1) // + the Trial Champion (A21)
+    expect(all).toHaveLength(107)
+    expect(SPECIES_ROWS).toHaveLength(107)
   })
 
   it('ids are the elements joined by a dash, except Legendaries', () => {

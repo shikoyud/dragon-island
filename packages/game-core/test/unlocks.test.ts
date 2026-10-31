@@ -39,6 +39,8 @@ const SECTION_4_4: Record<number, string[]> = {
   25: ['island:isle4'],
   30: ['roost:5'],
 }
+// §6.3 Unlock PL of Elemental Trials chapters 1-10 (R71): `pve` is chapter 1.
+const TRIALS: Record<number, string[]> = { 4: ['trial:1'], 5: ['trial:2'], 6: ['trial:3'], 8: ['trial:4'], 10: ['trial:5'], 13: ['trial:6'], 16: ['trial:7'], 19: ['trial:8'], 23: ['trial:9'], 28: ['trial:10'] }
 // Gates §4.4's table leaves to §5.3 (farms 5-8) and §5.4 (the fifth slot, Mountain and Grove levels).
 const SECTION_5: Record<number, string[]> = {
   10: ['farm:5', 'mountain:2'],
@@ -50,7 +52,7 @@ const SECTION_5: Record<number, string[]> = {
 describe('the §4.4 unlock schedule, PL 1 to 30', () => {
   for (let pl = 1; pl <= 30; pl++) {
     it(`PL ${pl} opens exactly its row`, () => {
-      expect(at(pl)).toEqual(sorted([...(SECTION_4_4[pl] ?? []), ...(SECTION_5[pl] ?? [])]))
+      expect(at(pl)).toEqual(sorted([...(SECTION_4_4[pl] ?? []), ...(SECTION_5[pl] ?? []), ...(TRIALS[pl] ?? [])]))
     })
   }
   it('R32, R46: Islands 5 and 6 sit at PL 32 and 40; Home plots open at PL 2, 2, 3 then one per level to 12', () => {
@@ -59,8 +61,8 @@ describe('the §4.4 unlock schedule, PL 1 to 30', () => {
   })
   it('lists every key once, with a positive whole level', () => {
     for (const [k, pl] of Object.entries(UNLOCKS)) expect(Number.isInteger(pl) && pl >= 1, k).toBe(true)
-    // 10 habitats + 10 basics + 6 crops + 8 farms + 3 + 3 + 4 + the fifth slot + 5 roosts + pve + wings + 12 home + 5 islands
-    expect(Object.keys(UNLOCKS)).toHaveLength(10 + 10 + 6 + 8 + 3 + 3 + 4 + 1 + 5 + 1 + 1 + 12 + 5)
+    // 10 Trials chapters at the end; 10 habitats + 10 basics + 6 crops + 8 farms + 3 + 3 + 4 + the fifth slot + 5 roosts + pve + wings + 12 home + 5 islands
+    expect(Object.keys(UNLOCKS)).toHaveLength(10 + 10 + 6 + 8 + 3 + 3 + 4 + 1 + 5 + 1 + 1 + 12 + 5 + 10)
   })
   it('a Basic opens with its Habitat (§4.4), as two separate keys', () => {
     for (const e of ELEMENTS) expect(unlockPl(`basic:${e}`)).toBe(unlockPl(`habitat:${e}`))
@@ -78,7 +80,7 @@ describe('no other file holds a gate', () => {
   })
   it('only data/unlocks.ts and decorations.ts say minPl, or give unlockPl / minLevel a number', () => {
     const offenders = files(root).map(f => relative(root, f).replace(/\\/g, '/'))
-      .filter(f => f !== 'data/unlocks.ts' && f !== 'decorations.ts')
+      .filter(f => f !== 'data/unlocks.ts' && f !== 'decorations.ts' && f !== 'data/trials.ts') // data/trials.ts: minLevel is a chapter's enemy level range, not a gate
       .filter(f => {
         const text = readFileSync(join(root, f), 'utf8')
         return /\bminPl\b|\b(unlockPl|minLevel)\s*:\s*\d|FARM_UNLOCK_PL|PVE_MIN_PLAYER_LEVEL/.test(text)
@@ -151,10 +153,10 @@ const probes = (): [UnlockKey, Probe][] => {
 }
 
 describe('every gate refuses at PL - 1 and opens at PL', () => {
-  // `wings` has no action behind it yet; `hatchery:1` is the free starting level.
+  // `wings` has no action behind it yet, and `trial:n` has none until Task 4 (it is probed there); `hatchery:1` is the free starting level.
   const covered = probes()
   it('covers every key that has an action', () => {
-    const missing = (Object.keys(UNLOCKS) as UnlockKey[]).filter(k => k !== 'wings' && k !== 'hatchery:1' && !covered.some(([c]) => c === k))
+    const missing = (Object.keys(UNLOCKS) as UnlockKey[]).filter(k => k !== 'wings' && k !== 'hatchery:1' && !k.startsWith('trial:') && !covered.some(([c]) => c === k))
     expect(missing).toEqual([])
   })
   for (const [key, probe] of covered) {

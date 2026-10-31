@@ -31,7 +31,7 @@ it('replays battles to an identical state', () => {
   const a = replay(), b = replay()
   expect(a).toEqual(b)
   expect(a.state.trophies).toBe(30)
-  expect(a.state.pve).toEqual({ cleared: 1, replays: { day: 0, count: 1 } })
+  expect(a.state.pve).toEqual({ cleared: 1, replays: { day: 0, count: 1 }, stars: {} })
   expect(a.effects).toEqual([{ type: 'defenceResult', playerId: 'p2', trophyDelta: -10 }])
   expect(a.battles.every(x => x !== undefined)).toBe(true)
 })
