@@ -12,6 +12,8 @@ export type Target =
   | { kind: 'roost' }
   | { kind: 'decoration'; id: string }
   | { kind: 'obstacle'; id: string }
+  /** An island on the Map. */
+  | { kind: 'mapIsland'; id: IslandId }
   /** The sign on an unowned plot that touches owned land. */
   | { kind: 'plot'; island: IslandId; plot: number }
   | { kind: 'cell'; col: number; row: number }
@@ -46,6 +48,8 @@ export type GameEvent =
   | { type: 'view'; view: IslandId }
   | { type: 'placing'; placing: Placing | null }
   | { type: 'insets' }
+  /** The Map opened or closed; config.ts runs the scene switch. */
+  | { type: 'map'; open: boolean }
   /** The level-up screen opened: the island plays `fx.levelUp` once if the art has it. */
   | { type: 'levelUp' }
   | { type: 'ready' }
@@ -69,12 +73,16 @@ export function createBridge() {
     selected: { kind: 'empty' } as Target,
     view: 'home' as IslandId,
     placing: null as Placing | null,
+    /** True while the Map shows in place of the island (never during placement or a battle). */
+    mapOpen: false,
     /** Screen pixels the HUD covers at the top and bottom; the island camera frames the island between them. */
     insets: { top: 0, bottom: 0 },
     /** Set by the island scene: the canvas position of a cell's centre. Playwright clicks cells through it. */
     cellToScreen: null as ((col: number, row: number) => { x: number; y: number }) | null,
     /** Set by the island scene: the cell at the centre of what the player is looking at (new buildings open near it). */
     focusCell: null as (() => { col: number; row: number }) | null,
+    /** Set by the Map scene: the canvas position of an island's plot diamond. Playwright clicks islands through it. */
+    mapIslandToScreen: null as ((id: IslandId) => { x: number; y: number }) | null,
     on<T extends GameEvent['type']>(type: T, h: Handler<T>): () => void {
       const set = handlers.get(type) ?? new Set()
       handlers.set(type, set)
@@ -107,6 +115,11 @@ export function createBridge() {
     setInsets(insets: { top: number; bottom: number }): void {
       bridge.insets = insets
       bridge.emit({ type: 'insets' })
+    },
+    setMapOpen(open: boolean): void {
+      if (open === bridge.mapOpen) return
+      bridge.mapOpen = open
+      bridge.emit({ type: 'map', open })
     },
     setBattle(preview: BattlePreview | null): void {
       bridge.battle = preview

@@ -3,6 +3,8 @@ import type { ClientAction } from '@wyrmhaven/shared'
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import type { Bridge, Target } from '../game/bridge'
 import { timerLabel } from '../game/islandModel'
+import { FALLBACK_ART } from '../art/slots'
+import { buildMapModel } from '../game/mapModel'
 import { TOKEN_KEY as ADMIN_TOKEN_KEY } from '../pages/Admin'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -21,6 +23,9 @@ export type DialogKey = { kind: 'panel'; id: PanelId; tab?: 'build' | 'store' } 
 const hasAdminToken = (): boolean => { try { return Boolean(sessionStorage.getItem(ADMIN_TOKEN_KEY)) } catch { return false } }
 
 const isPanel = (open: DialogKey | null, id: PanelId) => open?.kind === 'panel' && open.id === id
+
+/** The Map's scene shows for the Map itself and for an island panel over it; any other dialog closes it. */
+export const isMapDialog = (open: DialogKey | null): boolean => isPanel(open, 'map') || (open?.kind === 'target' && open.target.kind === 'mapIsland')
 
 /** A round HUD button: icon in a plate, label under it (or only for screen readers), optional badge. */
 const COMING_LATER = 'Coming in a later milestone'
@@ -85,7 +90,7 @@ function Shortcut({ item, nowMs, onOpen }: { item: AttentionItem; nowMs: number;
  * the App renders in `bottom`). Reports how much screen its top and bottom take so the camera frames around it.
  */
 export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = false }: {
-  bridge: Bridge; nowMs: number; open: DialogKey | null; onOpen: (k: DialogKey) => void; placing: boolean; bottom?: ReactNode
+  bridge: Bridge; nowMs: number; open: DialogKey | null; onOpen: (k: DialogKey | null) => void; placing: boolean; bottom?: ReactNode
   /** During a battle only the top bar stays (resources update as the fight pays out); the menus step aside. */
   battle?: boolean
 }) {
@@ -119,6 +124,7 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
   const limited = barText.startsWith(XP_LIMIT_SHORT)
   const panel = (id: PanelId) => () => onOpen({ kind: 'panel', id })
   const openStore = () => onOpen({ kind: 'panel', id: 'shop', tab: 'store' })
+  const mapOpen = isMapDialog(open)
 
   return (
     <div className="hud">
@@ -148,9 +154,20 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
 
       {!battle && <>
       <nav className="hud-right" aria-label="Island menu">
-        <RoundButton icon="map" label="Map" size="small" active={isPanel(open, 'map')} onClick={panel('map')} />
+        <RoundButton icon="map" label="Map" size="small" active={mapOpen} onClick={mapOpen ? () => onOpen(null) : panel('map')} disabledReason={placing ? 'Finish placing first' : undefined} />
         {hasAdminToken() && <a className="hud-round hud-round--small" href="#/admin" aria-label="Admin"><span className="hud-round__plate"><Icon name="admin" size={22} /></span><span className="hud-round__label" aria-hidden="true">Admin</span></a>}
       </nav>
+
+      {/* R60: the Map's canvas is invisible to the keyboard and to screen readers. These stay out of sight until focused. */}
+      {mapOpen && (
+        <nav className="map-list" aria-label="Islands">
+          <ul>
+            {buildMapModel(s, bridge.art ?? FALLBACK_ART, bridge.view).islands.map(i => (
+              <li key={i.id}><button type="button" className="btn" aria-current={i.state === 'current' ? 'true' : undefined} onClick={() => onOpen({ kind: 'target', target: { kind: 'mapIsland', id: i.id } })}>{i.label}</button></li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       <aside className="hud-left" aria-label="Needs attention">
         <ul>

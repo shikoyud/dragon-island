@@ -1,4 +1,4 @@
-import type { TeamIds } from '@wyrmhaven/game-core'
+import { ISLANDS, type TeamIds } from '@wyrmhaven/game-core'
 import type { Offer } from '@wyrmhaven/shared'
 import { useEffect, useState, type ReactElement } from 'react'
 import type { Bridge } from '../game/bridge'
@@ -45,7 +45,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
   if (dialog.kind === 'panel') {
     switch (dialog.id) {
       case 'shop': return <ShopPanel key={dialog.tab ?? 'build'} tab={dialog.tab} nowMs={nowMs} view={bridge.view} onPlace={(what, size) => { onOpen(null); startPlacing(what, size) }} onClose={close} />
-      case 'map': return <MapIslandPanel view={bridge.view} onView={id => { bridge.setView(id); close() }} onClose={close} art={bridge.art} />
+      case 'map': return null // the Map is a scene (R60), not a dialog; its islands open panels
       case 'breed': return <BreedPanel nowMs={nowMs} onClose={close} />
       case 'book': return <DragonBookPanel art={bridge.art} onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
       case 'battle': return <BattleHub nowMs={nowMs} onPve={onPve} onPvp={onPvp} onClose={close} />
@@ -66,6 +66,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
     case 'roost': return <RoostPanel nowMs={nowMs} onClose={close} />
     case 'farm': return <FarmPanel index={t.plot} nowMs={nowMs} onClose={close} />
     case 'obstacle': return <ObstaclePanel obstacleId={t.id} nowMs={nowMs} onClose={close} />
+    case 'mapIsland': return <MapIslandPanel island={t.id} view={bridge.view} onView={id => { bridge.setView(id); close() }} onClose={() => onOpen({ kind: 'panel', id: 'map' })} art={bridge.art} />
     case 'plot': return <PlotPanel key={`${t.island}:${t.plot}`} island={t.island} plot={t.plot} onClose={close} />
     default: return null
   }
@@ -74,5 +75,5 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onPve = () => {}, onP
 /** Accessible name of the dialog around a panel. */
 export function dialogLabel(dialog: DialogKey): string {
   if (dialog.kind === 'panel') return dialog.id === 'book' ? 'Dragon Book' : dialog.id.charAt(0).toUpperCase() + dialog.id.slice(1)
-  return dialog.target.kind
+  return dialog.target.kind === 'mapIsland' ? ISLANDS[dialog.target.id].name : dialog.target.kind
 }

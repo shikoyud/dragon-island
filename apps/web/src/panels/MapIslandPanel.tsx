@@ -1,4 +1,4 @@
-import { bridgeError, ISLANDS, ISLAND_ORDER, unlockPl, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { bridgeError, ISLANDS, ISLAND_ORDER, ownedPlots, PLOTS_PER_SIDE, unlockPl, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
 import type { GameArtSet } from '../art/types'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -24,40 +24,30 @@ function bridgeRefusal(s: PlayerState, id: OuterIsland): string {
   }
 }
 
-/** The six islands as a plain list: go to an open one, or buy the next Bridge (§5.5). The Map scene replaces the list's looks in Task 8. */
-export function MapIslandPanel({ view, onView, onClose, art }: { view: IslandId; onView: (id: IslandId) => void; onClose?: () => void; art?: GameArtSet | null }) {
+/** One island tapped on the Map (§5.5): go there when it's open, or buy its Bridge. Buying turns the panel to Go. */
+export function MapIslandPanel({ island, view, onView, onClose, art }: { island: IslandId; view: IslandId; onView: (id: IslandId) => void; onClose?: () => void; art?: GameArtSet | null }) {
   const me = useMe()
   const { run, pending } = useAction()
   const s = me.data?.state
   if (!s) return null
   const backdrop = art?.hud['map.backdrop']?.src
+  const name = ISLANDS[island].name
+  const reason = island === 'home' ? '' : bridgeRefusal(s, island)
   return (
-    <Panel title="Islands" onClose={onClose}>
-      <div className="map-chart" data-testid="map-chart" style={backdrop ? { backgroundImage: `url("${backdrop}")` } : undefined}>
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
-          {ISLAND_ORDER.map(id => {
-            if (id === 'home' || s.islands.unlocked.includes(id)) {
-              return (
-                <li key={id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <MapIcon art={art} id={id} />
-                  <span>{ISLANDS[id].name}</span>
-                  <button type="button" className={`btn ${view === id ? 'btn--primary' : ''}`} aria-label={`Go to ${ISLANDS[id].name}`} aria-pressed={view === id} onClick={() => onView(id)}>Go</button>
-                </li>
-              )
-            }
-            const reason = bridgeRefusal(s, id)
-            return (
-              <li key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <MapIcon art={art} id={id} />
-                <span>{ISLANDS[id].name}</span>
-                <small>Level {unlockPl(`island:${id}`)}</small>
-                <ActionButton id={`bridge-${id}`} disabled={pending || reason !== ''} reason={reason} onClick={() => void run({ type: 'buyBridge', island: id })}>
-                  Bridge · {formatGold(ISLANDS[id].bridgeGold!)} gold
-                </ActionButton>
-              </li>
-            )
-          })}
-        </ul>
+    <Panel title={name} onClose={onClose}>
+      <div className="map-chart map-island" data-testid="map-chart" style={backdrop ? { backgroundImage: `url("${backdrop}")` } : undefined}>
+        <MapIcon art={art} id={island} />
+        {island === 'home' || s.islands.unlocked.includes(island)
+          ? <>
+            <span>{ownedPlots(s, island).length} / {PLOTS_PER_SIDE * PLOTS_PER_SIDE} plots</span>
+            <button type="button" className={`btn ${view === island ? 'btn--primary' : ''}`} aria-label={`Go to ${name}`} aria-pressed={view === island} onClick={() => onView(island)}>Go</button>
+          </>
+          : <>
+            <small>Level {unlockPl(`island:${island}`)}</small>
+            <ActionButton id={`bridge-${island}`} disabled={pending || reason !== ''} reason={reason} onClick={() => void run({ type: 'buyBridge', island })}>
+              Bridge · {formatGold(ISLANDS[island].bridgeGold!)} gold
+            </ActionButton>
+          </>}
       </div>
     </Panel>
   )

@@ -7,7 +7,7 @@ import type { GameArtSet } from './art/types'
 import { createBridge } from './game/bridge'
 import { GameCanvas } from './game/GameCanvas'
 import { Dialog } from './hud/Dialog'
-import { Hud, type DialogKey } from './hud/Hud'
+import { Hud, isMapDialog, type DialogKey } from './hud/Hud'
 import { LevelUp, useLevelUp } from './hud/LevelUp'
 import { HudArtContext } from './hud/Icon'
 import { hudSkin } from './hud/skin'
@@ -66,7 +66,20 @@ function Game() {
   useEffect(() => { if (me.error) toasts.error(me.error) }, [me.error, toasts])
   const levelUpOpen = levelUp !== null
   useEffect(() => { if (levelUpOpen) bridge.emit({ type: 'levelUp' }) }, [bridge, levelUpOpen])
-  const close = useCallback(() => setDialog(null), [setDialog])
+  // A panel over the Map closes back to the Map; the Map closes to the island.
+  const mapPanelOpen = dialog?.kind === 'target' && dialog.target.kind === 'mapIsland'
+  const close = useCallback(() => setDialog(mapPanelOpen ? { kind: 'panel', id: 'map' } : null), [setDialog, mapPanelOpen])
+  // The Map runs in place of the island (R60): never under placement or a battle, and any other dialog closes it.
+  const mapShown = isMapDialog(dialog) && placing === null && !battle.setup
+  useEffect(() => { bridge.setMapOpen(mapShown) }, [bridge, mapShown])
+  // The bare Map has no Dialog to close it: Escape does it here. With an island panel open, the Dialog's Escape closes that first.
+  const mapBare = mapShown && !mapPanelOpen && levelUp === null
+  useEffect(() => {
+    if (!mapBare) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDialog(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mapBare, setDialog])
   const skin = useMemo(() => hudSkin(art.hud), [art])
 
   const signedIn = Boolean(session && me.data)
@@ -107,7 +120,7 @@ function Game() {
   const underLevelUp = (fn: () => void) => (levelUp ? () => {} : fn)
   const content = battle.setup
     ? { label: 'Battle', node: <BattlePanel battle={battle} onClose={closeBattle} />, onClose: underLevelUp(closeBattle), modal: false }
-    : dialog && !placing
+    : dialog && !placing && !(dialog.kind === 'panel' && dialog.id === 'map')
       ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} onPve={startPve} onPvp={startPvp} />, onClose: underLevelUp(close) }
       : null
 

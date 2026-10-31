@@ -1,5 +1,5 @@
 import { ISLAND_TILES, LAUNCH_CATALOG, newPlayer, plotOfTile, plotOrigin, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
-import { screen } from '@testing-library/react'
+import { act, cleanup, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { messageFor } from '../src/api/errors'
@@ -9,8 +9,10 @@ import { createBridge, type Placing } from '../src/game/bridge'
 import { cameraBounds, groundCell, lockedTiles, shownSize } from '../src/game/camera'
 import { buildIslandModel } from '../src/game/islandModel'
 import { cellCentre, cellTop, islandBox } from '../src/game/layout'
+import { isMapDialog, type DialogKey } from '../src/hud/Hud'
 import { levelUnlockLines } from '../src/hud/hudModel'
 import { MapIslandPanel } from '../src/panels/MapIslandPanel'
+import { dialogLabel, PanelHost } from '../src/panels/PanelHost'
 import { PlotPanel } from '../src/panels/PlotPanel'
 import { placingAction, placementStart } from '../src/state/placing'
 import { harness, TestHost } from './harness'
@@ -147,32 +149,92 @@ describe('PlotPanel', () => {
 })
 
 describe('MapIslandPanel', () => {
-  it('shows each island\'s name, level and Bridge, and Go when unlocked', async () => {
+  const ember = (over: Partial<PlayerState>) => ({ ...base, ...over })
+
+  it('for the next island at PL 11 says the level it needs, and the Bridge is shut', () => {
+    harness(ember({ level: 11, gold: 1_000_000 })).wrap(<MapIslandPanel island="isle2" view="home" onView={vi.fn()} />)
+    expect(screen.getByRole('heading', { name: 'Ember Reach' })).toBeInTheDocument()
+    expect(screen.getByText('Needs player level 12')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Bridge · 150,000 gold/ })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /^Go/ })).toBeNull()
+  })
+
+  it('at PL 12 without the Gold says so', () => {
+    harness(ember({ level: 12, gold: 149_999 })).wrap(<MapIslandPanel island="isle2" view="home" onView={vi.fn()} />)
+    expect(screen.getByText('Not enough gold')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Bridge · 150,000 gold/ })).toBeDisabled()
+  })
+
+  it('with both, the Bridge buys, and the panel turns to Go on the bridged island', async () => {
     const onView = vi.fn()
-    const s = { ...base, level: 12, gold: 150_000 }
+    const s = ember({ level: 12, gold: 150_000 })
     const h = harness(s)
-    h.wrap(<MapIslandPanel view="home" onView={onView} />)
-    expect(screen.getByText('Ember Reach')).toBeInTheDocument()
-    expect(screen.getByText('Level 12')).toBeInTheDocument()
+    h.wrap(<MapIslandPanel island="isle2" view="home" onView={onView} />)
     await userEvent.click(screen.getByRole('button', { name: /Bridge · 150,000 gold/ }))
     expect(h.action).toHaveBeenCalledWith({ type: 'buyBridge', island: 'isle2' }, expect.any(String))
-    await userEvent.click(screen.getByRole('button', { name: 'Go to Home Isle' }))
+    h.setState({ ...s, gold: 0, islands: { ...s.islands, unlocked: ['home', 'isle2'], plots: { ...s.islands.plots, isle2: [5, 6, 9, 10] } } })
+    await userEvent.click(await screen.findByRole('button', { name: 'Go to Ember Reach' }))
+    expect(onView).toHaveBeenCalledWith('isle2')
+    expect(screen.queryByRole('button', { name: /Bridge/ })).toBeNull()
+    expect(screen.getByText('4 / 16 plots')).toBeInTheDocument()
+  })
+
+  it('a locked island names the Bridge it waits for', () => {
+    harness(ember({ level: 40, gold: 100_000_000 })).wrap(<MapIslandPanel island="isle3" view="home" onView={vi.fn()} />)
+    expect(screen.getByText('Needs the Bridge to Ember Reach')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Bridge · 750,000 gold/ })).toBeDisabled()
+  })
+
+  it('Go shows on the island you stand on too', async () => {
+    const onView = vi.fn()
+    harness(base).wrap(<MapIslandPanel island="home" view="home" onView={onView} />)
+    const go = screen.getByRole('button', { name: 'Go to Home Isle' })
+    expect(go).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(go)
     expect(onView).toHaveBeenCalledWith('home')
   })
-  it('explains in the handler\'s order: the earlier Bridge, then the level, then the gold', async () => {
-    const { wrap, setState } = harness({ ...base, level: 11, gold: 0 })
-    wrap(<MapIslandPanel view="home" onView={vi.fn()} />)
-    expect(screen.getByText('Needs player level 12')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Bridge · 750,000 gold/ })).toBeDisabled()
-    expect(screen.getAllByText('Needs the Bridge to Ember Reach')).toHaveLength(1)
-    setState({ ...base, level: 12, gold: 0 })
-    expect(await screen.findByText('Not enough gold')).toBeInTheDocument()
-  })
+
   it('needs no Legendary for Warlord\'s Crown (R42)', () => {
     const { wrap } = harness({ ...base, level: 40, gold: 100_000_000, islands: { ...base.islands, unlocked: ['home', 'isle2', 'isle3', 'isle4', 'isle5'] } })
-    wrap(<MapIslandPanel view="home" onView={vi.fn()} />)
+    wrap(<MapIslandPanel island="isle6" view="home" onView={vi.fn()} />)
     expect(screen.getByRole('button', { name: /Bridge · 100,000,000 gold/ })).toBeEnabled()
     expect(screen.queryByText(/legendary/i)).toBeNull()
+  })
+})
+
+describe('the Map in the dialog host', () => {
+  const open: PlayerState = { ...base, islands: { ...base.islands, unlocked: ['home', 'isle2'], plots: { ...base.islands.plots, isle2: [5, 6, 9, 10] } } }
+
+  it('a tap on an island opens its panel; Go closes the Map and shows that island', async () => {
+    const bridge = createBridge()
+    harness(open).wrap(<TestHost bridge={bridge} />)
+    act(() => bridge.emit({ type: 'select', target: { kind: 'mapIsland', id: 'isle2' } }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Go to Ember Reach' }))
+    expect(bridge.view).toBe('isle2')
+    expect(screen.queryByRole('button', { name: 'Go to Ember Reach' })).toBeNull()
+  })
+
+  it('Close goes back to the Map, not the island, and the Map itself is no dialog', async () => {
+    const bridge = createBridge()
+    const seen: (DialogKey | null)[] = []
+    harness(open).wrap(<PanelHost bridge={bridge} nowMs={0} dialog={{ kind: 'target', target: { kind: 'mapIsland', id: 'isle2' } }} onOpen={k => seen.push(k)} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(seen).toEqual([{ kind: 'panel', id: 'map' }])
+    cleanup()
+    harness(open).wrap(<PanelHost bridge={bridge} nowMs={0} dialog={{ kind: 'panel', id: 'map' }} onOpen={() => {}} />)
+    expect(screen.queryByRole('region')).toBeNull()
+  })
+
+  it('the dialog around an island panel is named for the island', () => {
+    expect(dialogLabel({ kind: 'target', target: { kind: 'mapIsland', id: 'isle2' } })).toBe('Ember Reach')
+  })
+
+  it('isMapDialog: the Map and its island panels, nothing else', () => {
+    expect(isMapDialog({ kind: 'panel', id: 'map' })).toBe(true)
+    expect(isMapDialog({ kind: 'target', target: { kind: 'mapIsland', id: 'home' } })).toBe(true)
+    expect(isMapDialog({ kind: 'panel', id: 'shop' })).toBe(false)
+    expect(isMapDialog({ kind: 'target', target: { kind: 'plot', island: 'home', plot: 0 } })).toBe(false)
+    expect(isMapDialog(null)).toBe(false)
   })
 })
 

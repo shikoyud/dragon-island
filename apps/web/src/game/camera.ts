@@ -33,6 +33,11 @@ export function screenToWorld(v: View, viewportW: number, viewportH: number, sx:
   return { x: v.cx + (sx - viewportW / 2) / v.zoom, y: v.cy + (sy - viewportH / 2) / v.zoom }
 }
 
+/** Screen pixel of a world position. */
+export function worldToScreen(v: View, viewportW: number, viewportH: number, wx: number, wy: number): { x: number; y: number } {
+  return { x: (wx - v.cx) * v.zoom + viewportW / 2, y: (wy - v.cy) * v.zoom + viewportH / 2 }
+}
+
 /** Drag by (dx, dy) screen pixels: the world follows the pointer. */
 export function panBy(v: View, dx: number, dy: number): View {
   return { cx: v.cx - dx / v.zoom, cy: v.cy - dy / v.zoom, zoom: v.zoom }

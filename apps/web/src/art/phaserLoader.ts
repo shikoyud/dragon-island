@@ -32,6 +32,8 @@ export function artEntries(art: GameArtSet): Entry[] {
   for (const [d, s] of Object.entries(art.decoration)) add(`decoration.${d}`, s, 'decoration', DECORATIONS[d as keyof typeof DECORATIONS].island ? 'light' : 'nature')
   for (const [k, s] of Object.entries(art.obstacle)) add(`obstacle.${k}`, s, 'obstacle', OBSTACLES[k as keyof typeof OBSTACLES].size > 1 ? 'terra' : 'nature')
   for (const [i, s] of Object.entries(art.map)) add(`map.${i}`, s, 'map', 'sea')
+  // The Map's backdrop and Bridge load only when they exist: without them it shows the sea and draws its own lines.
+  for (const k of ['map.backdrop', 'map.bridge']) { const s = art.hud[k]; if (s) add(k, s, 'island', 'sea') }
   for (const [el, s] of Object.entries(art.elementIcon) as [Element, Sprite][]) add(`icon.${el}`, s, 'icon', el)
   add('ui.panel', art.ui.panel, 'panel')
   add('ui.button', art.ui.button, 'button')

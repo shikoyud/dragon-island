@@ -34,7 +34,6 @@ export class BattleScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.DESTROY, () => this.scale.off(Phaser.Scale.Events.RESIZE, fit))
     const off = this.bridge.on('battle', e => {
       if (!this.alive()) return
-      if (!e.preview && this.scene.isActive()) this.scene.switch('island')
       this.render(e.preview)
     })
     this.events.once(Phaser.Scenes.Events.DESTROY, off)

@@ -16,16 +16,16 @@ const withRock = (over: Partial<PlayerState> = {}): PlayerState => ({
 })
 
 describe('MapIslandPanel art', () => {
-  it('lays the island list over the sea-chart backdrop when the art has one', () => {
+  it('lays the island over the sea-chart backdrop when the art has one', () => {
     const art = artSetFromManifest('v1', { assets: { 'map.backdrop': { file: 'map-backdrop.png', w: 320, h: 180, frames: 1, fps: 0 } } }, LAUNCH_CATALOG)
-    harness(base).wrap(<MapIslandPanel view="home" onView={() => {}} art={art} />)
+    harness(base).wrap(<MapIslandPanel island="home" view="home" onView={() => {}} art={art} />)
     expect(screen.getByTestId('map-chart')).toHaveStyle({ backgroundImage: 'url("/art/v1/map-backdrop.png")' })
   })
 
-  it('shows each island map icon when the art set has one', () => {
+  it('shows the island map icon when the art set has one', () => {
     const art = artSetFromManifest('v1', { assets: { 'map.home': { file: 'map-home.png', w: 32, h: 32, frames: 1, fps: 0 } } }, LAUNCH_CATALOG)
     const { wrap } = harness({ ...base, level: 3, gold: 10 })
-    const { container } = wrap(<MapIslandPanel view="home" onView={vi.fn()} art={art} />)
+    const { container } = wrap(<MapIslandPanel island="home" view="home" onView={vi.fn()} art={art} />)
     const imgs = [...container.querySelectorAll('img')]
     expect(imgs.map(i => i.getAttribute('src'))).toEqual(['/art/v1/map-home.png'])
     expect(imgs[0]).toHaveAttribute('width', '32')

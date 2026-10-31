@@ -5,11 +5,11 @@ import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet } from '../../art/types'
 import type { Bridge, Target } from '../bridge'
 import {
-  cameraBounds, clampView, groundCell, isClick, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, stepZoom, zoomAt,
-  zoomRange, type View,
+  cameraBounds, clampView, groundCell, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
 } from '../camera'
 import { badgeY, buildIslandModel, type IslandMarkers, type IslandObject } from '../islandModel'
 import { anchor, cellCentre, cellTop, footprintDiamond, islandBox, pointerToCell, tapBox, type Box, type Pos } from '../layout'
+import { createPanZoom, heldPointers } from '../panZoom'
 
 const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontFamily: 'Silkscreen, monospace', fontSize: '8px', color: '#f2f1ea', stroke: '#0f1324', strokeThickness: 2,
@@ -27,9 +27,6 @@ const EMPTY: IslandMarkers = {
 const BADGE_PX = 14
 /** Local (unscaled) size of a tappable badge's hit box: 28 local px x BADGE_PX / 8 = 49 CSS px, over the 44 px minimum. */
 const BADGE_HIT_LOCAL = 28
-/** Pinch distance ratio that counts as one zoom step. */
-const PINCH_STEP = 1.25
-
 /** World box of the baked landmass: the island's diamond and the cliff skirt under it. */
 const groundBox = (): Box => {
   const b = islandBox(ISLAND_TILES, ISLAND_TILES)
@@ -40,9 +37,9 @@ const points = (pts: Pos[]) => pts.map(p => new Phaser.Math.Vector2(p.x, p.y))
 
 /**
  * Draws one island of the player's base in an isometric (2:1) projection from `buildIslandModel` (pure, tested) on
- * every state, view or placing change and once a second for timers. The camera is a pure `View` (camera.ts):
- * drag pans, the wheel or a pinch zooms about the pointer, by whole numbers. The scene owns no game logic: it emits
- * `select`, `hover` and `cell` events only.
+ * every state, view or placing change and once a second for timers. The camera is a pure `View` (camera.ts) moved by
+ * `panZoom`. The scene owns no game logic: it emits `select`, `hover` and `cell` events only. While the Map or a battle
+ * shows it sleeps: no drawing and no clock, its camera and bake kept, and it catches up when it wakes.
  */
 export class IslandScene extends Phaser.Scene {
   /** Placeholder diamonds and the cliff skirt are drawn here, then baked into `groundRt`. */
@@ -59,10 +56,12 @@ export class IslandScene extends Phaser.Scene {
   private tapTargets: { spr: Phaser.GameObjects.Sprite; minTap: number; pixel: Phaser.Types.Input.HitAreaCallback; area: unknown }[] = []
   private current: IslandMarkers = EMPTY
   private catalog: Catalog = LAUNCH_CATALOG
-  private down: { x: number; y: number } | null = null
-  private last: { x: number; y: number } | null = null
-  private panning = false
-  private pinch: number | null = null
+  private readonly gestures = createPanZoom({
+    view: () => this.view,
+    apply: v => this.apply(v),
+    range: () => this.range(),
+    size: () => ({ w: this.scale.width, h: this.scale.height }),
+  })
   private lastCell = ''
   private groundKey = ''
   private view: View | null = null
@@ -89,15 +88,13 @@ export class IslandScene extends Phaser.Scene {
       this.bridge.on('placing', e => {
         this.lastCell = ''
         this.sync()
-        if (e.placing) this.reveal(anchor(e.placing.col, e.placing.row, e.placing.size))
+        if (e.placing && !this.sys.isSleeping()) this.reveal(anchor(e.placing.col, e.placing.row, e.placing.size))
       }),
       this.bridge.on('levelUp', () => {
-        if (!this.alive() || !this.art().fx.levelUp) return
+        if (!this.alive() || this.sys.isSleeping() || !this.art().fx.levelUp) return
         const c = this.cameras.main.midPoint
         this.playOnce('fx.levelUp', { x: c.x, y: c.y })
       }),
-      // Switch to the battle scene while a battle is being built; come back when it is cleared.
-      this.bridge.on('battle', e => { if (e.preview && this.alive()) this.scene.switch('battle') }),
     ]
     const cellToScreen = (col: number, row: number) => this.toScreen(cellCentre(col, row))
     const focusCell = () => {
@@ -107,8 +104,11 @@ export class IslandScene extends Phaser.Scene {
     }
     this.bridge.cellToScreen = cellToScreen
     this.bridge.focusCell = focusCell
-    const onResize = () => { if (this.alive()) this.frame() }
+    const onResize = () => { if (this.alive() && !this.sys.isSleeping()) this.frame() }
     this.scale.on(Phaser.Scale.Events.RESIZE, onResize)
+    // Back from the Map or a battle: the camera is where it was (or opens on a new island), and the bake catches up.
+    this.events.on(Phaser.Scenes.Events.WAKE, () => this.sync())
+    this.events.on(Phaser.Scenes.Events.SLEEP, () => this.gestures.reset())
     // A lost WebGL context empties every render target. Phaser restores its textures and then says so: bake the land again.
     const renderer = this.game.renderer as Phaser.Renderer.WebGL.WebGLRenderer | Phaser.Renderer.Canvas.CanvasRenderer | undefined
     const onRestore = () => { if (this.alive()) { this.groundKey = ''; this.sync() } }
@@ -125,10 +125,7 @@ export class IslandScene extends Phaser.Scene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p))
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p))
     this.input.on('pointerup', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => this.onUp(p, over))
-    this.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
-      if (!this.view || dy === 0) return
-      this.zoomTo(stepZoom(this.view.zoom, dy < 0 ? -1 : 1, this.range()), p.x, p.y)
-    })
+    this.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => this.gestures.wheel(p, dy))
     this.time.addEvent({ delay: 1000, loop: true, callback: () => this.sync() })
     this.sync()
     this.bridge.emit({ type: 'ready' })
@@ -216,11 +213,6 @@ export class IslandScene extends Phaser.Scene {
     this.apply(this.opening())
   }
 
-  private zoomTo(zoom: number, sx: number, sy: number): void {
-    if (!this.view || zoom === this.view.zoom) return
-    this.apply(zoomAt(this.view, this.scale.width, this.scale.height, sx, sy, zoom))
-  }
-
   /** Pans just enough to bring a world point (the placement ghost) into the band the HUD leaves free. */
   private reveal(p: Pos): void {
     if (!this.view) return
@@ -239,52 +231,17 @@ export class IslandScene extends Phaser.Scene {
   }
 
   private toScreen(w: Pos): Pos {
-    const v = this.view ?? { cx: 0, cy: 0, zoom: 1 }
-    return { x: (w.x - v.cx) * v.zoom + this.scale.width / 2, y: (w.y - v.cy) * v.zoom + this.scale.height / 2 }
+    return worldToScreen(this.view ?? { cx: 0, cy: 0, zoom: 1 }, this.scale.width, this.scale.height, w.x, w.y)
   }
 
   // ---- input -------------------------------------------------------------------------------------------------
 
-  private pointersDown(): Phaser.Input.Pointer[] {
-    return [this.input.pointer1, this.input.pointer2].filter((p): p is Phaser.Input.Pointer => Boolean(p?.isDown))
-  }
-
   private onDown(p: Phaser.Input.Pointer): void {
-    const two = this.pointersDown()
-    if (two.length === 2) {
-      // A second finger: this press is a pinch, never a click or a pan.
-      this.pinch = Phaser.Math.Distance.Between(two[0]!.x, two[0]!.y, two[1]!.x, two[1]!.y)
-      this.down = null
-      this.panning = true
-      return
-    }
-    this.down = { x: p.x, y: p.y }
-    this.last = { x: p.x, y: p.y }
-    this.panning = false
+    this.gestures.down(p, heldPointers(this.input))
   }
 
   private onMove(p: Phaser.Input.Pointer): void {
-    const two = this.pointersDown()
-    if (two.length === 2 && this.pinch !== null && this.view) {
-      const [a, b] = two as [Phaser.Input.Pointer, Phaser.Input.Pointer]
-      const dist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y)
-      const ratio = dist / this.pinch
-      if (ratio >= PINCH_STEP || ratio <= 1 / PINCH_STEP) {
-        this.zoomTo(stepZoom(this.view.zoom, ratio > 1 ? -1 : 1, this.range()), (a.x + b.x) / 2, (a.y + b.y) / 2)
-        this.pinch = dist
-      }
-      return
-    }
-    if (this.down && this.last && p.isDown && this.view) {
-      // Pan once the press has moved past the click threshold, from where it went down: the grabbed point stays
-      // under the pointer. Deltas come from our own last position, never Phaser's prevPosition (stale on a new press).
-      if (!this.panning && !isClick(this.down.x, this.down.y, p.x, p.y)) this.panning = true
-      if (this.panning) {
-        this.apply(panBy(this.view, p.x - this.last.x, p.y - this.last.y))
-        this.last = { x: p.x, y: p.y }
-        return
-      }
-    }
+    if (this.gestures.move(p, heldPointers(this.input), p.isDown)) return
     // The placement reducer tracks the cursor, so hover moves matter only while placing (and not for touches).
     if (!this.bridge.placing || p.wasTouch) return
     this.emitCell(p, false)
@@ -305,12 +262,7 @@ export class IslandScene extends Phaser.Scene {
   }
 
   private onUp(p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]): void {
-    if (this.pointersDown().length === 0) this.pinch = null
-    const wasPan = this.panning || !this.down || !isClick(this.down.x, this.down.y, p.x, p.y)
-    this.down = null
-    this.last = null
-    this.panning = false
-    if (wasPan) return
+    if (!this.gestures.up(p, heldPointers(this.input))) return
     // A gold badge sits above every sprite: a tap on it collects instead of opening the habitat.
     const badge = this.bridge.placing ? undefined : over.find(o => o.getData('collect'))
     if (badge) return this.collect(badge as Phaser.GameObjects.Text)
@@ -324,7 +276,7 @@ export class IslandScene extends Phaser.Scene {
 
   /** Rebuilds the ground, camera framing and every dynamic object from the current state. */
   sync(): void {
-    if (!this.alive()) return
+    if (!this.alive() || this.sys.isSleeping()) return
     const { state, view } = this.bridge
     this.drawGround()
     this.frame()
