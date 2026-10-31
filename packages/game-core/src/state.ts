@@ -8,7 +8,7 @@ export interface Egg { speciesId: string; readyAtMs: number; xpFree?: boolean }
 /** `habitatId: null` = hatched and waiting in the hatchery. */
 export interface Dragon { id: string; speciesId: string; level: number; /** Feeds toward the next level, 0..3 (§4.1). */ feeds: number; habitatId: string | null }
 
-export type IslandId = 'home' | 'isle2' | 'isle3' | 'isle4' | 'isle5' | 'dawnspire'
+export type IslandId = 'home' | 'isle2' | 'isle3' | 'isle4' | 'isle5' | 'isle6'
 export type Facing = 0 | 1 | 2 | 3
 export interface Placement { island: IslandId; col: number; row: number; facing: Facing }
 export type HabitatElement = Element | 'aerie' // 'aerie' = the Golden Aerie (any element, §5.2)

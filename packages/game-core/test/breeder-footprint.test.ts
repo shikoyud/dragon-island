@@ -47,8 +47,8 @@ describe('breeding buildings keep their 2-cell footprint until M4 (R9, R15 withd
   })
 
   it('places the Breeding Grove on the home island of a normal PL 12 game', () => {
-    // A normal game at PL 12: every expansion it may have bought, a habitat on the only 5x5 spot, obstacles left standing.
-    let s: PlayerState = { ...newPlayer(0), level: 12, gold: 2_000_000 }
+    // A normal game at PL 12 (R46: all 12 Home steps are open by now; gold re-pinned for that): every expansion it may have bought, a habitat on the only 5x5 spot, obstacles left standing.
+    let s: PlayerState = { ...newPlayer(0), level: 12, gold: 5_000_000 }
     const steps = HOME_EXPANSION.filter((_, i) => isUnlocked(`home:${i}`, 12)).length
     for (let i = 0; i < steps; i++) s = run(s, { type: 'expandIsland' })
     s = run(s, { type: 'placeBuilding', building: { kind: 'habitat', element: 'sea' }, placement: { ...P(0, 0), ...legalCells(s, { kind: 'habitat', element: 'sea' })[0]! } })

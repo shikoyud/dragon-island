@@ -125,7 +125,7 @@ describe('artSetFromManifest', () => {
     expect(a.obstacle.ruin.src).toBe('/art/v2/ruin.png')
     expect(a.island.locked.src).toBe('/art/v2/locked.png')
     expect(a.island.sign.src).toBe('/art/v2/sign.png')
-    expect(a.map.dawnspire.src).toBe('/art/v2/map-dawn.png')
+    expect(a.map.isle6.src).toBe('/art/v2/map-dawn.png')
   })
 
   it('falls back to footprint-sized blank sprites for every base-building slot', () => {

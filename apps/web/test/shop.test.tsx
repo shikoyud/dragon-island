@@ -84,7 +84,7 @@ describe('ShopPanel Build tab', () => {
       expect(b).toHaveAccessibleDescription('Dawnspire only')
     }
     r.unmount()
-    harness(rich).wrap(<ShopPanel onPlace={vi.fn()} view="dawnspire" nowMs={0} />)
+    harness(rich).wrap(<ShopPanel onPlace={vi.fn()} view="isle6" nowMs={0} />)
     expect(screen.getByRole('button', { name: /Star pool/ })).toBeEnabled()
   })
 })

@@ -17,7 +17,7 @@ const payloads: unknown[] = [
   { type: 'placeBuilding', building: { kind: 'habitat', element: 'war' }, placement: PL },
   { type: 'placeBuilding', building: { kind: 'habitat', element: 'fire' }, placement: PL },
   { type: 'placeBuilding', building: { kind: 'habitat', element: 'plasma' }, placement: PL },
-  { type: 'placeBuilding', building: { kind: 'nexus' }, placement: { ...PL, island: 'dawnspire' } },
+  { type: 'placeBuilding', building: { kind: 'nexus' }, placement: { ...PL, island: 'isle6' } },
   { type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...PL, island: 'isle9' } },
   { type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...PL, col: 64 } },
   { type: 'placeBuilding', building: { kind: 'farm' }, placement: { ...PL, row: -1 } },

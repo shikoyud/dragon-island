@@ -1,5 +1,5 @@
 // GDD §4.4 (unlock schedule), §5.2 (habitats), §5.3 (crops, farms), §5.4 (Hatchery, Mountain, Grove), §5.5 (islands).
-// R32: PvE moves to PL 4, Islands 3-6 to PL 18, 25, 32, 40; Home expansions keep today's PLs until M4.
+// R32: PvE moves to PL 4, Islands 3-6 to PL 18, 25, 32, 40; Home plots follow R46.
 // PvP (pve.ts) and decorations keep their own gates until M6 and M7. This file is the only place a gate is a number.
 import type { Element } from '../elements'
 import type { CropId, IslandId } from '../state'
@@ -28,8 +28,8 @@ const GROVE_PL: readonly number[] = [12, 20, 25]
 const HATCHERY_PL: readonly number[] = [1, 4, 13, 21]
 /** §4.4: Roost Tiers 1-5. */
 const ROOST_PL: readonly number[] = [5, 10, 15, 22, 30]
-/** Today's Home expansion gates, kept until M4 (R32). Index = homeStep before the purchase. */
-const HOME_PL: readonly number[] = [2, 4, 7, 10, 14, 18, 22, 27, 32, 37, 42, 47]
+/** R46: the 12 Home Isle plots open at PL 2, 2, 3, then one per level up to 12. Index = plots bought before the purchase. */
+const HOME_PL: readonly number[] = [2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
 const entries: [string, number][] = []
 for (const [e, pl] of Object.entries(ELEMENT_PL)) entries.push([`habitat:${e}`, pl], [`basic:${e}`, pl])
@@ -42,7 +42,7 @@ entries.push(['hatcheryFifthSlot', 15]) // §5.4 "15+"
 ROOST_PL.forEach((pl, i) => entries.push([`roost:${i + 1}`, pl]))
 entries.push(['pve', 4], ['wings', 8])
 HOME_PL.forEach((pl, i) => entries.push([`home:${i}`, pl]))
-entries.push(['island:isle2', 12], ['island:isle3', 18], ['island:isle4', 25], ['island:isle5', 32], ['island:dawnspire', 40])
+entries.push(['island:isle2', 12], ['island:isle3', 18], ['island:isle4', 25], ['island:isle5', 32], ['island:isle6', 40])
 
 export const UNLOCKS: Readonly<Record<UnlockKey, number>> = Object.freeze(Object.fromEntries(entries)) as Record<UnlockKey, number>
 

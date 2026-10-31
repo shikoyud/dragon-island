@@ -27,7 +27,7 @@ export const unlockIsland: Handler<'unlockIsland'> = (s, _a, ctx) => {
   if (!island || island === 'home') return failure('MAX_ISLAND')
   const req = OUTER_ISLANDS[island]
   if (!isUnlocked(`island:${island}`, s.level)) return failure('LEVEL_TOO_LOW')
-  if (island === 'dawnspire' && !s.dragons.some(d => getSpecies(ctx.catalog, d.speciesId).rarity === 'legendary')) return failure('NO_LEGENDARY')
+  if (island === 'isle6' && !s.dragons.some(d => getSpecies(ctx.catalog, d.speciesId).rarity === 'legendary')) return failure('NO_LEGENDARY')
   const paid = spendGold(s, req.cost)
   if (!paid) return failure('INSUFFICIENT_GOLD')
   return success(payBuildXp({

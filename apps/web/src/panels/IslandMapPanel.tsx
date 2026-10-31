@@ -1,11 +1,10 @@
-import { ISLAND_ORDER, LAUNCH_CATALOG, OUTER_ISLANDS, getSpecies, unlockPl, type IslandId } from '@wyrmhaven/game-core'
+import { ISLANDS, ISLAND_ORDER, LAUNCH_CATALOG, OUTER_ISLANDS, getSpecies, unlockPl, type IslandId } from '@wyrmhaven/game-core'
 import type { GameArtSet } from '../art/types'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatGold } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 
-const NAMES: Record<IslandId, string> = { home: 'Home island', isle2: 'Second island', isle3: 'Third island', isle4: 'Fourth island', isle5: 'Fifth island', dawnspire: 'Dawnspire' }
 
 /** The island's map icon, or nothing until the art set has one. */
 function MapIcon({ art, id }: { art?: GameArtSet | null; id: IslandId }) {
@@ -32,23 +31,23 @@ export function IslandMapPanel({ view, onView, onClose, art }: { view: IslandId;
             return (
               <li key={id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <MapIcon art={art} id={id} />
-                <span>{NAMES[id]}</span>
-                <button type="button" className={`btn ${view === id ? 'btn--primary' : ''}`} aria-label={`Go to ${NAMES[id]}`} aria-pressed={view === id} onClick={() => onView(id)}>Go</button>
+                <span>{ISLANDS[id].name}</span>
+                <button type="button" className={`btn ${view === id ? 'btn--primary' : ''}`} aria-label={`Go to ${ISLANDS[id].name}`} aria-pressed={view === id} onClick={() => onView(id)}>Go</button>
               </li>
             )
           }
           const req = OUTER_ISLANDS[id as Exclude<IslandId, 'home'>]
           const gate = unlockPl(`island:${id as Exclude<IslandId, 'home'>}`)
-          if (id !== nextId) return <li key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', opacity: 0.6 }}><MapIcon art={art} id={id} />{NAMES[id]} · <span>Locked · level {gate}</span></li>
+          if (id !== nextId) return <li key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', opacity: 0.6 }}><MapIcon art={art} id={id} />{ISLANDS[id].name} · <span>Locked · level {gate}</span></li>
           // Same order as game-core's unlockIsland: level, then legendary (Dawnspire), then gold.
           const legendary = s.dragons.some(d => getSpecies(LAUNCH_CATALOG, d.speciesId).rarity === 'legendary')
           const reason = s.level < gate ? `Needs player level ${gate}`
-            : id === 'dawnspire' && !legendary ? 'Own a legendary dragon first'
+            : id === 'isle6' && !legendary ? 'Own a legendary dragon first'
             : s.gold < req.cost ? 'Not enough gold' : ''
           return (
             <li key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <MapIcon art={art} id={id} />
-              <span>{NAMES[id]}</span>
+              <span>{ISLANDS[id].name}</span>
               <ActionButton id={`unlock-${id}`} disabled={pending || reason !== ''} reason={reason} onClick={() => void run({ type: 'unlockIsland' })}>
                 Unlock · {formatGold(req.cost)} gold
               </ActionButton>

@@ -114,8 +114,8 @@ describe('isValidAction placements', () => {
 })
 
 describe('Dawnspire-only buildings stay on Dawnspire', () => {
-  const dp = { island: 'dawnspire' as const, col: 0, row: 0, facing: 0 as const }
-  const base = { ...s, islands: { ...s.islands, unlocked: ['home', 'dawnspire'] as PlayerState['islands']['unlocked'] } }
+  const dp = { island: 'isle6' as const, col: 0, row: 0, facing: 0 as const }
+  const base = { ...s, islands: { ...s.islands, unlocked: ['home', 'isle6'] as PlayerState['islands']['unlocked'] } }
   it('a Golden Aerie may move to any island', () => {
     const aerie = { id: 'h3', element: 'aerie' as const, level: 5, lastCollectedMs: 0, placement: dp }
     const st = { ...base, habitats: [...base.habitats, aerie] }

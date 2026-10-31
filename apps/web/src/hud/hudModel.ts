@@ -48,7 +48,7 @@ export function xpBarText(s: PlayerState, format: (n: number) => string, clock?:
 /** What the bar shows in its small form while the day's limit holds; the whole sentence is its title and value text. */
 export const XP_LIMIT_SHORT = 'Level limit'
 
-const ISLAND_NAMES: Record<string, string> = { isle2: 'Second island', isle3: 'Third island', isle4: 'Fourth island', isle5: 'Fifth island', dawnspire: 'Dawnspire' }
+const ISLAND_NAMES: Record<string, string> = { isle2: 'Second island', isle3: 'Third island', isle4: 'Fourth island', isle5: 'Fifth island', isle6: 'Dawnspire' }
 
 /** One unlock key in plain words; null for what the level-up screen leaves out (`wings`, and `home:n`, which is one shared line). */
 function unlockLine(key: UnlockKey): string | null {

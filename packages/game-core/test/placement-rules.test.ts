@@ -4,8 +4,8 @@ import { newPlayer, type PlayerState } from '../src/state'
 
 const s: PlayerState = newPlayer(0)
 const P = (col: number, row: number) => ({ island: 'home' as const, col, row, facing: 0 as const })
-const dp = { island: 'dawnspire' as const, col: 0, row: 0, facing: 0 as const }
-const both = { ...s, islands: { ...s.islands, unlocked: ['home', 'dawnspire'] as PlayerState['islands']['unlocked'] } }
+const dp = { island: 'isle6' as const, col: 0, row: 0, facing: 0 as const }
+const both = { ...s, islands: { ...s.islands, unlocked: ['home', 'isle6'] as PlayerState['islands']['unlocked'] } }
 
 describe('placementRuleError', () => {
   it('free cells for a habitat, farm or plain decoration on any unlocked island', () => {

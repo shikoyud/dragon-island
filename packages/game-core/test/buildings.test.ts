@@ -37,7 +37,7 @@ describe('buildings', () => {
   })
   it('decorations table and refund', () => {
     expect(DECORATIONS.stonePath).toEqual({ size: 1, cost: 10, minLevel: 1 })
-    expect(DECORATIONS.dragonColossus).toEqual({ size: 3, cost: 1_000_000, minLevel: 45, island: 'dawnspire' })
+    expect(DECORATIONS.dragonColossus).toEqual({ size: 3, cost: 1_000_000, minLevel: 45, island: 'isle6' })
     expect(Object.keys(DECORATIONS)).toHaveLength(15)
     expect(decorationRefund('hayCart')).toBe(250)
   })

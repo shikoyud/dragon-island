@@ -5,7 +5,7 @@ import { DECORATIONS } from './decorations'
 import { OBSTACLES } from './obstacles'
 
 export const CELL_PX = 16
-export const ISLAND_ORDER: readonly IslandId[] = ['home', 'isle2', 'isle3', 'isle4', 'isle5', 'dawnspire']
+export const ISLAND_ORDER: readonly IslandId[] = ['home', 'isle2', 'isle3', 'isle4', 'isle5', 'isle6']
 export const OUTER_SIZE = 16
 export const HOME_MAX_STEP = 12
 
@@ -23,7 +23,7 @@ export const OUTER_ISLANDS: Record<Exclude<IslandId, 'home'>, { cost: number; mu
   isle3: { cost: 150_000, mult: 5 },
   isle4: { cost: 500_000, mult: 12 },
   isle5: { cost: 1_200_000, mult: 25 },
-  dawnspire: { cost: 3_000_000, mult: 40 },
+  isle6: { cost: 3_000_000, mult: 40 },
 }
 
 export function homeSize(step: number): { w: number; h: number } {

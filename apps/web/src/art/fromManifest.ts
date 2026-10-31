@@ -17,6 +17,8 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     if (!e) return { src: '', ...(typeof slot === 'string' ? SLOT_SIZES[slot] : slot), frames: 1, fps: 0 }
     return { src: `/art/${version}/${e.file}`, w: e.w, h: e.h, frames: e.frames, fps: e.fps, ...(e.top !== undefined ? { top: e.top } : {}) }
   }
+  /** Until the art lands under map.isle6, read the old Dawnspire key (the manifest is not edited this round). */
+  const mapKey = (i: IslandId): string => (i === 'isle6' && !manifest.assets['map.isle6'] ? 'map.dawnspire' : `map.${i}`)
   /** A sprite only when the manifest has the key. */
   const present = (key: string): Sprite | null => (manifest.assets[key] ? get(key, 'icon') : null)
   /** `building.<name>.<1..max>` sheets the manifest has, by level; absent levels stay absent so nothing is requested. */
@@ -57,7 +59,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     island: { base: get('island.base', 'island'), layers: layerKeys.map(k => get(k, 'island')), locked: get('island.locked', 'locked'), sign: get('island.sign', 'sign') },
     obstacle: Object.fromEntries((Object.keys(OBSTACLES) as ObstacleKind[]).map(k => [k, get(`obstacle.${k}`, footprintPx(OBSTACLES[k].size))])) as Record<ObstacleKind, Sprite>,
     decoration: Object.fromEntries((Object.keys(DECORATIONS) as DecorationId[]).map(d => [d, get(`decoration.${d}`, footprintPx(DECORATIONS[d].size))])) as Record<DecorationId, Sprite>,
-    map: Object.fromEntries(ISLAND_ORDER.map(i => [i, get(`map.${i}`, 'map')])) as Record<IslandId, Sprite>,
+    map: Object.fromEntries(ISLAND_ORDER.map(i => [i, get(mapKey(i), 'map')])) as Record<IslandId, Sprite>,
     fx: { construction: get('fx.construction', 'fxConstruction'), hatch: get('fx.hatch', 'fxHatch'), coins: get('fx.coins', 'fxCoins'), ...(manifest.assets['fx.levelUp'] ? { levelUp: get('fx.levelUp', 'fxHatch') } : {}) },
     ground: {
       grass: [0, 1, 2].map(i => present(`ground.grass.${i}`)).filter((g): g is Sprite => g !== null),

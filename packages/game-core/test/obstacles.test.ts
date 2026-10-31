@@ -20,7 +20,7 @@ describe('obstacles', () => {
     const isle2 = outerObstacles('isle2')
     expect(isle2.reduce((n, o) => n + clearCost(o), 0)).toBe(55_600)
     expect(isle2.reduce((n, o) => n + clearReward(o).xp, 0)).toBe(7_040)
-    expect(outerObstacles('dawnspire').reduce((n, o) => n + clearCost(o), 0)).toBe(1_112_000)
+    expect(outerObstacles('isle6').reduce((n, o) => n + clearCost(o), 0)).toBe(1_112_000)
     expect(isle2[0]!.id).toBe('isle2-0')
   })
   it('each home strip carries a bush and a rock inside the new strip', () => {

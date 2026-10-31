@@ -52,9 +52,9 @@ describe('the §4.4 unlock schedule, PL 1 to 30', () => {
       expect(at(pl)).toEqual(sorted([...(SECTION_4_4[pl] ?? []), ...(SECTION_5[pl] ?? [])]))
     })
   }
-  it('R32: Islands 5 and 6 sit at PL 32 and 40; Home expansions keep today\'s gates until M4', () => {
-    expect([unlockPl('island:isle5'), unlockPl('island:dawnspire')]).toEqual([32, 40])
-    expect([...Array(12).keys()].map(i => unlockPl(`home:${i}`))).toEqual([2, 4, 7, 10, 14, 18, 22, 27, 32, 37, 42, 47])
+  it('R32, R46: Islands 5 and 6 sit at PL 32 and 40; Home plots open at PL 2, 2, 3 then one per level to 12', () => {
+    expect([unlockPl('island:isle5'), unlockPl('island:isle6')]).toEqual([32, 40])
+    expect([...Array(12).keys()].map(i => unlockPl(`home:${i}`))).toEqual([2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
   })
   it('lists every key once, with a positive whole level', () => {
     for (const [k, pl] of Object.entries(UNLOCKS)) expect(Number.isInteger(pl) && pl >= 1, k).toBe(true)
@@ -141,7 +141,7 @@ const probes = (): [UnlockKey, Probe][] => {
   list.push(['roost:5', l => ({ state: { ...rich(base, l), roostPlacement: P(7, 7), roostTier: 4 }, action: { type: 'buy', item: { kind: 'ascension' } } })])
   list.push(['pve', l => ({ state: rich(base, l), action: { type: 'pveBattle', stage: 1, team: ['d1', 'd2', 'dX'], moves: [] } })])
   for (let i = 0; i < 12; i++) list.push([`home:${i}`, l => ({ state: { ...rich(base, l), islands: { ...base.islands, homeStep: i } }, action: { type: 'expandIsland' } })])
-  const order: IslandId[] = ['home', 'isle2', 'isle3', 'isle4', 'isle5', 'dawnspire']
+  const order: IslandId[] = ['home', 'isle2', 'isle3', 'isle4', 'isle5', 'isle6']
   for (const id of order.slice(1)) list.push([`island:${id}` as UnlockKey, l => ({
     state: {
       ...rich(base, l),
@@ -173,7 +173,7 @@ describe('every gate refuses at PL - 1 and opens at PL', () => {
       expect(r.error, key).not.toBe('LEVEL_TOO_LOW')
       // Past the level gate, each probe's only expected refusal is a missing second Hatchery team, never the level.
       if (key === 'pve') expect(r.error).toBe('INVALID_TEAM')
-      else if (key === 'island:dawnspire') expect(r.error).not.toBe('NO_LEGENDARY')
+      else if (key === 'island:isle6') expect(r.error).not.toBe('NO_LEGENDARY')
     })
   }
   it('actions that spend a gate succeed at PL (Gold and room given)', () => {

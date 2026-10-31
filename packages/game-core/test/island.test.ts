@@ -25,6 +25,6 @@ describe('island geometry', () => {
   })
   it('OUTER_ISLANDS matches the spec', () => {
     expect(OUTER_ISLANDS.isle2).toEqual({ cost: 40_000, mult: 2 })
-    expect(OUTER_ISLANDS.dawnspire).toEqual({ cost: 3_000_000, mult: 40 })
+    expect(OUTER_ISLANDS.isle6).toEqual({ cost: 3_000_000, mult: 40 })
   })
 })
