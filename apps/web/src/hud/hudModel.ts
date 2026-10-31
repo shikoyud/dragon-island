@@ -1,4 +1,4 @@
-import { CROPS, currentGoal, goalProgress, LAUNCH_CATALOG, unlocksAt, xpToNext, type BreederKind, type CropId, type UnlockKey, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
+import { CROPS, currentGoal, goalProgress, LAUNCH_CATALOG, levelLimit, unlocksAt, xpToNext, type Preset, type BreederKind, type CropId, type UnlockKey, type BuildingRef, type Construction, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import type { Target } from '../game/bridge'
 import { hatcheryHasRoom } from '../game/islandModel'
@@ -17,11 +17,31 @@ export function xpBanked(s: PlayerState): boolean {
   return s.xp >= xpToNext(s.level)
 }
 
-/** The XP bar's words. */
-export function xpBarText(s: PlayerState, format: (n: number) => string): string {
+/** The synced clock's view of the level limit: the preset and the game day. Without it the client can't tell the day. */
+export interface LimitClock { preset: Preset; day: number }
+
+/** The first game day after `day` whose limit is higher than today's (Finals, with no limit, counts as higher); null if none. */
+function nextRaiseDay(clock: LimitClock): number | null {
+  const today = levelLimit(clock.day, clock.preset)
+  if (today === null) return null
+  for (let d = clock.day + 1; d <= clock.day + 60; d++) {
+    const limit = levelLimit(d, clock.preset)
+    if (limit === null || limit > today) return d
+  }
+  return null
+}
+
+/** The XP bar's words. Banked XP reads "Level limit today" until the day's limit has risen past the player's level (R41). */
+export function xpBarText(s: PlayerState, format: (n: number) => string, clock?: LimitClock): string {
   const need = xpToNext(s.level)
   if (!Number.isFinite(need)) return 'MAX'
-  return xpBanked(s) ? 'Daily level limit · more tomorrow' : `${format(s.xp)} / ${format(need)} XP`
+  const plain = `${format(s.xp)} / ${format(need)} XP`
+  if (!xpBanked(s)) return plain
+  if (!clock) return 'Level limit today · more tomorrow'
+  const limit = levelLimit(clock.day, clock.preset)
+  if (limit === null || limit > s.level) return plain // the day has turned; the next action pays it
+  const raise = nextRaiseDay(clock)
+  return raise === null || raise === clock.day + 1 ? 'Level limit today · more tomorrow' : `Level limit today · more on Day ${raise}`
 }
 
 const ISLAND_NAMES: Record<string, string> = { isle2: 'Second island', isle3: 'Third island', isle4: 'Fourth island', isle5: 'Fifth island', dawnspire: 'Dawnspire' }

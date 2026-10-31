@@ -17,7 +17,7 @@ export function cumulativeXp(level: number): number {
   return total
 }
 
-/** Highest level game day `day` allows (§7.2, Q1 c), or null once Rush is over (R40). */
+/** Highest level game day `day` allows (§7.2, Q1 c), or null from Finals on (R41). */
 export function levelLimit(day: number, preset: Preset): number | null {
   return XP_LEVEL_LIMITS[preset.id].find(([lastDay]) => day <= lastDay)?.[1] ?? null
 }

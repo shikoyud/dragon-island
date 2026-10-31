@@ -13,13 +13,13 @@ import { harness } from './harness'
 const at = (level: number, xp = 0): PlayerState => ({ ...newPlayer(0), level, xp })
 
 /** The App's wiring in miniature: the HUD, and the level-up screen over it unless something holds it back. */
-function Host({ hold = false }: { hold?: boolean }) {
+function Host({ hold = false, nowMs = 0 }: { hold?: boolean; nowMs?: number }) {
   const level = useMe().data?.state.level
   const up = useLevelUp(level, hold)
   const [bridge] = useState(() => createBridge())
   return (
     <>
-      <Hud bridge={bridge} nowMs={0} open={null} onOpen={() => {}} placing={false} />
+      <Hud bridge={bridge} nowMs={nowMs} open={null} onOpen={() => {}} placing={false} />
       {up && <LevelUp from={up.from} to={up.to} onClose={up.dismiss} />}
     </>
   )
@@ -108,9 +108,47 @@ describe('level-up screen (R38)', () => {
     const h = harness(at(12, xpToNext(12) + 40))
     h.wrap(<Host />)
     const bar = screen.getByRole('progressbar', { name: 'Experience' })
-    expect(bar).toHaveTextContent('Daily level limit · more tomorrow')
+    expect(bar).toHaveTextContent('Level limit today · more tomorrow')
     expect(bar).toHaveAttribute('aria-valuenow', String(xpToNext(12)))
     expect(bar.querySelector('.hud-xp__fill')).toHaveStyle({ width: '100%' })
+  })
+
+  describe('the banked-XP text reads the synced game day (R41)', () => {
+    const DAY = 86_400_000
+    const game = { launchAtMs: 0, serverNowMs: 0, day: 1 }
+    const banked = at(12, xpToNext(12) + 40)
+
+    it('Flash-14 Day 1: the next day raises the limit, so "more tomorrow"', () => {
+      harness(banked, 0, 'flash14', game).wrap(<Host nowMs={0} />)
+      expect(screen.getByRole('progressbar', { name: 'Experience' })).toHaveTextContent('Level limit today · more tomorrow')
+    })
+
+    it('Flash-28 Day 1 has the same limit tomorrow: "more on Day 3"', () => {
+      harness(banked, 0, 'flash28', game).wrap(<Host nowMs={0} />)
+      expect(screen.getByRole('progressbar', { name: 'Experience' })).toHaveTextContent('Level limit today · more on Day 3')
+    })
+
+    it('Flash-28 Day 4 shares PL 25 with Day 5, so it names Day 6', () => {
+      harness(at(25, xpToNext(25) + 1), 3 * DAY + 5, 'flash28', game).wrap(<Host nowMs={3 * DAY + 5} />)
+      expect(screen.getByRole('progressbar', { name: 'Experience' })).toHaveTextContent('Level limit today · more on Day 6')
+    })
+
+    it('Flash-28 Day 3 says tomorrow, since Day 4 raises it to PL 25', () => {
+      harness(at(18, xpToNext(18) + 1), 2 * DAY + 5, 'flash28', game).wrap(<Host nowMs={2 * DAY + 5} />)
+      expect(screen.getByRole('progressbar', { name: 'Experience' })).toHaveTextContent('Level limit today · more tomorrow')
+    })
+
+    it('once the day has turned and the limit is higher, the normal numbers show (Flash-14 Day 2)', () => {
+      harness(banked, DAY + 5, 'flash14', game).wrap(<Host nowMs={DAY + 5} />)
+      const bar = screen.getByRole('progressbar', { name: 'Experience' })
+      expect(bar).not.toHaveTextContent(/Level limit today/)
+      expect(bar).toHaveTextContent(/XP/)
+    })
+
+    it('and on Flash-28 Day 3, which raises PL 12 to 18', () => {
+      harness(banked, 2 * DAY + 5, 'flash28', game).wrap(<Host nowMs={2 * DAY + 5} />)
+      expect(screen.getByRole('progressbar', { name: 'Experience' })).not.toHaveTextContent(/Level limit today/)
+    })
   })
 
   it('Review Focus 5: banked XP paying on the first action of the next day is one level-up screen', async () => {

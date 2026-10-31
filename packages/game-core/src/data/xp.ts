@@ -28,8 +28,8 @@ export const XP_TO_NEXT: readonly number[] = [
   39993, 41766, 43573, 45414, 47289, 49197, 51139, 53114, 55122,
 ]
 
-/** §7.2 Player Level column, Q1 (c), R40: `[lastDay, maxLevel]` rows through Rush. XP above the day's limit is banked. */
+/** §7.2 Player Level column, Q1 (c), R40, R41: `[lastDay, maxLevel]` rows through Endgame. XP above the day's limit is banked. No limit from Finals on. */
 export const XP_LEVEL_LIMITS: Record<PresetId, readonly (readonly [number, number])[]> = {
-  flash14: [[1, 12], [2, 18], [3, 25], [4, 30]],
-  flash28: [[2, 12], [3, 18], [5, 25], [7, 30]],
+  flash14: [[1, 12], [2, 18], [3, 25], [4, 30], [5, 32], [6, 33], [7, 34], [8, 36], [9, 37], [10, 38], [11, 39], [12, 40]],
+  flash28: [[2, 12], [3, 18], [5, 25], [7, 30], [8, 32], [10, 33], [12, 34], [14, 35], [16, 36], [18, 37], [20, 38], [22, 39], [25, 40]],
 }

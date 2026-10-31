@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { applyAction } from '../src/actions/apply'
 import type { Action } from '../src/actions/types'
 import { getSpecies } from '../src/catalog'
 import { LAUNCH_CATALOG } from '../src/data/launch-catalog'
 import { FLASH_14, FLASH_28, type Preset } from '../src/data/presets'
-import { XP_LEVEL_LIMITS } from '../src/data/xp'
+import { HATCH_XP, XP_LEVEL_LIMITS } from '../src/data/xp'
 import { addRawXp, addXp, breedXpApplies, buildXp, cumulativeXp, levelLimit, settleLevels, xpToNext } from '../src/progression'
 import { createRng } from '../src/rng'
 import { newPlayer, type BreederEgg, type PlayerState } from '../src/state'
@@ -62,6 +62,16 @@ describe('no breed XP from Commons alone (Q1 a)', () => {
     expect(breedAndHatch(parents('terra', 'flame', false), 1).start).toBe(60)
   })
 
+  it('the scripted first hybrid is not XP-free, and pays its hatch XP', () => {
+    const st = parents('terra', 'flame', false)
+    const laid = ok(run(st, { type: 'startBreed', parentA: 'd1', parentB: 'd2' }, 5, FLASH_14, 1))
+    expect(laid.breeders[0]!.egg!.xpFree).toBe(false)
+    const r = breedAndHatch(st, 1)
+    const child = sp(r.speciesId)
+    expect(r.hatch).toBe(HATCH_XP[child.rarity] * FLASH_14.xpMult * (st.discovered.includes(child.id) ? 1 : 2))
+    expect(r.hatch).toBeGreaterThan(0)
+  })
+
   it('Terra x Flame rolling a Common pays 0', () => {
     const st = parents('terra', 'flame')
     const r = breedAndHatch(st, seedFor(st, e => sp(e.speciesId).rarity === 'common'))
@@ -87,13 +97,52 @@ describe('no breed XP from Commons alone (Q1 a)', () => {
   })
 })
 
-describe('the level limit per game day (Q1 b, R40)', () => {
-  it('reads the §7.2 rows and ends with Rush', () => {
-    expect(XP_LEVEL_LIMITS.flash14).toEqual([[1, 12], [2, 18], [3, 25], [4, 30]])
-    expect(XP_LEVEL_LIMITS.flash28).toEqual([[2, 12], [3, 18], [5, 25], [7, 30]])
-    expect([1, 2, 3, 4, 5, 14].map(d => levelLimit(d, FLASH_14))).toEqual([12, 18, 25, 30, null, null])
-    expect([1, 2, 3, 4, 5, 6, 7, 8].map(d => levelLimit(d, FLASH_28))).toEqual([12, 12, 18, 25, 25, 30, 30, null])
+describe('the level limit per game day (Q1 b, R40, R41)', () => {
+  it('reads the §7.2 rows through Endgame', () => {
+    expect(XP_LEVEL_LIMITS.flash14).toEqual([[1, 12], [2, 18], [3, 25], [4, 30], [5, 32], [6, 33], [7, 34], [8, 36], [9, 37], [10, 38], [11, 39], [12, 40]])
+    expect(XP_LEVEL_LIMITS.flash28).toEqual([[2, 12], [3, 18], [5, 25], [7, 30], [8, 32], [10, 33], [12, 34], [14, 35], [16, 36], [18, 37], [20, 38], [22, 39], [25, 40]])
     expect(levelLimit(0, FLASH_14)).toBe(12) // before launch
+  })
+
+  it('levelLimit at every row boundary, and none from Finals on', () => {
+    for (const preset of [FLASH_14, FLASH_28]) {
+      let prev = 0
+      for (const [lastDay, max] of XP_LEVEL_LIMITS[preset.id]) {
+        expect(levelLimit(prev + 1, preset), `${preset.id} day ${prev + 1}`).toBe(max)
+        expect(levelLimit(lastDay, preset), `${preset.id} day ${lastDay}`).toBe(max)
+        prev = lastDay
+      }
+      expect(levelLimit(prev + 1, preset)).toBeNull()
+    }
+    expect(levelLimit(13, FLASH_14)).toBeNull()
+    expect(levelLimit(26, FLASH_28)).toBeNull()
+    expect(levelLimit(12, FLASH_14)).toBe(40)
+    expect(levelLimit(25, FLASH_28)).toBe(40)
+  })
+
+  it('R41: a bank of XP for PL 45 on Flash-14 reaches PL 32 on Day 5 only, PL 40 on Day 12, and the rest on Day 13', () => {
+    const bank = (pl: number, extra = 0): PlayerState => ({ ...base, level: 12, xp: cumulativeXp(pl) - cumulativeXp(12) + extra })
+    const d5 = settleLevels(bank(45), FLASH_14, 5)
+    expect(d5).toMatchObject({ level: 32, xp: cumulativeXp(45) - cumulativeXp(32) })
+    const d12 = settleLevels(d5, FLASH_14, 12)
+    expect(d12).toMatchObject({ level: 40, xp: cumulativeXp(45) - cumulativeXp(40) })
+    expect(settleLevels(d12, FLASH_14, 13)).toMatchObject({ level: 45, xp: 0 })
+    // Day 13 pays all the way to the cap and keeps the remainder.
+    expect(settleLevels(bank(50, 777), FLASH_14, 13)).toMatchObject({ level: 50, xp: 777 })
+    expect(settleLevels(bank(50, 777), FLASH_14, 12)).toMatchObject({ level: 40 })
+  })
+
+  it('R41: banked XP pays before the action is judged, so a first action on a new day sees the new level', () => {
+    // Level 11 holding XP for PL 14: Frost Berries need PL 12.
+    const held: PlayerState = { ...base, level: 11, xp: xpToNext(11) + xpToNext(12) + xpToNext(13) + 5, gold: 1_000_000 }
+    const r = run(held, { type: 'plant', plot: 0, crop: 'frostBerries' }, 2)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.state).toMatchObject({ level: 14, xp: 5 })
+    // Contrast: Warlord Pepper needs PL 15. On Day 1 (limit 12) it is refused; on Day 2 (limit 18) the same bank opens it.
+    const rich: PlayerState = { ...base, level: 12, xp: cumulativeXp(16) - cumulativeXp(12), gold: 1_000_000 }
+    const pepper = { type: 'plant', plot: 0, crop: 'warlordPepper' } as const
+    expect(run(rich, pepper, 1)).toMatchObject({ ok: false, error: 'LEVEL_TOO_LOW' })
+    expect(ok(run(rich, pepper, 2))).toMatchObject({ level: 16, xp: 0 })
   })
 
   const toPl = (pl: number): PlayerState => ({ ...base, xp: cumulativeXp(pl) })
@@ -107,10 +156,12 @@ describe('the level limit per game day (Q1 b, R40)', () => {
     expect(paid).toMatchObject({ level: 15, xp: 0 })
   })
 
-  it('a refused action pays nothing', () => {
+  it('a refused action pays nothing; the retry through a successful Day 2 action pays the bank', () => {
     const banked = settleLevels(toPl(15), FLASH_14, 1)
-    expect(run(banked, { type: 'harvest', plot: 0 }, 2).ok).toBe(false)
-    expect(banked.level).toBe(12)
+    const refused = run(banked, { type: 'harvest', plot: 0 }, 2)
+    expect(refused.ok).toBe(false)
+    if (!refused.ok) expect('state' in refused).toBe(false)
+    expect(ok(run(banked, { type: 'collectGold', habitatId: 'h1' }, 2))).toMatchObject({ level: 15, xp: 0 })
   })
 
   it('a same-day action leaves the bank alone', () => {
@@ -137,14 +188,14 @@ describe('the level limit per game day (Q1 b, R40)', () => {
     expect(day4).toMatchObject({ level: 30, xp: 0 })
   })
 
-  it('Day 5 has no limit', () => {
-    expect(settleLevels(toPl(40), FLASH_14, 5)).toMatchObject({ level: 40, xp: 0 })
-    expect(settleLevels(toPl(40), FLASH_14, 4)).toMatchObject({ level: 30 })
+  it('Day 13 (Finals) has no limit; Day 12 stops at PL 40', () => {
+    expect(settleLevels(toPl(45), FLASH_14, 13)).toMatchObject({ level: 45, xp: 0 })
+    expect(settleLevels(toPl(45), FLASH_14, 4)).toMatchObject({ level: 30 })
   })
 
   it('Flash-28 limits by its own rows', () => {
-    for (const [day, level] of [[1, 12], [2, 12], [3, 18], [4, 25], [5, 25], [6, 30], [7, 30], [8, 40]] as const) {
-      expect(settleLevels(toPl(40), FLASH_28, day).level, `day ${day}`).toBe(level)
+    for (const [day, level] of [[1, 12], [2, 12], [3, 18], [4, 25], [5, 25], [6, 30], [7, 30], [8, 32], [10, 33], [25, 40], [26, 45]] as const) {
+      expect(settleLevels(toPl(45), FLASH_28, day).level, `day ${day}`).toBe(level)
     }
   })
 
@@ -191,7 +242,8 @@ describe('non-stop bots hold to the §4.3 targets', () => {
 })
 
 describe('the casual bot: 6 sessions of 30 minutes a day, on the Gold and Food the game gives', () => {
-  const r = runBot(casual(FLASH_14, 50, 5))
+  let r: BotResult
+  beforeAll(() => { r = runBot(casual(FLASH_14, 50, 12)) }, 30_000)
 
   it('is inside the brief\'s bound: PL 12 by Day 2, PL 30 by Day 8', () => {
     expect(dayOf(r, 12)).toBeLessThanOrEqual(2)
@@ -207,11 +259,27 @@ describe('the casual bot: 6 sessions of 30 minutes a day, on the Gold and Food t
     expect(hoursOf(r, 30)).toBeLessThan(72.5)
   })
 
-  it('pins the jump when the limits end (R40): the bank carries it past PL 40 on Day 5', () => {
-    // A finding, not a target: §7.2 has PL 32 to 40 for Days 6-12. See the Task 8 report.
-    expect(dayOf(r, 40)).toBe(5)
-    expect(hoursOf(r, 40)).toBeLessThan(96.5)
-    expect(r.final.level).toBeGreaterThanOrEqual(42)
-    expect(r.final.level).toBeLessThanOrEqual(48)
+  it('stays on §7.2 through Day 12 (R41): at most PL 32 at the end of Day 5, PL 40 at the end of Day 12', () => {
+    expect(r.endOfDay).toHaveLength(12)
+    expect(r.endOfDay[4]).toBeLessThanOrEqual(32)
+    expect(r.endOfDay[11]).toBeLessThanOrEqual(40)
+    expect(r.endOfDay.every((pl, i) => pl <= (levelLimit(i + 1, FLASH_14) ?? 50))).toBe(true)
+    expect(r.endOfDay).toEqual([12, 18, 25, 30, 32, 33, 34, 36, 37, 38, 39, 40]) // paced by the limit, as measured
   })
+})
+
+describe('non-stop bots stay on §7.2 through Day 12 (R41)', () => {
+  const plans: readonly BotPlan[] = [
+    harvestLoop(FLASH_14, 50, 12), harvestAndFeed(FLASH_14, 50, 12), breedLoop(FLASH_14, 50, 12, 1), breedLoop(FLASH_14, 50, 12, 2),
+  ]
+  for (const plan of plans) {
+    it(`Flash-14 ${plan.name} (seed ${plan.seed ?? 1}): at most PL 32 at the end of Day 5, PL 40 at the end of Day 12`, () => {
+      const r = runBot(plan)
+      expect(r.endOfDay).toHaveLength(12)
+      expect(r.endOfDay[4]).toBeLessThanOrEqual(32)
+      expect(r.endOfDay[11]).toBeLessThanOrEqual(40)
+      expect(r.endOfDay.every((pl, i) => pl <= (levelLimit(i + 1, FLASH_14) ?? 50))).toBe(true)
+      expect(r.endOfDay).toEqual([12, 18, 25, 30, 32, 33, 34, 36, 37, 38, 39, 40])
+    }, 30_000)
+  }
 })

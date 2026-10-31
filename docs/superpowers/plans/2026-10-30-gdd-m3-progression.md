@@ -265,6 +265,10 @@ export function goalProgress(s: PlayerState, g: GoalRow, c: Catalog): { have: nu
 - [ ] **Step 4: Run tests + typecheck** — expected: PASS.
 - [ ] **Step 5: Commit** — `feat(game-core): XP farming fix per Q1, pinned by bots playing the real rules`
 
+### Task 8b: Level limits through Endgame (§7.2, R41)
+
+Built from `.superpowers/sdd/2026-10-30-gdd-m3-progression/task-8b-brief.md`; commit `feat(game-core): level limits through Endgame from §7.2 (R41)`.
+
 ### Task 9: Art list for the PixelLab thread
 
 **Files:**
@@ -310,7 +314,8 @@ Also recorded in `docs/superpowers/specs/2026-10-30-gdd-rulings.md`.
 | R37 | **Goals need a Claim tap**, are checked from state and simple counters, and count progress from the start of the game, so one already met can be claimed at once. | Keeps them pure and forgiving. |
 | R38 | **The level-up screen pays nothing**: it reports new levels and what opened, and combines a jump into one screen. | §4.3 and §4.4 list no level rewards. |
 | R39 | **The maximum Player Level stays 50**, with the curve through PL 49. | §7.2 says "40+"; §5.5's last gate is PL 40. |
-| R40 | **If Q1 (b) or (c):** XP above the day's limit is banked and pays on the first action of the next day. Limits end with Rush. | Nobody loses play; §7.2's Endgame row says only "30+". |
+| R40 | **If Q1 (b) or (c):** XP above the day's limit is banked and pays on the first action of the next day. Limits run per R41. | Nobody loses play; §7.2's Endgame row says only "30+". |
+| R41 | **Level limits run through Endgame** from §7.2's table, replacing R40's "limits end with Rush"; banking stays; no limit from Finals on. | Without it a casual player (6 × 30 min a day) reaches PL 30 at 20 h and PL 40 at 48 h, and banked XP jumped PL 30 to PL 45 on Day 5, against §7.2's PL 32–40 across Days 6–12. |
 
 ## Self-review notes
 

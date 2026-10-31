@@ -1,4 +1,4 @@
-import { LAUNCH_CATALOG, type Catalog } from '@wyrmhaven/game-core'
+import { LAUNCH_CATALOG, PRESETS, settleLevels, type Catalog } from '@wyrmhaven/game-core'
 import { eq, sql } from 'drizzle-orm'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { getAddress, type Address, type Hex } from 'viem'
@@ -125,7 +125,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     const p = req.player!
     const [bal] = await db.select().from(balances).where(eq(balances.playerId, p.id))
     // Same load path as /actions, so a save of another version reaches the client as a fresh player (R2).
-    const state = migrateState(p.state, clock(), () => onStateReset(p.id))
+    const loaded = migrateState(p.state, clock(), () => onStateReset(p.id))
+    const gameNow = await gameInfo(db, clock, config)
+    // R41: banked XP the new day has released is shown at once; display only, the row changes on the next action.
+    const state = settleLevels(loaded, PRESETS[config.PRESET], gameNow.day)
     return {
       playerId: p.id,
       address: getAddress(p.address),
@@ -134,7 +137,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
       earningUnlocked: p.earningUnlocked,
       banned: p.bannedAt !== null,
       termsRequired: termsRequired(config, p),
-      game: await gameInfo(db, clock, config),
+      game: gameNow,
     }
   })
 

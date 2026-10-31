@@ -1,4 +1,4 @@
-import { xpToNext } from '@wyrmhaven/game-core'
+import { gameDay, xpToNext } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import { useEffect, useRef, type ReactNode } from 'react'
 import type { Bridge, Target } from '../game/bridge'
@@ -6,6 +6,7 @@ import { timerLabel } from '../game/islandModel'
 import { TOKEN_KEY as ADMIN_TOKEN_KEY } from '../pages/Admin'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
+import { presetOf } from '../state/preset'
 import { formatGold, formatWei } from '../ui/Money'
 import { attentionItems, goalClaimable, xpBarText, xpFraction, type AttentionItem } from './hudModel'
 import { Icon, type IconName } from './Icon'
@@ -117,7 +118,7 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
           <span className="hud-avatar__badge" aria-label={`Level ${s.level}`}>{s.level}</span>
           <div className="hud-xp" role="progressbar" aria-label="Experience" aria-valuemin={0} aria-valuemax={Number.isFinite(xpToNext(s.level)) ? xpToNext(s.level) : s.xp} aria-valuenow={Number.isFinite(xpToNext(s.level)) ? Math.min(s.xp, xpToNext(s.level)) : s.xp}>
             <span className="hud-xp__fill" style={{ width: `${Math.round(xpFraction(s) * 100)}%` }} />
-            <span className="hud-xp__text">{xpBarText(s, formatGold)}</span>
+            <span className="hud-xp__text">{xpBarText(s, formatGold, data.game ? { preset: presetOf(data), day: gameDay(data.game.launchAtMs, nowMs) } : undefined)}</span>
           </div>
         </div>
         <div className="hud-pills" role="status" aria-label="Resources">

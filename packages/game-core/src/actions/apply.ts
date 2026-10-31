@@ -21,8 +21,9 @@ export function applyAction(
 ): ActionResult {
   if (!isValidAction(a)) return failure('INVALID_ACTION')
   const ctx: ActionCtx = { nowMs, rng, catalog, preset, day }
-  const r = dispatch(s, a, ctx)
-  // Banked XP pays on the next day's first action, even one that awards no XP (R40).
+  // Banked XP pays before the action is judged, so a first action on a new day sees the new level (R41);
+  // and again after it, for what the action itself awarded.
+  const r = dispatch(settleLevels(s, preset, day), a, ctx)
   return r.ok ? { ...r, state: settleLevels(r.state, preset, day) } : r
 }
 

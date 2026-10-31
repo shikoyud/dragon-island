@@ -1,4 +1,4 @@
-import { applyAction, newPlayer, skipPriceMicroUsd, type PlayerState } from '@wyrmhaven/game-core'
+import { applyAction, cumulativeXp, newPlayer, skipPriceMicroUsd, type PlayerState } from '@wyrmhaven/game-core'
 import { eq, sql } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { actionLog, balances, players, spendBatches } from '../src/db/schema'
@@ -241,6 +241,23 @@ describe('POST /actions', () => {
     expect(r.statusCode).toBeLessThan(500)
     expect(r.json().state).not.toHaveProperty('pity')
     expect(resets()).toHaveLength(2)
+  })
+
+  it('GET /me shows the banked XP the new day releases, with no action, and leaves the stored row alone (R41)', async () => {
+    const bank = cumulativeXp(15) - cumulativeXp(12)
+    await setState({ level: 12, xp: bank })
+    const stored = async () => (await t.db.select().from(players).where(eq(players.id, playerId)))[0]!.state as PlayerState
+    await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) }) // creates the game row at clock 0
+    const day1 = (await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })).json()
+    expect(day1.state).toMatchObject({ level: 12, xp: bank })
+    t.clock.set(86_400_000 + 1_000) // game day 2: limit PL 18
+    const day2 = (await t.app.inject({ method: 'GET', url: '/me', headers: bearer(token) })).json()
+    expect(day2.game.day).toBe(2)
+    expect(day2.state).toMatchObject({ level: 15, xp: 0 })
+    expect(await stored()).toMatchObject({ level: 12, xp: bank })
+    // The next action pays it for real.
+    expect((await post({ type: 'collectGold', habitatId: 'h1' })).json().state).toMatchObject({ level: 15, xp: 0 })
+    expect(await stored()).toMatchObject({ level: 15, xp: 0 })
   })
 
   it('passes the game day to applyAction, from the game row when LAUNCH_AT is unset', async () => {
