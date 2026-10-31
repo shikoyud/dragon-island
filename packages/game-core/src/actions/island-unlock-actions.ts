@@ -49,7 +49,6 @@ export const clearObstacle: Handler<'clearObstacle'> = (s, a, ctx) => {
   if (!paid) return failure('INSUFFICIENT_GOLD')
   const busy = busyError(paid, 'clear')
   if (busy) return failure(busy)
-  const started = startConstruction(paid, { kind: 'clear', obstacleId: o.id }, clearTimerMs(o.kind, ctx.preset), ctx.nowMs)
-  if (!started) return failure('CLEARS_BUSY')
-  return success(started)
+  // busyError above is the same check startConstruction makes, so this cannot be null.
+  return success(startConstruction(paid, { kind: 'clear', obstacleId: o.id }, clearTimerMs(o.kind, ctx.preset), ctx.nowMs)!)
 }

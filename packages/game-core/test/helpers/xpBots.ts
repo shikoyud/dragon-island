@@ -100,7 +100,7 @@ export function runBot(p: BotPlan): BotResult {
     }
     const next = ISLAND_ORDER.find(i => !s.islands.unlocked.includes(i))
     if (next && next !== 'home' && act({ type: 'buyBridge', island: next })) return
-    // Nothing to buy: clear what blocks the cheapest cell for this building, the cheapest blocker first. Clears have their own limit.
+    // Nothing to buy: clear what blocks the cheapest cell for this building, the cheapest blocker first. A clear runs against MAX_CLEARS, not the builders (`builderFree` above still counts a clear as a busy builder, which is conservative).
     if (activeClears(s) >= MAX_CLEARS) return
     let blockers: Obstacle[] | null = null
     for (const island of s.islands.unlocked) {

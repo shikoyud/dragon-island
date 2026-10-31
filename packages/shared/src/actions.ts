@@ -1,4 +1,4 @@
-import { CROP_IDS, DECORATIONS, ELEMENTS, ISLAND_ORDER, MAX_DRAGON_LEVEL, MAX_ROUNDS, PLOTS_PER_SIDE, TEAM_SIZE, type Action, type CropId, type DecorationId, type Element, type IslandId } from '@wyrmhaven/game-core'
+import { CROP_IDS, DECORATIONS, ELEMENTS, ISLAND_ORDER, ISLAND_TILES, MAX_DRAGON_LEVEL, MAX_ROUNDS, PLOTS_PER_SIDE, TEAM_SIZE, type Action, type CropId, type DecorationId, type Element, type IslandId } from '@wyrmhaven/game-core'
 import { z } from 'zod'
 
 // Mirrors game-core's isValidAction: the client sends JSON, this is the wire-level shape check.
@@ -6,7 +6,7 @@ const id = z.string().min(1)
 const index = z.number().int().min(0)
 const level = z.number().int().min(1).max(MAX_DRAGON_LEVEL)
 const elementSchema = z.enum(ELEMENTS as unknown as [Element, ...Element[]])
-const coord = z.number().int().min(0).max(63)
+const coord = z.number().int().min(0).max(ISLAND_TILES - 1)
 const decorationSchema = z.custom<DecorationId>(v => typeof v === 'string' && Object.hasOwn(DECORATIONS, v))
 const cropSchema = z.enum(CROP_IDS as [CropId, ...CropId[]])
 

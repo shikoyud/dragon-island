@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { applyAction } from '../src/actions/apply'
 import type { Action } from '../src/actions/types'
 import { isValidAction } from '../src/index'
+import { ISLAND_TILES } from '../src/plots'
 import { getSpecies } from '../src/catalog'
 import { breederBreedMs, hatcherySlots } from '../src/buildings'
 import { breedTimerMs } from '../src/data/breeding-timers'
@@ -116,6 +117,21 @@ describe('moveBuilding between plots and islands (R57)', () => {
     expect(a.dragons).toEqual(t.dragons)
     expect(a.xp).toBe(t.xp)
   })
+  it('a collect after a move pays the same Gold as one without it, once', () => {
+    const t = { ...two, habitats: two.habitats.map(h => h.id === 'h1' ? { ...h, lastCollectedMs: 0 } : h) }
+    const later = 3_600_000
+    const straight = ok(run(t, { type: 'collectGold', habitatId: 'h1' }, later))
+    const paid = straight.gold - t.gold
+    expect(paid).toBeGreaterThan(0)
+    const moved = ok(run(t, { type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: at2 }, later / 2))
+    expect(moved.gold).toBe(t.gold) // the move itself pays nothing
+    const collected = ok(run(moved, { type: 'collectGold', habitatId: 'h1' }, later))
+    expect(collected.gold - t.gold).toBe(paid)
+    expect(collected.habitats[0]!.lastCollectedMs).toBe(later)
+    // Collecting again at once pays nothing more.
+    const again = run(collected, { type: 'collectGold', habitatId: 'h1' }, later)
+    expect(again.ok ? again.state.gold : collected.gold).toBe(collected.gold)
+  })
   it('crosses a plot border on the same island for free', () => {
     const a = ok(run(s, { type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: P(14, 13) }, 0))
     expect(a.habitats[0]!.placement).toEqual(P(14, 13))
@@ -140,6 +156,11 @@ describe('isValidAction placements', () => {
       expect(isValidAction({ type: 'moveBuilding', target: { type: 'hatchery' }, placement })).toBe(false)
     expect(isValidAction({ type: 'placeBuilding', building: { kind: 'decoration', decoration: 'constructor' }, placement: P(0, 0) })).toBe(false)
     expect(isValidAction({ type: 'moveBuilding', target: { type: 'hatchery' }, placement: P(0, 0) })).toBe(true)
+  })
+  it('bounds a coordinate to the island: ISLAND_TILES - 1 is the last tile', () => {
+    expect(isValidAction({ type: 'moveBuilding', target: { type: 'hatchery' }, placement: P(ISLAND_TILES - 1, ISLAND_TILES - 1) })).toBe(true)
+    expect(isValidAction({ type: 'moveBuilding', target: { type: 'hatchery' }, placement: P(ISLAND_TILES, 0) })).toBe(false)
+    expect(isValidAction({ type: 'moveBuilding', target: { type: 'hatchery' }, placement: P(0, ISLAND_TILES) })).toBe(false)
   })
 })
 

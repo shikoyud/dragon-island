@@ -1,4 +1,4 @@
-import { isValidAction } from '@wyrmhaven/game-core'
+import { ISLAND_TILES, isValidAction } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { actionSchema, clientActionSchema, storeItemSchema } from '../src/actions'
 
@@ -154,6 +154,17 @@ describe('land actions (§5.5)', () => {
       expect(schema.safeParse({ type: 'buyBridge', island: 'home' }).success).toBe(false)
       expect(schema.safeParse({ type: 'expandIsland' }).success).toBe(false)
       expect(schema.safeParse({ type: 'unlockIsland' }).success).toBe(false)
+    }
+  })
+})
+
+describe('placement coordinates stop at the island edge', () => {
+  it('accepts the last tile and refuses the first one past it, as isValidAction does', () => {
+    for (const schema of [actionSchema, clientActionSchema]) {
+      const at = (col: number, row: number) => ({ type: 'moveBuilding', target: { type: 'hatchery' }, placement: { ...PL, col, row } })
+      expect(schema.safeParse(at(ISLAND_TILES - 1, ISLAND_TILES - 1)).success).toBe(true)
+      expect(schema.safeParse(at(ISLAND_TILES, 0)).success).toBe(false)
+      expect(schema.safeParse(at(0, ISLAND_TILES)).success).toBe(false)
     }
   })
 })

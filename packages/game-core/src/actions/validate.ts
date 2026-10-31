@@ -5,7 +5,7 @@ import { ELEMENTS } from '../elements'
 import { CROPS } from '../farm'
 import { ISLAND_ORDER } from '../island'
 import { SPEED_UP_TOKEN_MS } from '../data/speedups'
-import { isPlot } from '../plots'
+import { ISLAND_TILES, isPlot } from '../plots'
 import type { Action } from './types'
 
 /**
@@ -73,7 +73,7 @@ const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0
 const isSkipTarget = (v: unknown): boolean => ['breeder', 'hatchery', 'farm', 'construction'].includes(v as string)
 const isIndex = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0
 const isIsland = (v: unknown): boolean => (ISLAND_ORDER as readonly unknown[]).includes(v)
-const isCoord = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 0 && (v as number) < 64
+const isCoord = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 0 && (v as number) < ISLAND_TILES
 function isPlacement(v: unknown): boolean {
   if (typeof v !== 'object' || v === null) return false
   const p = v as Record<string, unknown>
