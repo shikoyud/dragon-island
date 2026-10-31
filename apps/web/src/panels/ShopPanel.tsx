@@ -18,7 +18,24 @@ export type ShopTab = 'build' | 'store'
 const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1)
 /** "flowerPatch" -> "Flower patch". */
 const decorationName = (id: DecorationId) => cap(id.replace(/([A-Z])/g, ' $1').toLowerCase())
-const NO_ROOM = 'No room: buy a plot'
+const NO_ROOM = 'No room: clear or buy land'
+
+/**
+ * Whether each decoration has a legal cell. One scan per footprint (a decoration of the same size has the same cells), and
+ * none for an item of another island, whose row already says `<Island> only`.
+ */
+function decorationRoom(s: PlayerState, view: IslandId): Record<DecorationId, boolean> {
+  const bySize = new Map<number, boolean>()
+  const out = {} as Record<DecorationId, boolean>
+  for (const id of Object.keys(DECORATIONS) as DecorationId[]) {
+    const d = DECORATIONS[id]
+    if (d.island && d.island !== view) { out[id] = true; continue }
+    const key = d.size + (d.island ? 10 : 0)
+    if (!bySize.has(key)) bySize.set(key, hasLegalCell(s, { kind: 'decoration', decoration: id }))
+    out[id] = bySize.get(key)!
+  }
+  return out
+}
 
 export interface ShopPanelProps {
   onPlace: (what: Placing['what'], size: Footprint) => void
@@ -38,14 +55,16 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
   const [tab, setTab] = useState<ShopTab>(initial)
   const s = me.data?.state
   // One scan for the habitat rows (the Golden Aerie shares the footprint), one each for the Grove and the Roost; not tied to the clock.
-  const { room, groveRoom, roostRoom } = useMemo(
+  const { room, groveRoom, roostRoom, farmRoom, decoRoom } = useMemo(
     () => ({
       room: s ? hasLegalCell(s, { kind: 'habitat', element: 'terra' }) : false,
       groveRoom: s ? hasLegalCell(s, { kind: 'grove' }) : false,
       roostRoom: s ? hasLegalCell(s, { kind: 'roost' }) : false,
+      farmRoom: s ? hasLegalCell(s, { kind: 'farm' }) : false,
+      decoRoom: s ? decorationRoom(s, view) : ({} as Record<DecorationId, boolean>),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s?.islands, s?.habitats, s?.breeders, s?.farms, s?.decorations, s?.hatcheryPlacement, s?.roostPlacement, s?.constructions],
+    [view, s?.islands, s?.habitats, s?.breeders, s?.farms, s?.decorations, s?.hatcheryPlacement, s?.roostPlacement, s?.constructions],
   )
   if (!s) return null
   return (
@@ -55,7 +74,7 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
         <button type="button" role="tab" className="hud-tab" aria-selected={tab === 'store'} onClick={() => setTab('store')}>Store</button>
       </div>
       <div role="tabpanel" aria-label={tab === 'build' ? 'Build' : 'Store'}>
-        {tab === 'build' ? <BuildTab s={s} onPlace={onPlace} view={view} room={room} groveRoom={groveRoom} roostRoom={roostRoom} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
+        {tab === 'build' ? <BuildTab s={s} onPlace={onPlace} view={view} room={room} groveRoom={groveRoom} roostRoom={roostRoom} farmRoom={farmRoom} decoRoom={decoRoom} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
       </div>
     </Panel>
   )
@@ -69,7 +88,7 @@ const section = (key: string, title: string, items: ReactNode) => (
 )
 
 /** Gold-and-level shop for everything that goes on the grid (spec section 8). */
-function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean; groveRoom: boolean; roostRoom: boolean }) {
+function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom, farmRoom, decoRoom }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean; groveRoom: boolean; roostRoom: boolean; farmRoom: boolean; decoRoom: Record<DecorationId, boolean> }) {
   const card = (id: string, label: string, price: string, reason: string | undefined, what: Placing['what'], size: Footprint) => (
     <li key={id}>
       <ActionButton id={`shop-${id}`} disabled={Boolean(reason)} reason={reason} onClick={() => onPlace(what, size)}>
@@ -115,11 +134,11 @@ function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom }: { s: PlayerS
       {section('roost', 'Roost', card('roost', 'Dragon Roost', `${formatGold(roost.gold)} gold`,
         gold(roost.gold, unlockPl('roost:1'), s.roostPlacement ? 'Already built' : roostRoom ? undefined : NO_ROOM), { kind: 'roost' }, ROOST_FOOTPRINT))}
       {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_FARMS ? 'maximum' : `${formatGold(farmBuildGold(plots + 1))} gold`,
-        plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), unlockPl(`farm:${plots + 1}` as UnlockKey)), { kind: 'farm' }, FOOTPRINT.farm))}
+        plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), unlockPl(`farm:${plots + 1}` as UnlockKey), farmRoom ? undefined : NO_ROOM), { kind: 'farm' }, FOOTPRINT.farm))}
       {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {
         const d = DECORATIONS[id]
         // Locked items stay visible, greyed (spec section 8): an item for one island says so anywhere else.
-        const reason = d.island && d.island !== view ? `${ISLANDS[d.island].name} only` : gold(d.cost, d.minLevel)
+        const reason = d.island && d.island !== view ? `${ISLANDS[d.island].name} only` : gold(d.cost, d.minLevel, decoRoom[id] ? undefined : NO_ROOM)
         return card(`deco-${id}`, decorationName(id), `${formatGold(d.cost)} gold`, reason, { kind: 'decoration', decoration: id }, d.size)
       }))}
     </>

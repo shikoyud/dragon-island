@@ -13,6 +13,7 @@ import { UpgradeSection } from '../src/panels/UpgradeSection'
 import { StartPlacingProvider } from '../src/state/startPlacing'
 import * as placing from '../src/state/placing'
 import { harness, TestHost } from './harness'
+import { withIsland } from './land'
 
 const base = newPlayer(0)
 const h1 = { type: 'habitat', id: 'h1' } as const
@@ -84,7 +85,7 @@ describe('ShopPanel Build tab', () => {
       expect(b).toHaveAccessibleDescription("Warlord's Crown only")
     }
     r.unmount()
-    harness(rich).wrap(<ShopPanel onPlace={vi.fn()} view="isle6" nowMs={0} />)
+    harness(withIsland(rich, 'isle6')).wrap(<ShopPanel onPlace={vi.fn()} view="isle6" nowMs={0} />)
     expect(screen.getByRole('button', { name: /Star pool/ })).toBeEnabled()
   })
 })
@@ -175,10 +176,11 @@ describe('the Shop checks for room once', () => {
     const h = harness(st)
     const ui = (nowMs: number) => <ShopPanel onPlace={vi.fn()} view="home" nowMs={nowMs} />
     const r = h.wrap(ui(0))
-    expect(spy).toHaveBeenCalledTimes(3)
+    // 5x5 habitats, Grove, Roost, Farm, and one per decoration footprint (1, 2 and 3 on Home).
+    expect(spy).toHaveBeenCalledTimes(7)
     r.rerender(ui(1_000))
     r.rerender(ui(2_000))
-    expect(spy).toHaveBeenCalledTimes(3)
+    expect(spy).toHaveBeenCalledTimes(7)
     spy.mockRestore()
   })
 })
@@ -195,29 +197,45 @@ describe('ShopPanel rows that need a free grid cell', () => {
     harness(fresh).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
     const sea = within(screen.getByTestId('shop-habitats')).getByRole('button', { name: /sea habitat/i })
     expect(sea).toBeEnabled()
-    expect(sea).not.toHaveAccessibleDescription('No room: buy a plot')
+    expect(sea).not.toHaveAccessibleDescription('No room: clear or buy land')
   })
 
   it('disables habitats only when no cell really exists', () => {
     harness(fill(rich, 'home')).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
     for (const b of rows()) {
       expect(b).toBeDisabled()
-      expect(b).toHaveAccessibleDescription('No room: buy a plot')
+      expect(b).toHaveAccessibleDescription('No room: clear or buy land')
     }
+  })
+
+  it('gives the Farm and decoration rows the same room reason, so none opens a red ghost in the fog', () => {
+    harness(fill(rich, 'home')).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
+    const farm = within(screen.getByTestId('shop-farming')).getByRole('button', { name: /Farm plot/ })
+    expect(farm).toBeDisabled()
+    expect(farm).toHaveAccessibleDescription('No room: clear or buy land')
+    const flower = within(screen.getByTestId('shop-decorations')).getByRole('button', { name: /Flower patch/ })
+    expect(flower).toBeDisabled()
+    expect(flower).toHaveAccessibleDescription('No room: clear or buy land')
+  })
+
+  it('opens them on a fresh island', () => {
+    harness({ ...base, level: 7, gold: 100_000 }).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
+    expect(within(screen.getByTestId('shop-farming')).getByRole('button', { name: /Farm plot/ })).toBeEnabled()
+    expect(within(screen.getByTestId('shop-decorations')).getByRole('button', { name: /Flower patch/ })).toBeEnabled()
   })
 
   it('disables the Golden Aerie there too', () => {
     harness(fill(rich, 'home')).wrap(<ShopPanel tab="store" onPlace={vi.fn()} view="home" nowMs={0} />)
     const aerie = screen.getByRole('button', { name: /golden aerie/i })
     expect(aerie).toBeDisabled()
-    expect(aerie).toHaveAccessibleDescription('No room: buy a plot')
+    expect(aerie).toHaveAccessibleDescription('No room: clear or buy land')
   })
 
   it('opens them again once a plot makes room', () => {
     let st = fill(rich, 'home')
     expect(placing.hasLegalCell(st, terra)).toBe(false)
     const none = harness(st).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
-    for (const b of rows()) expect(b).toHaveAccessibleDescription('No room: buy a plot')
+    for (const b of rows()) expect(b).toHaveAccessibleDescription('No room: clear or buy land')
     none.unmount()
     st = act(st, { type: 'buyPlot', island: 'home', plot: 7 })
     expect(placing.hasLegalCell(st, terra)).toBe(true)
@@ -225,17 +243,17 @@ describe('ShopPanel rows that need a free grid cell', () => {
     for (const b of rows()) expect(b).toBeEnabled()
     r.unmount()
     harness(st).wrap(<ShopPanel tab="store" onPlace={vi.fn()} view="home" nowMs={0} />)
-    expect(screen.getByRole('button', { name: /golden aerie/i })).not.toHaveAccessibleDescription('No room: buy a plot')
+    expect(screen.getByRole('button', { name: /golden aerie/i })).not.toHaveAccessibleDescription('No room: clear or buy land')
   })
 
   it('sells habitats where a 4x4 spot is left, though no 5x5 cell is for the Grove (§5.4)', () => {
     const st = fill({ ...base, level: 12, gold: 1_000_000 }, 'home', (col, row) => col >= 20 && row >= 20)
     const r = harness(st).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
     expect(rows()[0]).toBeEnabled()
-    expect(within(screen.getByTestId('shop-breeding')).getByRole('button', { name: /Breeding Grove/ })).toHaveAccessibleDescription('No room: buy a plot')
+    expect(within(screen.getByTestId('shop-breeding')).getByRole('button', { name: /Breeding Grove/ })).toHaveAccessibleDescription('No room: clear or buy land')
     r.unmount()
     harness(fill(st, 'home')).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
-    expect(rows()[0]).toHaveAccessibleDescription('No room: buy a plot')
+    expect(rows()[0]).toHaveAccessibleDescription('No room: clear or buy land')
   })
 })
 
