@@ -88,11 +88,14 @@ export function loadArt(scene: Phaser.Scene, art: GameArtSet): void {
   })
 }
 
-/** Ticks the water tile sprite through its frames; does nothing for a still, reduced motion or a sheet whose frames are missing. */
-export function animateWater(scene: Phaser.Scene, water: Phaser.GameObjects.TileSprite, key: string, frames: number, fps: number, reducedMotion: boolean): void {
-  if (frames <= 1 || fps <= 0 || reducedMotion || !hasFrames(scene, key, frames)) return
+/**
+ * Ticks the water tile sprite through its frames and returns the looping timer, so whoever rebuilds the water can remove it;
+ * null (nothing started) for a still, reduced motion or a sheet whose frames are missing.
+ */
+export function animateWater(scene: Phaser.Scene, water: Phaser.GameObjects.TileSprite, key: string, frames: number, fps: number, reducedMotion: boolean): Phaser.Time.TimerEvent | null {
+  if (frames <= 1 || fps <= 0 || reducedMotion || !hasFrames(scene, key, frames)) return null
   let f = 0
-  scene.time.addEvent({ delay: 1000 / fps, loop: true, callback: () => { if (water.active) water.setFrame(f = (f + 1) % frames) } })
+  return scene.time.addEvent({ delay: 1000 / fps, loop: true, callback: () => { if (water.active) water.setFrame(f = (f + 1) % frames) } })
 }
 
 /** Animation key for a sprite sheet texture. */

@@ -83,4 +83,14 @@ describe('failed sheets and the water timer', () => {
     animateWater(mk(true), water, 'art:ground.water', 4, 6, false)
     expect(addEvent).toHaveBeenCalledTimes(1)
   })
+
+  it('hands back the water timer so a rebuild can remove it (no timer per ground-key change), or null when still', () => {
+    const timer = { remove: vi.fn() }
+    const addEvent = vi.fn(() => timer)
+    const mk = (has: boolean) => ({ time: { addEvent }, textures: { exists: () => has, get: () => ({ has: () => has }) } }) as unknown as Phaser.Scene
+    const water = { active: true, setFrame: vi.fn() } as unknown as Phaser.GameObjects.TileSprite
+    expect(animateWater(mk(true), water, 'art:ground.water', 4, 6, false)).toBe(timer)
+    expect(animateWater(mk(true), water, 'art:ground.water', 4, 6, true)).toBeNull()
+    expect(animateWater(mk(false), water, 'art:ground.water', 4, 6, false)).toBeNull()
+  })
 })

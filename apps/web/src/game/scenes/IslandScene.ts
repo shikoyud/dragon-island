@@ -47,6 +47,7 @@ export class IslandScene extends Phaser.Scene {
   /** The whole landmass (ground, fog, cliff) baked into one texture per island and holding, instead of ~1,100 images. */
   private groundRt: Phaser.GameObjects.RenderTexture | null = null
   private water: Phaser.GameObjects.TileSprite | null = null
+  private waterTimer: Phaser.Time.TimerEvent | null = null
   private hatchView: string | null = null
   private outline!: Phaser.GameObjects.Graphics
   private layer!: Phaser.GameObjects.Container
@@ -351,6 +352,9 @@ export class IslandScene extends Phaser.Scene {
     this.groundKey = key
     const g = this.ground.clear()
     const rt = this.groundRt?.clear() ?? null
+    // The old water's looping timer goes with it, or one more would tick per ground-key change.
+    this.waterTimer?.remove()
+    this.waterTimer = null
     this.water?.destroy()
     this.water = null
     if (!state) return
@@ -363,7 +367,7 @@ export class IslandScene extends Phaser.Scene {
       const pad = 2048 // the sea also fills the screen beyond the camera bounds when zoomed out
       this.water = this.add.tileSprite(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, textureKey('ground.water'), 0).setOrigin(0, 0).setDepth(-1).setAlpha(0.4) // softened: the sea is backdrop, not the subject
       const w = tiles.water
-      animateWater(this, this.water, textureKey('ground.water'), w.frames, w.fps, this.bridge.reducedMotion)
+      this.waterTimer = animateWater(this, this.water, textureKey('ground.water'), w.frames, w.fps, this.bridge.reducedMotion)
     }
     if (!rt) return
     const at = (k: string, x: number, y: number) => rt.batchDrawFrame(textureKey(k), undefined, x - land.x, y - land.y)
