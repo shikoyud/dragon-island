@@ -12,8 +12,8 @@ describe('newPlayer', () => {
       hatcheryLevel: 1, hatcheryFifthSlot: false, hatcheryPlacement: { island: 'home', col: 0, row: 8, facing: 0 },
       decorations: [], islands: { homeStep: 0, unlocked: ['home'], obstacles: [] }, constructions: [],
       farms: [{ crop: null, readyAtMs: 0, level: 1, placement: { island: 'home', col: 10, row: 0, facing: 0 } }],
-      version: 5, firstHybridDone: false, discovered: ['terra', 'flame'],
-      tutorial: { breedDone: false, hatchDone: false }, nextId: 3,
+      version: 6, firstHybridDone: false, discovered: ['terra', 'flame'],
+      goalIndex: 0, goalStats: { collects: 0, harvests: 0, feeds: 0, breeds: 0, hatches: 0 }, nextId: 3,
       defenceTeam: null, trophies: 0, pvp: { day: 0, count: 0 }, pve: { cleared: 0, replays: { day: 0, count: 0 } },
     })
   })
@@ -27,7 +27,7 @@ describe('newPlayer', () => {
     expect([s.hatcheryLevel, s.hatcheryPlacement]).toEqual([1, { island: 'home', col: 0, row: 8, facing: 0 }])
     expect(s.islands).toEqual({ homeStep: 0, unlocked: ['home'], obstacles: [] })
     expect([s.constructions, s.decorations]).toEqual([[], []])
-    expect(s.tutorial).toEqual({ breedDone: false, hatchDone: false })
+    expect(s).not.toHaveProperty('tutorial')
   })
 
   it('lays the starting buildings out without overlap, on legal cells (R1, R9)', () => {
@@ -60,7 +60,7 @@ describe('newPlayer', () => {
   it('new players carry the state version and no removed fields', () => {
     const s = newPlayer(0)
     expect(s.version).toBe(STATE_VERSION)
-    expect(STATE_VERSION).toBe(5)
+    expect(STATE_VERSION).toBe(6)
     expect(s).not.toHaveProperty('hoardLevel')
     expect(s).not.toHaveProperty('eligibleGold')
     expect(s).not.toHaveProperty('ledger')

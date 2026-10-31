@@ -27,7 +27,10 @@ export type Construction =
   | { kind: 'clear'; obstacleId: string; readyAtMs: number }
 
 /** Bumped when the saved shape changes; there is no save migration (R2). */
-export const STATE_VERSION = 5
+export const STATE_VERSION = 6
+
+/** Counters the Goals read (§1.4, R37); each rises only when its action succeeds. */
+export interface GoalStats { collects: number; harvests: number; feeds: number; breeds: number; hatches: number }
 
 export interface PlayerState {
   version: number
@@ -51,7 +54,9 @@ export interface PlayerState {
   islands: { homeStep: number; unlocked: IslandId[]; obstacles: Obstacle[] }
   constructions: Construction[]
   farms: FarmPlot[]
-  tutorial: { breedDone: boolean; hatchDone: boolean }
+  /** Index of the Goal waiting to be claimed; the Goals' count means all are done (R36). */
+  goalIndex: number
+  goalStats: GoalStats
   /** True once the scripted first hybrid has been bred (§3.5). */
   firstHybridDone: boolean
   /** Dragon Book: species ids hatched or bought, starters first (§1.4, R22). */
@@ -88,7 +93,8 @@ export function newPlayer(nowMs: number): PlayerState {
     islands: { homeStep: 0, unlocked: ['home'], obstacles: [] },
     constructions: [],
     farms: [{ crop: null, readyAtMs: 0, level: 1, placement: home(10, 0) }],
-    tutorial: { breedDone: false, hatchDone: false },
+    goalIndex: 0,
+    goalStats: { collects: 0, harvests: 0, feeds: 0, breeds: 0, hatches: 0 },
     firstHybridDone: false,
     discovered: ['terra', 'flame'],
     nextId: 3,

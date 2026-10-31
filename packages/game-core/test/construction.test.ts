@@ -10,7 +10,6 @@ describe('construction', () => {
     expect(a.constructions[0]).toEqual({ kind: 'upgrade', building: { type: 'habitat', id: 'h1' }, readyAtMs: 601_000 })
     const b = startConstruction(a, { kind: 'upgrade', building: { type: 'habitat', id: 'h2' } }, 300_000, 1_000)!
     expect(b.constructions[1]!.readyAtMs).toBe(301_000)
-    expect(b.tutorial).toEqual({ breedDone: false, hatchDone: false })
     expect(startConstruction(b, { kind: 'upgrade', building: { type: 'farm', index: 0 } }, 1, 1_000)).toBeNull()
   })
 

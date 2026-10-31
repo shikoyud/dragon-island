@@ -63,6 +63,7 @@ export const opponentSnapshotSchema = z.object({
 
 const common = [
   z.object({ type: z.literal('collectGold'), habitatId: id }),
+  z.object({ type: z.literal('claimGoal') }),
   z.object({ type: z.literal('placeBuilding'), building: placeableSchema, placement: placementSchema }),
   z.object({ type: z.literal('moveBuilding'), target: movableRefSchema, placement: placementSchema }),
   z.object({ type: z.literal('removeDecoration'), id }),

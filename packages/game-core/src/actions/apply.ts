@@ -7,6 +7,7 @@ import { pveBattle, pvpBattle, setDefenceTeam } from './battle-actions'
 import { buyBasic, collectEgg, hatch, startBreed } from './breed-actions'
 import { buy } from './economy-actions'
 import { harvest, plant } from './farm-actions'
+import { claimGoal } from './goal-actions'
 import { finishConstruction, moveBuilding, placeBuilding, removeDecoration, startUpgrade } from './build-actions'
 import { clearObstacle, expandIsland, unlockIsland } from './island-unlock-actions'
 import { collectGold, feed, moveDragon, sellDragon } from './island-actions'
@@ -21,6 +22,7 @@ export function applyAction(
   const ctx: ActionCtx = { nowMs, rng, catalog, preset, day }
   switch (a.type) {
     case 'collectGold': return collectGold(s, a, ctx)
+    case 'claimGoal': return claimGoal(s, a, ctx)
     case 'placeBuilding': return placeBuilding(s, a, ctx)
     case 'moveBuilding': return moveBuilding(s, a, ctx)
     case 'removeDecoration': return removeDecoration(s, a, ctx)

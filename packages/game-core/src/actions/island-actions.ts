@@ -29,7 +29,10 @@ export function collectDragonHome(s: PlayerState, dragonId: string, c: Catalog, 
 
 export const collectGold: Handler<'collectGold'> = (s, a, ctx) => {
   if (!s.habitats.some(h => h.id === a.habitatId)) return failure('NOT_FOUND')
-  return success(collectHabitat(s, a.habitatId, ctx.catalog, ctx.nowMs, ctx.preset))
+  const h = s.habitats.find(x => x.id === a.habitatId)!
+  const paid = storedGold(h, residents(s, h.id), ctx.catalog, ctx.nowMs, ctx.preset) > 0
+  const next = collectHabitat(s, a.habitatId, ctx.catalog, ctx.nowMs, ctx.preset)
+  return success(paid ? { ...next, goalStats: { ...next.goalStats, collects: next.goalStats.collects + 1 } } : next)
 }
 
 export const moveDragon: Handler<'moveDragon'> = (s, a, ctx) => {
@@ -59,7 +62,7 @@ export const feed: Handler<'feed'> = (s, a, ctx) => {
       return x.feeds + 1 >= FEEDS_PER_LEVEL ? { ...x, level: x.level + 1, feeds: 0 } : { ...x, feeds: x.feeds + 1 }
     }),
   }
-  return success(addXp(fed, feedXp(cost), ctx.preset, ctx.day))
+  return success(addXp({ ...fed, goalStats: { ...fed.goalStats, feeds: fed.goalStats.feeds + 1 } }, feedXp(cost), ctx.preset, ctx.day))
 }
 
 /** A player always keeps two dragons so they can breed. */

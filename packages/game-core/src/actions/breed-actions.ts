@@ -39,7 +39,7 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const next = {
     ...s,
     breeders: s.breeders.map((b, i) => i === index ? { ...b, egg: { speciesId: child.id, readyAtMs, hatchMs } } : b),
-    tutorial: { ...s.tutorial, breedDone: true },
+    goalStats: { ...s.goalStats, breeds: s.goalStats.breeds + 1 },
     firstHybridDone: s.firstHybridDone || scripted,
   }
   return success(addXp(next, START_BREED_XP, ctx.preset, ctx.day))
@@ -66,7 +66,6 @@ export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
     breeders: s.breeders.map((b, i) => i === a.breeder ? { ...b, egg: null } : b),
     // The hatch timer starts now, when the egg reaches its slot (§5.4).
     hatchery: [...s.hatchery, { speciesId: egg.speciesId, readyAtMs: ctx.nowMs + egg.hatchMs }],
-    tutorial: { ...s.tutorial, hatchDone: true },
   })
 }
 
@@ -106,6 +105,7 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
     dragons: [...collected.dragons, dragon],
     discovered: discover(s.discovered, egg.speciesId),
     nextId: s.nextId + 1,
+    goalStats: { ...collected.goalStats, hatches: collected.goalStats.hatches + 1 },
   }
   // R30: a species new to the Dragon Book pays double.
   const firstTime = !s.discovered.includes(egg.speciesId)
