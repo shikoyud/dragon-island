@@ -5,6 +5,7 @@ import { ELEMENTS } from '../elements'
 import { CROPS } from '../farm'
 import { ISLAND_ORDER } from '../island'
 import { SPEED_UP_TOKEN_MS } from '../data/speedups'
+import { NODES_PER_CHAPTER, TRIAL_CHAPTERS } from '../data/trials'
 import { ISLAND_TILES, isPlot } from '../plots'
 import type { Action } from './types'
 
@@ -62,8 +63,12 @@ export function isValidAction(a: unknown): a is Action {
       return isTeam(x['dragonIds'])
     case 'pvpBattle':
       return isTeam(x['team']) && isOpponent(x['opponent']) && isMoves(x['moves'])
-    case 'pveBattle':
-      return Number.isInteger(x['stage']) && isTeam(x['team']) && isMoves(x['moves'])
+    case 'startTrial':
+      return isOneTo(x['chapter'], TRIAL_CHAPTERS.length) && isOneTo(x['node'], NODES_PER_CHAPTER) && isTeam(x['team'])
+    case 'finishTrial':
+      return isMoves(x['moves'])
+    case 'abandonTrial':
+      return true
     default:
       return false
   }
@@ -72,6 +77,7 @@ export function isValidAction(a: unknown): a is Action {
 const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0
 const isSkipTarget = (v: unknown): boolean => ['breeder', 'hatchery', 'farm', 'construction'].includes(v as string)
 const isIndex = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0
+const isOneTo = (v: unknown, top: number): boolean => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= top
 const isIsland = (v: unknown): boolean => (ISLAND_ORDER as readonly unknown[]).includes(v)
 const isCoord = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 0 && (v as number) < ISLAND_TILES
 function isPlacement(v: unknown): boolean {
@@ -148,6 +154,7 @@ function isStoreItem(v: unknown): boolean {
     case 'foodPack':
     case 'hatcheryL5':
     case 'ascension':
+    case 'healAll':
       return true
     case 'habitatL5':
       return isId(item['habitatId'])

@@ -1,4 +1,4 @@
-import type { BattleReport, Effect, OpponentSnapshot, Phase, PlayerState, PresetId } from '@wyrmhaven/game-core'
+import type { BattleReport, Effect, OpponentSnapshot, Phase, PlayerState, PresetId, TrialResult } from '@wyrmhaven/game-core'
 import type { ClientAction } from './actions'
 
 /** Bigints (wei, micro-USD) cross the wire as decimal strings. */
@@ -39,7 +39,12 @@ export interface ActionResponse {
   state: PlayerState
   effects: Effect[]
   battle?: BattleReport
+  /** finishTrial: what the settled Trial paid. Present on a forfeit too, where `battle` is absent. */
+  trial?: TrialResult
 }
+
+/** GET /pve/seed: the active Trial's battle seed (A8); 409 NO_ACTIVE_TRIAL with none. */
+export interface PveSeedResponse { seedHex: `0x${string}` }
 
 export interface Offer { offerId: string; opponent: OpponentSnapshot; seedHex: `0x${string}` }
 export interface OffersResponse { offers: Offer[] }

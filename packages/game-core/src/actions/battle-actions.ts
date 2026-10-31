@@ -1,24 +1,16 @@
-import { aiChoice, runDefender } from '../battle/ai'
-import { battleOutcome, initBattle, step, type PlayerMove } from '../battle/machine'
 import { simulateBattle } from '../battle/sim'
 import type { BattleDragonSpec } from '../battle/stats'
-import type { Catalog } from '../catalog'
-import type { Rng } from '../rng'
+import { PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL } from '../data/pvp'
 import { addXp } from '../progression'
-import {
-  PVE_REPLAYS_PER_DAY, PVE_STAGES, PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL,
-  stageRewards, stageTeam,
-} from '../pve'
 import type { PlayerState } from '../state'
 import { dayCounterAt } from '../time'
 import { applyTrophies, pvpWinGold, TROPHY } from '../trophy'
 import { earnGold } from '../wallet'
-import { isUnlocked } from '../data/unlocks'
-import { failure, success, type BattleReport, type Handler, type TeamIds } from './types'
+import { failure, success, type Handler, type TeamIds } from './types'
 
 export const PVP_WIN_XP = 20
 
-/** Three distinct owned dragons, or null. */
+/** Three distinct owned dragons at full HP, or null: PvP ignores fatigue (§6.4). */
 export function resolveTeam(s: PlayerState, ids: TeamIds): BattleDragonSpec[] | null {
   if (new Set(ids).size !== 3) return null
   const team: BattleDragonSpec[] = []
@@ -63,39 +55,4 @@ export const pvpBattle: Handler<'pvpBattle'> = (s, a, ctx) => {
     trophyDelta: won ? TROPHY.defenceLoss : TROPHY.defenceWin,
   }]
   return success(next, effects, outcome.ok ? outcome : undefined)
-}
-
-/**
- * Until Task 4: the PvE seed is never revealed, so the client's plan can only be a guess, and the AI
- * plays for a missing or illegal attacker move.
- */
-function runPve(team: BattleDragonSpec[], enemies: BattleDragonSpec[], moves: readonly PlayerMove[], rng: Rng, c: Catalog): BattleReport {
-  let b = initBattle(team, enemies, c)
-  for (let at = 0; b.winner === null; at++) {
-    const given = moves[at]
-    const next = (given && step(b, 'attacker', given, rng)) ?? step(b, 'attacker', aiChoice(b, 'attacker', rng), rng)
-    b = runDefender(next!, rng)
-  }
-  return battleOutcome(b)
-}
-
-export const pveBattle: Handler<'pveBattle'> = (s, a, ctx) => {
-  if (!isUnlocked('pve', s.level)) return failure('LEVEL_TOO_LOW')
-  if (a.stage < 1 || a.stage > PVE_STAGES) return failure('NOT_FOUND')
-  if (a.stage > s.pve.cleared + 1) return failure('STAGE_LOCKED')
-  const team = resolveTeam(s, a.team)
-  if (!team) return failure('INVALID_TEAM')
-  const firstClear = a.stage > s.pve.cleared
-  const replays = dayCounterAt(s.pve.replays, ctx.nowMs)
-  if (!firstClear && replays.count >= PVE_REPLAYS_PER_DAY) return failure('DAILY_CAP_REACHED')
-
-  const report = runPve(team, stageTeam(a.stage, ctx.catalog), a.moves, ctx.rng, ctx.catalog)
-
-  let next: PlayerState = firstClear ? s : { ...s, pve: { ...s.pve, replays: { ...replays, count: replays.count + 1 } } }
-  if (report.winner === 'attacker') {
-    const reward = stageRewards(a.stage, firstClear)
-    next = addXp(earnGold({ ...next, food: next.food + reward.food }, reward.gold), reward.xp, ctx.preset, ctx.day)
-    if (firstClear) next = { ...next, pve: { ...next.pve, cleared: a.stage } }
-  }
-  return success(next, [], report)
 }

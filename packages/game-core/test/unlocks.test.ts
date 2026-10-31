@@ -80,7 +80,7 @@ describe('no other file holds a gate', () => {
   })
   it('only data/unlocks.ts and decorations.ts say minPl, or give unlockPl / minLevel a number', () => {
     const offenders = files(root).map(f => relative(root, f).replace(/\\/g, '/'))
-      .filter(f => f !== 'data/unlocks.ts' && f !== 'decorations.ts' && f !== 'data/trials.ts') // data/trials.ts: minLevel is a chapter's enemy level range, not a gate
+      .filter(f => f !== 'data/unlocks.ts' && f !== 'decorations.ts')
       .filter(f => {
         const text = readFileSync(join(root, f), 'utf8')
         return /\bminPl\b|\b(unlockPl|minLevel)\s*:\s*\d|FARM_UNLOCK_PL|PVE_MIN_PLAYER_LEVEL/.test(text)
@@ -142,7 +142,12 @@ const probes = (): [UnlockKey, Probe][] => {
     state: { ...rich(base, l), roostPlacement: FREE, roostTier: n - 1 }, action: { type: 'startUpgrade', building: { type: 'roost' } },
   })])
   list.push(['roost:5', l => ({ state: { ...rich(base, l), roostPlacement: FREE, roostTier: 4 }, action: { type: 'buy', item: { kind: 'ascension' } } })])
-  list.push(['pve', l => ({ state: rich(base, l), action: { type: 'pveBattle', stage: 1, team: ['d1', 'd2', 'dX'], moves: [] } })])
+  list.push(['pve', l => ({ state: rich(base, l), action: { type: 'startTrial', chapter: 1, node: 1, team: ['d1', 'd2', 'dX'] } })])
+  // Each chapter's first node, with the previous Boss beaten (R71): past the level gate, only the team is wrong.
+  for (let n = 1; n <= 10; n++) list.push([`trial:${n}` as UnlockKey, l => ({
+    state: { ...rich(base, l), pve: { ...base.pve, stars: { [`${n - 1}:10` as const]: 1 } } },
+    action: { type: 'startTrial', chapter: n, node: 1, team: ['d1', 'd2', 'dX'] },
+  })])
   for (let i = 0; i < 12; i++) list.push([`home:${i}`, l => ({ state: withPlots(rich(base, l), [5, 6, 9, 10, ...HOME_BUY_ORDER.slice(0, i)]), action: { type: 'buyPlot', island: 'home', plot: HOME_BUY_ORDER[i]! } })])
   const order: IslandId[] = ['home', 'isle2', 'isle3', 'isle4', 'isle5', 'isle6']
   for (const id of order.slice(1) as Exclude<IslandId, 'home'>[]) list.push([`island:${id}` as UnlockKey, l => ({
@@ -153,10 +158,10 @@ const probes = (): [UnlockKey, Probe][] => {
 }
 
 describe('every gate refuses at PL - 1 and opens at PL', () => {
-  // `wings` has no action behind it yet, and `trial:n` has none until Task 4 (it is probed there); `hatchery:1` is the free starting level.
+  // `wings` has no action behind it yet; `hatchery:1` is the free starting level.
   const covered = probes()
   it('covers every key that has an action', () => {
-    const missing = (Object.keys(UNLOCKS) as UnlockKey[]).filter(k => k !== 'wings' && k !== 'hatchery:1' && !k.startsWith('trial:') && !covered.some(([c]) => c === k))
+    const missing = (Object.keys(UNLOCKS) as UnlockKey[]).filter(k => k !== 'wings' && k !== 'hatchery:1' && !covered.some(([c]) => c === k))
     expect(missing).toEqual([])
   })
   for (const [key, probe] of covered) {
@@ -171,7 +176,7 @@ describe('every gate refuses at PL - 1 and opens at PL', () => {
       if (r.ok) return
       expect(r.error, key).not.toBe('LEVEL_TOO_LOW')
       // Past the level gate, each probe's only expected refusal is a missing second Hatchery team, never the level.
-      if (key === 'pve') expect(r.error).toBe('INVALID_TEAM')
+      if (key === 'pve' || key.startsWith('trial:')) expect(r.error).toBe('INVALID_TEAM')
     })
   }
   it('actions that spend a gate succeed at PL (Gold and room given)', () => {

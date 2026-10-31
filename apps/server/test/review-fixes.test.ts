@@ -87,18 +87,19 @@ describe('I2: the action log records the seed a battle actually used', () => {
       state: { ...base, level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'sea', level: 20, feeds: 0, habitatId: 'h2' })) },
       level: 8, defenceTeam: TEAM,
     }).where(eq(players.id, A.playerId))
-    const pve = await act(A.token, { type: 'pveBattle', stage: 1, team: TEAM, moves: [{ kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }] })
-    expect(pve.statusCode).toBe(200)
-    const [log] = await t.db.select().from(actionLog).where(eq(actionLog.playerId, A.playerId))
+    expect((await act(A.token, { type: 'startTrial', chapter: 1, node: 1, team: TEAM })).statusCode).toBe(200)
+    expect((await act(A.token, { type: 'finishTrial', moves: [] })).statusCode).toBe(200)
+    const trialLogs = await t.db.select().from(actionLog).where(eq(actionLog.playerId, A.playerId))
+    const log = trialLogs.find(l => l.nonce === 2n)
     const g = await ensureGame(t.db, t.clock)
-    expect(log!.seedHex).toBe(battleSeed(secretFromHex(g.secretHex), `${A.playerId}:1`).seedHex)
-    expect(log!.seedLabel).toBe(`battle:${A.playerId}:1`)
+    expect(log!.seedHex).toBe(battleSeed(secretFromHex(g.secretHex), `pve:${A.playerId}:0`).seedHex)
+    expect(log!.seedLabel).toBe(`battle:pve:${A.playerId}:0`)
 
     const offers = (await t.app.inject({ method: 'GET', url: '/pvp/offers', headers: bearer(A.token) })).json().offers
     const pvp = await act(A.token, { type: 'pvpBattle', offerId: offers[0].offerId, team: TEAM, moves: [] })
     expect([200, 422]).toContain(pvp.statusCode)
     const logs = await t.db.select().from(actionLog).where(eq(actionLog.playerId, A.playerId))
-    const last = logs.find(l => l.nonce === 2n)!
+    const last = logs.find(l => l.nonce === 3n)!
     expect(last.seedHex).toBe(offers[0].seedHex)
     expect(last.seedLabel).toBe(`battle:${offers[0].offerId}`)
     expect((last.action as { offerId?: string }).offerId).toBe(offers[0].offerId)

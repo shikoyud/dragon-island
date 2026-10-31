@@ -3,7 +3,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
-  aiChoice, applyAction, basicPriceGold, createRng, ELEMENTS, generateBotTeam, initBattle, LAUNCH_CATALOG, newPlayer, runDefender, stageTeam, step, TURN_LIMIT,
+  aiChoice, applyAction, basicPriceGold, createRng, ELEMENTS, generateBotTeam, initBattle, LAUNCH_CATALOG, newPlayer, NODES_PER_CHAPTER, nodeTeam, runDefender, step, TRIAL_CHAPTERS, TURN_LIMIT,
   type Action, type BattleDragonSpec, type PlayerState,
 } from '../src/index'
 import { ok } from './helpers'
@@ -19,22 +19,19 @@ describe('the battle sim finishes on the launch catalog (Review Focus)', () => {
     expect(s.turn).toBeLessThanOrEqual(TURN_LIMIT)
   }
 
-  it('over every campaign stage against a seeded bot team', () => {
-    for (let n = 1; n <= 30; n++) check(generateBotTeam(n * 2, LAUNCH_CATALOG, createRng(n)), stageTeam(n, LAUNCH_CATALOG), n)
+  const nodes = TRIAL_CHAPTERS.flatMap(c => Array.from({ length: NODES_PER_CHAPTER }, (_, i) => nodeTeam(c.chapter, i + 1, LAUNCH_CATALOG)))
+
+  it('over every Trial node against a seeded bot team', () => {
+    nodes.forEach((team, i) => check(generateBotTeam(1 + (i % 45), LAUNCH_CATALOG, createRng(i + 1)), team, i + 1))
   })
 
   it('with a team that holds flame-ice-sea, on both sides', () => {
-    for (let n = 1; n <= 30; n++) {
-      check(tri, stageTeam(n, LAUNCH_CATALOG), n)
-      check(stageTeam(n, LAUNCH_CATALOG), tri, n)
-    }
+    nodes.forEach((team, i) => {
+      check(tri, team, i + 1)
+      check(team, tri, i + 1)
+    })
   })
 
-  it('with the PvE handler playing an empty move list', () => {
-    const s: PlayerState = { ...newPlayer(0), level: 8, dragons: tri.map((d, i) => ({ id: `d${i}`, speciesId: d.speciesId, level: d.level, feeds: 0, habitatId: 'h1' })) }
-    const r = applyAction(s, { type: 'pveBattle', stage: 1, team: ['d0', 'd1', 'd2'], moves: [] }, 0, createRng(1), LAUNCH_CATALOG)
-    expect(r.ok && r.battle!.turns).toBeLessThanOrEqual(TURN_LIMIT)
-  })
 })
 
 describe('Dragon Book and Basic prices (deferred gaps)', () => {

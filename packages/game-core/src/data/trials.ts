@@ -7,8 +7,8 @@ export interface TrialChapter {
   chapter: number
   element: Element
   theme: string
-  minLevel: number
-  maxLevel: number
+  enemyMinLevel: number
+  enemyMaxLevel: number
   /** One rarity, or two: nodes 1-5 use the first and nodes 6-10 the second (R72). */
   rarities: readonly [Rarity, Rarity?]
   /** The rarity of the Boss in slot 0 of node 10. */
@@ -27,16 +27,16 @@ export interface TrialChapter {
 
 /** Index = chapter - 1. The Unlock PL of each is `unlockPl('trial:n')`. */
 export const TRIAL_CHAPTERS: readonly TrialChapter[] = [
-  { chapter: 1, element: 'terra', theme: 'Terra Wilds', minLevel: 1, maxLevel: 4, rarities: ['common'], boss: 'common', counters: ['metal', 'war'] },
-  { chapter: 2, element: 'flame', theme: 'Flame Peaks', minLevel: 3, maxLevel: 7, rarities: ['common'], boss: 'common', counters: ['terra', 'sea'] },
-  { chapter: 3, element: 'sea', theme: 'Sea Depths', minLevel: 6, maxLevel: 10, rarities: ['common', 'uncommon'], boss: 'uncommon', counters: ['nature', 'electric'] },
-  { chapter: 4, element: 'nature', theme: 'Nature Grove', minLevel: 9, maxLevel: 13, rarities: ['common', 'uncommon'], boss: 'uncommon', counters: ['flame', 'ice'] },
-  { chapter: 5, element: 'electric', theme: 'Electric Storm', minLevel: 12, maxLevel: 16, rarities: ['uncommon', 'rare'], boss: 'rare', counters: ['terra', 'light'] },
-  { chapter: 6, element: 'ice', theme: 'Ice Wastes', minLevel: 15, maxLevel: 20, rarities: ['uncommon', 'rare'], boss: 'rare', counters: ['flame', 'metal'] },
-  { chapter: 7, element: 'metal', theme: 'Metal Forge', minLevel: 19, maxLevel: 24, rarities: ['rare'], boss: 'rare', counters: ['electric', 'dark'] },
-  { chapter: 8, element: 'dark', theme: 'Dark Hollow', minLevel: 23, maxLevel: 29, rarities: ['rare', 'epic'], boss: 'epic', counters: ['light', 'war'] },
-  { chapter: 9, element: 'light', theme: 'Light Sanctum', minLevel: 28, maxLevel: 34, rarities: ['rare'], boss: 'rare', counters: ['nature', 'dark'], wildcardRarity: 'epic' },
-  { chapter: 10, element: 'war', theme: 'War Citadel', minLevel: 33, maxLevel: 40, rarities: ['epic'], boss: 'legendary', counters: ['sea', 'ice'], bossSpecies: 'trial-champion' },
+  { chapter: 1, element: 'terra', theme: 'Terra Wilds', enemyMinLevel: 1, enemyMaxLevel: 4, rarities: ['common'], boss: 'common', counters: ['metal', 'war'] },
+  { chapter: 2, element: 'flame', theme: 'Flame Peaks', enemyMinLevel: 3, enemyMaxLevel: 7, rarities: ['common'], boss: 'common', counters: ['terra', 'sea'] },
+  { chapter: 3, element: 'sea', theme: 'Sea Depths', enemyMinLevel: 6, enemyMaxLevel: 10, rarities: ['common', 'uncommon'], boss: 'uncommon', counters: ['nature', 'electric'] },
+  { chapter: 4, element: 'nature', theme: 'Nature Grove', enemyMinLevel: 9, enemyMaxLevel: 13, rarities: ['common', 'uncommon'], boss: 'uncommon', counters: ['flame', 'ice'] },
+  { chapter: 5, element: 'electric', theme: 'Electric Storm', enemyMinLevel: 12, enemyMaxLevel: 16, rarities: ['uncommon', 'rare'], boss: 'rare', counters: ['terra', 'light'] },
+  { chapter: 6, element: 'ice', theme: 'Ice Wastes', enemyMinLevel: 15, enemyMaxLevel: 20, rarities: ['uncommon', 'rare'], boss: 'rare', counters: ['flame', 'metal'] },
+  { chapter: 7, element: 'metal', theme: 'Metal Forge', enemyMinLevel: 19, enemyMaxLevel: 24, rarities: ['rare'], boss: 'rare', counters: ['electric', 'dark'] },
+  { chapter: 8, element: 'dark', theme: 'Dark Hollow', enemyMinLevel: 23, enemyMaxLevel: 29, rarities: ['rare', 'epic'], boss: 'epic', counters: ['light', 'war'] },
+  { chapter: 9, element: 'light', theme: 'Light Sanctum', enemyMinLevel: 28, enemyMaxLevel: 34, rarities: ['rare'], boss: 'rare', counters: ['nature', 'dark'], wildcardRarity: 'epic' },
+  { chapter: 10, element: 'war', theme: 'War Citadel', enemyMinLevel: 33, enemyMaxLevel: 40, rarities: ['epic'], boss: 'legendary', counters: ['sea', 'ice'], bossSpecies: 'trial-champion' },
 ]
 
 /** §6.3: 10 nodes, 9 battles and a Boss. */
@@ -54,6 +54,11 @@ export const THREE_STAR_TURNS = 8
 
 /** §6.3 node rewards, first clear: Gold = 1,000 x ch², Food = 50 x ch², XP = 20 x ch (A19). */
 export const TRIAL_REWARD = { goldPerChSq: 1000, foodPerChSq: 50, xpPerCh: 20 }
+
+/** §6.3 "need 25% to fight" (R68: hp x 4 >= max). The regen rate is the preset's `healPctPerMin`. */
+export const MIN_FIGHT_PCT = 25
+/** §6.3, §7.4: a full heal-all costs $0.05 (R78). */
+export const HEAL_ALL_MICRO_USD = 50_000
 
 /** `chapter:node`, the key of a node's best stars in `state.pve.stars`. */
 export type NodeKey = `${number}:${number}`

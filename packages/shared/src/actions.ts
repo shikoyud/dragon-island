@@ -1,4 +1,4 @@
-import { CROP_IDS, DECORATIONS, ELEMENTS, ISLAND_ORDER, ISLAND_TILES, KIT_SIZE, MAX_BATTLE_MOVES, MAX_DRAGON_LEVEL, PLOTS_PER_SIDE, TEAM_SIZE, type Action, type CropId, type DecorationId, type Element, type IslandId } from '@wyrmhaven/game-core'
+import { CROP_IDS, DECORATIONS, ELEMENTS, ISLAND_ORDER, ISLAND_TILES, KIT_SIZE, MAX_BATTLE_MOVES, MAX_DRAGON_LEVEL, NODES_PER_CHAPTER, PLOTS_PER_SIDE, TEAM_SIZE, TRIAL_CHAPTERS, type Action, type CropId, type DecorationId, type Element, type IslandId } from '@wyrmhaven/game-core'
 import { z } from 'zod'
 
 // Mirrors game-core's isValidAction: the client sends JSON, this is the wire-level shape check.
@@ -60,6 +60,7 @@ export const storeItemSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('hatcheryL5') }),
   z.object({ kind: z.literal('groveL3'), index }),
   z.object({ kind: z.literal('ascension') }),
+  z.object({ kind: z.literal('healAll') }),
 ])
 
 export const opponentSnapshotSchema = z.object({
@@ -92,7 +93,9 @@ const common = [
   z.object({ type: z.literal('buy'), item: storeItemSchema }),
   z.object({ type: z.literal('useSpeedUp'), token: z.enum(['15m', '1h', '3h']), target: z.enum(['breeder', 'hatchery', 'farm', 'construction']), index }),
   z.object({ type: z.literal('setDefenceTeam'), dragonIds: teamIdsSchema }),
-  z.object({ type: z.literal('pveBattle'), stage: z.number().int(), team: teamIdsSchema, moves: movesSchema }),
+  z.object({ type: z.literal('startTrial'), chapter: z.number().int().min(1).max(TRIAL_CHAPTERS.length), node: z.number().int().min(1).max(NODES_PER_CHAPTER), team: teamIdsSchema }),
+  z.object({ type: z.literal('finishTrial'), moves: movesSchema }),
+  z.object({ type: z.literal('abandonTrial') }),
 ] as const
 
 /** The full game-core Action, including the server-built pvpBattle opponent. */

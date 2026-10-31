@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { runDefender } from '../src/battle/ai'
 import { combatStats, type BattleDragonSpec } from '../src/battle/stats'
-import { initBattle, legalMoves, step, type BattleState, type PlayerMove, type Side } from '../src/battle/machine'
+import { battleOutcome, initBattle, legalMoves, step, type BattleState, type PlayerMove, type Side } from '../src/battle/machine'
 import { simulateBattle } from '../src/battle/sim'
 import { TURN_LIMIT } from '../src/data/battle'
 import { createRng } from '../src/rng'
@@ -152,12 +152,21 @@ describe('the 30-turn limit', () => {
     expect([o.winner, o.turns, o.log.length, o.attackerKos]).toEqual(['defender', 30, 30, 0])
   })
 
-  it('a KO on turn 30 still takes its replacement, then the defender wins', () => {
+  it('a KO on turn 30 with a bench alive asks for no replacement: the limit ends it, defender wins, real HP kept', () => {
     const b = stall()
     const low = sideAt(b, 'attacker', { team: b.sides.attacker.team.map((f, i) => (i === 0 ? { ...f, hp: 1 } : f)) })
-    const ko = go(low, 'defender', STRIKE)
-    expect([ko.turn, ko.winner, ko.toAct, ko.awaiting]).toEqual([30, null, 'attacker', 'replace'])
-    const end = go(ko, 'attacker', { kind: 'replace', to: 1 })
+    const end = go(low, 'defender', STRIKE)
+    expect([end.turn, end.winner, end.awaiting]).toEqual([30, 'defender', 'action'])
+    expect(legalMoves(end, 'attacker')).toEqual([])
+    const o = battleOutcome(end)
+    expect([o.winner, o.turns, o.attackerKos]).toEqual(['defender', 30, 1])
+    expect(o.attacker.slice(1)).toEqual(b.sides.attacker.team.slice(1).map(f => f.hp))
+  })
+
+  it('a KO of the defender\'s dragon on turn 30 with its bench alive also ends it for the defender', () => {
+    const b = { ...stall(), toAct: 'attacker' as Side }
+    const low = sideAt(b, 'defender', { team: b.sides.defender.team.map((f, i) => (i === 0 ? { ...f, hp: 1 } : f)) })
+    const end = go(low, 'attacker', STRIKE)
     expect([end.turn, end.winner]).toEqual([30, 'defender'])
   })
 

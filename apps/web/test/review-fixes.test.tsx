@@ -134,8 +134,10 @@ describe('I4: a finished battle cannot be submitted twice', () => {
     const api = { action: vi.fn(async () => ({ state: s8, effects: [], battle: { ok: true, winner: 'attacker', turns: 1, log: [], attacker: [1, 1, 1], defender: [0, 0, 0], attackerKos: 0 } })) }
     const h = harness(s8, api)
     const { result } = renderHook(() => useBattle(), { wrapper: h.wrapper })
-    act(() => result.current.startPve(1, TEAM))
-    act(() => result.current.choose({ kind: 'attack', move: 0 }))
+    // Flame L20 one-shots these nature L1s with Tier 1.
+    const team = [1, 2, 3].map(() => ({ speciesId: 'nature', level: 1 }))
+    act(() => result.current.startPvp({ offerId: 'o', seedHex: `0x${'ab'.repeat(32)}`, opponent: { playerId: null, trophies: 0, level: 8, team } }, TEAM))
+    for (let i = 0; i < 3; i++) act(() => result.current.choose({ kind: 'attack', move: 1 }))
     expect(result.current.canSubmit).toBe(true)
     await act(async () => { await result.current.submit() })
     expect(result.current.canSubmit).toBe(false)

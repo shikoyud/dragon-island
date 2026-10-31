@@ -20,6 +20,7 @@ SESSION_SECRET=$(openssl rand -hex 32) ADMIN_TOKEN=$(openssl rand -hex 32) pnpm 
 | `GET /me` | bearer | player state, token balance, `game` (as `GET /game`), `termsRequired` (version to accept, or null) |
 | `POST /me/terms { version }` | bearer | accept the current `TERMS_VERSION` (400 `TERMS_VERSION_MISMATCH` otherwise); `POST /auth/verify` also takes an optional `termsVersion` |
 | `POST /actions` `{ action, idempotencyKey }` | bearer | runs one game-core action under the player row lock |
+| `GET /pve/seed` | bearer | the active Trial's revealed battle seed; 409 `NO_ACTIVE_TRIAL` with none |
 | `GET /pvp/offers` | bearer | three opponents (players with a defence team, bots to fill) with revealed battle seeds; a new call retires the previous unused set |
 | `POST /withdraw` `{ grossWei }`, `GET /withdraw/pending` | bearer | EIP-712 claim voucher, one open at a time |
 | `POST /admin/ban`, `/admin/unban`, `/admin/price`, `/admin/jobs/:name/run`, `/admin/beta/allow` | `x-admin-token` | operations |

@@ -50,7 +50,7 @@ describe('the §6.3 chapter table', () => {
   TABLE.forEach(([theme, min, max, rarities, boss, pl, counters], i) => {
     it(`chapter ${i + 1}: ${theme}`, () => {
       const c = TRIAL_CHAPTERS[i]!
-      expect([c.chapter, c.theme, c.minLevel, c.maxLevel, [...c.rarities], c.boss, [...c.counters]]).toEqual([i + 1, theme, min, max, rarities, boss, counters])
+      expect([c.chapter, c.theme, c.enemyMinLevel, c.enemyMaxLevel, [...c.rarities], c.boss, [...c.counters]]).toEqual([i + 1, theme, min, max, rarities, boss, counters])
       expect(unlockPl(`trial:${i + 1}` as UnlockKey)).toBe(pl)
       // §2.1: the counters are the elements strong against the chapter's.
       expect([...c.counters]).toEqual(ELEMENTS.filter(e => STRONG_AGAINST[e].includes(c.element)))
@@ -70,7 +70,7 @@ describe('nodeLevel', () => {
   it('steps linearly through the chapter range', () => {
     expect([nodeLevel(1, 1), nodeLevel(1, 10), nodeLevel(10, 10), nodeLevel(10, 1)]).toEqual([1, 4, 40, 33])
     for (const c of TRIAL_CHAPTERS) {
-      for (const n of nodes) expect(nodeLevel(c.chapter, n)).toBe(c.minLevel + Math.floor(((c.maxLevel - c.minLevel) * (n - 1)) / 9))
+      for (const n of nodes) expect(nodeLevel(c.chapter, n)).toBe(c.enemyMinLevel + Math.floor(((c.enemyMaxLevel - c.enemyMinLevel) * (n - 1)) / 9))
     }
     expect(nodeLevel(9, 10)).toBe(34)
   })
@@ -225,8 +225,8 @@ describe('nodeLocked (R71)', () => {
 })
 
 describe('state', () => {
-  it('starts with no stars on state version 10', () => {
-    expect(STATE_VERSION).toBe(10)
+  it('starts with no stars on state version 11', () => {
+    expect(STATE_VERSION).toBe(11)
     expect(newPlayer(0).pve.stars).toEqual({})
     const k: NodeKey = '1:1'
     expect(k).toBe('1:1')

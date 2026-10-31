@@ -55,7 +55,7 @@ export async function signIn(page: Page, opts: { fresh?: boolean } = {}) {
 
 /**
  * Opens a panel through the HUD the way a player would: the main menu at the bottom, the island menu on the right,
- * Settings for the wallet, Battle's tabs for Campaign and Arena, and a click on the hatchery or a plot for Hatchery and
+ * Settings for the wallet, Battle's tabs for Trials and Arena, and a click on the hatchery or a plot for Hatchery and
  * Farm. Any dialog already open is closed first (its scrim covers the HUD).
  */
 export async function openPanel(page: Page, label: string) {
@@ -69,7 +69,7 @@ export async function openPanel(page: Page, label: string) {
     return page.evaluate(t => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: t }), target)
   }
   switch (label) {
-    case 'Campaign':
+    case 'Trials':
     case 'Arena':
       await main('Battle')
       return page.getByRole('tab', { name: label }).click()

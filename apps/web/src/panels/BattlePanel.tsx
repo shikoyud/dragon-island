@@ -1,6 +1,7 @@
-import { TURN_LIMIT, type Fighter, type PlayerMove } from '@wyrmhaven/game-core'
+import { TRIAL_CHAPTERS, TURN_LIMIT, type Fighter, type PlayerMove } from '@wyrmhaven/game-core'
 import type { CSSProperties } from 'react'
 import type { BattleHook } from '../state/battle'
+import { formatGold } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 
 const TAP: CSSProperties = { minHeight: 44 }
@@ -13,14 +14,15 @@ export function BattlePanel({ battle, onClose }: { battle: BattleHook; onClose?:
   const mine = sides.attacker
   const actor = mine.team[mine.active]!
   const done = p.done
-  const title = battle.setup.mode === 'pvp' ? 'Battle' : `Stage ${battle.setup.stage}`
+  const trial = battle.setup.mode === 'pve' ? battle.setup.trial : null
+  const title = trial ? `${TRIAL_CHAPTERS[trial.chapter - 1]!.theme} · Node ${trial.node}` : 'Battle'
+  const paid = battle.result?.trial
   const can = (m: PlayerMove) => battle.legal.some(x => JSON.stringify(x) === JSON.stringify(m))
   const replacing = !done && awaiting === 'replace'
   const bench = mine.team.flatMap((f, to) => (f.hp > 0 && to !== mine.active ? [{ f, to }] : []))
 
   return (
     <Panel title={title} onClose={onClose}>
-      {!battle.exactPreview && <p><small>Preview only: the server rolls the real battle, so damage may differ. Turns you leave unplanned are played by the AI.</small></p>}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Team label="Your team" fighters={mine.team} active={mine.active} />
         <Team label="Opponent" fighters={sides.defender.team} active={sides.defender.active} />
@@ -61,14 +63,18 @@ export function BattlePanel({ battle, onClose }: { battle: BattleHook; onClose?:
 
       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
         <ActionButton id="battle-undo" disabled={!battle.canUndo || battle.pending} onClick={battle.undo}>Undo</ActionButton>
-        <ActionButton id="battle-submit" primary disabled={!battle.canSubmit || battle.pending} reason={battle.setup.mode === 'pvp' ? 'Finish the battle first' : 'Pick at least one move'} onClick={() => void battle.submit()}>
+        <ActionButton id="battle-submit" primary disabled={!battle.canSubmit || battle.pending} reason="Finish the battle first" onClick={() => void battle.submit()}>
           Submit
         </ActionButton>
       </div>
 
       {battle.result && (
         <p role="status">
-          Result: {battle.report ? (battle.report.winner === 'attacker' ? 'victory' : 'defeat') : 'forfeit'} · trophies {battle.result.state.trophies}
+          Result: {battle.report ? (battle.report.winner === 'attacker' ? 'victory' : 'defeat') : 'forfeit'}
+          {' · '}
+          {paid
+            ? `${'★'.repeat(paid.stars)}${paid.won ? ` · ${formatGold(paid.gold)} gold · ${formatGold(paid.food)} food · ${formatGold(paid.xp)} XP` : ' · the team rests'}`
+            : `trophies ${battle.result.state.trophies}`}
         </p>
       )}
     </Panel>

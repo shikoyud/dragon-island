@@ -1,6 +1,6 @@
 // GDD §4.4 (unlock schedule), §5.2 (habitats), §5.3 (crops, farms), §5.4 (Hatchery, Mountain, Grove), §5.5 (islands).
 // R32: PvE moves to PL 4, Islands 3-6 to PL 18, 25, 32, 40; Home plots follow R46.
-// PvP (pve.ts) and decorations keep their own gates until M6 and M7. This file is the only place a gate is a number.
+// PvP (data/pvp.ts) and decorations keep their own gates until M6 and M7. This file is the only place a gate is a number.
 import type { Element } from '../elements'
 import type { CropId, IslandId } from '../state'
 

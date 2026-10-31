@@ -136,20 +136,3 @@ describe('pvpBattle via offers', () => {
     expect((a.state as PlayerState).trophies).toBe(35)
   })
 })
-
-describe('pveBattle seeding', () => {
-  it('is deterministic from the game secret and the action nonce', async () => {
-    const run = async () => {
-      const r = await post(A.token, { type: 'pveBattle', stage: 1, team: TEAM, moves: SWEEP })
-      expect(r.statusCode).toBe(200)
-      return r.json().battle
-    }
-    const first = await run()
-    // Rebuild the same player on a fresh offer list: same secret, same nonce → same battle.
-    const [p] = await t.db.select().from(players).where(eq(players.id, A.playerId))
-    await t.db.update(players).set({ actionNonce: p!.actionNonce - 1n }).where(eq(players.id, A.playerId))
-    await setup(A.playerId, { level: 8, dragons: seaTeam(20), defenceTeam: TEAM })
-    const second = await run()
-    expect(second).toEqual(first)
-  })
-})

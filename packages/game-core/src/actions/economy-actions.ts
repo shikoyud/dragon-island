@@ -8,6 +8,7 @@ import { ASCENSION_TIER, ROOST_TIERS } from '../data/roost'
 import { payBuildXp } from '../progression'
 import { spendGold } from '../wallet'
 import { placementRuleError } from '../placement-rules'
+import { anyHurt } from '../fatigue'
 import type { Rng } from '../rng'
 import type { PlayerState } from '../state'
 import { SPEED_UP_TOKEN_MS } from '../data/speedups'
@@ -23,7 +24,7 @@ function skipSlotCount(s: PlayerState, target: SkipTarget): number {
 }
 
 /** Typed reason an item can't be bought now, or null if it can. */
-function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError | null {
+function validate(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, preset: Preset): ActionError | null {
   switch (item.kind) {
     case 'skip': {
       if (!Number.isInteger(item.index) || item.index < 0 || item.index >= skipSlotCount(s, item.target)) return 'NOT_FOUND'
@@ -67,6 +68,9 @@ function validate(item: StoreItem, s: PlayerState, nowMs: number): ActionError |
       if (s.gold < ROOST_TIERS[ASCENSION_TIER - 1]!.gold) return 'INSUFFICIENT_GOLD'
       return activeBuilds(s) >= MAX_BUILDERS ? 'BUILDERS_BUSY' : null
     }
+    case 'healAll':
+      if (s.pve.active) return 'IN_TRIAL'
+      return anyHurt(s, c, nowMs, preset) ? null : 'NOTHING_TO_HEAL'
   }
 }
 
@@ -107,12 +111,14 @@ function applyItem(item: StoreItem, s: PlayerState, nowMs: number, c: Catalog, p
     }
     case 'groveL3':
       return { ...s, breeders: s.breeders.map((b, i) => i === item.index ? { ...b, level: GROVE_L3.level } : b) }
+    case 'healAll':
+      return { ...s, dragons: s.dragons.map(({ fatigue: _, ...d }) => d) }
   }
 }
 
 /** Applies a store item; the server settles the token charge from the effect. */
 export const buy: Handler<'buy'> = (s, a, ctx) => {
-  const error = validate(a.item, s, ctx.nowMs)
+  const error = validate(a.item, s, ctx.nowMs, ctx.catalog, ctx.preset)
   if (error) return failure(error)
   const microUsd = priceMicroUsd(a.item, s, ctx.nowMs)
   if (microUsd === null) return failure('NOT_FOUND')

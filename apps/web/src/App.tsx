@@ -120,7 +120,8 @@ function Game() {
     if (island !== view) bridge.setView(island)
   }
   const startPvp = (offer: Offer, team: TeamIds) => { battle.startPvp(offer, team); setDialog(null) }
-  const startPve = (stage: number, team: TeamIds) => { battle.startPve(stage, team); setDialog(null) }
+  const startTrial = (chapter: number, node: number, team: TeamIds) => { void battle.startTrial(chapter, node, team).then(entered => { if (entered) setDialog(null) }) }
+  const resumeTrial = () => { void battle.resumeTrial().then(entered => { if (entered) setDialog(null) }) }
   const closeBattle = () => { battle.reset(); bridge.setBattle(null) }
 
   // Escape belongs to the level-up screen while it is up; the panel under it stays open.
@@ -128,7 +129,7 @@ function Game() {
   const content = battle.setup
     ? { label: 'Battle', node: <BattlePanel battle={battle} onClose={closeBattle} />, onClose: underLevelUp(closeBattle), modal: false }
     : dialog && !placing && !(dialog.kind === 'panel' && dialog.id === 'map')
-      ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} onPve={startPve} onPvp={startPvp} />, onClose: underLevelUp(close) }
+      ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} onTrial={startTrial} onResumeTrial={resumeTrial} onPvp={startPvp} />, onClose: underLevelUp(close) }
       : null
 
   return (

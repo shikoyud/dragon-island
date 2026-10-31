@@ -78,7 +78,7 @@ export function legalMoves(b: BattleState, side: Side): PlayerMove[] {
 const sameMove = (a: PlayerMove, b: PlayerMove): boolean =>
   a.kind === 'attack' ? b.kind === 'attack' && a.move === b.move : a.kind === b.kind && a.to === (b as { to: number }).to
 
-/** The limit is checked only here, once any KO has been answered: both sides are alive at this point. */
+/** Both sides are alive at this point. */
 const nextTurn = (b: BattleState, toAct: Side): BattleState =>
   (b.turn >= TURN_LIMIT ? { ...b, winner: 'defender' } : { ...b, toAct, awaiting: 'action' })
 
@@ -118,6 +118,8 @@ export function step(b: BattleState, side: Side, m: PlayerMove, rng: Rng): Battl
   const after: BattleState = { ...b, sides: { ...b.sides, [side]: { ...me, team: myTeam }, [foeSide]: { ...foe, team: foeTeam } }, turn, log }
   if (!ko) return nextTurn(after, foeSide)
   if (!foeTeam.some(f => f.hp > 0)) return { ...after, winner: side }
+  // The limit ends it with no replacement to ask for: a complete move list never meets R70's penalty for a short one.
+  if (turn >= TURN_LIMIT) return { ...after, winner: 'defender' }
   return { ...after, toAct: foeSide, awaiting: 'replace' }
 }
 

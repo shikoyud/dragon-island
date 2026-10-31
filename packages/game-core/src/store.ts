@@ -4,6 +4,7 @@ import { ASCENSION_TIER, ROOST_TIERS } from './data/roost'
 import { ELEMENT_TIER } from './data/elements'
 import { FARM_L5_USD_MICRO, FARM_MAX_LEVEL } from './data/farms'
 import { GOLDEN_AERIE, HABITAT_L5_USD_MICRO, HABITAT_MAX_LEVEL } from './data/habitats'
+import { HEAL_ALL_MICRO_USD } from './data/trials'
 import { skipPriceMicroUsd } from './data/speedups'
 import { isUnlocked } from './data/unlocks'
 import type { Placement, PlayerState } from './state'
@@ -23,6 +24,8 @@ export type StoreItem =
   | { kind: 'groveL3'; index: number }
   /** Roost Tier 4 to Tier 5: 10M Gold plus $2.00, a 48 h build (§4.2, §7.4, R35). */
   | { kind: 'ascension' }
+  /** Clears every dragon's fatigue (§6.3, R78). */
+  | { kind: 'healAll' }
 
 export type SkipTarget = 'breeder' | 'hatchery' | 'farm' | 'construction'
 
@@ -66,6 +69,9 @@ export function priceMicroUsd(item: StoreItem, s: PlayerState, nowMs: number): n
       const g = s.breeders[item.index]
       return g && g.kind === 'grove' && g.level === GROVE_L3.level - 1 && isUnlocked('grove:3', s.level) ? GROVE_L3.usdMicro : null
     }
+    // Without the catalog and preset this can't see a fatigue that has healed by itself; `buy` and the panel use `anyHurt` for that.
+    case 'healAll':
+      return s.pve.active === null && s.dragons.some(d => d.fatigue) ? HEAL_ALL_MICRO_USD : null
     case 'ascension':
       return s.roostPlacement && s.roostTier === ASCENSION_TIER - 1 && !isUnderConstruction(s, { type: 'roost' }) ? ROOST_TIERS[ASCENSION_TIER - 1]!.usdMicro : null
   }

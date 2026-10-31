@@ -12,7 +12,6 @@ import { ToastProvider } from '../src/ui/Toast'
 import type { Api } from '../src/api/client'
 import { sessionStore } from '../src/api/session'
 import { BattlePanel } from '../src/panels/BattlePanel'
-import { PvePanel } from '../src/panels/PvePanel'
 import { useBattle } from '../src/state/battle'
 import { ME_KEY } from '../src/state/me'
 
@@ -61,11 +60,10 @@ describe('useBattle', () => {
     expect(action).toHaveBeenCalledWith({ type: 'pvpBattle', offerId: 'offer-1', team: TEAM, moves: [T1, T1, T1] }, expect.any(String))
   })
 
-  it('undoes the last move and labels PvE previews approximate', () => {
+  it('undoes the last move', () => {
     const { wrapper } = harness(s8)
     const { result } = renderHook(() => useBattle(), { wrapper })
-    act(() => result.current.startPve(1, TEAM))
-    expect(result.current.exactPreview).toBe(false)
+    act(() => result.current.startPvp(offer, TEAM))
     act(() => result.current.choose(T1))
     expect(result.current.moves).toHaveLength(1)
     act(() => result.current.undo())
@@ -143,17 +141,5 @@ describe('BattlePanel', () => {
     await userEvent.click(screen.getByRole('button', { name: /undo/i }))
     expect(screen.queryByText(/you win/i)).toBeNull()
     expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled()
-  })
-})
-
-describe('PvePanel', () => {
-  it('locks stages past the next one and shows replays left', () => {
-    const { wrapper } = harness(s8)
-    render(<PvePanel onFight={() => {}} />, { wrapper })
-    const stages = screen.getByRole('list', { name: /stages/i })
-    expect(within(stages).getByRole('button', { name: /^stage 1 ·/i })).toBeEnabled()
-    expect(within(stages).getByRole('button', { name: /^stage 2 ·/i })).toBeDisabled()
-    expect(screen.getByText(/replays left: 10/i)).toBeInTheDocument()
-    expect(within(stages).getByRole('button', { name: /^stage 1 ·/i })).toHaveTextContent('100 gold')
   })
 })

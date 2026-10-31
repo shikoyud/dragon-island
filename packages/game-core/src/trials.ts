@@ -22,7 +22,7 @@ const chapterOf = (chapter: number): TrialChapter => {
 /** R72: linear steps through the chapter's range. */
 export function nodeLevel(chapter: number, node: number): number {
   const c = chapterOf(chapter)
-  return c.minLevel + Math.floor(((c.maxLevel - c.minLevel) * (node - 1)) / (NODES_PER_CHAPTER - 1))
+  return c.enemyMinLevel + Math.floor(((c.enemyMaxLevel - c.enemyMinLevel) * (node - 1)) / (NODES_PER_CHAPTER - 1))
 }
 
 /** R72: nodes 1-5 take the first rarity and nodes 6-10 the second, if the chapter has two. */

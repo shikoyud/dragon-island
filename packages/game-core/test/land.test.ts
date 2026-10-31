@@ -23,7 +23,7 @@ describe('the start (§5.5, R50)', () => {
     expect(base.islands.unlocked).toEqual(['home'])
     expect(base.islands.obstacles).toHaveLength(21)
     expect(base.islands).not.toHaveProperty('homeStep')
-    expect(STATE_VERSION).toBe(10)
+    expect(STATE_VERSION).toBe(11)
   })
   it('places the buildings on the fixed table', () => {
     expect(base.habitats.map(h => [h.element, h.placement])).toEqual([['terra', P(13, 8)], ['flame', P(17, 8)]])
