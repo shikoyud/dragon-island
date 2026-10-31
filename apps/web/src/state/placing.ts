@@ -1,4 +1,4 @@
-import { FOOTPRINT, ISLAND_TILES, ownedPlots, placementRuleError, plotOrigin, TILES_PER_PLOT, type Facing, type Footprint, type IslandId, type Placement, type PlayerState } from '@wyrmhaven/game-core'
+import { FOOTPRINT, ISLAND_ORDER, ISLAND_TILES, ISLANDS, ownedPlots, placementRuleError, plotOrigin, requiredIsland, TILES_PER_PLOT, type Facing, type Footprint, type IslandId, type Placement, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import { placementSubject, type Placing } from '../game/bridge'
 
@@ -12,6 +12,8 @@ export type PlacingEvent =
   | { type: 'turn' }
   | { type: 'cancel' }
   | { type: 'confirm' }
+  /** The action went through: placement ends and the view stays where the building now is. */
+  | { type: 'done' }
 
 /** Pure reducer for the placement ghost. `confirm` leaves the ghost for the caller to send, then cancel. */
 export function placingReducer(p: Placing | null, e: PlacingEvent): Placing | null {
@@ -19,7 +21,7 @@ export function placingReducer(p: Placing | null, e: PlacingEvent): Placing | nu
     case 'start': return { what: e.what, size: e.size, col: e.from?.col ?? e.cell?.col ?? 0, row: e.from?.row ?? e.cell?.row ?? 0, facing: e.from?.facing ?? 0 }
     case 'cell': return p && { ...p, col: e.col, row: e.row }
     case 'turn': return p && { ...p, facing: ((p.facing + 1) % 4) as Facing }
-    case 'cancel': return null
+    case 'cancel': case 'done': return null
     case 'confirm': return p
   }
 }
@@ -37,6 +39,22 @@ export function placingAction(s: PlayerState, view: IslandId, p: Placing): Clien
   }
 }
 
+/** One Island button in the placement bar. */
+export interface IslandChoice { island: IslandId; name: string; current: boolean; room: boolean }
+
+/**
+ * The unlocked islands a mover may stand on (R57), when there is more than one: the Hatchery has only Home and a
+ * Warlord's Crown decoration only its own. `room` is false when the island has no legal cell for it. New buildings
+ * pick their island in the Shop, so they get none.
+ */
+export function placementIslands(s: PlayerState, what: Placing['what'], view: IslandId): IslandChoice[] {
+  if (what.kind !== 'move') return []
+  const only = requiredIsland(s, placementSubject(what))
+  const options = ISLAND_ORDER.filter(i => s.islands.unlocked.includes(i) && (only === null || i === only))
+  if (options.length < 2) return []
+  return options.map(island => ({ island, name: ISLANDS[island].name, current: island === view, room: islandHasLegalCell(s, what, island) }))
+}
+
 /** The tile at the middle of the land owned on an island. */
 function ownedCentre(s: PlayerState, island: IslandId): { col: number; row: number } {
   const plots = ownedPlots(s, island)
@@ -45,7 +63,7 @@ function ownedCentre(s: PlayerState, island: IslandId): { col: number; row: numb
   return { col: mean(o => o.col), row: mean(o => o.row) }
 }
 
-function islandHasLegalCell(s: PlayerState, what: Placing['what'], island: IslandId): boolean {
+export function islandHasLegalCell(s: PlayerState, what: Placing['what'], island: IslandId): boolean {
   const subject = placementSubject(what)
   for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) {
     if (placementRuleError(s, subject, { island, col, row, facing: 0 }) === null) return true

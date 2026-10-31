@@ -87,6 +87,27 @@ describe('POST /actions', () => {
     expect([r.statusCode, r.json().error]).toEqual([422, 'NOT_OWNED'])
   })
 
+  it('moves a habitat to another unlocked island for free, keeping its collect timer and dragons (R57)', async () => {
+    const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
+    const s0 = p!.state as PlayerState
+    await setState({
+      habitats: s0.habitats.map(h => h.id === 'h1' ? { ...h, lastCollectedMs: 123 } : h),
+      islands: { ...s0.islands, unlocked: ['home', 'isle2'], plots: { ...s0.islands.plots, isle2: [5, 6, 9, 10] } },
+    })
+    const dest = { island: 'isle2', col: 14, row: 14, facing: 0 }
+    const ok = await post({ type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: dest })
+    expect(ok.statusCode).toBe(200)
+    const s = ok.json().state as PlayerState
+    expect(s.habitats.find(h => h.id === 'h1')).toMatchObject({ lastCollectedMs: 123, placement: dest })
+    expect(s.gold).toBe(s0.gold)
+    expect(s.dragons).toEqual(s0.dragons)
+    // The Hatchery stays home; unowned land is refused.
+    const hatchery = await post({ type: 'moveBuilding', target: { type: 'hatchery' }, placement: { ...dest, col: 8, row: 8 } })
+    expect([hatchery.statusCode, hatchery.json().error]).toEqual([422, 'WRONG_ISLAND'])
+    const fog = await post({ type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: { island: 'isle2', col: 0, row: 0, facing: 0 } })
+    expect([fog.statusCode, fog.json().error]).toEqual([422, 'NOT_OWNED'])
+  })
+
   it('charges store purchases in tokens and records the spend batch', async () => {
     const r = await post({ type: 'buy', item: { kind: 'foodPack' } })
     expect(r.statusCode).toBe(200)

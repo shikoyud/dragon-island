@@ -1,7 +1,10 @@
-import { FOOTPRINT, newPlayer } from '@wyrmhaven/game-core'
+import { act, renderHook } from '@testing-library/react'
+import { FOOTPRINT, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
-import { nearestLegalCell, placingAction, placingReducer } from '../src/state/placing'
-import { FREE } from './land'
+import { createBridge } from '../src/game/bridge'
+import { nearestLegalCell, placementIslands, placementStart, placingAction, placingReducer } from '../src/state/placing'
+import { usePlacing } from '../src/state/usePlacing'
+import { FREE, withIsland, withPlots } from './land'
 
 describe('placing', () => {
   it('a new building opens on the legal cell nearest the given one, so Confirm works at once', () => {
@@ -57,5 +60,91 @@ describe('placing', () => {
       type: 'buy', item: { kind: 'goldenAerie', placement: { island: 'home', ...spot, facing: 2 } },
     })
     expect(placingAction(s, 'home', { what: { kind: 'goldenAerie' }, size: 4, col: 0, row: 0, facing: 0 })).toBeNull()
+  })
+})
+
+describe('moving between plots and islands (R57)', () => {
+  const two = withIsland(newPlayer(0), 'isle2')
+  const h1 = { kind: 'move', target: { type: 'habitat', id: 'h1' } } as const
+  const start = (s: PlayerState, what: typeof h1 | { kind: 'move'; target: { type: 'hatchery' } } = h1) =>
+    placingReducer(null, { type: 'start', what, size: 4, island: 'home', from: { island: 'home', col: 13, row: 8, facing: 0 } })!
+
+  it('a move ghost starts on the current spot, and across a plot border it is still a free moveBuilding', () => {
+    const p = start(two)
+    expect(p).toMatchObject({ col: 13, row: 8 })
+    const across = placingReducer(p, { type: 'cell', col: 14, row: 13 })!
+    expect(placingAction(two, 'home', across)).toEqual({ type: 'moveBuilding', target: h1.target, placement: { island: 'home', col: 14, row: 13, facing: 0 } })
+    expect(placingAction(two, 'home', { ...p, col: 0, row: 0 })).toBeNull()
+  })
+
+  it('offers an Island button per unlocked island a mover may stand on, with the viewed one marked', () => {
+    expect(placementIslands(two, h1, 'home').map(c => [c.island, c.name, c.current, c.room])).toEqual([
+      ['home', 'Home Isle', true, true], ['isle2', 'Ember Reach', false, true],
+    ])
+    // One unlocked island: nothing to switch to. The Hatchery stays on Home, so it has no choice either.
+    expect(placementIslands(newPlayer(0), h1, 'home')).toEqual([])
+    expect(placementIslands(two, { kind: 'move', target: { type: 'hatchery' } }, 'home')).toEqual([])
+    // A new building has the Shop's own island choice, not these buttons.
+    expect(placementIslands(two, { kind: 'farm' }, 'home')).toEqual([])
+  })
+
+  it("a Warlord's Crown decoration may not leave isle6, so it offers no switch", () => {
+    const s = { ...withIsland(two, 'isle6'), decorations: [{ id: 'c1', kind: 'starPool' as const, placement: { island: 'isle6' as const, col: 8, row: 8, facing: 0 as const } }] }
+    expect(placementIslands(s, { kind: 'move', target: { type: 'decoration', id: 'c1' } }, 'isle6')).toEqual([])
+  })
+
+  it('an island with no legal cell for the mover is listed without room', () => {
+    const noLand = withPlots(two, [], 'isle2')
+    expect(placementIslands(noLand, h1, 'home').find(c => c.island === 'isle2')).toMatchObject({ room: false })
+  })
+
+  it('a new building opens on an outer island with room after a Bridge, and Confirm sends that island (pin)', () => {
+    const s = withPlots(withIsland(newPlayer(0), 'isle2'), [5], 'home')
+    const { island, cell } = placementStart(s, { kind: 'habitat', element: 'terra' }, 4, 'home', null)
+    expect(island).toBe('isle2')
+    expect(cell).toBeDefined()
+    const p = placingReducer(null, { type: 'start', what: { kind: 'habitat', element: 'terra' }, size: 4, island, cell })!
+    expect(placingAction(s, 'isle2', p)).toMatchObject({ type: 'placeBuilding', placement: { island: 'isle2', ...cell } })
+  })
+
+  it('switching to Ember Reach changes the view, opens on the nearest legal cell, and Confirm sends that island', () => {
+    const bridge = createBridge()
+    const { result } = renderHook(() => usePlacing(bridge))
+    act(() => result.current.dispatch({ type: 'start', what: h1, size: 4, island: 'home', from: { island: 'home', col: 13, row: 8, facing: 2 } }))
+    act(() => result.current.moveToIsland(two, 'isle2'))
+    expect(result.current.view).toBe('isle2')
+    expect(bridge.view).toBe('isle2')
+    // The nearest legal cell to where the ghost was; the facing carries over. Ember Reach is empty, so it is the same spot.
+    expect(result.current.placing).toMatchObject({ col: 13, row: 8, facing: 2 })
+    expect(placingAction(two, result.current.view, result.current.placing!)).toEqual({
+      type: 'moveBuilding', target: h1.target, placement: { island: 'isle2', col: 13, row: 8, facing: 2 },
+    })
+  })
+
+  it('a switch snaps a ghost sitting in the fog to the nearest legal cell', () => {
+    const bridge = createBridge()
+    const { result } = renderHook(() => usePlacing(bridge))
+    act(() => result.current.dispatch({ type: 'start', what: h1, size: 4, island: 'home', from: { island: 'home', col: 13, row: 8, facing: 0 } }))
+    act(() => result.current.dispatch({ type: 'cell', col: 0, row: 0 }))
+    act(() => result.current.moveToIsland(two, 'isle2'))
+    const p = result.current.placing!
+    expect(placingAction(two, 'isle2', p)).not.toBeNull()
+    expect(p).toMatchObject(nearestLegalCell(two, h1, 'isle2', { col: 0, row: 0 })!)
+  })
+
+  it('Cancel puts the view back where the move started; a finished move stays on its new island', () => {
+    const bridge = createBridge()
+    const { result } = renderHook(() => usePlacing(bridge))
+    act(() => result.current.dispatch({ type: 'start', what: h1, size: 4, island: 'home', from: { island: 'home', col: 13, row: 8, facing: 0 } }))
+    act(() => result.current.moveToIsland(two, 'isle2'))
+    act(() => result.current.dispatch({ type: 'cancel' }))
+    expect(result.current.placing).toBeNull()
+    expect(result.current.view).toBe('home')
+    expect(bridge.view).toBe('home')
+    act(() => result.current.dispatch({ type: 'start', what: h1, size: 4, island: 'home', from: { island: 'home', col: 13, row: 8, facing: 0 } }))
+    act(() => result.current.moveToIsland(two, 'isle2'))
+    act(() => result.current.dispatch({ type: 'done' }))
+    expect(result.current.placing).toBeNull()
+    expect(result.current.view).toBe('isle2')
   })
 })

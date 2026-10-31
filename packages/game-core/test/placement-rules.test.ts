@@ -38,4 +38,40 @@ describe('placementRuleError', () => {
     expect(placementRuleError(s, { kind: 'move', target: { type: 'habitat', id: 'h9' } }, FREE)).toBe('NOT_FOUND')
     expect(placementRuleError(s, { kind: 'move', target: { type: 'breeder', index: 9 } }, FREE)).toBe('NOT_FOUND')
   })
+
+  describe('moves between plots and islands (R57)', () => {
+    const mv = (id: string) => ({ kind: 'move' as const, target: { type: 'habitat' as const, id } })
+    const i2 = withPlots({ ...s, islands: { ...s.islands, unlocked: ['home', 'isle2'] as PlayerState['islands']['unlocked'] } }, [5, 6, 9, 10], 'isle2')
+    const at2 = (col: number, row: number) => ({ island: 'isle2' as const, col, row, facing: 0 as const })
+    it('a habitat crosses a plot border, and onto itself offset by one tile', () => {
+      // Plots 5 and 6 meet at column 16; a 4x4 at col 14 spans 14-17.
+      expect(placementRuleError(s, mv('h1'), P(14, 13))).toBeNull()
+      expect(placementRuleError(s, mv('h1'), P(15, 12))).toBeNull()
+      // One tile over from where it stands: it ignores itself.
+      expect(placementRuleError(s, mv('h1'), P(13, 9))).toBeNull()
+    })
+    it('onto unowned land is NOT_OWNED, also when only part of it hangs over', () => {
+      expect(placementRuleError(s, mv('h1'), P(0, 0))).toBe('NOT_OWNED')
+      expect(placementRuleError(s, mv('h1'), P(22, 22))).toBe('NOT_OWNED')
+    })
+    it('a 5x5 Mountain moves from (8, 8) to a spot straddling a plot border', () => {
+      const m = { kind: 'move' as const, target: { type: 'breeder' as const, index: 0 } }
+      expect(placementRuleError(s, m, P(8, 8))).toBeNull()
+      expect(placementRuleError(s, m, P(13, 13))).toBeNull()
+      expect(placementRuleError(s, m, P(14, 12))).toBeNull()
+    })
+    it('a habitat with stored Gold may go to Island 2, and the move rule never reads Gold', () => {
+      const stored = { ...i2, habitats: i2.habitats.map(h => h.id === 'h1' ? { ...h, lastCollectedMs: 0 } : h) }
+      expect(placementRuleError(stored, mv('h1'), at2(8, 8))).toBeNull()
+      expect(placementRuleError(stored, mv('h1'), at2(14, 14))).toBeNull()
+    })
+    it('the Hatchery stays home, a Warlord\'s Crown decoration stays on isle6, a locked island refuses', () => {
+      expect(placementRuleError(i2, { kind: 'move', target: { type: 'hatchery' } }, at2(8, 8))).toBe('WRONG_ISLAND')
+      expect(placementRuleError(i2, { kind: 'move', target: { type: 'hatchery' } }, P(8, 14))).toBeNull()
+      const deco = { ...both, decorations: [{ id: 'c3', kind: 'starPool' as const, placement: dp }] }
+      expect(placementRuleError(deco, { kind: 'move', target: { type: 'decoration', id: 'c3' } }, { ...dp, col: 12 })).toBeNull()
+      expect(placementRuleError(deco, { kind: 'move', target: { type: 'decoration', id: 'c3' } }, FREE)).toBe('WRONG_ISLAND')
+      expect(placementRuleError(s, mv('h1'), at2(8, 8))).toBe('ISLAND_LOCKED')
+    })
+  })
 })

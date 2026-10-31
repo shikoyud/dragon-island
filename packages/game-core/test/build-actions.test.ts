@@ -105,6 +105,35 @@ describe('moveBuilding', () => {
   })
 })
 
+describe('moveBuilding between plots and islands (R57)', () => {
+  const two = withPlots({ ...s, level: 5, gold: 5_000, islands: { ...s.islands, unlocked: ['home', 'isle2'] } }, [5, 6, 9, 10], 'isle2')
+  const at2 = { island: 'isle2' as const, col: 10, row: 10, facing: 1 as const }
+  it('is free and keeps the collect timer, dragons and Gold when a habitat changes island', () => {
+    const t = { ...two, habitats: two.habitats.map(h => h.id === 'h1' ? { ...h, lastCollectedMs: 777 } : h) }
+    const a = ok(run(t, { type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: at2 }, 5_000_000))
+    expect(a.habitats[0]).toEqual({ ...t.habitats[0], placement: at2 })
+    expect(a.gold).toBe(t.gold)
+    expect(a.dragons).toEqual(t.dragons)
+    expect(a.xp).toBe(t.xp)
+  })
+  it('crosses a plot border on the same island for free', () => {
+    const a = ok(run(s, { type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: P(14, 13) }, 0))
+    expect(a.habitats[0]!.placement).toEqual(P(14, 13))
+    expect(a.gold).toBe(s.gold)
+    err(run(s, { type: 'moveBuilding', target: { type: 'habitat', id: 'h1' }, placement: P(0, 0) }, 0), 'NOT_OWNED')
+  })
+  it('a building under construction moves and its timer keeps running', () => {
+    const placed = ok(run(two, { type: 'placeBuilding', building: { kind: 'habitat', element: 'terra' }, placement: FREE }, 1_000))
+    const a = ok(run(placed, { type: 'moveBuilding', target: { type: 'habitat', id: 'h3' }, placement: at2 }, 2_000))
+    expect(a.constructions).toEqual(placed.constructions)
+    expect(a.habitats[2]!.placement).toEqual(at2)
+    expect(a.habitats[2]!.lastCollectedMs).toBe(1_000)
+  })
+  it('the Hatchery stays home', () => {
+    err(run(two, { type: 'moveBuilding', target: { type: 'hatchery' }, placement: at2 }, 0), 'WRONG_ISLAND')
+  })
+})
+
 describe('isValidAction placements', () => {
   it('rejects malformed placements', () => {
     for (const placement of [{ island: 'home', col: 1.5, row: 0, facing: 0 }, { island: 'home', col: -1, row: 0, facing: 0 }, { island: 'home', col: 0, row: 0, facing: 4 }, { island: 'moon', col: 0, row: 0, facing: 0 }, { island: 'home', col: 1e9, row: 0, facing: 0 }])

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dismissLevelUp, resetPlayer, signIn } from './helpers'
+import { dismissLevelUp, resetPlayer, signIn, startingState } from './helpers'
 
 /**
  * The island canvas, clicked for real: the isometric projection, the camera and the placement ghost. The scene exposes
@@ -7,8 +7,11 @@ import { dismissLevelUp, resetPlayer, signIn } from './helpers'
  */
 type TestBridge = {
   on(type: string, h: (e: unknown) => void): () => void
+  emit(e: unknown): void
   cellToScreen: ((col: number, row: number) => { x: number; y: number }) | null
   placing: { col: number; row: number } | null
+  view: string
+  state: { habitats: { id: string; placement: { island: string; col: number; row: number } }[] } | null
 }
 declare global { interface Window { __bridge?: TestBridge; __seen?: unknown[] } }
 
@@ -68,4 +71,48 @@ test('wheel zoom stays anchored on the pointer and a drag pans without a jump', 
   expect(Math.abs(after.y - before.y - 10)).toBeLessThanOrEqual(2)
   // A drag is never a click.
   expect(await page.evaluate(() => window.__seen!.length)).toBe(0)
+})
+
+/** A dragon stands on its habitat, so a canvas click lands on the dragon; select the habitat the way the scene would. */
+const selectH1 = (page: Page) => page.evaluate(() => window.__bridge!.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
+
+test('a real drag moves a habitat across a plot border, and Confirm keeps it free', async ({ page }) => {
+  // h1 stands at (13, 8). Click it, press Move, then sweep the pointer to a spot whose footprint spans the border at col 16 and row 16.
+  const from = await cellPoint(page, 14, 9)
+  await selectH1(page)
+  await page.getByRole('button', { name: /^move$/i }).click()
+  await expect.poll(() => page.evaluate(() => window.__bridge!.placing)).toMatchObject({ col: 13, row: 8 })
+  const to = await cellPoint(page, 15, 14) // the pointer holds the footprint's centre: top-left lands on (14, 13)
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.move(to.x, to.y, { steps: 12 })
+  await expect.poll(() => page.evaluate(() => window.__bridge!.placing)).toMatchObject({ col: 14, row: 13 })
+  const bar = page.getByRole('toolbar', { name: /placement/i })
+  await expect(bar.getByRole('button', { name: 'Confirm' })).toBeEnabled()
+  await bar.getByRole('button', { name: 'Confirm' }).click()
+  await expect(bar).toBeHidden()
+  await expect.poll(() => page.evaluate(() => window.__bridge!.state!.habitats.find(h => h.id === 'h1')!.placement)).toMatchObject({ island: 'home', col: 14, row: 13 })
+})
+
+test('Move to Ember Reach switches the view, and Cancel brings it back', async ({ page, request }) => {
+  const base = startingState() as { islands: { unlocked: string[]; plots: Record<string, number[]> } }
+  await resetPlayer(request, { gold: 50_000, level: 6, islands: { ...base.islands, unlocked: ['home', 'isle2'], plots: { ...base.islands.plots, isle2: [5, 6, 9, 10] } } })
+  await page.reload()
+  await page.waitForFunction(() => Boolean(window.__bridge?.cellToScreen && window.__bridge.state))
+  await dismissLevelUp(page)
+  await selectH1(page)
+  await page.getByRole('button', { name: /^move$/i }).click()
+  const bar = page.getByRole('toolbar', { name: /placement/i })
+  await bar.getByRole('button', { name: 'Move to Ember Reach' }).click()
+  await expect.poll(() => page.evaluate(() => window.__bridge!.view)).toBe('isle2')
+  await bar.getByRole('button', { name: 'Cancel' }).click()
+  await expect.poll(() => page.evaluate(() => window.__bridge!.view)).toBe('home')
+  // Again, and this time Confirm: the habitat lands on Ember Reach with the view following it.
+  await selectH1(page)
+  await page.getByRole('button', { name: /^move$/i }).click()
+  await bar.getByRole('button', { name: 'Move to Ember Reach' }).click()
+  await expect(bar.getByRole('button', { name: 'Confirm' })).toBeEnabled()
+  await bar.getByRole('button', { name: 'Confirm' }).click()
+  await expect(bar).toBeHidden()
+  await expect.poll(() => page.evaluate(() => window.__bridge!.state!.habitats.find(h => h.id === 'h1')!.placement.island)).toBe('isle2')
+  expect(await page.evaluate(() => window.__bridge!.view)).toBe('isle2')
 })
