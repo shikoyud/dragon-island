@@ -286,3 +286,12 @@ describe('non-stop bots stay on §7.2 through Day 12 (R41)', () => {
     }, BOT_TIMEOUT_MS)
   }
 })
+
+describe('the 14 Goals finish on the Gold and Food the game gives, on both presets', () => {
+  for (const preset of [FLASH_14, FLASH_28]) {
+    it(`${preset.id}: the casual bot claims all 14 with no grants`, () => {
+      const r = runBot(casual(preset, 50, 6))
+      expect(r.final.goalIndex).toBe(14)
+    }, BOT_TIMEOUT_MS)
+  }
+})
