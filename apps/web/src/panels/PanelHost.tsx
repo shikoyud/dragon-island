@@ -84,7 +84,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onTrial = () => {}, o
       case 'map': return null // the Map is a scene (R60), not a dialog; its islands open panels
       case 'breed': return <BreedPanel nowMs={nowMs} onClose={close} />
       case 'book': return <DragonBookPanel art={bridge.art} onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
-      case 'battle': return <BattleHub nowMs={nowMs} onTrial={onTrial} onResume={onResumeTrial} onPvp={onPvp} onClose={close} />
+      case 'battle': return <BattleHub nowMs={nowMs} chapter={dialog.chapter} onTrial={onTrial} onResume={onResumeTrial} onPvp={onPvp} onClose={close} />
       case 'quests': return <QuestsPanel onClose={close} onOpen={onOpen} />
       case 'wings':
       case 'inbox': return null // not built until a later milestone; the bar buttons are disabled

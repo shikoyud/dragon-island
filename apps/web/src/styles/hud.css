@@ -280,3 +280,69 @@
 .trials__hp-fill { display: block; height: 100%; background: var(--ok); }
 .trials__hp-fill--low { background: var(--danger); }
 .trials__actions { align-items: flex-start; justify-content: space-between; }
+
+/* ---- the battle screen (R80): React's plates over the scene's stage, the controls under it, one column on any screen.
+   battleStage in layout.ts places the stage; the controls' height is BATTLE_CONTROLS_H there. ---- */
+.battle { position: absolute; inset: 0; z-index: 15; pointer-events: none; overflow: hidden; }
+.battle button { pointer-events: auto; }
+.battle__stage { position: absolute; }
+.battle__head { position: absolute; top: 4px; left: 8px; right: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.battle__title { margin: 0; font-size: 12px; min-width: 0; text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink); }
+.battle__tap { min-height: 44px; }
+.battle__exit { flex: none; min-width: 64px; background: var(--glass); border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--border); }
+
+.battle__plate { position: absolute; width: 168px; padding: 5px 7px; display: grid; gap: 3px; background: var(--glass); border: 2px solid var(--ink); box-shadow: inset 0 0 0 1px var(--border), 0 2px 0 var(--ink); }
+/* Across from each dragon, so neither covers the other: the enemy stands upper right, yours lower left. */
+.battle__plate--defender { left: 8px; top: 52px; }
+.battle__plate--attacker { right: 8px; bottom: 44px; }
+.battle__plate-head { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 12px; }
+.battle__name { flex: 1; min-width: 0; font-family: var(--font-display); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.battle__level { flex: none; font: 10px var(--font-display); color: var(--text-muted); }
+.battle__boss { flex: none; font: 10px var(--font-display); padding: 0 3px; color: #1b1300; background: var(--accent); }
+.battle__hp { height: 8px; background: var(--bg); border: 1px solid var(--ink); overflow: hidden; }
+.battle__hp-fill { display: block; height: 100%; width: 100%; transform-origin: left; background: var(--ok); transition: transform 220ms linear; }
+.battle__hp-fill--low { background: var(--danger); }
+.battle__plate-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.battle__hp-text { font: 10px var(--font-display); white-space: nowrap; }
+.battle__pips { display: flex; gap: 3px; }
+.battle__pip { width: 10px; height: 10px; border: 2px solid var(--ink); background: var(--ok); }
+.battle__pip--hurt { background: var(--accent); }
+.battle__pip--ko { background: var(--bg); box-shadow: inset 0 0 0 1px var(--danger); }
+
+.battle__line {
+  position: absolute; left: 8px; right: 8px; bottom: 2px; margin: 0; text-align: center; font-size: 12px; line-height: 1.25;
+  text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink);
+}
+
+.battle__controls {
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px;
+  padding: 4px 8px max(6px, env(safe-area-inset-bottom)); pointer-events: auto;
+  background: var(--glass); border: 2px solid var(--ink); border-bottom: 0; box-shadow: inset 0 0 0 1px var(--border);
+}
+.battle__controls--result { max-height: 80%; overflow: auto; overscroll-behavior: contain; }
+.battle__turn { margin: 0; display: flex; justify-content: space-between; gap: 8px; font: 11px/16px var(--font-display); white-space: nowrap; }
+.battle__goal { color: var(--accent); }
+.battle__moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(50px, auto); gap: 6px; }
+.battle__move { display: grid; align-content: center; gap: 2px; min-width: 0; min-height: 44px; padding: 3px 6px; text-align: left; }
+.battle__move-name { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 11px; line-height: 1.1; }
+.battle__move-hint { font: 11px var(--font-body); color: var(--text-muted); white-space: nowrap; }
+.battle__move-hint b { font: 11px var(--font-display); color: var(--text); }
+.battle__move--super .battle__move-hint b { color: #ffc060; }
+.battle__move--weak .battle__move-hint b { color: #a9bcff; }
+.battle__move--immune .battle__move-hint b { color: var(--danger); }
+.battle__swap { width: 100%; }
+.battle__bench { display: grid; gap: 6px; }
+.battle__bench-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; font: 11px var(--font-display); }
+.battle__bench-row { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; }
+.battle__sending { margin: 0; display: grid; gap: 6px; }
+.battle__result { display: grid; gap: 8px; }
+.battle__result p { margin: 0; }
+.battle-result__title { font-size: 18px; }
+.battle-result__stars { font-size: 20px; color: var(--accent); letter-spacing: 2px; }
+
+.battle-confirm { z-index: 40; align-items: center; }
+.battle-confirm .hud-dialog { width: min(340px, calc(100% - 32px)); }
+.battle-confirm__card { padding: 14px; background: var(--bg-panel); border: 2px solid var(--border); }
+.battle-confirm__card h2 { margin: 0 0 6px; font-size: 16px; }
+.battle-confirm__card p { margin: 0 0 12px; }
+.battle-confirm__row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }

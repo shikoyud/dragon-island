@@ -16,8 +16,8 @@ import { Icon, type IconName } from './Icon'
 import { TerminalClock } from './TerminalClock'
 
 export type PanelId = 'shop' | 'breed' | 'book' | 'battle' | 'wings' | 'quests' | 'inbox' | 'map' | 'settings'
-/** What the one dialog shows: a named panel (the Shop can open on its Store tab), or the panel of something clicked on the island. */
-export type DialogKey = { kind: 'panel'; id: PanelId; tab?: 'build' | 'store' } | { kind: 'target'; target: Target }
+/** What the one dialog shows: a named panel (the Shop can open on its Store tab, Battle on a chapter's nodes), or the panel of something clicked on the island. */
+export type DialogKey = { kind: 'panel'; id: PanelId; tab?: 'build' | 'store'; chapter?: number } | { kind: 'target'; target: Target }
 
 /** The operator console keeps its token in this tab's sessionStorage; only then does the HUD offer the Admin button. */
 const hasAdminToken = (): boolean => { try { return Boolean(sessionStorage.getItem(ADMIN_TOKEN_KEY)) } catch { return false } }
@@ -89,10 +89,8 @@ function Shortcut({ item, nowMs, onOpen }: { item: AttentionItem; nowMs: number;
  * what needs attention on the left, the main menu at the bottom (or the placement strip while placing, which
  * the App renders in `bottom`). Reports how much screen its top and bottom take so the camera frames around it.
  */
-export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = false }: {
+export function Hud({ bridge, nowMs, open, onOpen, placing, bottom }: {
   bridge: Bridge; nowMs: number; open: DialogKey | null; onOpen: (k: DialogKey | null) => void; placing: boolean; bottom?: ReactNode
-  /** During a battle only the top bar stays (resources update as the fight pays out); the menus step aside. */
-  battle?: boolean
 }) {
   const me = useMe()
   const toasts = useToasts()
@@ -199,7 +197,6 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
         {data.game && <TerminalClock game={data.game} nowMs={nowMs} />}
       </header>
 
-      {!battle && <>
       {islandMenu}
 
       {/* R60: the Map's canvas is invisible to the keyboard and to screen readers. These stay out of sight until focused. */}
@@ -222,7 +219,6 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom, battle = fal
       <div className="hud-bottom" ref={foot}>
         {bottom ?? mainMenu}
       </div>
-      </>}
     </div>
   )
 }

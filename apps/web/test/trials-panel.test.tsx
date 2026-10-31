@@ -6,13 +6,15 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, renderHook, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiProvider } from '../src/api/ApiProvider'
 import type { Api } from '../src/api/client'
 import { errorMessages, messageFor } from '../src/api/errors'
 import { sessionStore } from '../src/api/session'
+import { createBridge } from '../src/game/bridge'
 import { BattleHub } from '../src/panels/BattleHub'
+import { BattlePanel } from '../src/panels/BattlePanel'
 import { attentionItems } from '../src/hud/hudModel'
 import { fightsInMs, TrialsPanel } from '../src/panels/TrialsPanel'
 import { trialDraftKey, useBattle } from '../src/state/battle'
@@ -291,9 +293,37 @@ describe('TrialsPanel', () => {
     expect(node(1)).toHaveAccessibleDescription('Finish the Trial in progress first')
     await userEvent.click(screen.getByRole('button', { name: 'Resume' }))
     expect(h.onResume).toHaveBeenCalled()
+    // Abandon asks first, with the cost, like the battle's own exit: nothing is sent until it's confirmed.
     await userEvent.click(screen.getByRole('button', { name: 'Abandon' }))
+    const ask = within(screen.getByRole('alertdialog', { name: 'Abandon?' }))
+    expect(ask.getByText('The team falls to 1 HP')).toBeInTheDocument()
+    expect(h.api.action).not.toHaveBeenCalled()
+    await userEvent.click(ask.getByRole('button', { name: /keep fighting/i }))
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    expect(h.api.action).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Abandon' }))
+    await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Abandon' }))
     expect(h.api.action).toHaveBeenCalledWith({ type: 'abandonTrial' }, expect.any(String))
     await waitFor(() => expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull())
+  })
+
+  it('Escape on the confirm closes only the confirm', async () => {
+    const outer = vi.fn()
+    window.addEventListener('keydown', outer)
+    try {
+      panel(withActive)
+      await userEvent.click(screen.getByRole('button', { name: 'Abandon' }))
+      await userEvent.keyboard('{Escape}')
+      expect(screen.queryByRole('alertdialog')).toBeNull()
+      expect(outer).not.toHaveBeenCalled()
+    } finally { window.removeEventListener('keydown', outer) }
+  })
+
+  it('reopens on the node list of the chapter fought in, when given one', () => {
+    const h = harness(base)
+    render(<TrialsPanel nowMs={0} chapter={1} onFight={vi.fn()} onResume={vi.fn()} />, { wrapper: h.wrapper })
+    expect(screen.getByRole('list', { name: 'Nodes' })).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'Chapters' })).toBeNull()
   })
 })
 
@@ -306,6 +336,12 @@ describe('the HUD', () => {
 })
 
 describe('BattleHub', () => {
+  it('passes on the chapter to come back to', () => {
+    const h = harness(base)
+    render(<BattleHub nowMs={0} chapter={1} onTrial={vi.fn()} onResume={vi.fn()} onPvp={vi.fn()} onClose={vi.fn()} />, { wrapper: h.wrapper })
+    expect(screen.getByRole('list', { name: 'Nodes' })).toBeInTheDocument()
+  })
+
   it('opens on Trials, so an active Trial shows when Battle opens', () => {
     const h = harness(withActive)
     render(<BattleHub nowMs={0} onTrial={vi.fn()} onResume={vi.fn()} onPvp={vi.fn()} onClose={vi.fn()} />, { wrapper: h.wrapper })
@@ -339,16 +375,80 @@ describe('useBattle, PvE', () => {
     // Not done yet: Submit stays shut, as in PvP.
     act(() => result.current.choose(STRIKE))
     expect(result.current.canSubmit).toBe(false)
-    act(() => result.current.undo())
 
     const moves = complete()
-    for (const m of moves) act(() => result.current.choose(m))
+    for (const m of moves.slice(1)) act(() => result.current.choose(m))
     expect(result.current.preview!.done).toMatchObject({ ok: true })
     expect(result.current.canSubmit).toBe(true)
     await act(async () => { await result.current.submit() })
     expect(h.api.action).toHaveBeenLastCalledWith({ type: 'finishTrial', moves }, expect.any(String))
     expect(result.current.canSubmit).toBe(false)
     expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull()
+  })
+
+  it('abandoning sends abandonTrial and clears the draft', async () => {
+    const h = harness(withActive)
+    const { result } = renderHook(() => useBattle(), { wrapper: h.wrapper })
+    await act(async () => { await result.current.resumeTrial() })
+    act(() => result.current.choose(STRIKE))
+    expect(localStorage.getItem(trialDraftKey('p1', 3))).not.toBeNull()
+    let ok = false
+    await act(async () => { ok = await result.current.abandon() })
+    expect(ok).toBe(true)
+    expect(h.api.action).toHaveBeenLastCalledWith({ type: 'abandonTrial' }, expect.any(String))
+    expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull()
+  })
+
+  describe('on the battle screen', () => {
+    const WON = { state: base, effects: [], trial: { won: true, stars: 3, gold: 1_000, food: 50, xp: 20, first: true }, battle: { winner: 'attacker', turns: 5 } }
+    const mount = (state: PlayerState, onClose: () => void) => {
+      const h = harness(state, { action: vi.fn(async () => WON) })
+      const bridge = createBridge()
+      bridge.setReducedMotion(true)
+      const Host = () => {
+        const b = useBattle()
+        useEffect(() => { void b.resumeTrial() }, []) // eslint-disable-line
+        return b.preview ? <BattlePanel battle={b} bridge={bridge} onClose={onClose} /> : null
+      }
+      render(<Host />, { wrapper: h.wrapper })
+      return h
+    }
+    const screenFor = async (trial: ActiveTrial, onClose = vi.fn()) => {
+      const h = mount({ ...base, pve: { ...base.pve, active: trial, battles: 3 } }, onClose)
+      await screen.findByRole('group', { name: /^move$/i })
+      return { ...h, onClose }
+    }
+
+    it('shows the star goal and the node', async () => {
+      await screenFor(active)
+      expect(screen.getByText('3★: 8 turns, no KOs')).toBeInTheDocument()
+      expect(screen.getByText(/Terra Wilds · Node 1/)).toBeInTheDocument()
+      expect(screen.queryByText('Boss')).toBeNull()
+    })
+
+    it('marks the Boss', async () => {
+      await screenFor({ ...active, node: 10 })
+      expect(within(screen.getByRole('group', { name: 'Enemy' })).getByText('Boss')).toBeInTheDocument()
+    })
+
+    it('exit states the cost; confirming abandons and goes back', async () => {
+      const { api, onClose } = await screenFor(active)
+      await userEvent.click(screen.getByRole('button', { name: /exit/i }))
+      const ask = within(screen.getByRole('alertdialog', { name: 'Abandon?' }))
+      expect(ask.getByText('The team falls to 1 HP')).toBeInTheDocument()
+      await userEvent.click(ask.getByRole('button', { name: 'Abandon' }))
+      expect(api.action).toHaveBeenCalledWith({ type: 'abandonTrial' }, expect.any(String))
+      await waitFor(() => expect(onClose).toHaveBeenCalled())
+    })
+
+    it('a draft that is already done sends finishTrial once on resume, then shows stars', async () => {
+      localStorage.setItem(trialDraftKey('p1', 3), JSON.stringify(complete()))
+      const { api } = mount(withActive, () => {})
+      const box = await screen.findByRole('status', { name: /battle result/i })
+      expect(within(box).getByLabelText('3 stars')).toBeInTheDocument()
+      expect(api.action).toHaveBeenCalledTimes(1)
+      expect(api.action).toHaveBeenCalledWith(expect.objectContaining({ type: 'finishTrial' }), expect.any(String))
+    })
   })
 
   it('no seed is asked for when the start is refused', async () => {

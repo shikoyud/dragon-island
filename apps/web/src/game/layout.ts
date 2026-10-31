@@ -7,8 +7,20 @@ export const ISO = { w: 16, h: 8 } as const
 const HW = ISO.w / 2
 const HH = ISO.h / 2
 
-/** The fixed stage the battle scene draws on; it is zoomed by whole numbers to fit the viewport. */
-export const BATTLE = { w: 480, h: 270 } as const
+/** The fixed portrait stage the battle scene draws on (R80); it is zoomed by whole numbers to fit above the controls. */
+export const BATTLE = { w: 360, h: 420 } as const
+/** The React controls under the stage: turn line, 2x2 moves, Swap. Fits 360x640 under the stage at zoom 1. */
+export const BATTLE_CONTROLS_H = 192
+/** Where each active dragon's feet stand, in stage pixels: enemy upper right, yours lower left (R80). */
+export const BATTLE_SPOT = { attacker: { x: 96, y: 376 }, defender: { x: 264, y: 196 } } as const
+/** Dragons draw at this scale on the stage, so a 48 px adult is 144 and a 32 px hatchling 96. */
+export const BATTLE_DRAGON_SCALE = 3
+/** The code-drawn platform under a dragon, until `battle.platform` has art. */
+export const BATTLE_PLATFORM = { w: 140, h: 36 } as const
+/** Stage y where the sky meets the ground of the code-drawn backdrop. */
+export const BATTLE_HORIZON_Y = 150
+/** Far enough past the stage that any screen's edge shows backdrop. */
+export const BATTLE_BLEED = 4000
 
 export interface Pos { x: number; y: number }
 export interface Box { x: number; y: number; w: number; h: number }
@@ -105,4 +117,23 @@ export function tapHit(size: { w: number; h: number }, zoom: number, minPx: numb
 /** Largest whole-number zoom that fits the battle stage in the viewport; never below 1. */
 export function integerZoom(viewportW: number, viewportH: number): number {
   return Math.max(1, Math.floor(Math.min(viewportW / BATTLE.w, viewportH / BATTLE.h)))
+}
+
+/**
+ * Where the stage sits on a screen: zoomed to fit the room above the controls, centred in it, by whole pixels. React's plates
+ * and the scene's camera both read this, so they agree. On a screen too short for both it pins to the top, and the controls,
+ * anchored to the bottom, stay reachable over it.
+ */
+export function battleStage(viewportW: number, viewportH: number): Box & { zoom: number } {
+  const room = Math.max(0, viewportH - BATTLE_CONTROLS_H)
+  const zoom = integerZoom(viewportW, room)
+  const w = BATTLE.w * zoom
+  const h = BATTLE.h * zoom
+  return { zoom, x: Math.floor((viewportW - w) / 2), y: Math.max(0, Math.floor((room - h) / 2)), w, h }
+}
+
+/** The world point the camera centres on to put the stage at `battleStage`'s box. */
+export function battleCamera(viewportW: number, viewportH: number): Pos {
+  const box = battleStage(viewportW, viewportH)
+  return { x: (viewportW / 2 - box.x) / box.zoom, y: (viewportH / 2 - box.y) / box.zoom }
 }

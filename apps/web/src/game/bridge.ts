@@ -1,4 +1,4 @@
-import { DEFAULT_PRESET, type BattlePreview, type Facing, type Footprint, type IslandId, type MovableRef, type Placeable, type PlayerState, type Preset } from '@wyrmhaven/game-core'
+import { DEFAULT_PRESET, type BattlePreview, type Element, type Facing, type Footprint, type IslandId, type MovableRef, type Placeable, type PlayerState, type Preset } from '@wyrmhaven/game-core'
 import type { GameArtSet } from '../art/types'
 
 /** Something the player can click in a scene. */
@@ -42,6 +42,8 @@ export type GameEvent =
   /** A tap on a habitat's gold badge; React runs the `collectGold` action. */
   | { type: 'collectGold'; habitatId: string }
   | { type: 'battle'; preview: BattlePreview | null }
+  /** How many log events have played: the scene shows those, and plays the effects of the newest. */
+  | { type: 'battleShown'; shown: number }
   | { type: 'state'; state: PlayerState | null }
   | { type: 'cell'; col: number; row: number }
   | { type: 'view'; view: IslandId }
@@ -71,6 +73,10 @@ export function createBridge() {
     preset: DEFAULT_PRESET as Preset,
     reducedMotion: false,
     battle: null as BattlePreview | null,
+    /** The log events of `battle` that have played so far; React runs the clock, the scene follows. */
+    battleShown: 0,
+    /** The chapter's element for the backdrop's fill; null for the Arena. */
+    battleBackdrop: null as Element | null,
     selected: { kind: 'empty' } as Target,
     view: 'home' as IslandId,
     placing: null as Placing | null,
@@ -122,9 +128,16 @@ export function createBridge() {
       bridge.mapOpen = open
       bridge.emit({ type: 'map', open })
     },
-    setBattle(preview: BattlePreview | null): void {
+    setBattle(preview: BattlePreview | null, backdrop: Element | null = null): void {
       bridge.battle = preview
+      bridge.battleBackdrop = backdrop
+      if (!preview) bridge.battleShown = 0
       bridge.emit({ type: 'battle', preview })
+    },
+    setBattleShown(shown: number): void {
+      if (shown === bridge.battleShown) return
+      bridge.battleShown = shown
+      bridge.emit({ type: 'battleShown', shown })
     },
   }
   return bridge

@@ -1,4 +1,4 @@
-import type { TeamIds } from '@wyrmhaven/game-core'
+import { TRIAL_CHAPTERS, type TeamIds } from '@wyrmhaven/game-core'
 import type { Offer } from '@wyrmhaven/shared'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSession } from './api/session'
@@ -61,7 +61,9 @@ function Game() {
   const levelUp = useLevelUp(me.data?.state.level, placing !== null || Boolean(battle.setup), me.data?.playerId)
 
   useEffect(() => { void loadActiveArt().then(setArt) }, [])
-  useEffect(() => { bridge.setBattle(battle.preview) }, [bridge, battle.preview])
+  const battleSetup = battle.setup
+  const backdrop = battleSetup?.mode === 'pve' ? TRIAL_CHAPTERS[battleSetup.trial.chapter - 1]!.element : null
+  useEffect(() => { bridge.setBattle(battle.preview, backdrop) }, [bridge, battle.preview, backdrop])
   useEffect(() => { if (battle.error) toasts.error(battle.error) }, [battle.error, toasts])
   useEffect(() => { if (me.error) toasts.error(me.error) }, [me.error, toasts])
   const levelUpOpen = levelUp !== null
@@ -80,6 +82,13 @@ function Game() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [mapBare, setDialog])
+  // A Trial's fight ends where it began, on its chapter's nodes. Stable, or a clock tick would render the battle screen.
+  const resetBattle = battle.reset
+  const closeBattle = useCallback(() => {
+    resetBattle()
+    bridge.setBattle(null)
+    if (battleSetup?.mode === 'pve') setDialog({ kind: 'panel', id: 'battle', chapter: battleSetup.trial.chapter })
+  }, [resetBattle, bridge, battleSetup, setDialog])
   const skin = useMemo(() => hudSkin(art.hud), [art])
   // The Island buttons scan every unlocked island for room: only when the state, the thing being placed or the view changes.
   const stateNow = me.data?.state
@@ -122,33 +131,32 @@ function Game() {
   const startPvp = (offer: Offer, team: TeamIds) => { battle.startPvp(offer, team); setDialog(null) }
   const startTrial = (chapter: number, node: number, team: TeamIds) => { void battle.startTrial(chapter, node, team).then(entered => { if (entered) setDialog(null) }) }
   const resumeTrial = () => { void battle.resumeTrial().then(entered => { if (entered) setDialog(null) }) }
-  const closeBattle = () => { battle.reset(); bridge.setBattle(null) }
 
   // Escape belongs to the level-up screen while it is up; the panel under it stays open.
   const underLevelUp = (fn: () => void) => (levelUp ? () => {} : fn)
-  const content = battle.setup
-    ? { label: 'Battle', node: <BattlePanel battle={battle} onClose={closeBattle} />, onClose: underLevelUp(closeBattle), modal: false }
-    : dialog && !placing && !(dialog.kind === 'panel' && dialog.id === 'map')
-      ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} onTrial={startTrial} onResumeTrial={resumeTrial} onPvp={startPvp} />, onClose: underLevelUp(close) }
-      : null
+  const content = !battle.setup && dialog && !placing && !(dialog.kind === 'panel' && dialog.id === 'map')
+    ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} onTrial={startTrial} onResumeTrial={resumeTrial} onPvp={startPvp} />, onClose: underLevelUp(close) }
+    : null
 
   return (
     <HudArtContext.Provider value={art.hud}>
       <StartPlacingProvider value={startPlacing}>
         <div className={`game-root ${skin.className}`} style={skin.style} data-testid="shell">
           <GameCanvas bridge={bridge} art={art} nowMs={nowMs} />
-          <Hud
-            battle={Boolean(battle.setup)}
-            bridge={bridge}
-            nowMs={nowMs}
-            open={dialog}
-            onOpen={setDialog}
-            placing={placing !== null}
-            bottom={placing ? (
-              <PlacementBar legal={ghostAction !== null} pending={pending} islands={islandChoices} onIsland={island => moveToIsland(state, island)} onTurn={() => dispatch({ type: 'turn' })} onConfirm={confirmPlacing} onCancel={() => dispatch({ type: 'cancel' })} />
-            ) : undefined}
-          />
-          {content && <Dialog label={content.label} onClose={content.onClose} modal={content.modal ?? true}>{content.node}</Dialog>}
+          {/* The battle has the whole screen: on a phone the stage and its controls need every pixel, and it has no clock. */}
+          {battle.setup ? <BattlePanel battle={battle} bridge={bridge} onClose={closeBattle} /> : (
+            <Hud
+              bridge={bridge}
+              nowMs={nowMs}
+              open={dialog}
+              onOpen={setDialog}
+              placing={placing !== null}
+              bottom={placing ? (
+                <PlacementBar legal={ghostAction !== null} pending={pending} islands={islandChoices} onIsland={island => moveToIsland(state, island)} onTurn={() => dispatch({ type: 'turn' })} onConfirm={confirmPlacing} onCancel={() => dispatch({ type: 'cancel' })} />
+              ) : undefined}
+            />
+          )}
+          {content && <Dialog label={content.label} onClose={content.onClose}>{content.node}</Dialog>}
           {levelUp && <LevelUp from={levelUp.from} to={levelUp.to} onClose={levelUp.dismiss} />}
           {me.data.termsRequired && <Dialog label="Updated terms" onClose={() => {}}><TermsPrompt version={me.data.termsRequired} /></Dialog>}
         </div>

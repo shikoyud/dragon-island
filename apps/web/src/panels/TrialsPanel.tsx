@@ -3,14 +3,15 @@ import {
   NODES_PER_CHAPTER, nodeKey, nodeLevel, nodeLocked, nodeRewards, nodeTeam, REPLAYS_PER_NODE_PER_DAY, TRIAL_CHAPTERS, unlockPl,
   type Catalog, type Dragon, type Preset, type TeamIds, type UnlockKey,
 } from '@wyrmhaven/game-core'
-import { useState, type CSSProperties } from 'react'
+import { useCallback, useState, type CSSProperties } from 'react'
 import { Icon } from '../hud/Icon'
 import { useAction } from '../state/actions'
-import { clearTrialDraft } from '../state/battle'
+import { clearTrialDraft, TRIAL_ABANDON_COST } from '../state/battle'
 import { useMe } from '../state/me'
 import { usePreset } from '../state/preset'
 import { formatGold, formatMicroUsd } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
+import { AbandonConfirm } from './AbandonConfirm'
 
 const TAP: CSSProperties = { minHeight: 44 }
 const STARS_PER_CHAPTER = NODES_PER_CHAPTER * 3
@@ -49,8 +50,11 @@ function saveTeam(playerId: string, team: readonly string[]): void {
 type View = { screen: 'chapters' } | { screen: 'nodes'; chapter: number } | { screen: 'team'; chapter: number; node: number }
 
 /** The Elemental Trials (§6.3): chapters, then a chapter's nodes, then the team to send; three screens with a back button. */
-export function TrialsPanel({ nowMs, onFight, onResume, onClose }: {
-  nowMs: number; onFight: (chapter: number, node: number, team: TeamIds) => void; onResume: () => void; onClose?: () => void
+export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
+  nowMs: number
+  /** The chapter a fight just ended in: opens on its nodes rather than the list of chapters. */
+  chapter?: number
+  onFight: (chapter: number, node: number, team: TeamIds) => void; onResume: () => void; onClose?: () => void
 }) {
   const me = useMe()
   const preset = usePreset()
@@ -59,8 +63,10 @@ export function TrialsPanel({ nowMs, onFight, onResume, onClose }: {
   const s = me.data?.state
   const playerId = me.data?.playerId ?? ''
   const usable = (d: Dragon) => canFight(d, c, nowMs, preset)
-  const [view, setView] = useState<View>({ screen: 'chapters' })
+  const [view, setView] = useState<View>(chapter ? { screen: 'nodes', chapter } : { screen: 'chapters' })
   const [picked, setPicked] = useState<string[] | null>(null)
+  const [confirmAbandon, setConfirmAbandon] = useState(false)
+  const cancelAbandon = useCallback(() => setConfirmAbandon(false), [])
   if (!s) return null
 
   const active = s.pve.active
@@ -83,7 +89,10 @@ export function TrialsPanel({ nowMs, onFight, onResume, onClose }: {
   const chapterStars = (n: number) => Array.from({ length: NODES_PER_CHAPTER }, (_, i) => s.pve.stars[nodeKey(n, i + 1)] ?? 0).reduce<number>((a, b) => a + b, 0)
   const abandon = () => {
     if (!active) return
-    void run({ type: 'abandonTrial' }).then(res => { if (res) clearTrialDraft(me.data!.playerId, active.index) })
+    void run({ type: 'abandonTrial' }).then(res => {
+      setConfirmAbandon(false)
+      if (res) clearTrialDraft(me.data!.playerId, active.index)
+    })
   }
 
   /** Why a chapter is closed, or '' when it is open to play. */
@@ -124,8 +133,9 @@ export function TrialsPanel({ nowMs, onFight, onResume, onClose }: {
       <p>Trial in progress: {TRIAL_CHAPTERS[active.chapter - 1]!.theme} · Node {active.node}. Resume to finish it. Abandoning counts as a loss and leaves the team on 1 HP.</p>
       <div className="trials__row">
         <ActionButton id="trial-resume" primary onClick={onResume}>Resume</ActionButton>
-        <ActionButton id="trial-abandon" danger disabled={pending} onClick={abandon}>Abandon</ActionButton>
+        <ActionButton id="trial-abandon" danger disabled={pending} onClick={() => setConfirmAbandon(true)}>Abandon</ActionButton>
       </div>
+      {confirmAbandon && <AbandonConfirm cost={TRIAL_ABANDON_COST} pending={pending} onConfirm={abandon} onCancel={cancelAbandon} />}
     </div>
   )
 

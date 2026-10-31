@@ -1,48 +1,165 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { openPanel, resetPlayer, signIn, seaTeam } from './helpers'
 
-test('plays a real Trial node, resumes after a reload, and gets offers in the arena', async ({ page, request }) => {
-  page.on('pageerror', e => console.log('PAGEERROR', e.message))
-  await signIn(page)
-  await resetPlayer(request, { level: 8, dragons: seaTeam(20), defenceTeam: ['d1', 'd2', 'd3'] })
-  await page.reload()
+const moves = (page: Page) => page.getByRole('group', { name: /^move$/i }).getByRole('button')
+/** Who can be sent in: the list also shows the fallen, disabled. */
+const replacement = (page: Page) => page.getByRole('group', { name: /^replacement$/i }).getByRole('button').and(page.locator(':enabled'))
+const result = (page: Page) => page.getByRole('status', { name: /battle result/i })
+const turn = (page: Page, n: number) => page.getByText(`Turn ${n} / 30`)
 
-  // Chapter 1 node 1 is three level-1 enemies; a level-20 team wins with Strike alone (the first button), Physical never being immune.
-  await openPanel(page, 'Trials')
-  await expect(page.getByRole('list', { name: 'Chapters' }).getByRole('button')).toHaveCount(10)
-  await page.getByRole('list', { name: 'Chapters' }).getByRole('button', { name: /^terra wilds/i }).click()
-  await page.getByRole('list', { name: 'Nodes' }).getByRole('button', { name: /^node 1 ·/i }).click()
-  await page.getByRole('button', { name: 'Fight', exact: true }).click()
-  const moves = page.getByRole('group', { name: /^move$/i }).getByRole('button')
-  await expect(moves).toHaveCount(4)
-  for (const box of [await moves.first().boundingBox(), await page.getByRole('group', { name: /^swap$/i }).getByRole('button').first().boundingBox()]) {
-    expect(box!.height).toBeGreaterThanOrEqual(44)
+/** Plays by the first move (Strike, which is never immune) until the result, sending in `pick` after a KO. Says whether it saw a KO. */
+async function playOut(page: Page, pick: 'first' | 'last' = 'first'): Promise<boolean> {
+  let sawKo = false
+  for (let i = 0; i < 60; i++) {
+    const next = result(page).or(replacement(page).first()).or(moves(page).first().and(page.locator(':enabled')))
+    await expect(next).toBeVisible({ timeout: 10_000 })
+    if (await result(page).isVisible()) return sawKo
+    if (await replacement(page).first().isVisible()) {
+      sawKo = true
+      await replacement(page)[pick]().click()
+    } else {
+      await moves(page).first().click().catch(() => { /* it was taken away by a KO appearing: go round again */ })
+    }
   }
+  throw new Error('the battle did not end')
+}
 
-  // One move in, a reload: the Trial is still active and the draft comes back on Resume.
-  await moves.first().click()
-  await expect(page.getByText(/turn 2 of 30/i)).toBeVisible()
-  await page.reload()
-  await openPanel(page, 'Trials')
-  await expect(page.getByRole('status', { name: 'Trial in progress' })).toContainText('Terra Wilds')
-  await page.getByRole('button', { name: 'Resume' }).click()
-  await expect(page.getByText(/turn 2 of 30/i)).toBeVisible()
+test.describe('on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
 
-  const replacement = page.getByRole('group', { name: /^replacement$/i }).getByRole('button')
-  for (let i = 0; i < 45; i++) {
-    if (await page.getByText(/you win/i).isVisible()) break
-    if (await replacement.first().isVisible()) await replacement.first().click()
-    else await moves.first().click()
-  }
-  await expect(page.getByText(/you win/i)).toBeVisible()
-  await page.getByRole('button', { name: /^submit$/i }).click()
-  await expect(page.getByRole('status', { name: /battle result/i })).toContainText('Victory')
-  await expect(page.getByRole('status', { name: /battle result/i })).toContainText('1,000 gold')
-  await expect(page.getByRole('status', { name: /resources/i })).toContainText('2,000') // 1,000 gold first clear
+  test('a real Trial by clicks: attack, swap, a KO and its replacement, a win with stars, back to the nodes', async ({ page, request }) => {
+    page.on('pageerror', e => console.log('PAGEERROR', e.message))
+    await signIn(page)
+    // Two weak dragons at the 25 % line and one strong: Terra Wilds' level-1 enemies will KO the weak ones, and the strong one wins it.
+    const [, , strong] = seaTeam(20)
+    const weak = (id: string) => ({ id, speciesId: 'sea', level: 1, feeds: 0, habitatId: 'h2', fatigue: { hp: 400, atMs: Date.now() } })
+    await resetPlayer(request, { level: 8, dragons: [weak('d1'), weak('d2'), strong], defenceTeam: ['d1', 'd2', 'd3'] })
+    await page.reload()
 
-  // Arena: with a saved defence team the server offers three opponents (bots on an empty server).
-  await page.getByRole('button', { name: /close/i }).click()
-  await openPanel(page, 'Arena')
-  await page.getByRole('button', { name: /find opponents/i }).click()
-  await expect(page.getByRole('list', { name: /opponents/i }).getByRole('listitem')).toHaveCount(3)
+    await openPanel(page, 'Trials')
+    await expect(page.getByRole('list', { name: 'Chapters' }).getByRole('button')).toHaveCount(10)
+    await page.getByRole('list', { name: 'Chapters' }).getByRole('button', { name: /^terra wilds/i }).click()
+    await page.getByRole('list', { name: 'Nodes' }).getByRole('button', { name: /^node 1 ·/i }).click()
+    await page.getByRole('button', { name: 'Fight', exact: true }).click()
+
+    await expect(moves(page)).toHaveCount(4)
+    await expect(turn(page, 1)).toBeVisible()
+    await expect(page.getByText('3★: 8 turns, no KOs')).toBeVisible()
+    for (const b of await moves(page).all()) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+    expect((await page.getByRole('button', { name: 'Swap' }).boundingBox())!.height).toBeGreaterThanOrEqual(44)
+    // The whole screen fits with no scroll: the grid and Swap inside the viewport.
+    expect((await page.getByRole('button', { name: 'Swap' }).boundingBox())!.y + 44).toBeLessThanOrEqual(844)
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(844)
+
+    // An attack: inputs off while it plays, then the turn has moved on by both sides. A weak dragon may fall to the reply.
+    await moves(page).first().click()
+    await expect(moves(page).first().or(replacement(page).first())).toBeVisible()
+    await expect(moves(page).first().and(page.locator(':enabled')).or(replacement(page).first())).toBeVisible({ timeout: 10_000 })
+    await expect(turn(page, 3)).toBeVisible()
+    let sawKo = await replacement(page).first().isVisible()
+    if (sawKo) await replacement(page).first().click()
+
+    // A reload resumes the draft with nothing replayed.
+    await page.reload()
+    await openPanel(page, 'Trials')
+    await expect(page.getByRole('status', { name: 'Trial in progress' })).toContainText('Terra Wilds')
+    await page.getByRole('button', { name: 'Resume' }).click()
+    await expect(moves(page)).toHaveCount(4)
+    await expect(page.getByText(/Turn [3-9] \/ 30/)).toBeVisible()
+
+    // A swap: the bench opens, Back returns, picking uses the turn.
+    const swap = page.getByRole('button', { name: 'Swap' })
+    await expect(swap).toBeEnabled({ timeout: 10_000 })
+    await swap.click()
+    const bench = page.getByRole('group', { name: /^swap$/i })
+    await expect(bench).toBeVisible()
+    await bench.getByRole('button', { name: 'Back' }).click()
+    await expect(moves(page)).toHaveCount(4)
+    await swap.click()
+    await bench.getByRole('button', { name: /L\d/ }).and(page.locator(':enabled')).first().click()
+    await expect(bench).toBeHidden()
+
+    // Fight on: the weak fall, the strong one comes in and wins.
+    sawKo = (await playOut(page, 'last')) || sawKo
+    expect(sawKo).toBe(true)
+    await expect(result(page)).toContainText('Victory')
+    await expect(result(page)).toContainText('1,000 gold')
+    await expect(result(page).getByLabel(/\d stars/)).toContainText('★')
+
+    // Back on this chapter's nodes, not the list of chapters; the Hud is back, and paid.
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByRole('list', { name: 'Nodes' })).toBeVisible()
+    await expect(page.getByRole('status', { name: /resources/i })).toContainText('2,000') // 1,000 gold first clear
+  })
+
+  test('Abandon asks with its cost, from the battle and from the banner, and a Trial cannot be left for free', async ({ page, request }) => {
+    await signIn(page)
+    await resetPlayer(request, { level: 8, dragons: seaTeam(20), defenceTeam: ['d1', 'd2', 'd3'] })
+    await page.reload()
+    await openPanel(page, 'Trials')
+    await page.getByRole('list', { name: 'Chapters' }).getByRole('button', { name: /^terra wilds/i }).click()
+    await page.getByRole('list', { name: 'Nodes' }).getByRole('button', { name: /^node 1 ·/i }).click()
+    await page.getByRole('button', { name: 'Fight', exact: true }).click()
+    await expect(moves(page)).toHaveCount(4)
+
+    await page.getByRole('button', { name: 'Exit battle' }).click()
+    const ask = page.getByRole('alertdialog', { name: 'Abandon?' })
+    await expect(ask).toContainText('The team falls to 1 HP')
+    await ask.getByRole('button', { name: 'Keep fighting' }).click()
+    await expect(ask).toBeHidden()
+    await expect(moves(page)).toHaveCount(4)
+
+    // Left by a reload: the banner's Abandon asks too.
+    await page.reload()
+    await openPanel(page, 'Trials')
+    await page.getByRole('button', { name: 'Abandon' }).click()
+    await expect(ask).toContainText('The team falls to 1 HP')
+    await page.keyboard.press('Escape')
+    await expect(ask).toBeHidden()
+    await expect(page.getByRole('status', { name: 'Trial in progress' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Resume' }).click()
+    await page.getByRole('button', { name: 'Exit battle' }).click()
+    await ask.getByRole('button', { name: 'Abandon' }).click()
+    await expect(page.getByRole('list', { name: 'Nodes' })).toBeVisible()
+    await expect(page.getByRole('status', { name: 'Trial in progress' })).toBeHidden()
+  })
+})
+
+test.describe('on a desktop', () => {
+  test.use({ viewport: { width: 1440, height: 900 } })
+
+  test('PvP: the same column, centred; a real fight to its result, and a forfeit that states its cost', async ({ page, request }) => {
+    page.on('pageerror', e => console.log('PAGEERROR', e.message))
+    await signIn(page)
+    await resetPlayer(request, { level: 8, trophies: 100, dragons: seaTeam(20), defenceTeam: ['d1', 'd2', 'd3'] })
+    await page.reload()
+
+    const arena = async () => {
+      await openPanel(page, 'Arena')
+      await page.getByRole('button', { name: /find opponents|refresh opponents/i }).click()
+      await expect(page.getByRole('list', { name: /opponents/i }).getByRole('listitem')).toHaveCount(3)
+      await page.getByRole('list', { name: /opponents/i }).getByRole('button', { name: 'Fight' }).first().click()
+      await expect(moves(page)).toHaveCount(4)
+    }
+
+    await arena()
+    const box = (await page.locator('.battle__controls').boundingBox())!
+    expect(box.x + box.width / 2).toBeCloseTo(720, 0)
+    expect(box.width).toBeLessThanOrEqual(480)
+    await expect(page.getByText(/3★/)).toBeHidden()
+
+    await playOut(page)
+    await expect(result(page)).toContainText(/Victory|Defeat/)
+    await expect(result(page)).toContainText(/Trophies \d+/)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByRole('navigation', { name: 'Main menu' })).toBeVisible()
+
+    await arena()
+    await page.getByRole('button', { name: 'Exit battle' }).click()
+    await expect(page.getByRole('alertdialog', { name: 'Abandon?' })).toContainText(/You lose \d+ troph/)
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Abandon' }).click()
+    await expect(result(page)).toContainText('Defeat')
+    await expect(result(page)).toContainText(/Trophies \d+/)
+  })
 })

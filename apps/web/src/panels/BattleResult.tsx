@@ -13,11 +13,11 @@ export function BattleResult({ result }: { result: ActionResponse }) {
   const trial = result.trial
   return (
     <div role="status" aria-label="Battle result">
-      <p style={{ fontFamily: 'var(--font-display)' }}>{won ? 'Victory' : 'Defeat'}</p>
+      <p className="battle-result__title" style={{ fontFamily: 'var(--font-display)' }}>{won ? 'Victory' : 'Defeat'}</p>
       {trial ? (
         trial.won ? (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            <li><span aria-label={`${trial.stars} stars`}>{'★'.repeat(trial.stars)}</span></li>
+            <li><span className="battle-result__stars" aria-label={`${trial.stars} stars`}>{'★'.repeat(trial.stars)}</span></li>
             <li>{formatGold(trial.gold)} gold · {formatGold(trial.food)} food · {formatGold(trial.xp)} XP</li>
             {trial.tokens && <li>{trial.tokens.count} × {TOKEN_NAMES[trial.tokens.token]} speed-up</li>}
             {trial.egg && <li>{capital(trial.egg.rarity)} {capital(trial.egg.element)} egg</li>}
