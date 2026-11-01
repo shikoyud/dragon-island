@@ -366,9 +366,13 @@ export function runBot(p: BotPlan): BotResult {
       const active = s.pve.active!
       const battleSeed = rng.int(2 ** 32)
       const moves = playBattle(active.specs, nodeTeam(node[0], node[1], c), battleSeed, greedyChoice)
+      const previewed = battlePreview(active.specs, nodeTeam(node[0], node[1], c), moves, createRng(battleSeed), c).done
       if (!act({ type: 'finishTrial', moves }, createRng(battleSeed))) return
       const res = last.r
       if (!res || !res.ok || !res.trial || !res.battle) throw new Error('finishTrial did not settle with a battle')
+      // The bot chose its moves on the preview: if the action's own replay disagrees about who won, the Rng stream drifted, and every number here is wrong.
+      const previewWon = previewed?.ok === true && previewed.winner === 'attacker'
+      if (res.trial.won !== previewWon) throw new Error(`finishTrial won=${res.trial.won} but the preview said ${previewWon} (chapter ${node[0]} node ${node[1]})`)
       const rest = team.map(id => {
         const d = s.dragons.find(x => x.id === id)!
         return d.fatigue ? ((maxHp(d, c) - d.fatigue.hp) * 100) / (maxHp(d, c) * p.preset.healPctPerMin) : 0

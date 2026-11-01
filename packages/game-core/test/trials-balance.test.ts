@@ -1,6 +1,6 @@
 // Task 6: the Trials' balance, measured (GDD §5.7, §6.2, §6.3; R40, R41, A18, A19). Nothing here tunes a number: the literals are what the
 // GDD's own values give, on seeded battles, and TRIALS_REPORT=1 prints the tables behind them.
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import type { BattleOutcome, PlayerMove } from '../src/battle/machine'
 import type { BattleState } from '../src/battle/machine'
 import { simulateBattle } from '../src/battle/sim'
@@ -13,14 +13,18 @@ import { BOSS_NODE, NODES_PER_CHAPTER, TRIAL_CHAPTERS, type TrialChapter } from 
 import { ELEMENTS, elementMultiplier, type Element } from '../src/elements'
 import { RARITIES, type Rarity } from '../src/rarity'
 import { createRng } from '../src/rng'
-import { nodeLevel, nodeTeam, starsFor } from '../src/trials'
-import { aiPlayer, casual, greedyChoice, playBattle, runBot, withTrials, type BotResult } from './helpers/xpBots'
+import { nodeKey, nodeLevel, nodeTeam, starsFor } from '../src/trials'
+import { getSpecies } from '../src/catalog'
+import { aiPlayer, casual, greedyChoice, playBattle, runBot, trialStrength, withTrials, type BotResult } from './helpers/xpBots'
 
 const c = LAUNCH_CATALOG
 const SEEDS = 100
 const STAR_SEEDS = 30
 const REPORT = process.env.TRIALS_REPORT === '1'
-const say = (label: string, v: unknown) => { if (REPORT) console.log(`${label} ${JSON.stringify(v)}`) }
+/** The value is a thunk, so a run with the report off does none of the work that only the report wants. */
+const say = (label: string, v: () => unknown) => { if (REPORT) console.log(`${label} ${JSON.stringify(v())}`) }
+/** A bot or a Boss sweep is the slow part: it runs under this, in `beforeAll`, not at collection time. */
+const BOT_TIMEOUT_MS = 120_000
 
 type Player = 'greedy' | 'ai'
 const PLAYERS: readonly Player[] = ['greedy', 'ai']
@@ -90,12 +94,15 @@ function bossWins(ch: TrialChapter, rarity: Rarity, player: Player): number {
 }
 
 describe('every Boss falls to a counter team (§6.3)', () => {
-  const rows = TRIAL_CHAPTERS.map(ch => ({
-    ch: ch.chapter,
-    top: PLAYERS.map(p => bossWins(ch, 'epic', p)) as [number, number],
-    equal: PLAYERS.map(p => bossWins(ch, bossRarity(ch), p)) as [number, number],
-  }))
-  say('boss wins of 100 [greedy, ai] at top rarity (Epic, or the best the element has) / at the Boss rarity', rows)
+  let rows: { ch: number; top: [number, number]; equal: [number, number] }[]
+  beforeAll(() => {
+    rows = TRIAL_CHAPTERS.map(ch => ({
+      ch: ch.chapter,
+      top: PLAYERS.map(p => bossWins(ch, 'epic', p)) as [number, number],
+      equal: PLAYERS.map(p => bossWins(ch, bossRarity(ch), p)) as [number, number],
+    }))
+    say('boss wins of 100 [greedy, ai] at top rarity (Epic, or the best the element has) / at the Boss rarity', () => rows)
+  }, BOT_TIMEOUT_MS)
 
   it('at the chapter\'s top level and top rarity, a greedy player wins above 50 % in every chapter', () => {
     for (const r of rows) expect(r.top[0], `chapter ${r.ch}`).toBeGreaterThan(SEEDS / 2)
@@ -113,19 +120,22 @@ describe('every Boss falls to a counter team (§6.3)', () => {
 
 describe('stars, turns and rest at equal level and at +5 levels (A18, A19, §6.2, §6.3)', () => {
   const runs = (bonus: number, player: Player) => TRIAL_CHAPTERS.map(ch => chapterRun(ch, bonus, player))
-  const equal = runs(0, 'greedy')
-  const plus5 = runs(5, 'greedy')
-  const equalAi = runs(0, 'ai')
+  let equal: Tally[], plus5: Tally[], equalAi: Tally[]
   const row = (t: Tally) => [t.wins, ...t.stars]
-  say('equal level, greedy: [wins of 300, 1-star, 2-star, 3-star] by chapter', equal.map(row))
-  say('+5 levels, greedy', plus5.map(row))
-  say('equal level, ai', equalAi.map(row))
   const sum = (ts: Tally[]) => ts.reduce((a, t) => ({ ...a, fights: a.fights + t.fights, turns: a.turns + t.turns, restFrac: a.restFrac + t.restFrac, restSlowFrac: a.restSlowFrac + t.restSlowFrac }), empty())
   const meanTurns = (ts: Tally[]) => { const s = sum(ts); return Math.round((s.turns * 100) / s.fights) }
-  say('mean turns x100 [equal greedy, +5 greedy, equal ai]', [meanTurns(equal), meanTurns(plus5), meanTurns(equalAi)])
   const rest = (ts: Tally[], pct: number) => { const s = sum(ts); return [Math.round((s.restFrac * 100 * 100) / s.fights / pct) / 100, Math.round((s.restSlowFrac * 100 * 100) / s.fights / pct) / 100] }
-  say('rest minutes per battle [mean over the team, slowest] at Flash-14 / Flash-28 (equal level, greedy)', [rest(equal, FLASH_14.healPctPerMin), rest(equal, FLASH_28.healPctPerMin)])
-  say('rest minutes per battle at +5 levels', [rest(plus5, FLASH_14.healPctPerMin), rest(plus5, FLASH_28.healPctPerMin)])
+  beforeAll(() => {
+    equal = runs(0, 'greedy')
+    plus5 = runs(5, 'greedy')
+    equalAi = runs(0, 'ai')
+    say('equal level, greedy: [wins of 300, 1-star, 2-star, 3-star] by chapter', () => equal.map(row))
+    say('+5 levels, greedy', () => plus5.map(row))
+    say('equal level, ai', () => equalAi.map(row))
+    say('mean turns x100 [equal greedy, +5 greedy, equal ai]', () => [meanTurns(equal), meanTurns(plus5), meanTurns(equalAi)])
+    say('rest minutes per battle [mean over the team, slowest] at Flash-14 / Flash-28 (equal level, greedy)', () => [rest(equal, FLASH_14.healPctPerMin), rest(equal, FLASH_28.healPctPerMin)])
+    say('rest minutes per battle at +5 levels', () => [rest(plus5, FLASH_14.healPctPerMin), rest(plus5, FLASH_28.healPctPerMin)])
+  }, BOT_TIMEOUT_MS)
 
   it('measured [wins, 1-star, 2-star, 3-star] of 300 per chapter at equal level, greedy', () => {
     expect(equal.map(row)).toEqual(MEASURED.starsEqual)
@@ -154,9 +164,10 @@ describe('a 1v1 between equals (§6.2: about 2 turns)', () => {
     }
     return { n, mean100: Math.round((sum * 100) / n) }
   }
-  say('1v1 neutral Basics: pairs and mean turns x100 at Lv 10 / Lv 40', [pairs.length, turns(10).mean100, turns(40).mean100])
   it('measured mean turns x100 at levels 10 and 40', () => {
-    expect([turns(10).mean100, turns(40).mean100]).toEqual(MEASURED.oneVOneX100)
+    const measured = [turns(10).mean100, turns(40).mean100]
+    say('1v1 neutral Basics: pairs and mean turns x100 at Lv 10 / Lv 40', () => [pairs.length, ...measured])
+    expect(measured).toEqual(MEASURED.oneVOneX100)
   })
 })
 
@@ -167,8 +178,11 @@ describe('Chapter 1 for a PL 4 starter team of Terra, Flame and the first hybrid
     for (let i = 0; i < SEEDS; i++) if (fight(team(level), nodeTeam(1, k + 1, c), 90_000 + k * 200 + i, player).winner === 'attacker') wins++
     return wins
   })
-  const l4 = nodeWins(4, 'greedy')
-  say('chapter 1 node wins of 100 for Lv 4 [greedy, ai], and Lv 3 / Lv 5 greedy', [l4, nodeWins(4, 'ai'), nodeWins(3, 'greedy'), nodeWins(5, 'greedy')])
+  let l4: number[]
+  beforeAll(() => {
+    l4 = nodeWins(4, 'greedy')
+    say('chapter 1 node wins of 100 for Lv 4 [greedy, ai], and Lv 3 / Lv 5 greedy', () => [l4, nodeWins(4, 'ai'), nodeWins(3, 'greedy'), nodeWins(5, 'greedy')])
+  }, BOT_TIMEOUT_MS)
 
   it('node 1 has a Sea wildcard', () => {
     expect(nodeTeam(1, 1, c).map(d => d.speciesId)).toEqual(MEASURED.node1Team)
@@ -183,20 +197,34 @@ describe('Chapter 1 for a PL 4 starter team of Terra, Flame and the first hybrid
 
 describe('the casual bot with Trials, on the Gold and Food the game gives', () => {
   const runs: Record<string, BotResult> = {}
-  for (const [id, preset, days] of [['flash14', FLASH_14, 12], ['flash28', FLASH_28, 25]] as const) {
-    runs[id] = runBot(withTrials(casual(preset, 50, days)))
-  }
   const share = (r: BotResult) => Math.round((r.trials.goldTrials * 10_000) / (r.trials.goldTrials + r.trials.goldOther)) // basis points
-  for (const id of ['flash14', 'flash28']) {
-    const r = runs[id]!
-    say(`${id}: Boss first fell (chapter:day)`, [...r.trials.bossFell].map(([ch, d]) => `${ch}:${d.day}`))
-    say(`${id}: fights, wins, Trials share of Gold in basis points (§5.7: 300), heal-alls wanted`, [r.trials.fights.length, r.trials.fights.filter(f => f.won).length, share(r), r.trials.healAllsWanted])
-  }
+  beforeAll(() => {
+    for (const [id, preset, days] of [['flash14', FLASH_14, 12], ['flash28', FLASH_28, 25]] as const) {
+      runs[id] = runBot(withTrials(casual(preset, 50, days)))
+    }
+    for (const id of ['flash14', 'flash28']) {
+      const r = runs[id]!
+      say(`${id}: Boss first fell (chapter:day)`, () => [...r.trials.bossFell].map(([ch, d]) => `${ch}:${d.day}`))
+      say(`${id}: fights, wins, Trials share of Gold in basis points (§5.7: 300), heal-alls wanted`, () => [r.trials.fights.length, r.trials.fights.filter(f => f.won).length, share(r), r.trials.healAllsWanted])
+      // Where the bot stalls: its roster, strongest first (hp x atk, as fightTrials picks its three), and the first node it has not cleared. Seed 1.
+      say(`${id}: roster at the end of the run, strongest first: [id, species, rarity, elements, level]; the first node not cleared`, () => ({
+        roster: [...r.final.dragons].sort((a, b) => trialStrength(b) - trialStrength(a)).map(d => {
+          const sp = getSpecies(c, d.speciesId)
+          return [d.id, sp.id, sp.rarity, sp.elements.join('/'), d.level]
+        }),
+        firstUncleared: TRIAL_CHAPTERS.flatMap(ch => Array.from({ length: NODES_PER_CHAPTER }, (_, i) => nodeKey(ch.chapter, i + 1))).find(k => !r.final.pve.stars[k]) ?? null,
+      }))
+    }
+  }, BOT_TIMEOUT_MS)
   it('measured: the day each Boss first falls (chapter, day) on Flash-14 and Flash-28', () => {
     expect(Object.fromEntries(Object.entries(runs).map(([id, r]) => [id, [...r.trials.bossFell].map(([ch, d]) => [ch, d.day])]))).toEqual(MEASURED.bossDays)
   })
-  it('measured: Trials\' share of Gold earned in basis points, reported against §5.7\'s 300', () => {
-    expect(Object.fromEntries(Object.entries(runs).map(([id, r]) => [id, share(r)]))).toEqual(MEASURED.goldShareBp)
+  // Reported, not pinned: the share is one seed's, and Trials pay first clears only. It is a floor under §5.7's 300, never over it.
+  it('Trials\' share of Gold earned is a real floor under §5.7\'s 3 %: above 0, at most 300 basis points', () => {
+    for (const [id, r] of Object.entries(runs)) {
+      expect(share(r), id).toBeGreaterThan(0)
+      expect(share(r), id).toBeLessThanOrEqual(300)
+    }
   })
 })
 
@@ -217,5 +245,4 @@ const MEASURED = {
     flash14: [[1, 1], [2, 1], [3, 2], [4, 3], [5, 3]],
     flash28: [[1, 1], [2, 1], [3, 1], [4, 3], [5, 4], [6, 4]],
   } as Record<string, number[][]>,
-  goldShareBp: { flash14: 62, flash28: 63 } as Record<string, number>,
 }

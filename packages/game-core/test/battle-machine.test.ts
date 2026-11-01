@@ -70,6 +70,27 @@ describe('turns (§6.1, R63)', () => {
     expect(b).toEqual(snapshot)
   })
 
+  it('step is pure on the KO, replace and winning paths too', () => {
+    const b = initBattle(three('flame', 20), [spec('nature', 1, 1), spec('nature', 1, 1), spec('nature', 1, 1)], C)
+    const snap = structuredClone(b)
+    const ko = go(b, 'attacker', T1)
+    expect(b).toEqual(snap)
+    const koSnap = structuredClone(ko)
+    const replaced = go(ko, 'defender', { kind: 'replace', to: 1 })
+    expect(ko).toEqual(koSnap)
+    expect(replaced.log).toHaveLength(ko.log.length + 1)
+    // The last KO ends the battle: the same holds for the step that decides it.
+    const last = { ...b, sides: { ...b.sides, defender: { ...b.sides.defender, team: b.sides.defender.team.map((f, i) => (i === 0 ? f : { ...f, hp: 0 })) } } }
+    const lastSnap = structuredClone(last)
+    const won = go(last, 'attacker', T1)
+    expect(won.winner).toBe('attacker')
+    expect(last).toEqual(lastSnap)
+    expect(last.log).toEqual([])
+    // A refused step leaves the state as it was, and so does a swap out of a replacement's way.
+    expect(step(ko, 'defender', STRIKE, rng())).toBeNull()
+    expect(ko).toEqual(koSnap)
+  })
+
   it('a KO makes its owner replace first, free, then that owner has the turn', () => {
     const b = initBattle(three('flame', 20), [spec('nature', 1, 1), spec('nature', 1), spec('sea', 1)], C)
     const ko = go(b, 'attacker', T1)

@@ -325,10 +325,11 @@ describe('bots that fight Trials stay on §7.2 (R40, R41, Review Focus 5)', () =
     }, BOT_TIMEOUT_MS)
 
     it(`Flash-28 ${make.name}+trials: endOfDay stays on its rows, as the same bot without Trials`, () => {
-      const r = trialRun(`28-${make.name}`, withTrials(make(FLASH_28, 50, 12)))
+      const r = trialRun(`28-${make.name}`, withTrials(make(FLASH_28, 50, 25)))
       expect(r.trials.fights.length).toBeGreaterThan(0)
       expect(r.endOfDay.every((pl, i) => pl <= (levelLimit(i + 1, FLASH_28) ?? 50))).toBe(true)
-      expect(r.endOfDay).toEqual(runBot(make(FLASH_28, 50, 12)).endOfDay)
+      expect(r.endOfDay).toHaveLength(25)
+      expect(r.endOfDay).toEqual(runBot(make(FLASH_28, 50, 25)).endOfDay)
     }, BOT_TIMEOUT_MS)
   }
 
