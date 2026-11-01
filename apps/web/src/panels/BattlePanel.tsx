@@ -6,7 +6,7 @@ import { battleLine, battleView, INPUT_GUARD_MS, pipState, turnLabel, type Battl
 import { BATTLE_CONTROLS_H, battleStage } from '../game/layout'
 import { ArtMark } from '../hud/ArtMark'
 import { Icon } from '../hud/Icon'
-import { moveCard, pvpForfeitCost, TRIAL_ABANDON_COST, useBattlePlayback, type BattleHook } from '../state/battle'
+import { isFinalRefusal, moveCard, pvpForfeitCost, TRIAL_ABANDON_COST, useBattlePlayback, type BattleHook } from '../state/battle'
 import { formatGold } from '../ui/Money'
 import { AbandonConfirm } from './AbandonConfirm'
 import { BattleResult } from './BattleResult'
@@ -235,8 +235,8 @@ export const BattlePanel = memo(function BattlePanel({ battle, bridge, onClose }
           sendFailed ? (
             <div className="battle__sending">
               <p role="alert">{battle.refused ? messageFor(battle.refused.code) : "The result didn't reach the server."}</p>
-              {/* A 409 will say the same forever; anything else may pass, and the same key makes trying again safe. */}
-              {battle.refused?.status !== 409 && <button type="button" className="btn btn--primary battle__tap" disabled={battle.pending} onClick={retry}>Try again</button>}
+              {/* A refusal (a 4xx but a limit or a timeout) will say the same forever; anything else may pass, and the same key makes trying again safe. */}
+              {!(battle.refused && isFinalRefusal(battle.refused)) && <button type="button" className="btn btn--primary battle__tap" disabled={battle.pending} onClick={retry}>Try again</button>}
               <LeaveButton onLeave={onClose} />
             </div>
           ) : (

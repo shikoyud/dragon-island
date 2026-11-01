@@ -19,7 +19,7 @@ export function BattleResult({ result }: { result: ActionResponse }) {
         trial.won ? (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             <li><Stars className="battle-result__stars" filled={trial.stars} /></li>
-            <li>{formatGold(trial.gold)} gold · {formatGold(trial.food)} food · {formatGold(trial.xp)} XP</li>
+            <li>{formatGold(trial.gold)} gold · {formatGold(trial.food)} food{trial.xp > 0 ? ` · ${formatGold(trial.xp)} XP` : ''}</li>
             {trial.tokens && <li>{trial.tokens.count} × {TOKEN_NAMES[trial.tokens.token]} speed-up</li>}
             {trial.egg && <li>{capital(trial.egg.rarity)} {capital(trial.egg.element)} egg</li>}
             {trial.champion && <li>Trial Champion joined you</li>}

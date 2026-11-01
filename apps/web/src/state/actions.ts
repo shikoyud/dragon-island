@@ -13,9 +13,10 @@ export interface ActionHook {
   /**
    * Resolves to the response, or `null` after a failure that was already shown as a toast. Never rejects. `key` keeps one
    * idempotency key across tries of one thing, so a reply lost after the server applied it comes back as a replay of that reply.
-   * `onError` hears the failure itself, for a caller whose next step depends on it.
+   * `onError` hears the failure itself, for a caller whose next step depends on it. `quiet` skips the toast, for a caller
+   * whose screen already says why (two messages for one failure cover each other).
    */
-  run(action: ClientAction, opts?: { key?: string; onError?: (e: unknown) => void }): Promise<ActionResponse | null>
+  run(action: ClientAction, opts?: { key?: string; onError?: (e: unknown) => void; quiet?: boolean }): Promise<ActionResponse | null>
   pending: boolean
   error: ApiError | null
   clearError(): void
@@ -35,7 +36,7 @@ export function useAction(): ActionHook {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
 
-  const run = useCallback(async (action: ClientAction, opts?: { key?: string; onError?: (e: unknown) => void }): Promise<ActionResponse | null> => {
+  const run = useCallback(async (action: ClientAction, opts?: { key?: string; onError?: (e: unknown) => void; quiet?: boolean }): Promise<ActionResponse | null> => {
     if (inFlight.current) return null
     inFlight.current = true
     setPending(true)
@@ -62,7 +63,7 @@ export function useAction(): ActionHook {
         if (e.status === 401) sessionStore.clear()
         setError(e)
       }
-      toasts.error(e)
+      if (!opts?.quiet) toasts.error(e)
       opts?.onError?.(e)
       return null
     } finally {

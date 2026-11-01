@@ -1,4 +1,4 @@
-import { ISLANDS } from '@wyrmhaven/game-core'
+import { ISLANDS, MIN_FIGHT_PCT } from '@wyrmhaven/game-core'
 
 /** Human copy for every game-core ActionError and server code (apps/server/README.md). */
 export const errorMessages: Record<string, string> = {
@@ -29,7 +29,7 @@ export const errorMessages: Record<string, string> = {
   NO_DEFENCE_TEAM: 'Save a defence team before attacking.',
   DAILY_CAP_REACHED: 'You have reached today’s limit for that.',
   STAGE_LOCKED: 'Clear the previous node first.',
-  DRAGON_TIRED: 'A dragon on that team is still resting. It needs 25 % HP to fight.',
+  DRAGON_TIRED: `A dragon on that team is still resting. It needs ${MIN_FIGHT_PCT} % HP to fight.`,
   TRIAL_ACTIVE: 'A Trial is still in progress. Open Battle, then choose Resume or Abandon.',
   NO_ACTIVE_TRIAL: 'There is no Trial in progress.',
   IN_TRIAL: 'A Trial is still in progress. Open Battle, then choose Resume or Abandon.',

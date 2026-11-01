@@ -26,6 +26,13 @@ describe('BattleResult', () => {
     for (const text of [/speed-up/, /egg/, /joined you/, /Chest pull/]) expect(screen.queryByText(text)).toBeNull()
   })
 
+  it('a replay pays no XP and says nothing about it: no 0 XP', () => {
+    render(<BattleResult result={response({ won: true, stars: 2, gold: 1_500, food: 75, xp: 0, first: false })} />)
+    const box = screen.getByRole('status', { name: 'Battle result' })
+    expect(box).toHaveTextContent('1,500 gold · 75 food')
+    expect(box).not.toHaveTextContent(/XP/)
+  })
+
   it('names tokens, an egg by rarity and element only, the Champion and a saved pull', () => {
     const trial = { ...won, tokens: { token: '1h', count: 4 }, egg: { rarity: 'uncommon', element: 'electric' }, champion: true, chestPull: true } as const
     render(<BattleResult result={response(trial)} />)

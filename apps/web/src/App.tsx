@@ -136,7 +136,7 @@ function Game() {
   // Escape belongs to the level-up screen while it is up; the panel under it stays open.
   const underLevelUp = (fn: () => void) => (levelUp ? () => {} : fn)
   const content = !battle.setup && dialog && !placing && !(dialog.kind === 'panel' && dialog.id === 'map')
-    ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} onTrial={startTrial} onResumeTrial={resumeTrial} onPvp={startPvp} />, onClose: underLevelUp(close) }
+    ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} fighting={battle.pending} onTrial={startTrial} onResumeTrial={resumeTrial} onPvp={startPvp} />, onClose: underLevelUp(close) }
     : null
 
   return (

@@ -1,14 +1,15 @@
 import {
   anyHurt, BOSS_NODE, canFight, currentHp, elementMultiplier, gameDay, getSpecies, HEAL_ALL_MICRO_USD, LAUNCH_CATALOG, maxHp, MIN_FIGHT_PCT,
-  NODES_PER_CHAPTER, nodeKey, nodeLevel, nodeLocked, nodeRewards, nodeTeam, REPLAYS_PER_NODE_PER_DAY, TRIAL_CHAPTERS, unlockPl,
+  moveUnlocked, movesFor, NODES_PER_CHAPTER, nodeKey, nodeLevel, nodeLocked, nodeRewards, nodeTeam, REPLAYS_PER_NODE_PER_DAY, TEAM_SIZE, TRIAL_CHAPTERS, TRIAL_FLOOR_HP, unlockPl,
   type Catalog, type Dragon, type Element, type Preset, type TeamIds, type UnlockKey,
 } from '@wyrmhaven/game-core'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState, type CSSProperties } from 'react'
 import { ArtMark, Stars, useHudSprite } from '../hud/ArtMark'
 import { Icon } from '../hud/Icon'
 import { useAction } from '../state/actions'
 import { clearTrialDraft, TRIAL_ABANDON_COST } from '../state/battle'
-import { useMe } from '../state/me'
+import { ME_KEY, useMe } from '../state/me'
 import { usePreset } from '../state/preset'
 import { formatGold, formatMicroUsd } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
@@ -17,7 +18,7 @@ import { AbandonConfirm } from './AbandonConfirm'
 const TAP: CSSProperties = { minHeight: 44 }
 const STARS_PER_CHAPTER = NODES_PER_CHAPTER * 3
 const MS_PER_MINUTE = 60_000
-const NEED_THREE = 'Need 3 dragons'
+const NEED_THREE = `Need ${TEAM_SIZE} dragons`
 const FINISH_FIRST = 'Finish the Trial in progress first'
 
 const cap = (w: string): string => w.charAt(0).toUpperCase() + w.slice(1)
@@ -62,15 +63,20 @@ function NodeMark({ locked, boss }: { locked: boolean; boss: boolean }) {
 type View = { screen: 'chapters' } | { screen: 'nodes'; chapter: number } | { screen: 'team'; chapter: number; node: number }
 
 /** The Elemental Trials (§6.3): chapters, then a chapter's nodes, then the team to send; three screens with a back button. */
-export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
+export function TrialsPanel({ nowMs, chapter, fighting = false, onShop, onFight, onResume, onClose }: {
   nowMs: number
   /** The chapter a fight just ended in: opens on its nodes rather than the list of chapters. */
   chapter?: number
+  /** A Trial is starting (the battle hook's pending, which this panel's own `run` doesn't see): Fight waits. */
+  fighting?: boolean
+  /** Opens the Shop: a player with fewer than a team of dragons needs a Basic from it. */
+  onShop?: () => void
   onFight: (chapter: number, node: number, team: TeamIds) => void; onResume: () => void; onClose?: () => void
 }) {
   const me = useMe()
   const preset = usePreset()
   const { run, pending } = useAction()
+  const qc = useQueryClient()
   const c = LAUNCH_CATALOG
   const s = me.data?.state
   const playerId = me.data?.playerId ?? ''
@@ -83,15 +89,15 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
 
   const active = s.pve.active
   const rested = s.dragons.filter(usable)
-  const enough = rested.length >= 3
+  const enough = rested.length >= TEAM_SIZE
   // The team: what the player has picked here, else the last team sent, else the defence team, else the first rested three.
   const initial = (): string[] => {
-    const fit = (ids: readonly string[]) => ids.filter((id, i) => ids.indexOf(id) === i && rested.some(d => d.id === id)).slice(0, 3)
-    for (const ids of [loadTeam(playerId), s.defenceTeam ?? []]) if (fit(ids).length === 3) return fit(ids)
-    return rested.slice(0, 3).map(d => d.id)
+    const fit = (ids: readonly string[]) => ids.filter((id, i) => ids.indexOf(id) === i && rested.some(d => d.id === id)).slice(0, TEAM_SIZE)
+    for (const ids of [loadTeam(playerId), s.defenceTeam ?? []]) if (fit(ids).length === TEAM_SIZE) return fit(ids)
+    return rested.slice(0, TEAM_SIZE).map(d => d.id)
   }
   const team = (picked ?? initial()).filter(id => rested.some(d => d.id === id))
-  const toggle = (id: string) => setPicked(team.includes(id) ? team.filter(x => x !== id) : team.length < 3 ? [...team, id] : team)
+  const toggle = (id: string) => setPicked(team.includes(id) ? team.filter(x => x !== id) : team.length < TEAM_SIZE ? [...team, id] : team)
 
   const hurt = anyHurt(s, c, nowMs, preset)
   const game = me.data?.game
@@ -101,7 +107,8 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
   const chapterStars = (n: number) => Array.from({ length: NODES_PER_CHAPTER }, (_, i) => s.pve.stars[nodeKey(n, i + 1)] ?? 0).reduce<number>((a, b) => a + b, 0)
   const abandon = () => {
     if (!active) return
-    void run({ type: 'abandonTrial' }).then(res => {
+    // A refusal (the Trial is already over, say) means this banner is stale: /me is refetched, whatever the answer.
+    void run({ type: 'abandonTrial', index: active.index }, { onError: () => { void qc.invalidateQueries({ queryKey: ME_KEY }) } }).then(res => {
       setConfirmAbandon(false)
       if (res) clearTrialDraft(me.data!.playerId, active.index)
     })
@@ -120,9 +127,9 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
     if (lock === 'LEVEL') return `Needs player level ${pl(chapter)}`
     if (lock === 'PREVIOUS') return node === 1 ? `Beat the ${TRIAL_CHAPTERS[chapter - 2]!.theme} Boss first` : 'Clear the previous node first'
     if (!enough) {
-      if (s.dragons.length < 3) return NEED_THREE
+      if (s.dragons.length < TEAM_SIZE) return `${NEED_THREE} · buy a Basic in the Shop`
       const waits = s.dragons.map(d => fightsInMs(d, c, nowMs, preset)).filter(w => w > 0).sort((a, b) => a - b)
-      return `Need 3 rested dragons · next fights in ${waitLabel(waits[2 - rested.length]!)}`
+      return `Need 3 rested dragons · next fights in ${waitLabel(waits[TEAM_SIZE - 1 - rested.length]!)}`
     }
     const key = nodeKey(chapter, node)
     if (s.pve.stars[key] && replaysUsed(key) >= REPLAYS_PER_NODE_PER_DAY) return 'No replays left today'
@@ -142,7 +149,7 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
 
   const banner = active && (
     <div role="status" aria-label="Trial in progress" className="trials__banner">
-      <p>Trial in progress: {TRIAL_CHAPTERS[active.chapter - 1]!.theme} · Node {active.node}. Resume to finish it. Abandoning counts as a loss and leaves the team on 1 HP.</p>
+      <p>Trial in progress: {TRIAL_CHAPTERS[active.chapter - 1]!.theme} · Node {active.node}. Resume to finish it. Abandoning counts as a loss and leaves the team on {TRIAL_FLOOR_HP} HP.</p>
       <div className="trials__row">
         <ActionButton id="trial-resume" primary onClick={onResume}>Resume</ActionButton>
         <ActionButton id="trial-abandon" danger disabled={pending} onClick={() => setConfirmAbandon(true)}>Abandon</ActionButton>
@@ -200,6 +207,12 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
             {back('Chapters', { screen: 'chapters' })}
             <h3 className="trials__title"><Icon name={ch.element} size={20} /> {ch.theme}</h3>
           </div>
+          {s.dragons.length < TEAM_SIZE && (
+            <p className="trials__hint">
+              A Trial takes {TEAM_SIZE} dragons. Buy a Basic in the{' '}
+              {onShop ? <button type="button" className="btn btn--ghost trials__link" style={TAP} onClick={onShop}>Shop</button> : 'Shop'}.
+            </p>
+          )}
           <ul aria-label="Nodes" className="trials__list">
             {nodeNumbers.map(n => {
               const key = nodeKey(ch.chapter, n)
@@ -239,7 +252,7 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
   /* ---- screen 3: the team ---- */
   const node = view.node
   const reason = nodeReason(ch.chapter, node)
-  const teamReason = reason || (team.length === 3 ? '' : 'Pick 3 dragons')
+  const teamReason = reason || (team.length === TEAM_SIZE ? '' : `Pick ${TEAM_SIZE} dragons`)
   const fight = () => {
     saveTeam(playerId, team)
     onFight(ch.chapter, node, team as TeamIds)
@@ -253,7 +266,7 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
           <h3 className="trials__title"><Icon name={ch.element} size={20} /> Node {node}{node === BOSS_NODE ? ' · Boss' : ''} · L{nodeLevel(ch.chapter, node)}</h3>
         </div>
         <ol aria-label="Team slots" className="trials__slots">
-          {[0, 1, 2].map(i => {
+          {Array.from({ length: TEAM_SIZE }, (_, i) => i).map(i => {
             const d = s.dragons.find(x => x.id === team[i])
             return (
               <li key={i}>
@@ -274,7 +287,8 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
             const pct = Math.floor((hp * 100) / max)
             const ready = usable(d)
             const slot = team.indexOf(d.id)
-            const counter = elementMultiplier(sp.elements[0]!, ch.element) === 2
+            // Any move the dragon can use now, not only its primary's: a hybrid's second element counters too.
+            const counter = movesFor(sp).some(m => m.element !== 'physical' && moveUnlocked(m, d.level) && elementMultiplier(m.element, ch.element) === 2)
             return (
               <button key={d.id} type="button" className={`btn trials__card${slot >= 0 ? ' trials__card--picked' : ''}`} style={TAP} disabled={!ready} aria-pressed={slot >= 0} onClick={() => toggle(d.id)}>
                 <span className="trials__card-top">
@@ -295,7 +309,7 @@ export function TrialsPanel({ nowMs, chapter, onFight, onResume, onClose }: {
           })}
         </div>
         <div className="trials__row trials__actions">
-          <ActionButton id="trial-fight" primary disabled={Boolean(teamReason) || pending} reason={teamReason} onClick={fight}>Fight</ActionButton>
+          <ActionButton id="trial-fight" primary disabled={Boolean(teamReason) || pending || fighting} reason={teamReason} onClick={fight}>Fight</ActionButton>
           {heal}
         </div>
       </div>

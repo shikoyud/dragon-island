@@ -41,7 +41,7 @@ function harness(state: PlayerState, api: Record<string, unknown> = {}) {
   sessionStore.set({ token: 't', playerId: 'p1', address: '0xabc' })
   const fake = {
     action: vi.fn(async (a: { type: string }) => ({ state: a.type === 'startTrial' ? withActive : state, effects: [] })),
-    pveSeed: vi.fn(async () => ({ seedHex: SEED_HEX })),
+    pveSeed: vi.fn(async () => ({ seedHex: SEED_HEX, index: 3 })),
     me: vi.fn(async () => qc.getQueryData(ME_KEY)),
     ...api,
   }
@@ -241,7 +241,7 @@ describe('TrialsPanel', () => {
     panel({ ...base, dragons: newPlayer(0).dragons })
     await openChapter(/terra wilds/i)
     expect(node(1)).toBeDisabled()
-    expect(node(1)).toHaveAccessibleDescription('Need 3 dragons')
+    expect(node(1)).toHaveAccessibleDescription('Need 3 dragons · buy a Basic in the Shop')
   })
 
   it('the Fight button asks for 3 dragons and says so', async () => {
@@ -309,7 +309,7 @@ describe('TrialsPanel', () => {
     expect(h.api.action).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: 'Abandon' }))
     await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Abandon' }))
-    expect(h.api.action).toHaveBeenCalledWith({ type: 'abandonTrial' }, expect.any(String))
+    expect(h.api.action).toHaveBeenCalledWith({ type: 'abandonTrial', index: 3 }, expect.any(String))
     await waitFor(() => expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull())
   })
 
@@ -374,7 +374,6 @@ describe('useBattle, PvE', () => {
     await act(async () => { await result.current.startTrial(1, 1, TEAM) })
     expect(h.api.action).toHaveBeenCalledWith({ type: 'startTrial', chapter: 1, node: 1, team: TEAM }, expect.any(String))
     expect(h.api.pveSeed).toHaveBeenCalledTimes(1)
-    expect(result.current.exactPreview).toBe(true)
     expect(result.current.setup).toMatchObject({ mode: 'pve', trial: active, seed32: battleSeed32(SEED_HEX) })
     expect(result.current.preview!.state.sides.attacker.team[0]!.hp).toBe(4_718)
 
@@ -387,7 +386,7 @@ describe('useBattle, PvE', () => {
     expect(result.current.preview!.done).toMatchObject({ ok: true })
     expect(result.current.canSubmit).toBe(true)
     await act(async () => { await result.current.submit() })
-    expect(h.api.action).toHaveBeenLastCalledWith({ type: 'finishTrial', moves }, expect.any(String))
+    expect(h.api.action).toHaveBeenLastCalledWith({ type: 'finishTrial', moves, index: 3 }, expect.any(String))
     expect(result.current.canSubmit).toBe(false)
     expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull()
   })
@@ -427,7 +426,7 @@ describe('useBattle, PvE', () => {
     let out = ''
     await act(async () => { out = await result.current.abandon() })
     expect(out).toBe('settled')
-    expect(h.api.action).toHaveBeenLastCalledWith({ type: 'abandonTrial' }, expect.any(String))
+    expect(h.api.action).toHaveBeenLastCalledWith({ type: 'abandonTrial', index: 3 }, expect.any(String))
     expect(localStorage.getItem(trialDraftKey('p1', 3))).toBeNull()
   })
 
@@ -485,11 +484,12 @@ describe('useBattle, PvE', () => {
       const ask = within(screen.getByRole('alertdialog', { name: 'Abandon?' }))
       expect(ask.getByText('The team falls to 1 HP')).toBeInTheDocument()
       await userEvent.click(ask.getByRole('button', { name: 'Abandon' }))
-      expect(api.action).toHaveBeenCalledWith({ type: 'abandonTrial' }, expect.any(String))
+      expect(api.action).toHaveBeenCalledWith({ type: 'abandonTrial', index: 3 }, expect.any(String))
       await waitFor(() => expect(onClose).toHaveBeenCalled())
     })
 
-    const refused = () => { throw new ApiError(409, 'NO_ACTIVE_TRIAL') }
+    // The server answers 422 for finishTrial and abandonTrial with no Trial in progress (services/actions.ts); 409 is /pve/seed's.
+    const refused = () => { throw new ApiError(422, 'NO_ACTIVE_TRIAL') }
 
     it('a Trial settled elsewhere: finishTrial refused, /me refetched and the draft gone, Leave goes back', async () => {
       localStorage.setItem(trialDraftKey('p1', 3), JSON.stringify(complete()))
@@ -505,6 +505,19 @@ describe('useBattle, PvE', () => {
       await userEvent.click(out)
       expect(onClose).toHaveBeenCalled()
     })
+
+    it.each([[422, 'NO_ACTIVE_TRIAL'], [422, 'TRIAL_ACTIVE'], [403, 'BANNED'], [400, 'INVALID_ACTION'], [428, 'TERMS_REQUIRED']])(
+      'a send refused with %s %s says so once (the panel\'s alert, no toast on top), and offers Leave but never Try again',
+      async (status, code) => {
+        localStorage.setItem(trialDraftKey('p1', 3), JSON.stringify(complete()))
+        const h = mount(withActive, vi.fn())
+        h.api.action.mockImplementation(async () => { throw new ApiError(status, code) })
+        await screen.findByRole('button', { name: 'Leave' })
+        expect(within(screen.getByRole('region', { name: 'Battle' })).getByRole('alert')).toHaveTextContent(messageFor(code))
+        expect(screen.getAllByText(messageFor(code))).toHaveLength(1)
+        expect(screen.queryByRole('button', { name: /try again/i })).toBeNull()
+      },
+    )
 
     it('Exit on a Trial that is already over closes and drops the draft', async () => {
       const onClose = vi.fn()
@@ -575,6 +588,98 @@ describe('useBattle, PvE', () => {
     } finally {
       get.mockRestore(); set.mockRestore(); remove.mockRestore()
     }
+  })
+})
+
+describe('a refusal on the Trials path refetches /me (final fix 0b)', () => {
+  const refuse = (status: number, code: string) => vi.fn(async () => { throw new ApiError(status, code) })
+
+  it('a start refused with TRIAL_ACTIVE refetches /me, so the banner can show', async () => {
+    const h = harness(base, { action: refuse(422, 'TRIAL_ACTIVE') })
+    const { result } = renderHook(() => useBattle(), { wrapper: h.wrapper })
+    await act(async () => { await result.current.startTrial(1, 1, TEAM) })
+    await waitFor(() => expect(h.api.me).toHaveBeenCalled())
+    expect(result.current.setup).toBeNull()
+  })
+
+  it('a start whose reply is lost (the network fails twice) refetches /me too: the server may have started it', async () => {
+    const h = harness(base, { action: vi.fn(async () => { throw new TypeError('offline') }) })
+    const { result } = renderHook(() => useBattle(), { wrapper: h.wrapper })
+    await act(async () => { await result.current.startTrial(1, 1, TEAM) })
+    await waitFor(() => expect(h.api.me).toHaveBeenCalled())
+  })
+
+  it('a seed read refused (the Trial is over) refetches /me and enters nothing', async () => {
+    const h = harness(withActive, { pveSeed: refuse(409, 'NO_ACTIVE_TRIAL') })
+    const { result } = renderHook(() => useBattle(), { wrapper: h.wrapper })
+    let entered = true
+    await act(async () => { entered = await result.current.resumeTrial() })
+    expect(entered).toBe(false)
+    expect(result.current.setup).toBeNull()
+    await waitFor(() => expect(h.api.me).toHaveBeenCalled())
+  })
+
+  it('a seed that belongs to another Trial is not entered: /pve/seed says index 4, the local picture says 3', async () => {
+    const h = harness(withActive, { pveSeed: vi.fn(async () => ({ seedHex: SEED_HEX, index: 4 })) })
+    const { result } = renderHook(() => useBattle(), { wrapper: h.wrapper })
+    let entered = true
+    await act(async () => { entered = await result.current.resumeTrial() })
+    expect(entered).toBe(false)
+    expect(result.current.setup).toBeNull()
+    await waitFor(() => expect(h.api.me).toHaveBeenCalled())
+  })
+
+  it('the banner\'s Abandon refused refetches /me, so a stale banner goes', async () => {
+    const h = harness(withActive, { action: refuse(422, 'NO_ACTIVE_TRIAL') })
+    render(<TrialsPanel nowMs={0} onFight={vi.fn()} onResume={vi.fn()} />, { wrapper: h.wrapper })
+    await userEvent.click(screen.getByRole('button', { name: 'Abandon' }))
+    await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Abandon' }))
+    await waitFor(() => expect(h.api.me).toHaveBeenCalled())
+  })
+})
+
+describe('TrialsPanel: Need 3 dragons, 2x badges and the Fight button (final fix 0c, 0d)', () => {
+  const two = newPlayer(0).dragons.slice(0, 2)
+
+  it('a player with fewer than 3 dragons is told to buy a Basic in the Shop, with a link there', async () => {
+    const onShop = vi.fn()
+    const h = harness({ ...base, dragons: two })
+    render(<TrialsPanel nowMs={0} onFight={vi.fn()} onResume={vi.fn()} onShop={onShop} />, { wrapper: h.wrapper })
+    await openChapter(/terra wilds/i)
+    expect(node(1)).toBeDisabled()
+    expect(node(1)).toHaveAccessibleDescription('Need 3 dragons · buy a Basic in the Shop')
+    await userEvent.click(screen.getByRole('button', { name: 'Shop' }))
+    expect(onShop).toHaveBeenCalledTimes(1)
+  })
+
+  it('with 3 dragons there is no Shop link', async () => {
+    panel(base)
+    await openChapter(/terra wilds/i)
+    expect(screen.queryByRole('button', { name: 'Shop' })).toBeNull()
+  })
+
+  it('the 2x badge reads every unlocked move\'s element: a hybrid whose second element counters the chapter has it', async () => {
+    // Electric-War: Tier 1 Electric (0.5x on Terra), Tier 2 War (2x on Terra). Its primary alone would say no badge.
+    const hybrid = (level: number): Dragon[] => TEAM.map(id => ({ id, speciesId: 'electric-war', level, feeds: 0, habitatId: null }))
+    panel({ ...base, dragons: hybrid(20) })
+    await toTeam()
+    for (const card of cardsOf()) expect(within(card).getByTitle('Hits Terra for 2x')).toBeInTheDocument()
+  })
+
+  it('a move that is still locked does not earn the badge, and a plain non-counter has none', async () => {
+    const hybrid = TEAM.map(id => ({ id, speciesId: 'electric-war', level: 5, feeds: 0, habitatId: null }))
+    panel({ ...base, dragons: hybrid })
+    await toTeam()
+    for (const card of cardsOf()) expect(within(card).queryByTitle(/Hits Terra/)).toBeNull()
+  })
+
+  it('Fight shows the battle\'s pending: disabled while a start is in flight', async () => {
+    const h = harness(base)
+    const { rerender } = render(<TrialsPanel nowMs={0} onFight={vi.fn()} onResume={vi.fn()} fighting={false} />, { wrapper: h.wrapper })
+    await toTeam()
+    expect(screen.getByRole('button', { name: 'Fight' })).toBeEnabled()
+    rerender(<TrialsPanel nowMs={0} onFight={vi.fn()} onResume={vi.fn()} fighting />)
+    expect(screen.getByRole('button', { name: 'Fight' })).toBeDisabled()
   })
 })
 

@@ -1,5 +1,5 @@
 import {
-  applyTrophies, battlePreview, battleSeed32, createRng, elementMultiplier, LAUNCH_CATALOG, legalMoves, moveUnlocked, nodeTeam, TROPHY, type ActiveTrial, type BattleDragonSpec,
+  applyTrophies, battlePreview, battleSeed32, createRng, elementMultiplier, LAUNCH_CATALOG, legalMoves, moveUnlocked, nodeTeam, TRIAL_FLOOR_HP, TROPHY, type ActiveTrial, type BattleDragonSpec,
   type BattleEvent, type BattlePreview, type BattleReport, type BattleState, type Catalog, type MoveElement, type MoveTier, type PlayerMove, type TeamIds,
 } from '@wyrmhaven/game-core'
 import type { ActionResponse, ClientAction, Offer } from '@wyrmhaven/shared'
@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useApi } from '../api/ApiProvider'
 import { ApiError } from '../api/client'
+import { messageFor } from '../api/errors'
 import { PLAYBACK_STEP_MS, playbackQueue } from '../game/battleModel'
 import type { Bridge } from '../game/bridge'
 import { useToasts } from '../ui/Toast'
@@ -20,7 +21,7 @@ type Setup =
 export const trialDraftKey = (playerId: string, index: number): string => `dris.trialDraft.${playerId}.${index}`
 
 /** R70, on the confirm of every way out of a Trial. */
-export const TRIAL_ABANDON_COST = 'The team falls to 1 HP'
+export const TRIAL_ABANDON_COST = `The team falls to ${TRIAL_FLOOR_HP} HP`
 
 /** What a PvP forfeit costs from `trophies`: never more than the player has (trophies floor at 0). */
 export function pvpForfeitCost(trophies: number): string {
@@ -72,11 +73,20 @@ function clearStaleDrafts(playerId: string, activeIndex: number | null): void {
   } catch { /* a draft left behind is dropped next time, or by loadDraft */ }
 }
 
+/**
+ * The server says there is nothing left to settle: the Trial is over (finishTrial and abandonTrial answer 422
+ * NO_ACTIVE_TRIAL, /pve/seed 409) or the PvP offer is gone (409).
+ */
+const isGone = (e: unknown): boolean => e instanceof ApiError && (e.code === 'NO_ACTIVE_TRIAL' || e.status === 409)
+
+/** A refusal that will come again if the same request is sent. A server fault, a limit or a timeout may pass. */
+export const isFinalRefusal = (e: ApiError): boolean => e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 429
+
 /** How a way out of a fight went. */
 export type AbandonOutcome =
   /** The server settled it. */
   | 'settled'
-  /** The server says there's nothing left to give up (a 409: the offer expired, the Trial is over). */
+  /** The server says there's nothing left to give up (the offer expired, the Trial is over). */
   | 'gone'
   /** No answer, or an error that may pass; the fight stands. */
   | 'failed'
@@ -114,6 +124,8 @@ export function useBattle(catalog: Catalog = LAUNCH_CATALOG) {
   const [setup, setSetup] = useState<Setup | null>(null)
   const [moves, setMoves] = useState<PlayerMove[]>([])
   const [result, setResult] = useState<ActionResponse | null>(null)
+  /** True from a Trial's start to the moment its seed is read: the panel's Fight must not fire twice in that gap. */
+  const [entering, setEntering] = useState(false)
   /** Why the server refused the last send; null if it never answered. */
   const [refused, setRefused] = useState<ApiError | null>(null)
   const keys = useRef<{ submit?: string; abandon?: string }>({})
@@ -168,24 +180,38 @@ export function useBattle(catalog: Catalog = LAUNCH_CATALOG) {
 
   /** Reads the revealed seed and enters the Trial, with its draft if one is still good. False if the seed couldn't be read: `/me`'s banner still offers it. */
   const enterTrial = useCallback(async (trial: ActiveTrial, owner: string): Promise<boolean> => {
+    // Whatever goes wrong here, the client's picture of the Trial was off: /me is the truth, and its banner offers Resume.
+    const stale = () => { void qc.invalidateQueries({ queryKey: ME_KEY }) }
+    setEntering(true)
     try {
-      const seed32 = battleSeed32((await api.pveSeed()).seedHex)
+      const { seedHex, index } = await api.pveSeed()
+      // The seed of another Trial than the one this screen holds: playing on it would send moves the server can't verify.
+      if (index !== trial.index) {
+        stale()
+        toasts.info('That Trial has changed elsewhere. Open Battle to see where it stands.')
+        return false
+      }
+      const seed32 = battleSeed32(seedHex)
       setMoves(loadDraft(trialDraftKey(owner, trial.index), trial, seed32, catalog))
       begin()
       setSetup({ mode: 'pve', trial, seed32 })
       return true
     } catch (e) {
       toasts.error(e)
+      stale()
       return false
+    } finally {
+      setEntering(false)
     }
-  }, [api, catalog, toasts, begin])
+  }, [api, catalog, toasts, begin, qc])
 
   const startTrial = useCallback(async (chapter: number, node: number, team: TeamIds): Promise<boolean> => {
     if (!playerId) return false
-    const res = await run({ type: 'startTrial', chapter, node, team })
+    // A refusal, or a reply lost after the server started it, leaves /me stale: refetch it, so the banner shows what really is.
+    const res = await run({ type: 'startTrial', chapter, node, team }, { onError: () => { void qc.invalidateQueries({ queryKey: ME_KEY }) } })
     const trial = res?.state.pve.active
     return trial ? enterTrial(trial, playerId) : false
-  }, [run, enterTrial, playerId])
+  }, [run, enterTrial, playerId, qc])
 
   const activeTrial = state?.pve.active
   const resumeTrial = useCallback(async (): Promise<boolean> => {
@@ -199,9 +225,9 @@ export function useBattle(catalog: Catalog = LAUNCH_CATALOG) {
   const reset = useCallback(() => { setSetup(null); setMoves([]); begin() }, [begin])
 
   /** Runs a battle's action under `key`; a refusal refetches `/me` and comes back as the error. */
-  const send = useCallback(async (action: ClientAction, key: string): Promise<{ res: ActionResponse | null; failure: unknown }> => {
+  const send = useCallback(async (action: ClientAction, key: string, quiet = false): Promise<{ res: ActionResponse | null; failure: unknown }> => {
     let failure: unknown = null
-    const res = await run(action, { key, onError: e => { failure = e } })
+    const res = await run(action, { key, quiet, onError: e => { failure = e } })
     if (failure instanceof ApiError) void qc.invalidateQueries({ queryKey: ME_KEY })
     return { res, failure }
   }, [run, qc])
@@ -211,8 +237,10 @@ export function useBattle(catalog: Catalog = LAUNCH_CATALOG) {
     setRefused(null)
     keys.current.submit ??= crypto.randomUUID()
     const { res, failure } = await send(
-      setup.mode === 'pvp' ? { type: 'pvpBattle', offerId: setup.offer.offerId, team: setup.team, moves } : { type: 'finishTrial', moves },
+      setup.mode === 'pvp' ? { type: 'pvpBattle', offerId: setup.offer.offerId, team: setup.team, moves } : { type: 'finishTrial', moves, index: setup.trial.index },
       keys.current.submit,
+      // The result screen says why a send failed (the panel's alert), so a toast would only sit on top of it.
+      true,
     )
     if (res) setResult(res)
     if (failure instanceof ApiError) setRefused(failure)
@@ -227,10 +255,10 @@ export function useBattle(catalog: Catalog = LAUNCH_CATALOG) {
     if (!setup || result) return 'failed'
     keys.current.abandon ??= crypto.randomUUID()
     const { res, failure } = await send(
-      setup.mode === 'pvp' ? { type: 'pvpBattle', offerId: setup.offer.offerId, team: setup.team, moves } : { type: 'abandonTrial' },
+      setup.mode === 'pvp' ? { type: 'pvpBattle', offerId: setup.offer.offerId, team: setup.team, moves } : { type: 'abandonTrial', index: setup.trial.index },
       keys.current.abandon,
     )
-    const gone = failure instanceof ApiError && failure.status === 409
+    const gone = isGone(failure)
     if (!res && !gone) return 'failed'
     if (setup.mode === 'pve' && playerId) clearTrialDraft(playerId, setup.trial.index)
     if (res && setup.mode === 'pvp') setResult(res)
@@ -239,13 +267,12 @@ export function useBattle(catalog: Catalog = LAUNCH_CATALOG) {
 
   return useMemo(() => ({
     setup, moves, preview, legal, result, refused, catalog, trophies,
-    exactPreview: true,
     canSubmit: setup !== null && result === null && preview?.done?.ok === true,
-    pending,
+    pending: pending || entering,
     error,
     startPvp, startTrial, resumeTrial, choose, reset, submit, abandon,
     report: result?.battle as BattleReport | undefined,
-  }), [setup, moves, preview, legal, result, refused, catalog, trophies, pending, error, startPvp, startTrial, resumeTrial, choose, reset, submit, abandon])
+  }), [setup, moves, preview, legal, result, refused, catalog, trophies, pending, entering, error, startPvp, startTrial, resumeTrial, choose, reset, submit, abandon])
 }
 
 export type BattleHook = ReturnType<typeof useBattle>

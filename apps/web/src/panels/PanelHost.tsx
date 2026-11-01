@@ -69,12 +69,14 @@ export interface PanelHostProps {
   dialog: DialogKey | null
   onOpen: (k: DialogKey | null) => void
   onTrial?: (chapter: number, node: number, team: TeamIds) => void
+  /** The battle hook's pending: a Trial is starting. */
+  fighting?: boolean
   onResumeTrial?: () => void
   onPvp?: (offer: Offer, team: TeamIds) => void
 }
 
 /** The panel for the open dialog (a named HUD panel or a clicked island object), or null. */
-export function PanelHost({ bridge, nowMs, dialog, onOpen, onTrial = () => {}, onResumeTrial = () => {}, onPvp = () => {} }: PanelHostProps): ReactElement | null {
+export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = () => {}, onResumeTrial = () => {}, onPvp = () => {} }: PanelHostProps): ReactElement | null {
   const startPlacing = useStartPlacing()
   const close = () => onOpen(null)
   if (!dialog) return null
@@ -84,7 +86,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, onTrial = () => {}, o
       case 'map': return null // the Map is a scene (R60), not a dialog; its islands open panels
       case 'breed': return <BreedPanel nowMs={nowMs} onClose={close} />
       case 'book': return <DragonBookPanel art={bridge.art} onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
-      case 'battle': return <BattleHub nowMs={nowMs} chapter={dialog.chapter} onTrial={onTrial} onResume={onResumeTrial} onPvp={onPvp} onClose={close} />
+      case 'battle': return <BattleHub nowMs={nowMs} chapter={dialog.chapter} fighting={fighting} onShop={() => onOpen({ kind: 'panel', id: 'shop', tab: 'build' })} onTrial={onTrial} onResume={onResumeTrial} onPvp={onPvp} onClose={close} />
       case 'quests': return <QuestsPanel onClose={close} onOpen={onOpen} />
       case 'wings':
       case 'inbox': return null // not built until a later milestone; the bar buttons are disabled
