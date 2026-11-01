@@ -85,7 +85,8 @@ test.describe('on a phone', () => {
     expect(sawKo).toBe(true)
     await expect(result(page)).toContainText('Victory')
     await expect(result(page)).toContainText('1,000 gold')
-    await expect(result(page).getByLabel(/\d stars/)).toContainText('★')
+    // The marks are the ui.star art when the manifest has it, else the ★ glyphs: either way there is one mark per star earned.
+    await expect(result(page).getByLabel(/\d stars/).locator('img, span')).not.toHaveCount(0)
 
     // Back on this chapter's nodes, not the list of chapters; the Hud is back, and paid.
     await page.getByRole('button', { name: 'Continue' }).click()
