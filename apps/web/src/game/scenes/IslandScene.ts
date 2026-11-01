@@ -1,13 +1,15 @@
-import { FOOTPRINT, ISLAND_TILES, LAUNCH_CATALOG, ownedPlots, plotOrigin, TILES_PER_PLOT, type Catalog } from '@wyrmhaven/game-core'
+import { FOOTPRINT, ISLAND_TILES, LAUNCH_CATALOG, ownedPlots, plotOrigin, TILES_PER_PLOT, type Catalog, type PlayerState } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
-import { animateWater, isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
+import { isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
-import type { GameArtSet } from '../../art/types'
+import type { GameArtSet, Sprite } from '../../art/types'
 import type { Bridge, Target } from '../bridge'
 import {
   cameraBounds, clampView, groundCell, landPlots, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
 } from '../camera'
+import { paintLandmass, type BakeArt, type BakeImage } from '../islandBake'
 import { badgeY, buildIslandModel, groundTiles, groundVariant, objectSignature, type IslandMarkers, type IslandObject } from '../islandModel'
+import { driftCloud, landmass, nearestPlot } from '../islandShape'
 import { anchor, cellCentre, cellTop, footprintDiamond, islandBox, pointerToCell, tapHit, type Box, type Pos } from '../layout'
 import { createPanZoom, heldPointers } from '../panZoom'
 import { pickTarget, type Hit } from '../pickTarget'
@@ -28,7 +30,15 @@ const EMPTY: IslandMarkers = {
 const BADGE_PX = 14
 /** Local (unscaled) size of a tappable badge's hit box: 28 local px x BADGE_PX / 8 = 49 CSS px, over the 44 px minimum. */
 const BADGE_HIT_LOCAL = 28
-/** World box of the baked landmass: the island's diamond and the cliff skirt under it. */
+/** Home's baked landmass, in Phaser's texture manager. */
+const BAKE_KEY = 'island:home-bake'
+/** The sky's plain colour, when its art is absent. */
+const SKY_FALLBACK = '#8fd0ee'
+/** A waterfall starts this far above the lip, so its foam covers the strip of grass between the river and the edge. */
+const FALL_LIP = 6
+/** Where the clouds start, as shares of the camera bounds. */
+const CLOUD_AT = [{ x: 0.08, y: 0.16 }, { x: 0.62, y: 0.06 }, { x: 0.88, y: 0.62 }] as const
+/** World box of the baked landmass on islands other than Home: the island's diamond and the cliff skirt under it. */
 const groundBox = (): Box => {
   const b = islandBox(ISLAND_TILES, ISLAND_TILES)
   return { x: b.x, y: b.y, w: b.w, h: b.h + SKIRT }
@@ -47,8 +57,11 @@ export class IslandScene extends Phaser.Scene {
   private ground!: Phaser.GameObjects.Graphics
   /** The whole landmass (ground, fog, cliff) baked into one texture per island and holding, instead of ~1,100 images. */
   private groundRt: Phaser.GameObjects.RenderTexture | null = null
-  private water: Phaser.GameObjects.TileSprite | null = null
-  private waterTimer: Phaser.Time.TimerEvent | null = null
+  /** Home's landmass, shown from the canvas texture `BAKE_KEY`. */
+  private bakeImage: Phaser.GameObjects.Image | null = null
+  private falls: (Phaser.GameObjects.Sprite | Phaser.GameObjects.Graphics)[] = []
+  private sky: Phaser.GameObjects.Image | null = null
+  private clouds: Phaser.GameObjects.Image[] = []
   private hatchView: string | null = null
   private outline!: Phaser.GameObjects.Graphics
   private layer!: Phaser.GameObjects.Container
@@ -79,6 +92,8 @@ export class IslandScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.cameras.main.setBackgroundColor(SKY_FALLBACK)
+    this.makeSky()
     this.ground = this.add.graphics().setVisible(false)
     const land = groundBox()
     // A headless game (tests) has no renderer to hold a texture: it bakes nothing.
@@ -128,7 +143,7 @@ export class IslandScene extends Phaser.Scene {
     })
     // A lost WebGL context empties every render target. Phaser restores its textures and then says so: bake the land again.
     const renderer = this.game.renderer as Phaser.Renderer.WebGL.WebGLRenderer | Phaser.Renderer.Canvas.CanvasRenderer | undefined
-    const onRestore = () => { if (this.alive()) { this.groundKey = ''; this.sync() } }
+    const onRestore = () => { if (this.alive()) this.rebake() }
     renderer?.on?.(Phaser.Renderer.Events.RESTORE_WEBGL, onRestore)
     this.events.once(Phaser.Scenes.Events.DESTROY, () => {
       offs.forEach(off => off())
@@ -154,6 +169,25 @@ export class IslandScene extends Phaser.Scene {
     return this.bridge.art ?? FALLBACK_ART
   }
 
+  /** The sky and the clouds behind every island; each only if its art loaded. */
+  private makeSky(): void {
+    const { sky, clouds } = this.art().ground
+    if (sky && this.textures.exists(textureKey('ground.sky'))) this.sky = this.add.image(0, 0, textureKey('ground.sky')).setDepth(-3)
+    const b = cameraBounds('home')
+    this.clouds = clouds.flatMap((_, i) => {
+      const key = textureKey(`ground.cloud.${i}`)
+      if (!this.textures.exists(key)) return []
+      return [this.add.image(b.x + b.w * CLOUD_AT[i % CLOUD_AT.length]!.x, b.y + b.h * CLOUD_AT[i % CLOUD_AT.length]!.y, key).setDepth(-2)]
+    })
+  }
+
+  /** Clouds drift in world space and wrap at the bounds; they stay still under reduced motion. A sleeping scene isn't updated. */
+  update(_time: number, deltaMs: number): void {
+    if (this.bridge.reducedMotion) return
+    const b = cameraBounds(this.bridge.view)
+    for (const c of this.clouds) c.x = driftCloud(c.x, deltaMs, b.x, b.x + b.w, c.displayWidth / 2)
+  }
+
   /**
    * True while this scene can still own display objects. `game.destroy` only marks the game until its next step, and
    * the art swap puts the new art on the bridge at once: until then this game's textures do not match `bridge.art`.
@@ -169,7 +203,7 @@ export class IslandScene extends Phaser.Scene {
 
   /** Camera bounds grown by the HUD insets at a zoom, so the island centres in the band the HUD leaves free. */
   private bounds(zoom: number): Box {
-    const b = cameraBounds()
+    const b = cameraBounds(this.bridge.view)
     const { top, bottom } = this.bridge.insets
     return { x: b.x, y: b.y - top / zoom, w: b.w, h: b.h + (top + bottom) / zoom }
   }
@@ -195,6 +229,11 @@ export class IslandScene extends Phaser.Scene {
     const cam = this.cameras.main
     cam.setZoom(this.view.zoom)
     cam.centerOn(this.view.cx, this.view.cy)
+    // The sky stays put on screen: at the view's centre, a whole number of screen pixels per art pixel, so it never scrolls or pixelates unevenly.
+    if (this.sky) {
+      const cover = Math.ceil(Math.max(this.scale.width / this.sky.width, this.scale.height / this.sky.height))
+      this.sky.setPosition(this.view.cx, this.view.cy).setScale(cover / this.view.zoom)
+    }
     const scale = this.badgeScale()
     for (const t of this.badges) if (t.active) t.setScale(scale)
     this.fitTapTargets()
@@ -419,10 +458,10 @@ export class IslandScene extends Phaser.Scene {
   }
 
   /**
-   * The landmass: grass diamonds for owned plots, fog for the rest and a cliff skirt under the two front edges, over
-   * the sea. Uses the `ground.*` tiles when the manifest has them and drawn diamonds otherwise. All of it is baked into
-   * one render texture and only drawn again when the view or its owned plots change (buying a plot, a Bridge, a switch of
-   * island) or after the WebGL context comes back. The sea stays a separate animated tile sprite behind it.
+   * The landmass, drawn again only when the view or its plots change (buying a plot, a Bridge, a switch of island) or after
+   * the WebGL context comes back. Home is the floating island (`bakeHome`); every other island keeps grass diamonds for
+   * owned plots, fog for the rest and a cliff skirt, from the `ground.*` tiles when the manifest has them and drawn
+   * diamonds otherwise, baked into one render texture.
    */
   private drawGround(): void {
     const { state, view } = this.bridge
@@ -430,26 +469,85 @@ export class IslandScene extends Phaser.Scene {
     const key = `${view}:${state ? ownedPlots(state, view).join(',') : '-'}:${state ? landPlots(state, view).join(',') : '-'}`
     if (key === this.groundKey) return
     this.groundKey = key
-    const g = this.ground.clear()
-    const rt = this.groundRt?.clear() ?? null
-    // The old water's looping timer goes with it, or one more would tick per ground-key change.
-    this.waterTimer?.remove()
-    this.waterTimer = null
-    this.water?.destroy()
-    this.water = null
+    const rt = this.groundRt?.clear().setVisible(view !== 'home') ?? null
+    this.clearHomeBake()
     if (!state) return
+    if (view === 'home') return this.bakeHome(state)
+    this.ground.clear()
+    if (rt) this.bakeTiles(rt, state)
+  }
+
+  /** The bake to throw away when the land changes: the image, its texture and the waterfalls standing on it. */
+  private clearHomeBake(): void {
+    this.bakeImage?.destroy()
+    this.bakeImage = null
+    if (this.textures.exists(BAKE_KEY)) this.textures.remove(BAKE_KEY)
+    for (const f of this.falls) f.destroy()
+    this.falls = []
+  }
+
+  /** Throws the ground away and makes it again: after a lost WebGL context, whose textures come back empty. */
+  rebake(): void {
+    this.groundKey = ''
+    this.sync()
+  }
+
+  /**
+   * Home's floating island: one canvas the size of its landmass, shown as an image, with a waterfall sprite per fall.
+   * A headless game (tests) has no renderer to hold the texture: it paints nothing, the waterfalls still stand.
+   */
+  private bakeHome(state: PlayerState): void {
+    const land = landmass(landPlots(state, 'home'))
+    const owned = ownedPlots(state, 'home')
+    const shown = landPlots(state, 'home')
+    if (this.game.config.renderType !== Phaser.HEADLESS) {
+      const tex = this.textures.createCanvas(BAKE_KEY, land.box.w, land.box.h)
+      if (tex) {
+        paintLandmass(tex.context, land, this.bakeArt(), (col, row) => !owned.includes(nearestPlot(shown, col, row)))
+        tex.refresh()
+        this.bakeImage = this.add.image(land.box.x, land.box.y, BAKE_KEY).setOrigin(0, 0).setDepth(-1)
+      }
+    }
+    const fall = this.art().ground.waterfall
+    const key = textureKey('ground.waterfall')
+    this.falls = land.falls.map(p => {
+      if (fall && this.textures.exists(key)) {
+        const spr = this.add.sprite(p.x, p.y - FALL_LIP, key).setOrigin(0.5, 0).setDepth(-0.5).setName('waterfall')
+        playOrStill(spr, key, fall.frames, fall.fps, this.bridge.reducedMotion)
+        return spr
+      }
+      const g = this.add.graphics().setDepth(-0.5).setName('waterfall')
+      g.fillStyle(0xbfe6fa, 1).fillRect(p.x - 12, p.y - FALL_LIP, 24, 72)
+      g.fillStyle(0x3fa6e0, 1).fillRect(p.x - 8, p.y - FALL_LIP + 3, 4, 66).fillRect(p.x + 2, p.y - FALL_LIP + 3, 5, 66)
+      return g
+    })
+  }
+
+  /** The bitmaps the painter samples, the ones whose textures really exist: a PNG that failed leaves none, and it paints its own look. */
+  private bakeArt(): BakeArt {
+    const ground = this.art().ground
+    const img = (path: string, s: Sprite | null | undefined): BakeImage | null => {
+      const key = textureKey(path)
+      if (!s || !this.textures.exists(key)) return null
+      return { source: this.textures.get(key).getSourceImage() as CanvasImageSource, w: s.w, h: s.h }
+    }
+    return {
+      grass: ground.grass.map((s, i) => img(`ground.grass.${i}`, s)).filter((b): b is BakeImage => b !== null),
+      variant: groundVariant,
+      rock: img('ground.rock', ground.rock),
+      rim: ground.rim.map((s, i) => img(`ground.rim.${i}`, s)).filter((b): b is BakeImage => b !== null),
+      water: img('ground.water', ground.water),
+    }
+  }
+
+  /** Every other island: tiles baked into the render texture. */
+  private bakeTiles(rt: Phaser.GameObjects.RenderTexture, state: PlayerState): void {
+    const { view } = this.bridge
+    const g = this.ground
     const tiles = this.art().ground
     const land = groundBox()
     // Tiles are drawn at their world position less the texture's own corner.
     const shown = shownSize()
-    if (tiles.water) {
-      const b = cameraBounds()
-      const pad = 2048 // the sea also fills the screen beyond the camera bounds when zoomed out
-      this.water = this.add.tileSprite(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, textureKey('ground.water'), 0).setOrigin(0, 0).setDepth(-1).setAlpha(0.4) // softened: the sea is backdrop, not the subject
-      const w = tiles.water
-      this.waterTimer = animateWater(this, this.water, textureKey('ground.water'), w.frames, w.fps, this.bridge.reducedMotion)
-    }
-    if (!rt) return
     const at = (k: string, x: number, y: number) => rt.batchDrawFrame(textureKey(k), undefined, x - land.x, y - land.y)
     const left = cellTop(0, shown.h)
     const bottom = cellTop(shown.w, shown.h)

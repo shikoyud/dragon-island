@@ -7,7 +7,7 @@ import { artSetFromManifest } from '../src/art/fromManifest'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge, type Placing } from '../src/game/bridge'
 import { cameraBounds, groundCell, lockedTiles, shownSize } from '../src/game/camera'
-import { buildIslandModel } from '../src/game/islandModel'
+import { buildIslandModel, SIGN_SCALE } from '../src/game/islandModel'
 import { cellCentre, cellTop, islandBox } from '../src/game/layout'
 import { isMapDialog, type DialogKey } from '../src/hud/Hud'
 import { levelUnlockLines } from '../src/hud/hudModel'
@@ -47,7 +47,8 @@ describe('fog and ground on 32x32 (R43, R58)', () => {
   })
   it('the shown size is always 32x32', () => {
     expect(shownSize()).toEqual({ w: 32, h: 32 })
-    expect(cameraBounds().w).toBeGreaterThan(islandBox(32, 32).w)
+    expect(cameraBounds('home').w).toBeGreaterThan(islandBox(32, 32).w)
+    expect(cameraBounds('isle2').w).toBeGreaterThan(islandBox(32, 32).w)
   })
 })
 
@@ -61,6 +62,16 @@ describe('plot signs', () => {
     const o = plotOrigin(7)
     expect(seven.target).toEqual({ kind: 'plot', island: 'home', plot: 7 })
     expect({ x: seven.x, y: seven.y }).toEqual(cellTop(o.col + 4, o.row + 4))
+  })
+  it('a sign shown at the 48 px art\'s half scale stays on its own plot and off the starting Farm', () => {
+    const { objects } = model(base)
+    const seven = objects.find(o => o.id === 'sign:7')!
+    expect(SIGN_SCALE).toBe(0.5)
+    expect(seven.scale).toBe(SIGN_SCALE)
+    const w = 48 * SIGN_SCALE, h = 48 * SIGN_SCALE
+    // The Farm's middle cell (22, 9) must not lie inside the sign's box at any zoom it is shown whole.
+    const farm = cellCentre(22, 9)
+    expect(farm.x >= seven.x - w / 2 && farm.x <= seven.x + w / 2 && farm.y >= seven.y - h && farm.y <= seven.y).toBe(false)
   })
   it('a plot bought loses its sign and the next in the order appears', () => {
     const { markers } = model(withPlots(base, [5, 6, 9, 10, 2]))

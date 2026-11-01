@@ -1,9 +1,10 @@
 import { ISLAND_TILES, offeredPlots, ownedPlots, plotOfTile, plotOrigin, PLOTS_PER_SIDE, TILES_PER_PLOT, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { landmass } from './islandShape'
 import { footprintDiamond, islandBox, pointerToCell, type Box } from './layout'
 
 /** Height in world pixels of the cliff drawn under the island's two front edges. */
 export const SKIRT = 12
-/** Sea shown around the island at the camera's edges. */
+/** Sky shown around the island at the camera's edges. */
 const MARGIN = 24
 
 /** What the camera shows: the world point at the screen's centre, and a whole-number zoom. */
@@ -14,8 +15,18 @@ export function shownSize(): { w: number; h: number } {
   return { w: ISLAND_TILES, h: ISLAND_TILES }
 }
 
-/** World box the camera may show: the island's diamond (every island is 32x32), its cliff skirt and a margin of sea. */
-export function cameraBounds(): Box {
+/** Home with all 16 plots: built once, as it never changes. */
+let fullHome: Box | null = null
+
+/**
+ * World box the camera may show. Home: the full landmass of all 16 plots and a margin, so it doesn't change as land grows.
+ * Other islands: the 32x32 diamond, its cliff skirt and a margin.
+ */
+export function cameraBounds(view: IslandId): Box {
+  if (view === 'home') {
+    const b = (fullHome ??= landmass(Array.from({ length: PLOTS_PER_SIDE * PLOTS_PER_SIDE }, (_, i) => i)).box)
+    return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + 2 * MARGIN }
+  }
   const { w, h } = shownSize()
   const b = islandBox(w, h)
   return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + SKIRT + 2 * MARGIN }

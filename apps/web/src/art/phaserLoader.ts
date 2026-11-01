@@ -69,6 +69,12 @@ export function artEntries(art: GameArtSet): Entry[] {
     if (t.cliffSe) add(`ground.cliff.${island}.se`, t.cliffSe, 'island', 'terra')
   }
   if (ground.plotEdge) add('ground.plotEdge', ground.plotEdge, 'island', 'terra')
+  // Optional like the battle art: the scene has its own look for each. Clouds and rim go by position, as the scene reads them.
+  if (ground.sky) opt('ground.sky', ground.sky)
+  ground.clouds.forEach((s, i) => opt(`ground.cloud.${i}`, s))
+  if (ground.rock) opt('ground.rock', ground.rock)
+  ground.rim.forEach((s, i) => opt(`ground.rim.${i}`, s))
+  if (ground.waterfall) opt('ground.waterfall', ground.waterfall)
   return rows
 }
 
@@ -100,16 +106,6 @@ export function loadArt(scene: Phaser.Scene, art: GameArtSet): void {
     const e = entries.find(x => x.key === file.key)
     if (e && !scene.textures.exists(e.key)) drawn(e)
   })
-}
-
-/**
- * Ticks the water tile sprite through its frames and returns the looping timer, so whoever rebuilds the water can remove it;
- * null (nothing started) for a still, reduced motion or a sheet whose frames are missing.
- */
-export function animateWater(scene: Phaser.Scene, water: Phaser.GameObjects.TileSprite, key: string, frames: number, fps: number, reducedMotion: boolean): Phaser.Time.TimerEvent | null {
-  if (frames <= 1 || fps <= 0 || reducedMotion || !hasFrames(scene, key, frames)) return null
-  let f = 0
-  return scene.time.addEvent({ delay: 1000 / fps, loop: true, callback: () => { if (water.active) water.setFrame(f = (f + 1) % frames) } })
 }
 
 /** Animation key for a sprite sheet texture. */

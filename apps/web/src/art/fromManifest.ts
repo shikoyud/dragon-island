@@ -80,6 +80,11 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
         return grass.length > 0 || cliffSw || cliffSe ? [[i, { grass, cliffSw, cliffSe }]] : []
       })),
       plotEdge: present('ground.plotEdge'),
+      sky: present('ground.sky'),
+      clouds: [0, 1, 2].map(i => present(`ground.cloud.${i}`)).filter((c): c is Sprite => c !== null),
+      rock: present('ground.rock'),
+      rim: [0, 1, 2, 3].map(i => present(`ground.rim.${i}`)).filter((r): r is Sprite => r !== null),
+      waterfall: present('ground.waterfall'),
     },
     battle: {
       backdrop: Object.fromEntries(ELEMENTS.flatMap(el => { const s = present(`battle.backdrop.${el}`); return s ? [[el, s]] : [] })),

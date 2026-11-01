@@ -4,18 +4,46 @@ import { FALLBACK_ART } from '../src/art/slots'
 import { buildIslandModel } from '../src/game/islandModel'
 import { withPlots } from './land'
 import {
-  cameraBounds, clampView, fitZoom, groundCell, isClick, landBox, landPlots, lockedTiles, openingView, panBy, screenToWorld, SKIRT, stepZoom, zoomAt, zoomRange,
+  cameraBounds, clampView, fitZoom, groundCell, isClick, landBox, landPlots, lockedTiles, openingView, panBy, screenToWorld, SKIRT, stepZoom, worldToScreen, zoomAt, zoomRange,
   type View,
 } from '../src/game/camera'
+import { landmass } from '../src/game/islandShape'
 import { cellCentre, tapBox, tapHit } from '../src/game/layout'
 
 const vp = { w: 1280, h: 720 }
 
 describe('island camera logic', () => {
-  it('bounds the whole 32x32 diamond of any island plus the cliff skirt and a margin', () => {
-    // The 32x32 island's diamond is 512 wide and 256 tall; the skirt adds 12 below and the sea margin 24 on every side.
+  it('bounds the whole 32x32 diamond of an island other than Home plus the cliff skirt and a margin', () => {
+    // The 32x32 island's diamond is 512 wide and 256 tall; the skirt adds 12 below and the margin 24 on every side.
     expect(SKIRT).toBe(12)
-    expect(cameraBounds()).toEqual({ x: -280, y: -24, w: 560, h: 316 })
+    expect(cameraBounds('isle2')).toEqual({ x: -280, y: -24, w: 560, h: 316 })
+  })
+
+  it('Home\'s bounds are the full landmass and a margin, whatever land is owned', () => {
+    const full = landmass(Array.from({ length: 16 }, (_, i) => i)).box
+    expect(cameraBounds('home')).toEqual({ x: full.x - 24, y: full.y - 24, w: full.w + 48, h: full.h + 48 })
+  })
+
+  it('camera bounds hold the whole landmass at every zoom: each of its corners can be brought on screen', () => {
+    const plotSets = [[5, 6, 9, 10, 2, 7, 11], [5, 6, 9, 10, 2, 7, 11, 1, 14, 13], Array.from({ length: 16 }, (_, i) => i)]
+    const b = cameraBounds('home')
+    for (const plots of plotSets) {
+      const box = landmass(plots).box
+      expect(box.x).toBeGreaterThanOrEqual(b.x)
+      expect(box.y).toBeGreaterThanOrEqual(b.y)
+      expect(box.x + box.w).toBeLessThanOrEqual(b.x + b.w)
+      expect(box.y + box.h).toBeLessThanOrEqual(b.y + b.h)
+      for (const [w, h] of [[1920, 1080], [844, 390], [390, 844]] as const) for (let zoom = 1; zoom <= 8; zoom++) {
+        for (const c of [{ x: box.x, y: box.y }, { x: box.x + box.w, y: box.y }, { x: box.x, y: box.y + box.h }, { x: box.x + box.w, y: box.y + box.h }]) {
+          const v = clampView({ cx: c.x, cy: c.y, zoom }, w, h, b)
+          const s = worldToScreen(v, w, h, c.x, c.y)
+          expect(s.x, `${w}x${h} at ${zoom}`).toBeGreaterThanOrEqual(0)
+          expect(s.x).toBeLessThanOrEqual(w)
+          expect(s.y).toBeGreaterThanOrEqual(0)
+          expect(s.y).toBeLessThanOrEqual(h)
+        }
+      }
+    }
   })
 
   it('a ground click yields the cell, or nothing outside the island', () => {

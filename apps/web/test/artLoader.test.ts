@@ -144,7 +144,7 @@ describe('HUD, ground and fx art keys', () => {
     expect(keys).toContain(textureKey('ground.grass.0'))
     expect(keys).toContain(textureKey('ground.water'))
     expect(keys).not.toContain(textureKey('ground.fog'))
-    expect(FALLBACK_ART.ground).toEqual({ grass: [], fog: null, water: null, cliffSw: null, cliffSe: null, island: {}, plotEdge: null })
+    expect(FALLBACK_ART.ground).toEqual({ grass: [], fog: null, water: null, cliffSw: null, cliffSe: null, island: {}, plotEdge: null, sky: null, clouds: [], rock: null, rim: [], waterfall: null })
   })
 
   it('collects present icon.* and ui.* keys for the HUD', () => {

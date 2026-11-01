@@ -1,7 +1,7 @@
 import { LAUNCH_CATALOG } from '@wyrmhaven/game-core'
 import { describe, expect, it, vi } from 'vitest'
 import { artSetFromManifest } from '../src/art/fromManifest'
-import { animKey, animateWater, loadArt, playOrStill, textureKey } from '../src/art/phaserLoader'
+import { animKey, artEntries, loadArt, playOrStill, textureKey } from '../src/art/phaserLoader'
 
 const WHOLE_SHEET = { exists: () => true, get: () => ({ has: () => true }) }
 
@@ -39,7 +39,37 @@ describe('idle loops keep their phase across the island rebuild', () => {
   })
 })
 
-describe('failed sheets and the water timer', () => {
+describe('floating island art slots', () => {
+  const e = (file: string, w = 16, h = 16, frames = 1, fps = 0) => ({ file, w, h, frames, fps })
+
+  it('art set has sky, clouds, rock, rim, waterfall as nullable slots; loader skips the ones absent', () => {
+    const none = artSetFromManifest('v1', { assets: {} }, LAUNCH_CATALOG)
+    expect(none.ground).toMatchObject({ sky: null, clouds: [], rock: null, rim: [], waterfall: null })
+    const noKeys = artEntries(none).map(r => r.key)
+    for (const k of ['sky', 'cloud.0', 'rock', 'rim.0', 'waterfall']) expect(noKeys).not.toContain(textureKey(`ground.${k}`))
+
+    const some = artSetFromManifest('v1', { assets: {
+      'ground.sky': e('sky.png', 480, 272), 'ground.cloud.0': e('c0.png', 96, 40), 'ground.cloud.2': e('c2.png', 96, 40),
+      'ground.rock': e('rock.png', 64, 64), 'ground.rim.1': e('r1.png', 48, 32), 'ground.waterfall': e('w.png', 32, 96, 4, 8),
+    } }, LAUNCH_CATALOG)
+    expect(some.ground.sky?.src).toBe('/art/v1/sky.png')
+    expect(some.ground.clouds.map(c => c.src)).toEqual(['/art/v1/c0.png', '/art/v1/c2.png'])
+    expect(some.ground.rim.map(c => c.src)).toEqual(['/art/v1/r1.png'])
+    expect(some.ground.waterfall).toMatchObject({ w: 32, h: 96, frames: 4, fps: 8 })
+    const rows = artEntries(some)
+    // By position in `clouds` and `rim`, as the scene reads them. Optional: a PNG that fails leaves no texture, and the scene draws its own look.
+    for (const k of ['sky', 'cloud.0', 'cloud.1', 'rock', 'rim.0', 'waterfall']) {
+      expect(rows.find(r => r.key === textureKey(`ground.${k}`))?.optional, k).toBe(true)
+    }
+    expect(rows.map(r => r.key)).not.toContain(textureKey('ground.cloud.2'))
+  })
+
+  it('sizes the empty sign slot like the art: 48x48', () => {
+    expect(artSetFromManifest('v1', { assets: {} }, LAUNCH_CATALOG).island.sign).toMatchObject({ src: '', w: 48, h: 48 })
+  })
+})
+
+describe('failed sheets', () => {
   const sheetArt = artSetFromManifest('v1', { assets: { 'habitat.terra': { file: 'habitat-terra.png', w: 80, h: 64, frames: 4, fps: 4 } } }, LAUNCH_CATALOG)
 
   function stubLoadScene() {
@@ -70,27 +100,5 @@ describe('failed sheets and the water timer', () => {
     const before = created.length
     handlers.loaderror!({ key: 'something-else' })
     expect(created).toHaveLength(before)
-  })
-
-  it('animates the water only when the texture really has its frames', () => {
-    const addEvent = vi.fn()
-    const mk = (has: boolean) => ({ time: { addEvent }, textures: { exists: () => has, get: () => ({ has: () => has }) } }) as unknown as Phaser.Scene
-    const water = { active: true, setFrame: vi.fn() } as unknown as Phaser.GameObjects.TileSprite
-    animateWater(mk(false), water, 'art:ground.water', 4, 6, false)
-    expect(addEvent).not.toHaveBeenCalled()
-    animateWater(mk(true), water, 'art:ground.water', 4, 6, true)
-    expect(addEvent).not.toHaveBeenCalled() // reduced motion
-    animateWater(mk(true), water, 'art:ground.water', 4, 6, false)
-    expect(addEvent).toHaveBeenCalledTimes(1)
-  })
-
-  it('hands back the water timer so a rebuild can remove it (no timer per ground-key change), or null when still', () => {
-    const timer = { remove: vi.fn() }
-    const addEvent = vi.fn(() => timer)
-    const mk = (has: boolean) => ({ time: { addEvent }, textures: { exists: () => has, get: () => ({ has: () => has }) } }) as unknown as Phaser.Scene
-    const water = { active: true, setFrame: vi.fn() } as unknown as Phaser.GameObjects.TileSprite
-    expect(animateWater(mk(true), water, 'art:ground.water', 4, 6, false)).toBe(timer)
-    expect(animateWater(mk(true), water, 'art:ground.water', 4, 6, true)).toBeNull()
-    expect(animateWater(mk(false), water, 'art:ground.water', 4, 6, false)).toBeNull()
   })
 })

@@ -59,8 +59,16 @@ describe('art v1 manifest', () => {
     // v1 has no art of its own for the §5.6 kinds yet: each shows the nearest old sprite, which keeps its own size.
     for (const k of Object.keys(OBSTACLES) as ObstacleKind[]) expect(art.obstacle[k].src, k).not.toBe('')
     fit('island.locked', art.island.locked, 16, 16)
-    fit('island.sign', art.island.sign, 32, 32)
+    fit('island.sign', art.island.sign, 48, 48)
     for (const id of ISLAND_ORDER) fit(`map.${id}`, art.map[id], 128, 96)
+  })
+
+  it('has the floating island\'s ground art', () => {
+    expect(art.ground.sky).toMatchObject({ w: 480, h: 272, frames: 1 })
+    expect(art.ground.clouds).toHaveLength(3)
+    expect(art.ground.rock).toMatchObject({ w: 64, h: 64 })
+    expect(art.ground.rim).toHaveLength(4)
+    expect(art.ground.waterfall).toMatchObject({ w: 32, h: 96, frames: 4, fps: 8 })
   })
 
   it('points every entry at a PNG on disk whose size matches w × frames by h', () => {
@@ -143,7 +151,7 @@ describe('artSetFromManifest', () => {
       expect(art.obstacle[k], k).toEqual(blank(n, n))
     }
     expect(art.island.locked).toEqual(blank(16, 16))
-    expect(art.island.sign).toEqual(blank(32, 32))
+    expect(art.island.sign).toEqual(blank(48, 48))
     expect(Object.keys(art.map)).toEqual([...ISLAND_ORDER])
     for (const id of ISLAND_ORDER) expect(art.map[id]).toEqual(blank(32, 32))
   })

@@ -1106,11 +1106,11 @@
     },
     "island.sign": {
       "file": "island-sign.png",
-      "w": 32,
-      "h": 32,
+      "w": 48,
+      "h": 48,
       "frames": 1,
       "fps": 0,
-      "top": 1
+      "top": 0
     },
     "juvenile.dark": {
       "file": "juvenile-dark.png",
@@ -3710,6 +3710,86 @@
       "h": 64,
       "frames": 1,
       "fps": 0,
+      "top": 0
+    },
+    "ground.sky": {
+      "file": "ground-sky.png",
+      "w": 480,
+      "h": 272,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.cloud.0": {
+      "file": "ground-cloud-0.png",
+      "w": 96,
+      "h": 40,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "ground.cloud.1": {
+      "file": "ground-cloud-1.png",
+      "w": 96,
+      "h": 40,
+      "frames": 1,
+      "fps": 0,
+      "top": 9
+    },
+    "ground.cloud.2": {
+      "file": "ground-cloud-2.png",
+      "w": 96,
+      "h": 40,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "ground.rock": {
+      "file": "ground-rock.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.rim.0": {
+      "file": "ground-rim-0.png",
+      "w": 48,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.rim.1": {
+      "file": "ground-rim-1.png",
+      "w": 48,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "ground.rim.2": {
+      "file": "ground-rim-2.png",
+      "w": 40,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.rim.3": {
+      "file": "ground-rim-3.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.waterfall": {
+      "file": "ground-waterfall.png",
+      "w": 32,
+      "h": 96,
+      "frames": 4,
+      "fps": 8,
       "top": 0
     }
   }

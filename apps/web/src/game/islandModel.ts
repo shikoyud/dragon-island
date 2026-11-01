@@ -260,6 +260,11 @@ export function groundTiles(art: GameArtSet, island: IslandId): { grass: string[
 
 /** What the sign on a plot for sale says on Home. */
 export const SIGN_CAPTION = 'Tap to buy'
+/**
+ * The 48 px sign art draws at half size: its 33 px board is then 66 px wide at the desktop's zoom 4, the reference's size.
+ * At full size it stands over the owned land beside its plot, its box taking taps meant for the starting Farm.
+ */
+export const SIGN_SCALE = 0.5
 
 /**
  * Pure: everything the Island scene draws for a state at a moment, for one island view. No Phaser, so it is
@@ -422,7 +427,7 @@ export function buildIslandModel(
     const o = plotOrigin(plot)
     const mid = TILES_PER_PLOT / 2
     objects.push({
-      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot }, minTap: TAP_PX, boxAlways: true,
+      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot }, scale: SIGN_SCALE, minTap: TAP_PX, boxAlways: true,
       ...(view === 'home' ? { caption: SIGN_CAPTION } : {}),
     })
     markers.signs.push({ plot, price })

@@ -59,6 +59,16 @@ export interface GameArtSet {
     island: Partial<Record<IslandId, { grass: Sprite[]; cliffSw: Sprite | null; cliffSe: Sprite | null }>>
     /** Optional mark drawn on the border cells of an owned plot (`ground.plotEdge`). */
     plotEdge: Sprite | null
+    /** The sky behind every island (`ground.sky`); null shows the camera's plain background. */
+    sky: Sprite | null
+    /** Clouds that drift behind the land (`ground.cloud.0..2`), the ones the manifest has. */
+    clouds: Sprite[]
+    /** Tile the cliff samples (`ground.rock`); null paints plain rock. */
+    rock: Sprite | null
+    /** Rocks round the rim (`ground.rim.0..3`), the ones the manifest has; empty draws grey polygons. */
+    rim: Sprite[]
+    /** A waterfall sheet (`ground.waterfall`); null draws a plain one. */
+    waterfall: Sprite | null
   }
   /** Battle stage art (docs/art/gdd-m5-art-list.md): each piece only when the manifest has it; the scene draws a colour fill, an ellipse and text without. */
   battle: {
@@ -94,7 +104,7 @@ export const SLOT_SIZES = {
   cursor: { w: 8, h: 8 },
   island: { w: 480, h: 270 },
   locked: { w: 16, h: 16 },
-  sign: { w: 32, h: 32 },
+  sign: { w: 48, h: 48 },
   map: { w: 32, h: 32 },
   fxConstruction: { w: 32, h: 32 },
   fxHatch: { w: 48, h: 48 },
