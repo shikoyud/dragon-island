@@ -5,7 +5,7 @@ import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet } from '../../art/types'
 import type { Bridge, Target } from '../bridge'
 import {
-  cameraBounds, clampView, groundCell, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
+  cameraBounds, clampView, groundCell, landPlots, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
 } from '../camera'
 import { badgeY, buildIslandModel, groundTiles, groundVariant, objectSignature, type IslandMarkers, type IslandObject } from '../islandModel'
 import { anchor, cellCentre, cellTop, footprintDiamond, islandBox, pointerToCell, tapHit, type Box, type Pos } from '../layout'
@@ -281,7 +281,7 @@ export class IslandScene extends Phaser.Scene {
   /** Emits the cell under a screen point; while placing, the pointer holds the footprint's centre. */
   private emitCell(p: { x: number; y: number }, always: boolean): boolean {
     const w = this.toWorld(p)
-    const c = groundCell(this.bridge.state, w.x, w.y)
+    const c = groundCell(this.bridge.state, this.bridge.view, w.x, w.y)
     if (!c) return false
     const off = this.bridge.placing ? Math.floor((this.bridge.placing.size - 1) / 2) : 0
     const cell = { col: c.col - off, row: c.row - off }
@@ -371,6 +371,11 @@ export class IslandScene extends Phaser.Scene {
       if (!o.badge) continue
       badges.push(keep(`badge:${o.id}`, JSON.stringify([o.badge, o.x, badgeY(o), o.target]), () => this.drawBadge(o, o.badge!)) as Phaser.GameObjects.Text)
     }
+    // Captions (a sign's 'Tap to buy') sit with the badges, on top, and scale like them.
+    for (const o of objects) {
+      if (!o.caption) continue
+      badges.push(keep(`caption:${o.id}`, JSON.stringify([o.caption, o.x, o.y]), () => this.drawCaption(o, o.caption!)) as Phaser.GameObjects.Text)
+    }
     for (const { obj } of this.live.values()) obj.destroy()
     this.live = next
     this.drawn = [...sprites, ...badges]
@@ -421,7 +426,8 @@ export class IslandScene extends Phaser.Scene {
    */
   private drawGround(): void {
     const { state, view } = this.bridge
-    const key = `${view}:${state ? ownedPlots(state, view).join(',') : '-'}`
+    // Owned plots and, on Home, the offered ones (they change with each purchase) decide what is drawn.
+    const key = `${view}:${state ? ownedPlots(state, view).join(',') : '-'}:${state ? landPlots(state, view).join(',') : '-'}`
     if (key === this.groundKey) return
     this.groundKey = key
     const g = this.ground.clear()
@@ -536,6 +542,14 @@ export class IslandScene extends Phaser.Scene {
   /** Badges keep one on-screen size (BADGE_PX tall) at every zoom instead of growing with the art. */
   private badgeScale(): number {
     return BADGE_PX / 8 / (this.view?.zoom ?? 1)
+  }
+
+  /** A label under a sprite's anchor: dark text on white, the badge's size on screen at every zoom. */
+  private drawCaption(o: IslandObject, caption: string): Phaser.GameObjects.Text {
+    const style: Phaser.Types.GameObjects.Text.TextStyle = { ...TEXT_STYLE, color: '#0f1324', stroke: undefined, strokeThickness: 0, backgroundColor: '#ffffff', padding: { x: 3, y: 1 } }
+    const t = this.add.text(o.x, o.y + 2, caption, style).setOrigin(0.5, 0).setResolution(4).setScale(this.badgeScale())
+    this.layer.add(t)
+    return t
   }
 
   private drawBadge(o: IslandObject, badge: string): Phaser.GameObjects.Text {

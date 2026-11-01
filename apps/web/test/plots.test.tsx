@@ -22,19 +22,28 @@ const base = newPlayer(0)
 const model = (s: PlayerState, view: IslandId = 'home', placing: Placing | null = null) => buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, view, placing)
 
 describe('fog and ground on 32x32 (R43, R58)', () => {
-  it('lockedTiles lists every tile not on an owned plot', () => {
+  it('on Home lockedTiles lists the tiles of the offered plots only', () => {
     const tiles = lockedTiles(base, 'home')
-    expect(tiles).toHaveLength(ISLAND_TILES * ISLAND_TILES - 4 * 64)
-    for (const t of tiles) expect([5, 6, 9, 10]).not.toContain(plotOfTile(t.col, t.row))
+    expect(tiles).toHaveLength(3 * 64)
+    for (const t of tiles) expect([2, 7, 11]).toContain(plotOfTile(t.col, t.row))
     expect(lockedTiles(null, 'home')).toEqual([])
     expect(lockedTiles(withPlots(base, Array.from({ length: 16 }, (_, i) => i)), 'home')).toEqual([])
   })
-  it('groundCell returns tiles anywhere on 32x32, so a red ghost can go over fog', () => {
-    const at = (col: number, row: number) => { const c = cellCentre(col, row); return groundCell(base, c.x, c.y) }
-    expect(at(0, 0)).toEqual({ col: 0, row: 0 })
-    expect(at(31, 31)).toEqual({ col: 31, row: 31 })
+  it('on another island lockedTiles is every tile not owned (the fog stays)', () => {
+    const s = withPlots({ ...base, islands: { ...base.islands, unlocked: ['home', 'isle2'] } }, [5, 6, 9, 10], 'isle2')
+    const tiles = lockedTiles(s, 'isle2')
+    expect(tiles).toHaveLength(ISLAND_TILES * ISLAND_TILES - 4 * 64)
+    for (const t of tiles) expect([5, 6, 9, 10]).not.toContain(plotOfTile(t.col, t.row))
+  })
+  it('groundCell is a cell on owned and offered Home land, a red ghost can go over a locked plot, and nothing else', () => {
+    const at = (col: number, row: number, view: IslandId = 'home') => { const c = cellCentre(col, row); return groundCell(base, view, c.x, c.y) }
+    expect(at(0, 0)).toBeNull()
+    expect(at(31, 31)).toBeNull()
+    expect(at(24, 8)).toEqual({ col: 24, row: 8 }) // plot 7, offered
+    expect(at(0, 0, 'isle2')).toEqual({ col: 0, row: 0 })
+    expect(at(31, 31, 'isle2')).toEqual({ col: 31, row: 31 })
     expect(at(32, 0)).toBeNull()
-    expect(groundCell(null, 0, 4)).toBeNull()
+    expect(groundCell(null, 'home', 0, 4)).toBeNull()
   })
   it('the shown size is always 32x32', () => {
     expect(shownSize()).toEqual({ w: 32, h: 32 })
@@ -43,19 +52,19 @@ describe('fog and ground on 32x32 (R43, R58)', () => {
 })
 
 describe('plot signs', () => {
-  it('each unowned plot touching owned land yields one sign at its centre', () => {
+  it('Home yields one sign per offered plot, at its centre', () => {
     const { objects, markers } = model(base)
     const signs = objects.filter(o => o.id.startsWith('sign:'))
-    expect(signs.map(o => o.id).sort()).toEqual([1, 2, 4, 7, 8, 11, 13, 14].map(p => `sign:${p}`).sort())
-    expect(markers.signs.map(s => s.plot).sort((a, b) => a - b)).toEqual([1, 2, 4, 7, 8, 11, 13, 14])
-    const four = objects.find(o => o.id === 'sign:4')!
-    const o = plotOrigin(4)
-    expect(four.target).toEqual({ kind: 'plot', island: 'home', plot: 4 })
-    expect({ x: four.x, y: four.y }).toEqual(cellTop(o.col + 4, o.row + 4))
+    expect(signs.map(o => o.id).sort()).toEqual(['sign:11', 'sign:2', 'sign:7'])
+    expect(markers.signs.map(s => s.plot)).toEqual([2, 7, 11])
+    const seven = objects.find(o => o.id === 'sign:7')!
+    const o = plotOrigin(7)
+    expect(seven.target).toEqual({ kind: 'plot', island: 'home', plot: 7 })
+    expect({ x: seven.x, y: seven.y }).toEqual(cellTop(o.col + 4, o.row + 4))
   })
-  it('a plot bought loses its sign and opens the plots around it', () => {
-    const { markers } = model(withPlots(base, [5, 6, 9, 10, 4]))
-    expect(markers.signs.map(s => s.plot).sort((a, b) => a - b)).toEqual([0, 1, 2, 7, 8, 11, 13, 14])
+  it('a plot bought loses its sign and the next in the order appears', () => {
+    const { markers } = model(withPlots(base, [5, 6, 9, 10, 2]))
+    expect(markers.signs.map(s => s.plot)).toEqual([7, 11, 1])
   })
   it('a fully owned island has no signs', () => {
     expect(model(withPlots(base, Array.from({ length: 16 }, (_, i) => i))).markers.signs).toEqual([])

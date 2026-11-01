@@ -1,4 +1,4 @@
-import { ISLAND_TILES, ownedPlots, plotOfTile, plotOrigin, TILES_PER_PLOT, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { ISLAND_TILES, offeredPlots, ownedPlots, plotOfTile, plotOrigin, PLOTS_PER_SIDE, TILES_PER_PLOT, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
 import { footprintDiamond, islandBox, pointerToCell, type Box } from './layout'
 
 /** Height in world pixels of the cliff drawn under the island's two front edges. */
@@ -21,11 +21,21 @@ export function cameraBounds(): Box {
   return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + SKIRT + 2 * MARGIN }
 }
 
-/** The tile under a world position, or null off the island. Land not owned counts: a red ghost can go over fog. */
-export function groundCell(state: PlayerState | null, worldX: number, worldY: number): { col: number; row: number } | null {
+/**
+ * The plots drawn as land on an island: Home shows what the player owns plus the plots offered for sale (U3), every other
+ * island all 16 (owned ones as grass, the rest as fog).
+ */
+export function landPlots(state: PlayerState, view: IslandId): number[] {
+  if (view !== 'home') return Array.from({ length: PLOTS_PER_SIDE * PLOTS_PER_SIDE }, (_, i) => i)
+  return [...ownedPlots(state, view), ...offeredPlots(state, view)]
+}
+
+/** The tile under a world position, or null off the land shown. Locked land counts: a red ghost can go over it. */
+export function groundCell(state: PlayerState | null, view: IslandId, worldX: number, worldY: number): { col: number; row: number } | null {
   if (!state) return null
   const c = pointerToCell(worldX, worldY)
-  return plotOfTile(c.col, c.row) === null ? null : c
+  const plot = plotOfTile(c.col, c.row)
+  return plot === null || !landPlots(state, view).includes(plot) ? null : c
 }
 
 /** World position of a screen pixel (screen = the game canvas, in CSS pixels). */
@@ -78,14 +88,14 @@ export function fitZoom(viewportW: number, viewportH: number, b: Box): number {
 const OPENING_PAD = 32
 
 /**
- * World box round the diamonds of the plots owned on an island. With none owned (or no state) it is the whole island's, so
- * the camera has somewhere to open.
+ * World box round the diamonds of the land shown on an island (`landPlots`: owned plus, on Home, the offered ones). With no
+ * state it is the whole island's, so the camera has somewhere to open.
  */
-export function ownedLandBox(state: PlayerState | null, view: IslandId): Box {
-  const owned = state ? ownedPlots(state, view) : []
-  if (owned.length === 0) return islandBox(ISLAND_TILES, ISLAND_TILES)
+export function landBox(state: PlayerState | null, view: IslandId): Box {
+  const land = state ? landPlots(state, view) : []
+  if (land.length === 0) return islandBox(ISLAND_TILES, ISLAND_TILES)
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
-  for (const plot of owned) {
+  for (const plot of land) {
     const o = plotOrigin(plot)
     for (const p of footprintDiamond(o.col, o.row, TILES_PER_PLOT)) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y) }
   }
@@ -97,7 +107,7 @@ export function ownedLandBox(state: PlayerState | null, view: IslandId): Box {
  * (`fitZoom`, never below 1). `viewportH` is the height the HUD leaves free. Drag or zoom reaches the rest of the island.
  */
 export function openingView(state: PlayerState | null, view: IslandId, viewportW: number, viewportH: number): View {
-  const b = ownedLandBox(state, view)
+  const b = landBox(state, view)
   const padded = { x: b.x - OPENING_PAD, y: b.y - OPENING_PAD, w: b.w + 2 * OPENING_PAD, h: b.h + 2 * OPENING_PAD }
   return { cx: b.x + b.w / 2, cy: b.y + b.h / 2, zoom: fitZoom(viewportW, viewportH, padded) }
 }
@@ -117,11 +127,15 @@ export function stepZoom(zoom: number, dir: -1 | 1, range: { min: number; max: n
   return Math.min(range.max, Math.max(range.min, zoom - dir))
 }
 
-/** Every tile of the viewed island not on an owned plot: the fog. */
+/** Every tile on land shown but not owned: the offered plots on Home, the fog on other islands. */
 export function lockedTiles(state: PlayerState | null, view: IslandId): { col: number; row: number }[] {
   if (!state) return []
   const owned = new Set(ownedPlots(state, view))
+  const shownPlots = new Set(landPlots(state, view))
   const out: { col: number; row: number }[] = []
-  for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) if (!owned.has(plotOfTile(col, row)!)) out.push({ col, row })
+  for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) {
+    const plot = plotOfTile(col, row)!
+    if (shownPlots.has(plot) && !owned.has(plot)) out.push({ col, row })
+  }
   return out
 }

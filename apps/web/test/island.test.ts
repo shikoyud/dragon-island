@@ -1,13 +1,14 @@
-import { cropGrowMs, DEFAULT_PRESET, getSpecies, goldPerMinuteX20, habitatCap, hatcherySlots, LAUNCH_CATALOG, newPlayer, residents, storedGold, type Dragon } from '@wyrmhaven/game-core'
+import { cropGrowMs, DEFAULT_PRESET, getSpecies, goldPerMinuteX20, habitatCap, hatcherySlots, LAUNCH_CATALOG, newPlayer, plotOfTile, residents, storedGold, type Dragon } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
-import { badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, groundVariant, timerLabel } from '../src/game/islandModel'
+import { lockedTiles } from '../src/game/camera'
+import { badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, groundVariant, objectSignature, timerLabel } from '../src/game/islandModel'
 import { NEST_EGG_SCALE } from '../src/game/layout'
 import { nearestLegalCell } from '../src/state/placing'
-import { FREE, FREE_2, withIsland } from './land'
+import { FREE, FREE_2, withIsland, withPlots } from './land'
 
 const C = LAUNCH_CATALOG
 const model = (state: Parameters<typeof buildIslandModel>[0], nowMs = 0) => buildIslandModel(state, FALLBACK_ART, C, nowMs, 'home', null)
@@ -243,12 +244,73 @@ describe('island model', () => {
     const home = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', null)
     expect(home.objects.find(o => o.id === 'habitat:h2')).toMatchObject({ x: 72, y: 132, key: textureKey('habitat.flame') }) // bottom vertex of its 4x4 diamond
     expect(home.markers.obstacles).toEqual([])
-    expect(home.markers.signs).toHaveLength(8)
+    expect(home.markers.signs).toHaveLength(3)
     expect(home.markers.signs[0]).toMatchObject({ price: 100 })
     const isle = buildIslandModel(s, FALLBACK_ART, C, 0, 'isle2', null)
     expect(isle.markers.habitats).toEqual([])
     expect(isle.markers.obstacles).toEqual(['o1'])
     expect(isle.markers.signs[0]).toMatchObject({ price: 100_000 })
+  })
+
+  describe('locked land on Home', () => {
+    const home = (s = newPlayer(0)) => buildIslandModel(s, FALLBACK_ART, C, 0, 'home', null)
+
+    it('has 3 signs, each captioned Tap to buy, drawn on top of everything', () => {
+      const m = home()
+      expect(m.markers.signs.map(s => s.plot)).toEqual([2, 7, 11])
+      const signs = m.objects.filter(o => o.id.startsWith('sign:'))
+      expect(signs).toHaveLength(3)
+      expect(signs.every(s => s.caption === 'Tap to buy')).toBe(true)
+      const lastObstacle = Math.max(...m.objects.map((o, i) => (o.id.startsWith('obstacle:') ? i : -1)))
+      expect(m.objects.findIndex(o => o.id === 'sign:2')).toBeGreaterThan(lastObstacle)
+      // After every building and dragon too: the three signs are the last objects.
+      expect(m.objects.slice(-3).map(o => o.id)).toEqual(['sign:2', 'sign:7', 'sign:11'])
+    })
+
+    it('puts the signs before the ghost', () => {
+      const m = buildIslandModel(newPlayer(0), FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 3, col: FREE.col, row: FREE.row, facing: 0 })
+      expect(m.objects.at(-1)!.id).toBe('ghost')
+      expect(m.objects.at(-2)!.id).toBe('sign:11')
+    })
+
+    it('an obstacle on a locked plot shows, and tapping it opens that plot', () => {
+      const s = newPlayer(0)
+      const locked = s.islands.obstacles.filter(o => o.island === 'home' && [2, 7, 11].includes(plotOfTile(o.col, o.row)!))
+      expect(locked.length).toBeGreaterThan(0)
+      const m = home(s)
+      for (const o of locked) {
+        const drawn = m.objects.find(x => x.id === `obstacle:${o.id}`)!
+        expect(drawn.target).toEqual({ kind: 'plot', island: 'home', plot: plotOfTile(o.col, o.row) })
+      }
+    })
+
+    it('an obstacle on owned land still opens itself', () => {
+      const s = newPlayer(0)
+      const own = s.islands.obstacles.filter(o => o.island === 'home' && [5, 6, 9, 10].includes(plotOfTile(o.col, o.row)!))
+      expect(own.length).toBeGreaterThan(0)
+      const m = home(s)
+      for (const o of own) expect(m.objects.find(x => x.id === `obstacle:${o.id}`)!.target).toEqual({ kind: 'obstacle', id: o.id })
+    })
+
+    it('an obstacle becomes a plain obstacle once its plot is bought', () => {
+      const s = newPlayer(0)
+      const o = s.islands.obstacles.find(x => x.island === 'home' && plotOfTile(x.col, x.row) === 7)!
+      const bought = withPlots(s, [5, 6, 9, 10, 7])
+      expect(home(bought).objects.find(x => x.id === `obstacle:${o.id}`)!.target).toEqual({ kind: 'obstacle', id: o.id })
+    })
+
+    it('isle2 keeps its 8 signs, uncaptioned, and its fog', () => {
+      const s = withIsland(newPlayer(0), 'isle2')
+      const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'isle2', null)
+      expect(m.markers.signs).toHaveLength(8)
+      expect(m.objects.filter(o => o.id.startsWith('sign:')).some(o => o.caption !== undefined)).toBe(false)
+      expect(lockedTiles(s, 'isle2')).toHaveLength(32 * 32 - 4 * 64)
+    })
+
+    it('the caption is part of the sprite signature', () => {
+      const [a] = home().objects.filter(o => o.id.startsWith('sign:'))
+      expect(objectSignature(a!, false)).not.toBe(objectSignature({ ...a!, caption: undefined }, false))
+    })
   })
 
   it('shows a ghost with legality and flips mirrored facings', () => {

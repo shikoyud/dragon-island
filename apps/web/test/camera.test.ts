@@ -4,7 +4,7 @@ import { FALLBACK_ART } from '../src/art/slots'
 import { buildIslandModel } from '../src/game/islandModel'
 import { withPlots } from './land'
 import {
-  cameraBounds, clampView, fitZoom, groundCell, isClick, lockedTiles, openingView, ownedLandBox, panBy, screenToWorld, SKIRT, stepZoom, zoomAt, zoomRange,
+  cameraBounds, clampView, fitZoom, groundCell, isClick, landBox, landPlots, lockedTiles, openingView, panBy, screenToWorld, SKIRT, stepZoom, zoomAt, zoomRange,
   type View,
 } from '../src/game/camera'
 import { cellCentre, tapBox, tapHit } from '../src/game/layout'
@@ -20,14 +20,24 @@ describe('island camera logic', () => {
 
   it('a ground click yields the cell, or nothing outside the island', () => {
     const s = newPlayer(0)
-    const c = cellCentre(6, 8)
-    expect(groundCell(s, c.x, c.y)).toEqual({ col: 6, row: 8 })
+    const c = cellCentre(10, 12)
+    expect(groundCell(s, 'home', c.x, c.y)).toEqual({ col: 10, row: 12 })
     const out = cellCentre(32, 0)
-    expect(groundCell(s, out.x, out.y)).toBeNull()
+    expect(groundCell(s, 'home', out.x, out.y)).toBeNull()
+    // Other islands show all 16 plots, fog included, so the corner is a cell there.
     const corner = cellCentre(31, 31)
-    expect(groundCell(s, corner.x, corner.y)).toEqual({ col: 31, row: 31 })
-    expect(groundCell(s, 0, -2)).toBeNull()
-    expect(groundCell(null, 5, 5)).toBeNull()
+    expect(groundCell(s, 'isle2', corner.x, corner.y)).toEqual({ col: 31, row: 31 })
+    expect(groundCell(s, 'home', 0, -2)).toBeNull()
+    expect(groundCell(null, 'home', 5, 5)).toBeNull()
+  })
+
+  it('no ground cell on a plot not yet offered on Home; a cell on an offered plot exists', () => {
+    const s = newPlayer(0)
+    const at = (col: number, row: number) => { const c = cellCentre(col, row); return groundCell(s, 'home', c.x, c.y) }
+    expect(at(0, 0)).toBeNull() // plot 0 is not offered
+    expect(at(31, 31)).toBeNull()
+    expect(at(16, 0)).toEqual({ col: 16, row: 0 }) // plot 2, offered
+    expect(at(8, 8)).toEqual({ col: 8, row: 8 }) // owned
   })
 
   it('maps screen pixels to world pixels through the view centre and zoom', () => {
@@ -86,11 +96,12 @@ describe('island camera logic', () => {
     expect(stepZoom(1, 1, r)).toBe(1)
   })
 
-  it('draws fog on every tile not owned, and none once it all is', () => {
+  it('locked tiles are the 3 offered plots on Home, every tile not owned elsewhere, and none once it all is', () => {
     const s = newPlayer(0)
     const tiles = lockedTiles(s, 'home')
-    expect(tiles.length).toBe(32 * 32 - 16 * 16)
-    expect(tiles).toContainEqual({ col: 0, row: 0 })
+    expect(tiles.length).toBe(3 * 64)
+    expect(tiles).toContainEqual({ col: 16, row: 0 }) // plot 2's corner
+    expect(tiles).not.toContainEqual({ col: 0, row: 0 }) // not offered: not land at all
     expect(tiles).not.toContainEqual({ col: 8, row: 8 })
     expect(lockedTiles({ ...s, islands: { ...s.islands, plots: { home: Array.from({ length: 16 }, (_, i) => i) } } }, 'home')).toEqual([])
     expect(lockedTiles(s, 'isle2').length).toBe(32 * 32)
@@ -103,31 +114,38 @@ describe('the opening view (R58)', () => {
   const PHONE = { w: 390, h: 844 }
   const DESKTOP = { w: 1440, h: 900 }
 
-  it('boxes the owned plots: the fresh island is the middle 16x16 tiles, and a plot at a corner extends it', () => {
-    // Plots 5, 6, 9, 10 are tiles 8-23: top (0, 64), right (128, 128), bottom (0, 192), left (-128, 128).
-    expect(ownedLandBox(fresh, 'home')).toEqual({ x: -128, y: 64, w: 256, h: 128 })
+  it('boxes the land shown: the owned plots and the 3 offered, and a plot at a corner extends it', () => {
+    // Fresh: owned 5, 6, 9, 10 (tiles 8-23) plus the offered 2, 7, 11 on the right: x -128..192, y 64..224.
+    expect(landBox(fresh, 'home')).toEqual({ x: -128, y: 64, w: 320, h: 160 })
     // Plot 15 is tiles 24-31 in both axes: its bottom vertex is the island's, (0, 256).
-    expect(ownedLandBox(withPlots(fresh, [5, 6, 9, 10, 15]), 'home')).toEqual({ x: -128, y: 64, w: 256, h: 192 })
+    expect(landBox(withPlots(fresh, [5, 6, 9, 10, 15]), 'home')).toEqual({ x: -128, y: 64, w: 320, h: 192 })
     // Plot 0 is tiles 0-7: its top vertex is the island's, (0, 0).
-    expect(ownedLandBox(withPlots(fresh, [5, 6, 9, 10, 0]), 'home')).toEqual({ x: -128, y: 0, w: 256, h: 192 })
-    expect(ownedLandBox(withPlots(fresh, Array.from({ length: 16 }, (_, i) => i)), 'home')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
+    expect(landBox(withPlots(fresh, [5, 6, 9, 10, 0]), 'home')).toEqual({ x: -128, y: 0, w: 320, h: 224 })
+    expect(landBox(withPlots(fresh, Array.from({ length: 16 }, (_, i) => i)), 'home')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
+  })
+
+  it('landPlots: Home is owned plus offered, every other island all 16', () => {
+    expect(landPlots(fresh, 'home').sort((a, b) => a - b)).toEqual([2, 5, 6, 7, 9, 10, 11])
+    expect(landPlots(fresh, 'isle2')).toEqual(Array.from({ length: 16 }, (_, i) => i))
+    expect(landPlots(withPlots(fresh, Array.from({ length: 16 }, (_, i) => i)), 'home')).toHaveLength(16)
   })
 
   it('an island with no owned land, or no state, boxes the whole island', () => {
-    expect(ownedLandBox(fresh, 'isle2')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
-    expect(ownedLandBox(null, 'home')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
+    expect(landBox(fresh, 'isle2')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
+    expect(landBox(null, 'home')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
   })
 
-  it('centres on the owned land at a fresh start, at whole-number zoom', () => {
-    expect(openingView(fresh, 'home', PHONE.w, PHONE.h)).toEqual({ cx: 0, cy: 128, zoom: 2 })
-    expect(openingView(fresh, 'home', DESKTOP.w, DESKTOP.h)).toEqual({ cx: 0, cy: 128, zoom: 5 })
+  it('the opening view frames owned and offered land, at whole-number zoom', () => {
+    // The fresh land box is x -128..192, y 64..224: centre (32, 144).
+    expect(openingView(fresh, 'home', PHONE.w, PHONE.h)).toEqual({ cx: 32, cy: 144, zoom: 2 })
+    expect(openingView(fresh, 'home', DESKTOP.w, DESKTOP.h)).toEqual({ cx: 32, cy: 144, zoom: 4 })
   })
 
-  it('centres on the owned land after buying an outer corner plot', () => {
-    expect(openingView(withPlots(fresh, [5, 6, 9, 10, 15]), 'home', PHONE.w, PHONE.h)).toEqual({ cx: 0, cy: 160, zoom: 2 })
-    expect(openingView(withPlots(fresh, [5, 6, 9, 10, 0]), 'home', PHONE.w, PHONE.h)).toEqual({ cx: 0, cy: 96, zoom: 2 })
-    // Plot 12 (col 0, row 24) is the island's left corner: the box grows to x -256..128, and a phone then opens at 1.
-    expect(openingView(withPlots(fresh, [5, 6, 9, 10, 12]), 'home', PHONE.w, PHONE.h)).toEqual({ cx: -64, cy: 128, zoom: 1 })
+  it('centres on the land after buying an outer corner plot', () => {
+    expect(openingView(withPlots(fresh, [5, 6, 9, 10, 15]), 'home', PHONE.w, PHONE.h)).toEqual({ cx: 32, cy: 160, zoom: 2 })
+    expect(openingView(withPlots(fresh, [5, 6, 9, 10, 0]), 'home', PHONE.w, PHONE.h)).toEqual({ cx: 32, cy: 112, zoom: 2 })
+    // Plot 12 (col 0, row 24) is the island's left corner: the box grows to x -256..192, and a phone then opens at 1.
+    expect(openingView(withPlots(fresh, [5, 6, 9, 10, 12]), 'home', PHONE.w, PHONE.h)).toEqual({ cx: -32, cy: 144, zoom: 1 })
   })
 
   it('a full island opens at 1 on a phone, and zoom never goes below 1', () => {

@@ -1,5 +1,5 @@
 import {
-  constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, isPlot, ownedPlots, plotOrigin, plotPrice, plotsBought, plotsTouch, TILES_PER_PLOT,
+  constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, offeredPlots, ownedPlots, plotOfTile, plotOrigin, plotPrice, plotsBought, TILES_PER_PLOT,
   DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
   type BreederKind, type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
@@ -35,6 +35,8 @@ export interface IslandObject {
   minTap?: number
   /** With `minTap`: the tap box is used at every zoom, never the pixel-perfect test (a plot sign). */
   boxAlways?: boolean
+  /** A white label drawn under the sprite (the 'Tap to buy' of a plot sign); a constant size on screen, like a badge. */
+  caption?: string
 }
 
 /**
@@ -42,7 +44,7 @@ export interface IslandObject {
  * it again otherwise. The badge is not in it: that is an object of its own, kept by its own label.
  */
 export function objectSignature(o: IslandObject, reducedMotion: boolean): string {
-  return JSON.stringify([o.key, o.sprite.frames, o.sprite.fps, o.x, o.y, o.target, o.scale, o.frame, o.flipX, o.tint, o.minTap, o.boxAlways, reducedMotion])
+  return JSON.stringify([o.key, o.sprite.frames, o.sprite.fps, o.x, o.y, o.target, o.scale, o.frame, o.flipX, o.tint, o.minTap, o.boxAlways, o.caption, reducedMotion])
 }
 
 export interface IslandMarkers {
@@ -256,13 +258,8 @@ export function groundTiles(art: GameArtSet, island: IslandId): { grass: string[
   return { grass, cliffSw: plain ? 'ground.cliff.sw' : null, cliffSe: plain ? 'ground.cliff.se' : null }
 }
 
-/** The unowned plots of an island that touch owned land (§5.5, R44). */
-function signPlots(s: PlayerState, island: IslandId): number[] {
-  const owned = ownedPlots(s, island)
-  const out: number[] = []
-  for (let plot = 0; isPlot(plot); plot++) if (!owned.includes(plot) && owned.some(o => plotsTouch(o, plot))) out.push(plot)
-  return out
-}
+/** What the sign on a plot for sale says on Home. */
+export const SIGN_CAPTION = 'Tap to buy'
 
 /**
  * Pure: everything the Island scene draws for a state at a moment, for one island view. No Phaser, so it is
@@ -288,15 +285,19 @@ export function buildIslandModel(
     return { ...flip(placement.facing), ...(c ? { tint: 'building' as const, badge: timerLabel(c.readyAtMs, nowMs) } : {}) }
   }
 
+  const owned = ownedPlots(state, view)
   for (const o of state.islands.obstacles) {
     if (o.island !== view) continue
     const size = OBSTACLES[o.kind].size
     const a = anchor(o.col, o.row, size)
     const c = state.constructions.find(x => x.kind === 'clear' && x.obstacleId === o.id)
+    // An obstacle on land not owned can't be cleared (U5): a tap opens the plot's buy panel instead.
+    const plot = plotOfTile(o.col, o.row)
+    const target: Target = plot !== null && !owned.includes(plot) ? { kind: 'plot', island: view, plot } : { kind: 'obstacle', id: o.id }
     add(o, size, [{
       id: `obstacle:${o.id}`, key: textureKey(`obstacle.${o.kind}`),
       sprite: art.obstacle[o.kind],
-      ...a, target: { kind: 'obstacle', id: o.id }, minTap: TAP_PX,
+      ...a, target, minTap: TAP_PX,
       ...(c ? { tint: 'building' as const, badge: timerLabel(c.readyAtMs, nowMs) } : {}),
     }])
     markers.obstacles.push(o.id)
@@ -403,17 +404,6 @@ export function buildIslandModel(
     markers.farms.push({ plot: i, crop: plot.crop })
   })
 
-  const price = plotPrice(view, plotsBought(state, view))
-  for (const plot of signPlots(state, view)) {
-    const o = plotOrigin(plot)
-    // The sign stands on the plot's centre: depth-sorted as a 2x2 around it.
-    const mid = TILES_PER_PLOT / 2
-    add({ col: o.col + mid - 1, row: o.row + mid - 1 }, 2, [{
-      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot }, minTap: TAP_PX, boxAlways: true,
-    }])
-    markers.signs.push({ plot, price })
-  }
-
   // Stable sort: back to front in isometric depth, ties keep insertion order.
   // A building under construction gets the construction effect on its footprint's centre, drawn just after it.
   for (const g of groups.sort(depthOrder)) {
@@ -423,6 +413,19 @@ export function buildIslandModel(
         objects.push({ id: `fx:${o.id}`, key: textureKey('fx.construction'), sprite: art.fx.construction, x: o.x, y: o.y - g.size * 4, target: o.target })
       }
     }
+  }
+
+  // Signs go on top of everything (a plot's own obstacles, a building next to it), just under the ghost. Each stands on its
+  // plot's centre. On Home a sign says what it is; the other islands keep the plain sign.
+  const price = plotPrice(view, plotsBought(state, view))
+  for (const plot of offeredPlots(state, view)) {
+    const o = plotOrigin(plot)
+    const mid = TILES_PER_PLOT / 2
+    objects.push({
+      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot }, minTap: TAP_PX, boxAlways: true,
+      ...(view === 'home' ? { caption: SIGN_CAPTION } : {}),
+    })
+    markers.signs.push({ plot, price })
   }
 
   if (placing) {

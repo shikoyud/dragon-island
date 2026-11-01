@@ -34,8 +34,8 @@ test.beforeEach(async ({ page, request }) => {
 })
 
 test('a click on a cell centre is that cell, and on a building selects it', async ({ page }) => {
-  // Free cells of the starting island, clear of its obstacles (R50), then one in the fog, away from any plot sign (a sign's box takes the tap): a ghost may go there, red (R58).
-  for (const [col, row] of [[14, 13], [22, 13], [18, 13], [15, 14], [3, 3]] as const) {
+  // Free cells of the starting island, clear of its obstacles (U6), then one on a plot for sale (plot 2), clear of its sign and obstacles (a sign's box takes the tap): a ghost may go there, red (R58). (3, 3) is on a plot not offered, so it is no cell any more.
+  for (const [col, row] of [[14, 13], [22, 13], [18, 13], [15, 14], [22, 6]] as const) {
     const p = await cellPoint(page, col, row)
     await page.evaluate(() => { window.__seen!.length = 0 })
     await page.mouse.click(p.x, p.y)
@@ -46,7 +46,18 @@ test('a click on a cell centre is that cell, and on a building selects it', asyn
   await expect.poll(() => page.evaluate(() => window.__seen!)).toContainEqual({ type: 'select', target: { kind: 'habitat', id: 'h1' } })
 })
 
-test('a real click on the starting Farm opens the Farm, not a Bush whose tap box covers it (390x844)', async ({ page }) => {
+test('a real click on the starting Farm opens the Farm, not a Bush whose tap box covers it (390x844)', async ({ page, request }) => {
+  // The start no longer keeps Bushes in front of the Farm (U6): lay two there, on the row just below it, so their 44 px boxes cover its middle.
+  const start = startingState() as { islands: { obstacles: unknown[] } }
+  const bushes = [{ id: 'e2e1', kind: 'bush', island: 'home', col: 22, row: 11 }, { id: 'e2e2', kind: 'bush', island: 'home', col: 23, row: 11 }]
+  await resetPlayer(request, { gold: 50_000, level: 6, islands: { ...start.islands, obstacles: [...start.islands.obstacles, ...bushes] } })
+  await page.reload()
+  await page.waitForFunction(() => Boolean(window.__bridge?.cellToScreen && (window.__bridge as unknown as { state: unknown }).state))
+  await dismissLevelUp(page)
+  await page.evaluate(() => {
+    window.__seen = []
+    for (const t of ['cell', 'select']) window.__bridge!.on(t, e => window.__seen!.push(e))
+  })
   await page.setViewportSize({ width: 390, height: 844 })
   await page.waitForTimeout(400)
   const farm = { type: 'select', target: { kind: 'farm', plot: 0 } }
