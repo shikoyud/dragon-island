@@ -246,7 +246,7 @@ function StoreTab({ s, nowMs, onPlace, room }: { s: PlayerState; nowMs: number; 
           <ActionButton id="buy-golden-aerie" disabled={aerieFull} reason={aerieFull ? NO_ROOM : 'Not available right now'} onClick={() => onPlace({ kind: 'goldenAerie' }, FOOTPRINT.habitat)}>
             Golden Aerie · {formatMicroUsd(aeriePrice)}
           </ActionButton>
-          <small style={{ display: 'block', color: 'var(--text-muted)' }}>A level 5 habitat for any element. You pick the spot, then confirm. One per player.</small>
+          <small style={{ display: 'block', color: 'var(--text-muted)' }}>A level 5 habitat for any element. You pick the spot, then press OK. One per player.</small>
         </li>
       ))}
     </>

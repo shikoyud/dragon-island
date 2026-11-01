@@ -6,7 +6,7 @@ import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
 import { lockedTiles } from '../src/game/camera'
 import { badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, groundVariant, objectSignature, timerLabel } from '../src/game/islandModel'
-import { NEST_EGG_SCALE } from '../src/game/layout'
+import { anchor, dragonSpot, footprintContains, NEST_EGG_SCALE } from '../src/game/layout'
 import { nearestLegalCell } from '../src/state/placing'
 import { FREE, FREE_2, withIsland, withPlots } from './land'
 
@@ -269,8 +269,7 @@ describe('island model', () => {
 
     it('puts the signs before the ghost', () => {
       const m = buildIslandModel(newPlayer(0), FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 3, col: FREE.col, row: FREE.row, facing: 0 })
-      expect(m.objects.at(-1)!.id).toBe('ghost')
-      expect(m.objects.at(-2)!.id).toBe('sign:11')
+      expect(m.objects.slice(-3).map(o => o.id)).toEqual(['sign:11', 'ghost', 'arrow'])
     })
 
     it('an obstacle on a locked plot shows, and tapping it opens that plot', () => {
@@ -318,9 +317,89 @@ describe('island model', () => {
     const bad = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 3, col: 0, row: 0, facing: 0 })
     expect(bad.markers.ghost).toEqual({ legal: false, col: 0, row: 0, size: 3 })
     const good = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 3, col: FREE.col, row: FREE.row, facing: 1 })
-    expect(good.objects.find(o => o.id === 'ghost')).toMatchObject({ tint: 'ok', flipX: true })
+    expect(good.objects.find(o => o.id === 'ghost')).toMatchObject({ flipX: true })
     expect(good.markers.ghost).toEqual({ legal: true, col: FREE.col, row: FREE.row, size: 3 })
-    expect(good.objects.at(-1)!.id).toBe('ghost')
+    expect(good.objects.at(-2)!.id).toBe('ghost')
+  })
+
+  describe('while placing', () => {
+    const h1Move = { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 4, col: 14, row: 13, facing: 0 } as const
+    const resident = { id: 'd1', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h1' }
+    const withResident = { ...newPlayer(0), dragons: [resident, { ...resident, id: 'd2' }] }
+
+    it('the model hides the moved building and carries its residents on the ghost', () => {
+      const m = buildIslandModel(withResident, FALLBACK_ART, C, 0, 'home', h1Move)
+      expect(m.objects.some(o => o.id === 'habitat:h1')).toBe(false)
+      const a = anchor(14, 13, 4)
+      expect(m.objects.find(o => o.id === 'ghost')).toMatchObject(a)
+      expect(m.objects.find(o => o.id === 'dragon:d1')).toMatchObject(dragonSpot(a, 0))
+      expect(m.objects.find(o => o.id === 'dragon:d1')!.y).toBeLessThan(a.y)
+      expect(m.objects.find(o => o.id === 'dragon:d2')).toMatchObject(dragonSpot(a, 1))
+    })
+
+    it('the ghost, its residents and the arrow go last, in that order', () => {
+      const ids = buildIslandModel(withResident, FALLBACK_ART, C, 0, 'home', h1Move).objects.map(o => o.id)
+      expect(ids.slice(-4)).toEqual(['ghost', 'dragon:d2', 'dragon:d1', 'arrow'])
+    })
+
+    it('leaves other buildings and their residents alone', () => {
+      const m = buildIslandModel(withResident, FALLBACK_ART, C, 0, 'home', { ...h1Move, what: { kind: 'move', target: { type: 'farm', index: 0 } }, size: 3 })
+      expect(m.objects.some(o => o.id === 'habitat:h1')).toBe(true)
+      expect(m.objects.some(o => o.id === 'farm:0')).toBe(false)
+      expect(m.objects.find(o => o.id === 'dragon:d1')).toMatchObject(dragonSpot(anchor(13, 8, 4), 0))
+    })
+
+    it('a new building hides nothing', () => {
+      const m = buildIslandModel(withResident, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 3, col: FREE.col, row: FREE.row, facing: 0 })
+      expect(m.objects.some(o => o.id === 'habitat:h1')).toBe(true)
+      expect(m.objects.some(o => o.id === 'farm:0')).toBe(true)
+    })
+
+    it('moved to another island, the residents travel on the ghost there and the habitat is not drawn', () => {
+      const m = buildIslandModel(withResident, FALLBACK_ART, C, 0, 'isle2', { ...h1Move, col: 13, row: 8 })
+      expect(m.objects.some(o => o.id === 'habitat:h1')).toBe(false)
+      expect(m.objects.find(o => o.id === 'dragon:d1')).toMatchObject(dragonSpot(anchor(13, 8, 4), 0))
+    })
+
+    it('a moved Hatchery carries its eggs', () => {
+      const egg = { speciesId: 'flame', readyAtMs: 1000 }
+      const hatch = buildIslandModel({ ...newPlayer(0), hatchery: [egg] } as never, FALLBACK_ART, C, 0, 'home', { what: { kind: 'move', target: { type: 'hatchery' } }, size: 4, col: 14, row: 13, facing: 0 })
+      expect(hatch.objects.some(o => o.id === 'hatchery')).toBe(false)
+      expect(hatch.objects.find(o => o.id === 'hatchery:0')!.y).toBeLessThan(anchor(14, 13, 4).y)
+      expect(hatch.objects.find(o => o.id === 'hatchery:0')!.y).toBeGreaterThan(anchor(14, 13, 4).y - 32)
+    })
+
+    it('a legal ghost has no tint, an illegal one is red; the footprint marker says which', () => {
+      const s = newPlayer(0)
+      const good = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 3, col: FREE.col, row: FREE.row, facing: 0 })
+      expect(good.objects.find(o => o.id === 'ghost')!.tint).toBeUndefined()
+      expect(good.markers.ghost!.legal).toBe(true)
+      const bad = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 3, col: 0, row: 0, facing: 0 })
+      expect(bad.objects.find(o => o.id === 'ghost')!.tint).toBe('bad')
+      expect(bad.markers.ghost!.legal).toBe(false)
+    })
+
+    it('the arrow stands over the ghost, and only while placing', () => {
+      const m = buildIslandModel(withResident, FALLBACK_ART, C, 0, 'home', h1Move)
+      const ghost = m.objects.find(o => o.id === 'ghost')!
+      const arrow = m.objects.find(o => o.id === 'arrow')!
+      expect(arrow.x).toBe(ghost.x)
+      expect(arrow.y).toBe(badgeY(ghost))
+      expect(arrow.key).toBe(textureKey('ui.island.arrow'))
+      expect(buildIslandModel(withResident, FALLBACK_ART, C, 0, 'home', null).objects.some(o => o.id === 'arrow')).toBe(false)
+    })
+
+    it('the arrow has a drawn fallback at its art size, and takes the manifest art when that lands', () => {
+      expect(artEntries(FALLBACK_ART).find(r => r.key === textureKey('ui.island.arrow'))).toMatchObject({ slot: 'arrow', sprite: { src: '', w: 32, h: 40 } })
+      const art = artSetFromManifest('t', { assets: { 'ui.island.arrow': { file: 'a.png', w: 32, h: 40, frames: 1, fps: 0 } } }, C)
+      expect(artEntries(art).find(r => r.key === textureKey('ui.island.arrow'))!.sprite.src).toContain('a.png')
+    })
+  })
+
+  it('footprintContains: the cells of the footprint, from its top-left, and no others', () => {
+    const p = { col: 13, row: 8, size: 4 }
+    for (const c of [{ col: 13, row: 8 }, { col: 16, row: 11 }, { col: 13, row: 11 }, { col: 16, row: 8 }]) expect(footprintContains(c, p)).toBe(true)
+    for (const c of [{ col: 12, row: 8 }, { col: 17, row: 8 }, { col: 13, row: 7 }, { col: 13, row: 12 }]) expect(footprintContains(c, p)).toBe(false)
   })
 
   it('falls back from a hybrid with no art to its primary Basic, and by stage (R23)', () => {

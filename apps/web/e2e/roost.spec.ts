@@ -23,7 +23,7 @@ test('builds the Roost, skips the build, reads its tier, then Ascends through th
   await page.locator('#shop-roost').click()
   await bridge(page, b => b.emit({ type: 'cell', col: 20, row: 16 }))
   const placement = page.getByRole('toolbar', { name: /placement/i })
-  await placement.getByRole('button', { name: /confirm/i }).click()
+  await placement.getByRole('button', { name: 'OK' }).click()
   await expect(placement).toBeHidden()
   await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
   expect(await bridge(page, b => b.state!.roostTier)).toBe(0)

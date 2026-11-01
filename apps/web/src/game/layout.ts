@@ -60,6 +60,11 @@ export function islandBox(w: number, h: number): Box {
   return { x: -h * HW, y: 0, w: (w + h) * HW, h: (w + h) * HH }
 }
 
+/** True when a cell is one of a footprint's, whose top-left cell is (col, row). */
+export function footprintContains(cell: { col: number; row: number }, placing: { col: number; row: number; size: number }): boolean {
+  return cell.col >= placing.col && cell.col < placing.col + placing.size && cell.row >= placing.row && cell.row < placing.row + placing.size
+}
+
 /** Back-to-front order of footprints: by col + row + size, then col. */
 export function depthOrder(p: { col: number; row: number; size: number }, q: { col: number; row: number; size: number }): number {
   return p.col + p.row + p.size - (q.col + q.row + q.size) || p.col - q.col

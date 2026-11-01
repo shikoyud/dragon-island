@@ -21,13 +21,13 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows Emb
   await expect(page.getByRole('status', { name: /resources/i })).toContainText('50,000')
   await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: { state: unknown } }).__bridge?.state))
 
-  // Shop (Build tab) -> Farm plot -> ghost on the free cell (20,16) -> Confirm.
+  // Shop (Build tab) -> Farm plot -> ghost on the free cell (20,16) -> OK.
   await openPanel(page, 'Shop')
   await page.locator('#shop-farm').click()
   await bridge(page, b => b.emit({ type: 'cell', col: 20, row: 16 }))
   const placement = page.getByRole('toolbar', { name: /placement/i })
-  await expect(placement.getByRole('button', { name: /confirm/i })).toBeEnabled()
-  await placement.getByRole('button', { name: /confirm/i }).click()
+  await expect(placement.getByRole('button', { name: 'OK' })).toBeEnabled()
+  await placement.getByRole('button', { name: 'OK' }).click()
   await expect(placement).toBeHidden()
 
   // The construction badge: the scene draws it from the state's construction; the plot's panel shows the same timer.
@@ -51,8 +51,8 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows Emb
   // Move h1 to open land: (8,8) -> (13,12). Its neighbours box it in where it stands.
   await habitat.getByRole('button', { name: /^move$/i }).click()
   await bridge(page, b => b.emit({ type: 'cell', col: 13, row: 12 }))
-  await expect(placement.getByRole('button', { name: /confirm/i })).toBeEnabled()
-  await placement.getByRole('button', { name: /confirm/i }).click()
+  await expect(placement.getByRole('button', { name: 'OK' })).toBeEnabled()
+  await placement.getByRole('button', { name: 'OK' }).click()
   await expect(placement).toBeHidden()
   await expect.poll(() => bridge(page, b => b.state!.habitats.find(h => h.id === 'h1')!.placement.row)).toBe(12)
 

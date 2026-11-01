@@ -44,7 +44,7 @@ export interface GameArtSet {
   }
   elementIcon: Record<Element, Sprite>
   ui: { panel: Sprite; button: Sprite; cursor: Sprite }
-  island: { base: Sprite; layers: Sprite[]; /** One locked ground cell. */ locked: Sprite; /** The sign on a plot for sale. */ sign: Sprite }
+  island: { base: Sprite; layers: Sprite[]; /** One locked ground cell. */ locked: Sprite; /** The sign on a plot for sale. */ sign: Sprite; /** `ui.island.arrow`: points at a building being placed. */ arrow: Sprite }
   /** Base-building art; missing files draw footprint-sized boxes (16 px per cell). */
   obstacle: Record<ObstacleKind, Sprite>
   decoration: Record<DecorationId, Sprite>
@@ -105,6 +105,7 @@ export const SLOT_SIZES = {
   island: { w: 480, h: 270 },
   locked: { w: 16, h: 16 },
   sign: { w: 48, h: 48 },
+  arrow: { w: 32, h: 40 },
   map: { w: 32, h: 32 },
   fxConstruction: { w: 32, h: 32 },
   fxHatch: { w: 48, h: 48 },

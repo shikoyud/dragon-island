@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { offeredPlots, ownedPlots, plotOfTile, plotOrigin, TILES_PER_PLOT, type PlayerState } from '@wyrmhaven/game-core'
 import { dismissLevelUp, resetPlayer, signIn, startingState } from './helpers'
 
 /**
@@ -113,21 +114,178 @@ test('wheel zoom stays anchored on the pointer and a drag pans without a jump', 
 /** A dragon stands on its habitat, so a canvas click lands on the dragon; select the habitat the way the scene would. */
 const selectH1 = (page: Page) => page.evaluate(() => window.__bridge!.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
 
-test('a real drag moves a habitat across a plot border, and Confirm keeps it free', async ({ page }) => {
-  // h1 stands at (13, 8). Click it, press Move, then sweep the pointer to a spot whose footprint spans the border at col 16 and row 16.
-  const from = await cellPoint(page, 14, 9)
+/** Press Move on h1, which stands at (13, 8). */
+async function moveH1(page: Page) {
   await selectH1(page)
   await page.getByRole('button', { name: /^move$/i }).click()
   await expect.poll(() => page.evaluate(() => window.__bridge!.placing)).toMatchObject({ col: 13, row: 8 })
-  const to = await cellPoint(page, 15, 14) // the pointer holds the footprint's centre: top-left lands on (14, 13)
-  await page.mouse.move(from.x, from.y)
-  await page.mouse.move(to.x, to.y, { steps: 12 })
-  await expect.poll(() => page.evaluate(() => window.__bridge!.placing)).toMatchObject({ col: 14, row: 13 })
-  const bar = page.getByRole('toolbar', { name: /placement/i })
-  await expect(bar.getByRole('button', { name: 'Confirm' })).toBeEnabled()
-  await bar.getByRole('button', { name: 'Confirm' }).click()
+  return page.getByRole('toolbar', { name: /placement/i })
+}
+const placing = (page: Page) => page.evaluate(() => { const p = window.__bridge!.placing!; return { col: p.col, row: p.row } })
+const h1Placement = (page: Page) => page.evaluate(() => window.__bridge!.state!.habitats.find(h => h.id === 'h1')!.placement)
+
+test('Move: hover does nothing, a tap moves it, and OK is reachable', async ({ page }) => {
+  const bar = await moveH1(page)
+  // Sweep the mouse over the island with no button: the building stays put.
+  for (const [col, row] of [[14, 13], [18, 13], [22, 13], [15, 14]] as const) {
+    const p = await cellPoint(page, col, row)
+    await page.mouse.move(p.x, p.y, { steps: 6 })
+  }
+  await page.waitForTimeout(100)
+  expect(await placing(page)).toEqual({ col: 13, row: 8 })
+  // On to OK, across whatever lies between: still there, and the click lands. A move to where it stands is a free no-op action.
+  const ok = bar.getByRole('button', { name: 'OK' })
+  const box = (await ok.boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 12 })
+  expect(await placing(page)).toEqual({ col: 13, row: 8 })
+  const sent = page.waitForRequest(r => r.url().includes('/actions') && r.method() === 'POST')
+  await page.mouse.down()
+  await page.mouse.up()
+  await sent
   await expect(bar).toBeHidden()
-  await expect.poll(() => page.evaluate(() => window.__bridge!.state!.habitats.find(h => h.id === 'h1')!.placement)).toMatchObject({ island: 'home', col: 14, row: 13 })
+  expect(await h1Placement(page)).toMatchObject({ island: 'home', col: 13, row: 8 })
+})
+
+test('Move: a tap on land carries the footprint there, across a plot border, and leaves the camera alone', async ({ page }) => {
+  const bar = await moveH1(page)
+  const to = await cellPoint(page, 15, 14) // the pointer holds the footprint's centre: top-left lands on (14, 13)
+  await page.mouse.click(to.x, to.y)
+  await expect.poll(() => placing(page)).toEqual({ col: 14, row: 13 })
+  await page.waitForTimeout(100)
+  const after = await cellPoint(page, 15, 14)
+  expect(Math.hypot(after.x - to.x, after.y - to.y)).toBeLessThan(1)
+  await bar.getByRole('button', { name: 'OK' }).click()
+  await expect(bar).toBeHidden()
+  await expect.poll(() => h1Placement(page)).toMatchObject({ island: 'home', col: 14, row: 13 })
+})
+
+test('Move: a drag from the footprint carries it; a drag elsewhere pans', async ({ page }) => {
+  await moveH1(page)
+  // Grabbed one cell in from the top-left, that cell stays under the pointer.
+  const from = await cellPoint(page, 14, 9)
+  const to = await cellPoint(page, 15, 14)
+  const anchorCell = await cellPoint(page, 20, 20)
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  await page.mouse.move(to.x, to.y, { steps: 10 })
+  await page.mouse.up()
+  await expect.poll(() => placing(page)).toEqual({ col: 14, row: 13 })
+  const still = await cellPoint(page, 20, 20)
+  expect(Math.hypot(still.x - anchorCell.x, still.y - anchorCell.y)).toBeLessThan(1)
+  // Well away from the footprint, now at (14, 13): a pan, and the ghost keeps its cell.
+  const off = await cellPoint(page, 21, 14)
+  await page.mouse.move(off.x, off.y)
+  await page.mouse.down()
+  await page.mouse.move(off.x + 30, off.y + 15, { steps: 6 })
+  await page.mouse.up()
+  const panned = await cellPoint(page, 21, 14)
+  expect(Math.abs(panned.x - off.x - 30)).toBeLessThanOrEqual(2)
+  expect(await placing(page)).toEqual({ col: 14, row: 13 })
+})
+
+test('Move: a tap on a sign or an obstacle while placing is a cell, not a dialog', async ({ page }) => {
+  const selects = () => page.evaluate(() => window.__seen!.filter(e => (e as { type: string }).type === 'select'))
+  const state = await page.evaluate(() => window.__bridge!.state as unknown) as PlayerState
+  const land = [...ownedPlots(state, 'home'), ...offeredPlots(state, 'home')]
+  const obstacle = state.islands.obstacles.find(o => o.island === 'home' && land.includes(plotOfTile(o.col, o.row)!))!
+  const plot = plotOrigin(offeredPlots(state, 'home')[0]!)
+  const onSign = async () => {
+    const p = await cellPoint(page, plot.col + TILES_PER_PLOT / 2, plot.row + TILES_PER_PLOT / 2)
+    return { x: p.x, y: p.y - 6 } // inside the sign's box, which stands on that point
+  }
+  // First, with nothing being placed, each of those taps opens something: so the tap below really lands on it.
+  for (const at of [await onSign(), await cellPoint(page, obstacle.col, obstacle.row)]) {
+    await page.evaluate(() => { window.__seen!.length = 0 })
+    await page.mouse.click(at.x, at.y)
+    await expect.poll(selects).toHaveLength(1)
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+  }
+  await moveH1(page)
+  await page.evaluate(() => { window.__seen!.length = 0 })
+  const sign = await onSign()
+  await page.mouse.click(sign.x, sign.y)
+  await expect.poll(() => placing(page)).not.toEqual({ col: 13, row: 8 })
+  const on = await cellPoint(page, obstacle.col, obstacle.row)
+  await page.mouse.click(on.x, on.y)
+  await expect.poll(() => placing(page)).toEqual({ col: obstacle.col - 1, row: obstacle.row - 1 })
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(await selects()).toEqual([])
+})
+
+test('Move: a drag that leaves the land keeps the last good cell, and the next tap still works', async ({ page }) => {
+  const bar = await moveH1(page)
+  const from = await cellPoint(page, 14, 9)
+  const good = await cellPoint(page, 15, 14)
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  await page.mouse.move(good.x, good.y, { steps: 6 })
+  await expect.poll(() => placing(page)).toEqual({ col: 14, row: 13 })
+  // Off the land into the sky at one jump (a slow sweep would cross other land), then over the bar, and let go there.
+  await page.mouse.move(4, 360)
+  await page.waitForTimeout(50)
+  expect(await placing(page)).toEqual({ col: 14, row: 13 })
+  const barBox = (await bar.boundingBox())!
+  await page.mouse.move(barBox.x + barBox.width / 2, barBox.y + barBox.height / 2, { steps: 4 })
+  await page.mouse.up()
+  expect(await placing(page)).toEqual({ col: 14, row: 13 })
+  // Nothing is held: a sweep does nothing, and a tap moves it.
+  const tap = await cellPoint(page, 21, 14)
+  await page.mouse.move(tap.x, tap.y, { steps: 4 })
+  expect(await placing(page)).toEqual({ col: 14, row: 13 })
+  await page.mouse.click(tap.x, tap.y)
+  await expect.poll(() => placing(page)).toEqual({ col: 20, row: 13 })
+  // That spot was sky: a tap there is nothing.
+  await page.mouse.click(4, 360)
+  await page.waitForTimeout(50)
+  expect(await placing(page)).toEqual({ col: 20, row: 13 })
+})
+
+test('Move: the wheel zooms and leaves the ghost on its cell, also mid-drag', async ({ page }) => {
+  await moveH1(page)
+  const from = await cellPoint(page, 14, 9)
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.wheel(0, -100)
+  await page.waitForTimeout(100)
+  expect(await placing(page)).toEqual({ col: 13, row: 8 })
+  const grab = await cellPoint(page, 14, 9)
+  await page.mouse.move(grab.x, grab.y)
+  await page.mouse.down()
+  await page.mouse.wheel(0, 100)
+  await page.waitForTimeout(100)
+  expect(await placing(page)).toEqual({ col: 13, row: 8 })
+  await page.mouse.up()
+})
+
+test('Move: Cancel leaves the building where it was', async ({ page }) => {
+  const bar = await moveH1(page)
+  const to = await cellPoint(page, 15, 14)
+  await page.mouse.click(to.x, to.y)
+  await expect.poll(() => placing(page)).toEqual({ col: 14, row: 13 })
+  await bar.getByRole('button', { name: 'Cancel' }).click()
+  await expect(bar).toBeHidden()
+  expect(await page.evaluate(() => window.__bridge!.placing)).toBeNull()
+  expect(await h1Placement(page)).toMatchObject({ island: 'home', col: 13, row: 8 })
+})
+
+test('Move: Cancel and OK are round buttons at the bottom centre with the ghost clear of them', async ({ page }) => {
+  for (const size of [{ width: 1920, height: 1080, plate: 64 }, { width: 844, height: 390, plate: 56 }]) {
+    await page.setViewportSize({ width: size.width, height: size.height })
+    await page.waitForTimeout(300)
+    if (!(await page.evaluate(() => window.__bridge!.placing))) await moveH1(page)
+    const bar = page.getByRole('toolbar', { name: /placement/i })
+    const cancel = (await bar.getByRole('button', { name: 'Cancel' }).boundingBox())!
+    const ok = (await bar.getByRole('button', { name: 'OK' }).boundingBox())!
+    expect(cancel.y + cancel.height).toBeLessThanOrEqual(size.height)
+    expect(ok.y + ok.height).toBeLessThanOrEqual(size.height)
+    expect(cancel.x + cancel.width).toBeLessThanOrEqual(ok.x)
+    expect(Math.abs((cancel.x + ok.x + ok.width) / 2 - size.width / 2)).toBeLessThanOrEqual(2)
+    expect(await bar.locator('.placement-go__plate').first().evaluate(el => el.getBoundingClientRect().width)).toBe(size.plate)
+    // The ghost's footprint stands above the bar.
+    const barTop = (await bar.boundingBox())!.y
+    const p = await cellPoint(page, 13 + 4, 8 + 4)
+    expect(p.y).toBeLessThan(barTop)
+  }
 })
 
 test('Move to Ember Reach switches the view, and Cancel brings it back', async ({ page, request }) => {
@@ -143,12 +301,12 @@ test('Move to Ember Reach switches the view, and Cancel brings it back', async (
   await expect.poll(() => page.evaluate(() => window.__bridge!.view)).toBe('isle2')
   await bar.getByRole('button', { name: 'Cancel' }).click()
   await expect.poll(() => page.evaluate(() => window.__bridge!.view)).toBe('home')
-  // Again, and this time Confirm: the habitat lands on Ember Reach with the view following it.
+  // Again, and this time OK: the habitat lands on Ember Reach with the view following it.
   await selectH1(page)
   await page.getByRole('button', { name: /^move$/i }).click()
   await bar.getByRole('button', { name: 'Move to Ember Reach' }).click()
-  await expect(bar.getByRole('button', { name: 'Confirm' })).toBeEnabled()
-  await bar.getByRole('button', { name: 'Confirm' }).click()
+  await expect(bar.getByRole('button', { name: 'OK' })).toBeEnabled()
+  await bar.getByRole('button', { name: 'OK' }).click()
   await expect(bar).toBeHidden()
   await expect.poll(() => page.evaluate(() => window.__bridge!.state!.habitats.find(h => h.id === 'h1')!.placement.island)).toBe('isle2')
   expect(await page.evaluate(() => window.__bridge!.view)).toBe('isle2')

@@ -3,14 +3,14 @@ import Phaser from 'phaser'
 import { isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet, Sprite } from '../../art/types'
-import type { Bridge, Target } from '../bridge'
+import type { Bridge, Placing, Target } from '../bridge'
 import {
   cameraBounds, clampView, groundCell, landPlots, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
 } from '../camera'
 import { paintLandmass, type BakeArt, type BakeImage } from '../islandBake'
 import { badgeY, buildIslandModel, groundTiles, groundVariant, objectSignature, type IslandMarkers, type IslandObject } from '../islandModel'
 import { driftCloud, landmass, nearestPlot } from '../islandShape'
-import { anchor, cellCentre, cellTop, footprintDiamond, islandBox, pointerToCell, tapHit, type Box, type Pos } from '../layout'
+import { anchor, cellCentre, cellTop, footprintContains, footprintDiamond, islandBox, pointerToCell, tapHit, type Box, type Pos } from '../layout'
 import { createPanZoom, heldPointers } from '../panZoom'
 import { pickTarget, type Hit } from '../pickTarget'
 
@@ -36,6 +36,8 @@ const BAKE_KEY = 'island:home-bake'
 const SKY_FALLBACK = '#8fd0ee'
 /** A waterfall starts this far above the lip, so its foam covers the strip of grass between the river and the edge. */
 const FALL_LIP = 6
+/** How far the placement arrow bobs, in world px, and how long one way takes. */
+const ARROW_BOB = { y: 3, ms: 450 } as const
 /** Where the clouds start, as shares of the camera bounds. */
 const CLOUD_AT = [{ x: 0.08, y: 0.16 }, { x: 0.62, y: 0.06 }, { x: 0.88, y: 0.62 }] as const
 /** World box of the baked landmass on islands other than Home: the island's diamond and the cliff skirt under it. */
@@ -79,9 +81,14 @@ export class IslandScene extends Phaser.Scene {
     apply: v => this.apply(v),
     range: () => this.range(),
     size: () => ({ w: this.scale.width, h: this.scale.height }),
+    grab: p => this.grabGhost(p),
+    onGrabMove: p => this.carryGhost(p),
   })
   private levelUpOnWake = false
-  private lastCell = ''
+  /** The cell of the ghost's footprint under the press that holds it, counted from its top-left. */
+  private held = { col: 0, row: 0 }
+  /** What is being placed, as last seen: a change means placing started. */
+  private placed: Placing['what'] | null = null
   private hoverKey = ''
   private groundKey = ''
   private view: View | null = null
@@ -105,12 +112,15 @@ export class IslandScene extends Phaser.Scene {
     // recreates the game, and a destroyed scene drawing on a state event crashes Phaser.
     const offs = [
       this.bridge.on('state', () => this.sync()),
-      this.bridge.on('view', () => this.sync()),
-      this.bridge.on('insets', () => { this.framed = ''; this.sync() }),
+      this.bridge.on('view', () => { this.sync(); this.revealGhost() }),
+      // The bar is another height from the menu it replaces, and this frames the view again: the ghost must stay in sight.
+      this.bridge.on('insets', () => { this.framed = ''; this.sync(); this.revealGhost() }),
       this.bridge.on('placing', e => {
-        this.lastCell = ''
         this.sync()
-        if (e.placing && !this.sys.isSleeping()) this.reveal(anchor(e.placing.col, e.placing.row, e.placing.size))
+        const started = e.placing !== null && e.placing.what !== this.placed
+        this.placed = e.placing?.what ?? null
+        // Only at the start: following every cell would scroll the view out from under a tap.
+        if (started) this.revealGhost()
       }),
       this.bridge.on('levelUp', () => {
         if (!this.alive()) return
@@ -159,6 +169,8 @@ export class IslandScene extends Phaser.Scene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p))
     this.input.on('pointermove', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => this.onMove(p, over))
     this.input.on('pointerup', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => this.onUp(p, over))
+    // Let go over the HUD or off the page: the press is over, and nothing is left holding the ghost.
+    this.input.on('pointerupoutside', () => this.gestures.reset())
     this.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => this.gestures.wheel(p, dy))
     this.time.addEvent({ delay: 1000, loop: true, callback: () => this.sync() })
     this.sync()
@@ -285,6 +297,12 @@ export class IslandScene extends Phaser.Scene {
     if (dx || dy) this.apply(panBy(this.view, dx, dy))
   }
 
+  /** Brings the placement ghost into sight, if there is one and the scene is showing. */
+  private revealGhost(): void {
+    const p = this.bridge.placing
+    if (p && this.alive() && !this.sys.isSleeping()) this.reveal(anchor(p.col, p.row, p.size))
+  }
+
   private toWorld(p: { x: number; y: number }): { x: number; y: number } {
     return this.view ? screenToWorld(this.view, this.scale.width, this.scale.height, p.x, p.y) : p
   }
@@ -312,23 +330,38 @@ export class IslandScene extends Phaser.Scene {
         this.input.setDefaultCursor(hover ? 'pointer' : '')
       }
     }
-    // The placement reducer tracks the cursor, so hover moves matter only while placing (and not for touches).
-    if (!this.bridge.placing || p.wasTouch) return
-    this.emitCell(p, false)
   }
 
-  /** Emits the cell under a screen point; while placing, the pointer holds the footprint's centre. */
-  private emitCell(p: { x: number; y: number }, always: boolean): boolean {
+  /** Emits the cell under a screen point (a tap); while placing, the tap holds the footprint's centre. Off the land, nothing. */
+  private emitCell(p: { x: number; y: number }): void {
     const w = this.toWorld(p)
     const c = groundCell(this.bridge.state, this.bridge.view, w.x, w.y)
-    if (!c) return false
+    if (!c) return
     const off = this.bridge.placing ? Math.floor((this.bridge.placing.size - 1) / 2) : 0
-    const cell = { col: c.col - off, row: c.row - off }
-    const key = `${cell.col},${cell.row}`
-    if (!always && key === this.lastCell) return true
-    this.lastCell = key
-    this.bridge.emit({ type: 'cell', col: cell.col, row: cell.row })
+    this.bridge.emit({ type: 'cell', col: c.col - off, row: c.row - off })
+  }
+
+  /** While placing, a press on the ghost's footprint takes hold of it, by the cell pressed. */
+  private grabGhost(p: { x: number; y: number }): boolean {
+    const placing = this.bridge.placing
+    if (!placing) return false
+    const w = this.toWorld(p)
+    const c = pointerToCell(w.x, w.y)
+    if (!footprintContains(c, placing)) return false
+    this.held = { col: c.col - placing.col, row: c.row - placing.row }
     return true
+  }
+
+  /** Carries the held ghost, its held cell under the pointer. Off the land it waits at the last good cell. */
+  private carryGhost(p: { x: number; y: number }): void {
+    const placing = this.bridge.placing
+    if (!placing) return
+    const w = this.toWorld(p)
+    const c = groundCell(this.bridge.state, this.bridge.view, w.x, w.y)
+    if (!c) return
+    const col = c.col - this.held.col
+    const row = c.row - this.held.row
+    if (col !== placing.col || row !== placing.row) this.bridge.emit({ type: 'cell', col, row })
   }
 
   private onUp(p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]): void {
@@ -339,7 +372,7 @@ export class IslandScene extends Phaser.Scene {
     // While placing, every click is a cell; otherwise a sprite under the pointer wins over the ground.
     const hit = this.bridge.placing ? null : this.targetAt(p, over)
     if (hit) this.bridge.emit({ type: 'select', target: hit })
-    else this.emitCell(p, true)
+    else this.emitCell(p)
   }
 
   /**
@@ -604,7 +637,7 @@ export class IslandScene extends Phaser.Scene {
     rt.endDraw()
   }
 
-  /** The placement ghost's footprint: a translucent, outlined diamond tinted by legality, over everything. */
+  /** The placement ghost's footprint: a translucent, outlined diamond coloured by legality, over everything. */
   private drawOutline(ghost: IslandMarkers['ghost']): void {
     const g = this.outline.clear()
     if (!ghost) return
@@ -625,9 +658,12 @@ export class IslandScene extends Phaser.Scene {
     if (o.scale) spr.setScale(o.scale)
     if (o.flipX) spr.setFlipX(true)
     if (o.tint) spr.setTint(TINT[o.tint])
-    if (o.id === 'ghost') {
-      spr.setAlpha(0.8)
-    } else {
+    if (o.id === 'arrow') {
+      if (!this.bridge.reducedMotion) {
+        const bob = this.tweens.add({ targets: spr, y: o.y - ARROW_BOB.y, duration: ARROW_BOB.ms, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
+        spr.once(Phaser.GameObjects.Events.DESTROY, () => bob.remove())
+      }
+    } else if (o.id !== 'ghost') {
       spr.setData('target', o.target)
       // Pixel-perfect hits: a click on the transparent sky above a platform reaches the ground or what is behind it.
       spr.setInteractive({ useHandCursor: true, pixelPerfect: true, alphaTolerance: 1 })

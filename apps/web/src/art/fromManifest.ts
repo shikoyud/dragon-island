@@ -65,7 +65,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     },
     elementIcon: perElement('icon', 'icon'),
     ui: { panel: get('ui.panel', 'panel'), button: get('ui.button', 'button'), cursor: get('ui.cursor', 'cursor') },
-    island: { base: get('island.base', 'island'), layers: layerKeys.map(k => get(k, 'island')), locked: get('island.locked', 'locked'), sign: get('island.sign', 'sign') },
+    island: { base: get('island.base', 'island'), layers: layerKeys.map(k => get(k, 'island')), locked: get('island.locked', 'locked'), sign: get('island.sign', 'sign'), arrow: get('ui.island.arrow', 'arrow') },
     obstacle: Object.fromEntries((Object.keys(OBSTACLES) as ObstacleKind[]).map(k => [k, get(`obstacle.${OBSTACLE_ART[k].find(n => manifest.assets[`obstacle.${n}`]) ?? k}`, footprintPx(OBSTACLES[k].size))])) as Record<ObstacleKind, Sprite>,
     decoration: Object.fromEntries((Object.keys(DECORATIONS) as DecorationId[]).map(d => [d, get(`decoration.${d}`, footprintPx(DECORATIONS[d].size))])) as Record<DecorationId, Sprite>,
     map: Object.fromEntries(ISLAND_ORDER.map(i => [i, get(`map.${i}`, 'map')])) as Record<IslandId, Sprite>,

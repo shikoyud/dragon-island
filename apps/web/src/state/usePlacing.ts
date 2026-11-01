@@ -5,7 +5,7 @@ import { nearestLegalCell, placingReducer, type PlacingEvent } from './placing'
 
 /**
  * Placement mode state, mirrored into the bridge so the island scene draws the ghost. Cell events from the
- * scene (clicks and pointer moves) feed the same reducer as the bar's buttons. Also tracks the viewed island.
+ * scene (taps and drags of the ghost) feed the same reducer as the bar's buttons. Also tracks the viewed island.
  */
 export function usePlacing(bridge: Bridge): {
   placing: Placing | null; view: IslandId; dispatch: (e: PlacingEvent) => void
@@ -32,8 +32,9 @@ export function usePlacing(bridge: Bridge): {
     if (!p || island === bridge.view) return
     const cell = nearestLegalCell(s, p.what, island, { col: p.col, row: p.row })
     if (!cell) return
-    bridge.setView(island)
+    // The cell first: the scene reveals the ghost when the view changes.
     dispatch({ type: 'cell', ...cell })
+    bridge.setView(island)
   }, [bridge, dispatch])
 
   useEffect(() => {

@@ -33,7 +33,7 @@ describe('client placement preview matches the server island rules', () => {
     it(`refuses ${c.name}: red ghost and no action`, () => {
       expect(ghost(c.s, c.view, c.p)).toBe('bad')
       expect(placingAction(c.s, c.view, c.p)).toBeNull()
-      expect(ghost(c.s, c.legalView, c.legalP)).toBe('ok')
+      expect(ghost(c.s, c.legalView, c.legalP)).toBeUndefined() // a legal ghost has no tint
       expect(placingAction(c.s, c.legalView, c.legalP)).not.toBeNull()
     })
   }

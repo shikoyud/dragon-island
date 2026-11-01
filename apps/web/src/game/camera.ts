@@ -95,7 +95,7 @@ export function fitZoom(viewportW: number, viewportH: number, b: Box): number {
   return Math.max(1, viewportH > viewportW ? Math.ceil(f) : Math.round(f + 0.1))
 }
 
-/** World px kept round owned land when fitting it: a 64 px plot sign at the corner stays clear of the HUD, a building on the edge uncropped. */
+/** World px kept round owned land when fitting it: a plot sign (drawn at half size) and its caption at the corner stay clear of the HUD, a building on the edge uncropped. */
 const OPENING_PAD = 32
 
 /**

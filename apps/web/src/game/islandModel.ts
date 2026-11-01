@@ -26,11 +26,11 @@ export interface IslandObject {
   frame?: number
   /** Facings 1 and 3 draw the mirror of the front view. */
   flipX?: boolean
-  /** ok/bad colour a placement ghost; building marks a construction in progress. */
-  tint?: 'ok' | 'bad' | 'building'
+  /** bad reddens a placement ghost on an illegal spot; building marks a construction in progress. */
+  tint?: 'bad' | 'building'
   /**
-   * The least this is tapped at on screen, in CSS px: something drawn smaller than that at the current zoom (a 32 px plot
-   * sign at zoom 1) gets a tap box of this size, centred on it, in place of its own pixels.
+   * The least this is tapped at on screen, in CSS px: something drawn smaller than that at the current zoom (a plot sign,
+   * its 48 px art drawn at `SIGN_SCALE`, is 24 px at zoom 1) gets a tap box of this size, centred on it, in place of its own pixels.
    */
   minTap?: number
   /** With `minTap`: the tap box is used at every zoom, never the pixel-perfect test (a plot sign). */
@@ -258,6 +258,14 @@ export function groundTiles(art: GameArtSet, island: IslandId): { grass: string[
   return { grass, cliffSw: plain ? 'ground.cliff.sw' : null, cliffSe: plain ? 'ground.cliff.se' : null }
 }
 
+const sameRef = (a: MovableRef, b: MovableRef): boolean => {
+  switch (a.type) {
+    case 'habitat': case 'decoration': return b.type === a.type && b.id === a.id
+    case 'farm': case 'breeder': return b.type === a.type && b.index === a.index
+    case 'roost': case 'hatchery': return b.type === a.type
+  }
+}
+
 /** What the sign on a plot for sale says on Home. */
 export const SIGN_CAPTION = 'Tap to buy'
 /**
@@ -269,7 +277,8 @@ export const SIGN_SCALE = 0.5
 /**
  * Pure: everything the Island scene draws for a state at a moment, for one island view. No Phaser, so it is
  * unit-tested directly; the scene only turns objects into sprites. Objects are ordered by anchor y (back to
- * front); a building's dragons, eggs and crops travel with it. The placement ghost is last.
+ * front); a building's dragons, eggs and crops travel with it. While it is being moved its own sprite gives way to the
+ * placement ghost, on whose cell the rest of its group is built. The ghost, what it carries and its arrow are last.
  */
 export function buildIslandModel(
   state: PlayerState | null, art: GameArtSet, catalog: Catalog, nowMs: number, view: IslandId, placing: Placing | null,
@@ -283,7 +292,18 @@ export function buildIslandModel(
   if (!state) return { objects, markers }
 
   const groups: { col: number; row: number; size: number; objects: IslandObject[] }[] = []
-  const add = (p: { col: number; row: number }, size: number, group: IslandObject[]) => groups.push({ col: p.col, row: p.row, size, objects: group })
+  const movedRef = placing?.what.kind === 'move' ? placing.what.target : null
+  const isMoved = (ref: MovableRef | undefined) => Boolean(ref && movedRef && sameRef(ref, movedRef))
+  /** Where a building stands for this picture: on the ghost's cell, on the island in view, while it is the one being moved. */
+  const standing = (ref: MovableRef, placement: Placement): Placement =>
+    placing && isMoved(ref) ? { island: view, col: placing.col, row: placing.row, facing: placing.facing } : placement
+  /** What the moved building holds, ridden on the ghost. */
+  const carried: IslandObject[] = []
+  /** A group's first object is its building, unless `ref` is the one being moved: the ghost stands in for that. */
+  const add = (p: { col: number; row: number }, size: number, group: IslandObject[], ref?: MovableRef) => {
+    if (isMoved(ref)) carried.push(...group.slice(1))
+    else groups.push({ col: p.col, row: p.row, size, objects: group })
+  }
   /** Common look of a building: mirror by facing, plus the construction tint and timer badge. */
   const look = (ref: BuildingRef, placement: Placement): Partial<IslandObject> => {
     const c = constructionFor(state, ref)
@@ -309,15 +329,19 @@ export function buildIslandModel(
   }
 
   for (const d of state.decorations) {
-    if (d.placement.island !== view) continue
-    const a = anchor(d.placement.col, d.placement.row, DECORATIONS[d.kind].size)
-    add(d.placement, DECORATIONS[d.kind].size, [{ id: `decoration:${d.id}`, ...decorationLook(art, d.kind), ...a, target: { kind: 'decoration', id: d.id }, ...flip(d.placement.facing) }])
+    const ref: MovableRef = { type: 'decoration', id: d.id }
+    const at = standing(ref, d.placement)
+    if (at.island !== view) continue
+    const a = anchor(at.col, at.row, DECORATIONS[d.kind].size)
+    add(at, DECORATIONS[d.kind].size, [{ id: `decoration:${d.id}`, ...decorationLook(art, d.kind), ...a, target: { kind: 'decoration', id: d.id }, ...flip(d.placement.facing) }], ref)
     markers.decorations.push(d.id)
   }
 
   for (const h of state.habitats) {
-    if (h.placement.island !== view) continue
-    const a = anchor(h.placement.col, h.placement.row, FOOTPRINT.habitat)
+    const ref: MovableRef = { type: 'habitat', id: h.id }
+    const at = standing(ref, h.placement)
+    if (at.island !== view) continue
+    const a = anchor(at.col, at.row, FOOTPRINT.habitat)
     const live = residents(state, h.id)
     const cap = habitatCap(h.element, h.level, preset)
     const gold = storedGold(h, live, catalog, nowMs, preset)
@@ -334,12 +358,14 @@ export function buildIslandModel(
     })
     // Residents back to front on the platform, after the platform itself.
     group.splice(1, group.length - 1, ...group.slice(1).sort((p, q) => p.y - q.y))
-    add(h.placement, FOOTPRINT.habitat, group)
+    add(at, FOOTPRINT.habitat, group, ref)
   }
 
   state.breeders.forEach((breeder, index) => {
-    if (breeder.placement.island !== view) return
-    const a = anchor(breeder.placement.col, breeder.placement.row, FOOTPRINT.breeder)
+    const ref: MovableRef = { type: 'breeder', index }
+    const at = standing(ref, breeder.placement)
+    if (at.island !== view) return
+    const a = anchor(at.col, at.row, FOOTPRINT.breeder)
     const group: IslandObject[] = [{
       id: `breeder:${index}`, ...breederLook(art, breeder.kind, breeder.level), ...a,
       target: { kind: 'breeder', index }, ...look({ type: 'breeder', index }, breeder.placement),
@@ -347,19 +373,21 @@ export function buildIslandModel(
     if (breeder.egg) {
       group.push({ id: `egg:${index}`, ...eggLook(breeder.egg.speciesId, art, catalog), x: a.x, y: a.y - 9, scale: NEST_EGG_SCALE, target: { kind: 'breeder', index }, badge: eggBadge(state, breeder.egg.readyAtMs, nowMs) })
     }
-    add(breeder.placement, FOOTPRINT.breeder, group)
+    add(at, FOOTPRINT.breeder, group, ref)
     markers.breeders.push({ index, egg: breeder.egg !== null })
   })
 
-  if (state.roostPlacement && state.roostPlacement.island === view) {
-    const a = anchor(state.roostPlacement.col, state.roostPlacement.row, FOOTPRINT.roost)
-    add(state.roostPlacement, FOOTPRINT.roost, [{
+  const roostAt = state.roostPlacement && standing({ type: 'roost' }, state.roostPlacement)
+  if (state.roostPlacement && roostAt?.island === view) {
+    const a = anchor(roostAt.col, roostAt.row, FOOTPRINT.roost)
+    add(roostAt, FOOTPRINT.roost, [{
       id: 'roost', ...roostLook(art, state.roostTier), ...a, target: { kind: 'roost' }, ...look({ type: 'roost' }, state.roostPlacement),
-    }])
+    }], { type: 'roost' })
   }
 
-  if (state.hatcheryPlacement.island === view) {
-    const a = anchor(state.hatcheryPlacement.col, state.hatcheryPlacement.row, FOOTPRINT.hatchery)
+  const hatcheryAt = standing({ type: 'hatchery' }, state.hatcheryPlacement)
+  if (hatcheryAt.island === view) {
+    const a = anchor(hatcheryAt.col, hatcheryAt.row, FOOTPRINT.hatchery)
     const group: IslandObject[] = [{
       id: 'hatchery', ...hatcheryLook(art, state.hatcheryLevel), ...a,
       target: { kind: 'hatcheryBuilding' }, ...look({ type: 'hatchery' }, state.hatcheryPlacement),
@@ -382,12 +410,14 @@ export function buildIslandModel(
       const badge = markers.waiting.length > 0 ? 'no room' : state.hatchery.length > 0 ? timerLabel(soonest, nowMs) : undefined
       if (badge) group[0]!.badge = badge
     }
-    add(state.hatcheryPlacement, FOOTPRINT.hatchery, group)
+    add(hatcheryAt, FOOTPRINT.hatchery, group, { type: 'hatchery' })
   }
 
   state.farms.forEach((plot, i) => {
-    if (plot.placement.island !== view) return
-    const a = anchor(plot.placement.col, plot.placement.row, FOOTPRINT.farm)
+    const ref: MovableRef = { type: 'farm', index: i }
+    const at = standing(ref, plot.placement)
+    if (at.island !== view) return
+    const a = anchor(at.col, at.row, FOOTPRINT.farm)
     const group: IslandObject[] = [{
       id: `farm:${i}`, ...farmLook(art), ...a,
       target: { kind: 'farm', plot: i }, ...look({ type: 'farm', index: i }, plot.placement),
@@ -405,7 +435,7 @@ export function buildIslandModel(
       const look = sway ? { key: textureKey(`crop.${plot.crop}.sway`), sprite: sway } : { key: textureKey(`crop.${plot.crop}`), sprite, ...growth }
       group.push({ id: `crop:${i}`, ...look, x: a.x, y: a.y - 10, target: { kind: 'farm', plot: i }, badge: nowMs >= plot.readyAtMs ? 'ripe' : timerLabel(plot.readyAtMs, nowMs) })
     }
-    add(plot.placement, FOOTPRINT.farm, group)
+    add(at, FOOTPRINT.farm, group, ref)
     markers.farms.push({ plot: i, crop: plot.crop })
   })
 
@@ -436,10 +466,12 @@ export function buildIslandModel(
   if (placing) {
     const placement: Placement = { island: view, col: placing.col, row: placing.row, facing: placing.facing }
     const legal = placementRuleError(state, placementSubject(placing.what), placement) === null
-    objects.push({
+    const target: Target = { kind: 'cell', col: placing.col, row: placing.row }
+    const ghost: IslandObject = {
       id: 'ghost', ...ghostLook(state, art, placing.what), ...anchor(placing.col, placing.row, placing.size),
-      target: { kind: 'cell', col: placing.col, row: placing.row }, tint: legal ? 'ok' : 'bad', ...flip(placing.facing),
-    })
+      target, ...(legal ? {} : { tint: 'bad' as const }), ...flip(placing.facing),
+    }
+    objects.push(ghost, ...carried, { id: 'arrow', key: textureKey('ui.island.arrow'), sprite: art.island.arrow, x: ghost.x, y: badgeY(ghost), target })
     markers.ghost = { legal, col: placing.col, row: placing.row, size: placing.size }
   }
   return { objects, markers }

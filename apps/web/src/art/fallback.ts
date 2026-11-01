@@ -23,7 +23,7 @@ const PANEL_EDGE = '#3b4680'
 export type FallbackSlot =
   | 'egg' | 'hatchling' | 'dragon' | 'habitat' | 'nest' | 'hatchery' | 'farmPlot' | 'crop'
   | 'icon' | 'panel' | 'button' | 'cursor' | 'island'
-  | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'map' | 'fx' | 'fxCoins'
+  | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'arrow' | 'map' | 'fx' | 'fxCoins'
 
 export const fallbackKey = (slot: FallbackSlot, element?: Element): string =>
   element ? `fallback:${slot}:${element}` : `fallback:${slot}`
@@ -159,6 +159,21 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
       px(w * 0.1, h * 0.1, w * 0.8, h * 0.45, OUTLINE)
       px(w * 0.14, h * 0.16, w * 0.72, h * 0.33, WOOD)
       px(w * 0.25, h * 0.3, w * 0.5, h * 0.05, p.light)
+      return
+    }
+    case 'arrow': {
+      // A bold orange down-arrow: the outline's rows, then the fill's, narrowing to a point.
+      const orange = (inset: number, fill: string) => {
+        px(w * 0.3 + inset, inset, w * 0.4 - 2 * inset, h * 0.55, fill) // shaft
+        const top = Math.round(h * 0.5) + inset
+        for (let y = top; y < h - inset; y++) {
+          const half = (w / 2 - inset * 2) * (1 - (y - top) / Math.max(1, h - inset - top))
+          px(w / 2 - half, y, half * 2, 1, fill)
+        }
+      }
+      orange(0, OUTLINE)
+      orange(2, '#f08a24')
+      px(w * 0.3 + 2, 2, 3, h * 0.5, '#ffc56b') // the lit side of the shaft
       return
     }
     case 'map': {

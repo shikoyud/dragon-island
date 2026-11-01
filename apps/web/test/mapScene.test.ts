@@ -222,6 +222,146 @@ describe('the scene switch', () => {
     expect(cursor).toHaveBeenLastCalledWith('')
   })
 
+  describe('placing input', () => {
+    type Scene = Phaser.Scene & {
+      drawn: Phaser.GameObjects.Sprite[]; live: Map<string, { obj: Phaser.GameObjects.Sprite }>
+      onDown(p: unknown): void; onMove(p: unknown, over?: unknown[]): void; onUp(p: unknown, over: unknown[]): void; reveal(p: unknown): void
+    }
+    const MOVE_H1 = { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 4, col: 13, row: 8, facing: 0 } as const
+
+    /** The island with h1 being moved, and a list of the cells it emits, which the ghost follows as the React side would. */
+    async function moving() {
+      const { bridge, game } = await boot()
+      games.push(game)
+      await shown(game, 'island')
+      const island = game.scene.getScene('island') as unknown as Scene
+      bridge.setPlacing(MOVE_H1)
+      const cells: { col: number; row: number }[] = []
+      bridge.on('cell', e => { cells.push({ col: e.col, row: e.row }); bridge.setPlacing({ ...bridge.placing!, col: e.col, row: e.row }) })
+      const at = (col: number, row: number, isDown = true) => ({ ...bridge.cellToScreen!(col, row), wasTouch: false, isDown, id: 1 })
+      return { bridge, island, cells, at }
+    }
+
+    it('hover does nothing', async () => {
+      const { island, cells, at } = await moving()
+      for (const [c, r] of [[14, 13], [15, 14], [22, 13]] as const) island.onMove(at(c, r, false), [])
+      expect(cells).toEqual([])
+    })
+
+    it('a tap on land centres the footprint there, also over a sprite that would open a dialog', async () => {
+      const { bridge, island, cells, at } = await moving()
+      const selects: unknown[] = []
+      bridge.on('select', e => selects.push(e))
+      const tap = (col: number, row: number, over: unknown[]) => {
+        const down = at(col, row)
+        const up = at(col, row, false)
+        island.onDown(down)
+        island.onUp(up, over)
+      }
+      tap(15, 14, [])
+      expect(cells).toEqual([{ col: 14, row: 13 }])
+      tap(20, 15, [island.drawn.find(o => o.getData?.('target'))!])
+      expect(cells).toEqual([{ col: 14, row: 13 }, { col: 19, row: 14 }])
+      expect(selects).toEqual([])
+    })
+
+    it('a drag from the footprint carries it, keeping the grabbed cell under the pointer, and leaves the camera alone', async () => {
+      const { island, cells, at, bridge } = await moving()
+      const before = bridge.cellToScreen!(20, 20)
+      const down = at(14, 9) // one cell in from the footprint's top-left
+      const to = at(15, 14)
+      island.onDown(down)
+      island.onMove(to)
+      island.onUp({ ...to, isDown: false }, [])
+      expect(cells).toEqual([{ col: 14, row: 13 }])
+      expect(bridge.cellToScreen!(20, 20)).toEqual(before)
+    })
+
+    it('a drag elsewhere pans and moves no ghost', async () => {
+      const { island, cells, at, bridge } = await moving()
+      const before = bridge.cellToScreen!(20, 20)
+      const down = at(20, 16)
+      island.onDown(down)
+      island.onMove({ ...down, y: down.y + 40 })
+      expect(cells).toEqual([])
+      expect(bridge.cellToScreen!(20, 20).y).not.toBe(before.y)
+    })
+
+    it('a drag that leaves the land keeps the last good cell, and the next tap still works', async () => {
+      const { island, cells, at, bridge } = await moving()
+      const down = at(14, 9)
+      const to = at(15, 14)
+      const off = at(-40, -40)
+      const next = at(20, 15)
+      island.onDown(down)
+      island.onMove(to)
+      island.onMove(off)
+      island.onUp({ ...off, isDown: false }, [])
+      expect(bridge.placing).toMatchObject({ col: 14, row: 13 })
+      expect(cells).toHaveLength(1)
+      island.onDown(next)
+      island.onUp({ ...next, isDown: false }, [])
+      expect(bridge.placing).toMatchObject({ col: 19, row: 14 })
+    })
+
+    it('a press released outside the canvas ends the grab', async () => {
+      const { island, cells, at } = await moving()
+      const down = at(14, 9)
+      const to = at(15, 14)
+      island.onDown(down)
+      island.input.emit('pointerupoutside', { ...down, isDown: false })
+      island.onMove(to)
+      expect(cells).toEqual([])
+    })
+
+    it('reveals the ghost when placing starts and on a change of island, never on a cell or a turn', async () => {
+      const { bridge, game } = await boot()
+      games.push(game)
+      await shown(game, 'island')
+      const island = game.scene.getScene('island') as unknown as Scene
+      const reveal = vi.spyOn(island as unknown as { reveal(p: unknown): void }, 'reveal')
+      bridge.setPlacing(MOVE_H1)
+      expect(reveal).toHaveBeenCalledTimes(1)
+      bridge.setPlacing({ ...MOVE_H1, col: 14 })
+      bridge.setPlacing({ ...MOVE_H1, col: 14, facing: 1 })
+      expect(reveal).toHaveBeenCalledTimes(1)
+      bridge.setView('isle2')
+      expect(reveal).toHaveBeenCalledTimes(2)
+      bridge.setPlacing(null)
+      bridge.setView('home')
+      expect(reveal).toHaveBeenCalledTimes(2)
+    })
+
+    it('a game torn down mid-placement takes the arrow and its tween with it', async () => {
+      const { bridge, game } = await boot()
+      await shown(game, 'island')
+      bridge.setPlacing(MOVE_H1)
+      const arrow = (game.scene.getScene('island') as unknown as Scene).live.get('arrow')!.obj
+      const gone = new Promise(resolve => game.events.once(Phaser.Core.Events.DESTROY, resolve))
+      game.destroy(true)
+      await gone
+      expect(arrow.active).toBe(false)
+    })
+
+    it('the ghost and arrow take no taps and the ghost is opaque; the arrow bobs, unless motion is reduced', async () => {
+      const { bridge, game } = await boot()
+      games.push(game)
+      await shown(game, 'island')
+      const island = game.scene.getScene('island') as unknown as Scene
+      bridge.setPlacing(MOVE_H1)
+      const ghost = island.live.get('ghost')!.obj
+      const arrow = island.live.get('arrow')!.obj
+      expect(ghost.alpha).toBe(1)
+      expect(ghost.input).toBeNull()
+      expect(arrow.input).toBeNull()
+      expect(island.tweens.getTweensOf(arrow)).toHaveLength(1)
+      bridge.setPlacing(null)
+      bridge.setReducedMotion(true)
+      bridge.setPlacing(MOVE_H1)
+      expect(island.tweens.getTweensOf(island.live.get('arrow')!.obj)).toHaveLength(0)
+    })
+  })
+
   it('open, close, open within one frame lands on the Map, with no restart of either scene', async () => {
     const { bridge, game } = await boot()
     games.push(game)

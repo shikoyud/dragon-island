@@ -19,7 +19,7 @@ export type Target =
   | { kind: 'cell'; col: number; row: number }
   | { kind: 'empty' }
 
-/** The Golden Aerie: a Store purchase (§5.2) placed like a habitat; the charge is sent with its placement on Confirm. */
+/** The Golden Aerie: a Store purchase (§5.2) placed like a habitat; the charge is sent with its placement on OK. */
 export interface AerieOffer { kind: 'goldenAerie' }
 
 /** What the grid rules judge for a thing being placed: the Aerie is a habitat-sized building. */

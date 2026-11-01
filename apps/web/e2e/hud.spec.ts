@@ -141,8 +141,8 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       const strip = page.getByRole('toolbar', { name: 'Placement' })
       await expect(strip).toBeVisible()
       await expect(page.getByRole('navigation', { name: 'Main menu' })).toHaveCount(0)
-      const confirm = strip.getByRole('button', { name: 'Confirm' })
-      await expect(confirm).toBeEnabled() // opens on a free cell
+      const ok = strip.getByRole('button', { name: 'OK' })
+      await expect(ok).toBeEnabled() // opens on a free cell
       // The ghost's footprint is on screen and not under the strip.
       const stripTop = (await strip.boundingBox())!.y
       const ghost = await bridge(page, b => b.cellToScreen!(b.placing!.col, b.placing!.row))
@@ -150,7 +150,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       expect(ghost.x).toBeLessThan(size.width)
       expect(ghost.y).toBeGreaterThan(0)
       expect(ghost.y).toBeLessThan(stripTop)
-      await confirm.click()
+      await ok.click()
       await expect(strip).toBeHidden()
       await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
       await expect(page.getByRole('complementary', { name: 'Needs attention' })).toContainText(/Building Farm plot 2/)

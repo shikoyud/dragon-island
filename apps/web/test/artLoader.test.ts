@@ -14,8 +14,8 @@ describe('artEntries', () => {
     expect(keys).toContain(textureKey('crop.warlordPepper'))
     expect(keys).toContain(textureKey('island.base'))
     expect(new Set(keys).size).toBe(keys.length)
-    // base: 10 eggs + 10 hatchlings + 10 dragons + 10 habitats + 10 icons + ...; plus nexus, 15 decorations, 6 obstacles, 6 map icons, locked + sign; was: 3 buildings + 4 crops + 10 icons + 3 ui + island
-    expect(rows).toHaveLength(10 * 5 + 3 + 6 + 3 + 1 + 1 + 15 + 6 + 6 + 2 + 3) // + fx.construction, fx.hatch, fx.coins
+    // base: 10 eggs + 10 hatchlings + 10 dragons + 10 habitats + 10 icons + ...; plus nexus, 15 decorations, 6 obstacles, 6 map icons, locked + sign + the placement arrow; was: 3 buildings + 4 crops + 10 icons + 3 ui + island
+    expect(rows).toHaveLength(10 * 5 + 3 + 6 + 3 + 1 + 1 + 15 + 6 + 6 + 3 + 3) // + fx.construction, fx.hatch, fx.coins
     expect(rows.find(r => r.key === textureKey('dragon.ice'))!.element).toBe('ice')
     expect(rows.find(r => r.key === textureKey('egg.dark'))!.slot).toBe('egg')
   })

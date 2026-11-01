@@ -369,7 +369,7 @@ describe('ShopPanel Store tab', () => {
     expect(aerie).toHaveTextContent('$5.00')
     await userEvent.click(aerie)
     expect(onPlace).toHaveBeenCalledWith({ kind: 'goldenAerie' }, 4)
-    expect(action).not.toHaveBeenCalled() // paid on Confirm, not here
+    expect(action).not.toHaveBeenCalled() // paid on OK, not here
   })
 
   it('hides the Golden Aerie row once the player owns one, and words the error', () => {

@@ -48,6 +48,7 @@ export function artEntries(art: GameArtSet): Entry[] {
   add('island.base', art.island.base, 'island', 'sea')
   add('island.locked', art.island.locked, 'locked')
   add('island.sign', art.island.sign, 'sign')
+  add('ui.island.arrow', art.island.arrow, 'arrow')
   art.island.layers.forEach((s, i) => add(`island.layer.${i}`, s, 'island', 'sea'))
   add('fx.construction', art.fx.construction, 'fx', 'terra')
   add('fx.hatch', art.fx.hatch, 'fx', 'light')

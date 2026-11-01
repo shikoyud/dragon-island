@@ -13,6 +13,9 @@ export interface PanZoomHost {
   range(): { min: number; max: number }
   /** The viewport in screen pixels. */
   size(): { w: number; h: number }
+  /** Asked on each one-finger press: true claims it, so its drag goes to `onGrabMove` and doesn't pan. A tap on it is still a click. */
+  grab?(p: Point): boolean
+  onGrabMove?(p: Point): void
 }
 
 /** The pressed pointers of the two touch points a game tracks (config.ts `activePointers`), for `down` and `move`. */
@@ -24,12 +27,14 @@ const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
 
 /**
  * The gestures every scrollable scene shares: drag pans, the wheel or a pinch zooms about the pointer by whole numbers,
- * and a press that ends within `isClick`'s 4 px is a click. Pure over the host's view: a scene feeds it its pointer events.
+ * and a press that ends within `isClick`'s 4 px is a click. A press the host's `grab` claims drags the host's thing instead of
+ * panning; a second finger always means a pinch and lets go of it. Pure over the host's view: a scene feeds it its pointer events.
  */
 export function createPanZoom(host: PanZoomHost) {
   let down: Point | null = null
   let last: Point | null = null
-  let panning = false
+  let dragging = false
+  let grabbed = false
   let pinch: number | null = null
 
   const zoomTo = (zoom: number, at: Point) => {
@@ -45,15 +50,17 @@ export function createPanZoom(host: PanZoomHost) {
         // A second finger: this press is a pinch, never a click or a pan.
         pinch = distance(held[0]!, held[1]!)
         down = null
-        panning = true
+        dragging = true
+        grabbed = false
         return
       }
       down = { x: p.x, y: p.y }
       last = { x: p.x, y: p.y }
-      panning = false
+      dragging = false
+      grabbed = host.grab?.(p) ?? false
     },
 
-    /** True when the move was part of a pan or a pinch, so it means nothing else to the scene. */
+    /** True when the move was part of a drag or a pinch, so it means nothing else to the scene. */
     move(p: Point, held: readonly Point[], pressed: boolean): boolean {
       const v = host.view()
       if (held.length === 2 && pinch !== null && v) {
@@ -67,11 +74,12 @@ export function createPanZoom(host: PanZoomHost) {
         return true
       }
       if (!down || !last || !pressed || !v) return false
-      // Pan once the press has moved past the click threshold, from where it went down: the grabbed point stays
+      // Drag once the press has moved past the click threshold, from where it went down: the grabbed point stays
       // under the pointer. Deltas come from our own last position, never Phaser's prevPosition (stale on a new press).
-      if (!panning && !isClick(down.x, down.y, p.x, p.y)) panning = true
-      if (!panning) return false
-      host.apply(panBy(v, p.x - last.x, p.y - last.y))
+      if (!dragging && !isClick(down.x, down.y, p.x, p.y)) dragging = true
+      if (!dragging) return false
+      if (grabbed) host.onGrabMove?.(p)
+      else host.apply(panBy(v, p.x - last.x, p.y - last.y))
       last = { x: p.x, y: p.y }
       return true
     },
@@ -79,10 +87,11 @@ export function createPanZoom(host: PanZoomHost) {
     /** True when this release ends a click. */
     up(p: Point, held: readonly Point[]): boolean {
       if (held.length === 0) pinch = null
-      const click = !panning && down !== null && isClick(down.x, down.y, p.x, p.y)
+      const click = !dragging && down !== null && isClick(down.x, down.y, p.x, p.y)
       down = null
       last = null
-      panning = false
+      dragging = false
+      grabbed = false
       return click
     },
 
@@ -96,7 +105,8 @@ export function createPanZoom(host: PanZoomHost) {
     reset(): void {
       down = null
       last = null
-      panning = false
+      dragging = false
+      grabbed = false
       pinch = null
     },
   }
