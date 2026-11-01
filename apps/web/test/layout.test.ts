@@ -93,10 +93,10 @@ describe('isometric layout', () => {
   })
 
   describe('battleStage', () => {
-    it('sits the stage above the controls, centred, by whole pixels, on the three screens that matter', () => {
-      expect(battleStage(390, 844)).toEqual({ zoom: 1, x: 15, y: Math.floor((844 - BATTLE_CONTROLS_H - 420) / 2), w: 360, h: 420 })
-      expect(battleStage(360, 640)).toMatchObject({ zoom: 1, x: 0, w: 360, h: 420 })
-      expect(battleStage(1440, 900)).toMatchObject({ zoom: 1, x: 540, w: 360, h: 420 })
+    it('rests the stage 8 px above the controls, spare room over it, by whole pixels, on the three screens that matter', () => {
+      expect(battleStage(390, 844)).toEqual({ zoom: 1, x: 15, y: 844 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
+      expect(battleStage(360, 640)).toEqual({ zoom: 1, x: 0, y: 640 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
+      expect(battleStage(1440, 900)).toEqual({ zoom: 1, x: 540, y: 900 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
     })
     it('the stage and the controls together fit 360x640 with nothing covered', () => {
       const s = battleStage(360, 640)

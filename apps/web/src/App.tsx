@@ -1,4 +1,4 @@
-import { TRIAL_CHAPTERS, type TeamIds } from '@wyrmhaven/game-core'
+import { TRIAL_CHAPTERS, type Element, type TeamIds } from '@wyrmhaven/game-core'
 import type { Offer } from '@wyrmhaven/shared'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSession } from './api/session'
@@ -62,7 +62,8 @@ function Game() {
 
   useEffect(() => { void loadActiveArt().then(setArt) }, [])
   const battleSetup = battle.setup
-  const backdrop = battleSetup?.mode === 'pve' ? TRIAL_CHAPTERS[battleSetup.trial.chapter - 1]!.element : null
+  // PvP borrows the war backdrop so the arena isn't a flat field: a stand-in until M6 draws its own.
+  const backdrop: Element | null = battleSetup?.mode === 'pve' ? TRIAL_CHAPTERS[battleSetup.trial.chapter - 1]!.element : battleSetup ? 'war' : null
   useEffect(() => { bridge.setBattle(battle.preview, backdrop) }, [bridge, battle.preview, backdrop])
   useEffect(() => { if (battle.error) toasts.error(battle.error) }, [battle.error, toasts])
   useEffect(() => { if (me.error) toasts.error(me.error) }, [me.error, toasts])

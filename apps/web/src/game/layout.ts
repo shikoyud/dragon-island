@@ -11,6 +11,8 @@ const HH = ISO.h / 2
 export const BATTLE = { w: 360, h: 420 } as const
 /** The React controls under the stage: turn line, 2x2 moves, Swap. Fits 360x640 under the stage at zoom 1. */
 export const BATTLE_CONTROLS_H = 192
+/** Screen px between the stage's bottom edge and the controls. */
+export const BATTLE_STAGE_GAP = 8
 /** Where each active dragon's feet stand, in stage pixels: enemy upper right, yours lower left (R80). */
 export const BATTLE_SPOT = { attacker: { x: 96, y: 376 }, defender: { x: 264, y: 196 } } as const
 /** The React title row and Exit button over the stage's top (4 px down, a 44 px tap): nothing the scene floats there is legible. */
@@ -21,8 +23,6 @@ export const BATTLE_DRAGON_SCALE = 3
 export const BATTLE_PLATFORM = { w: 140, h: 36 } as const
 /** Stage y where the sky meets the ground of the code-drawn backdrop. */
 export const BATTLE_HORIZON_Y = 150
-/** Far enough past the stage that any screen's edge shows backdrop. */
-export const BATTLE_BLEED = 4000
 
 export interface Pos { x: number; y: number }
 export interface Box { x: number; y: number; w: number; h: number }
@@ -122,7 +122,8 @@ export function integerZoom(viewportW: number, viewportH: number): number {
 }
 
 /**
- * Where the stage sits on a screen: zoomed to fit the room above the controls, centred in it, by whole pixels. React's plates
+ * Where the stage sits on a screen: zoomed to fit the room above the controls, resting BATTLE_STAGE_GAP above them with the spare
+ * room over it (so stage and controls read as one block), by whole pixels. React's plates
  * and the scene's camera both read this, so they agree. On a screen too short for both it pins to the top, and the controls,
  * anchored to the bottom, stay reachable over it.
  */
@@ -131,7 +132,7 @@ export function battleStage(viewportW: number, viewportH: number): Box & { zoom:
   const zoom = integerZoom(viewportW, room)
   const w = BATTLE.w * zoom
   const h = BATTLE.h * zoom
-  return { zoom, x: Math.floor((viewportW - w) / 2), y: Math.max(0, Math.floor((room - h) / 2)), w, h }
+  return { zoom, x: Math.floor((viewportW - w) / 2), y: Math.max(0, room - h - BATTLE_STAGE_GAP), w, h }
 }
 
 /** The world point the camera centres on to put the stage at `battleStage`'s box. */

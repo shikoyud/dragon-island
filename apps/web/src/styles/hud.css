@@ -134,7 +134,7 @@
 .hud-dialog > .panel, .hud-dialog .panel { box-shadow: 0 4px 0 var(--ink); }
 /* On a wide screen a centred dialog stays clear of the HUD: the Finals clock under the pills (to 94 px) and the menu bar (from 811 of
    900, 89 px) were both covered by a 738 px dialog. Narrow screens use a bottom sheet over the bar, below. */
-@media (min-width: 700px) {
+@media (min-width: 700px) and (min-height: 700px) {
   .hud-dialog-layer:not(.hud-dialog-layer--dock) { padding: 102px 16px 98px; }
   .hud-dialog-layer:not(.hud-dialog-layer--dock) .hud-dialog { max-height: min(760px, 100%); }
 }

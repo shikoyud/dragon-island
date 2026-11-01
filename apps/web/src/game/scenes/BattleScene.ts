@@ -6,7 +6,7 @@ import { FALLBACK_ART } from '../../art/slots'
 import { backdropFill, battleView, dragonFlip, hitFx } from '../battleModel'
 import type { Bridge } from '../bridge'
 import { dragonLook } from '../islandModel'
-import { BATTLE, BATTLE_BLEED, BATTLE_DRAGON_SCALE, BATTLE_HEADER_H, BATTLE_HORIZON_Y, BATTLE_PLATFORM, BATTLE_SPOT, battleCamera, battleStage } from '../layout'
+import { BATTLE, BATTLE_DRAGON_SCALE, BATTLE_HEADER_H, BATTLE_HORIZON_Y, BATTLE_PLATFORM, BATTLE_SPOT, battleCamera, battleStage } from '../layout'
 
 const SIDES: readonly Side[] = ['attacker', 'defender']
 /** Just past the stage's edge, where a dragon slides from. */
@@ -59,7 +59,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.ground = this.add.rectangle(BATTLE.w / 2, BATTLE_HORIZON_Y, BATTLE_BLEED * 2, BATTLE_BLEED, 0xffffff).setOrigin(0.5, 0)
+    // The no-art fill stays inside the stage; past its edges the camera's flat colour shows, with no horizon seam.
+    this.ground = this.add.rectangle(0, BATTLE_HORIZON_Y, BATTLE.w, BATTLE.h - BATTLE_HORIZON_Y, 0xffffff).setOrigin(0, 0)
     // Backdrop art covers the stage (the fill shows only past its edges); the drawn platforms, or the platform art, sit on it.
     this.backdrop = this.add.image(0, 0, FALLBACK_KEY).setOrigin(0, 0).setVisible(false)
     this.platforms = this.add.graphics()
