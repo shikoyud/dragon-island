@@ -66,17 +66,22 @@ describe('offered plots on Home (U1)', () => {
 
 describe('obstacles around a bought Home plot (U4)', () => {
   it('reveal spawns 2-4 on the new plot only, and nothing on the plot bought', () => {
-    for (let seed = 1; seed <= 50; seed++) {
+    // Buying 7 or 2 offers [.., .., 1]: only plot 1 is newly offered, and it is the crowded one (Home's buildings, plot 2's Boulder).
+    for (const bought of [7, 2]) for (let seed = 1; seed <= 50; seed++) {
       const before = { ...base, level: 12, gold: 1_000_000 }
-      // 7 is bought; offered goes [2,7,11] -> [2,11,1], so only plot 1 is newly offered.
-      const after = ok(run(before, { type: 'buyPlot', island: 'home', plot: 7 }, seed))
+      const after = ok(run(before, { type: 'buyPlot', island: 'home', plot: bought }, seed))
       const fresh = after.islands.obstacles.filter(o => !before.islands.obstacles.includes(o))
-      // Plot 1 sits against Home's buildings and plot 2's Boulder: when the gap leaves no room an obstacle is skipped (U7), so a
-      // big roll (seeds 27 and 44) can leave 1. Never 0 and never more than 4.
-      expect(fresh.length).toBeGreaterThanOrEqual(1)
-      expect(fresh.length).toBeLessThanOrEqual(4)
-      for (const x of fresh) expect([plotOfTile(x.col, x.row), plotOfTile(x.col + sizeOf(x) - 1, x.row + sizeOf(x) - 1)]).toEqual([1, 1])
+      const tag = `buy ${bought}, seed ${seed}`
+      expect(fresh.length, tag).toBeGreaterThanOrEqual(2)
+      expect(fresh.length, tag).toBeLessThanOrEqual(4)
+      for (const x of fresh) expect([plotOfTile(x.col, x.row), plotOfTile(x.col + sizeOf(x) - 1, x.row + sizeOf(x) - 1)], tag).toEqual([1, 1])
       expect(after.nextId).toBe(before.nextId + fresh.length)
+      // The gap holds against every other occupant: buildings, the start table, each other.
+      const all = occupants(after, 'home')
+      for (const f of fresh) for (const o of all) {
+        if (o.ref.type === 'obstacle' && o.ref.id === f.id) continue
+        expect(obstaclesApart(f, sizeOf(f), o, o.size), `${tag} ${f.id} / ${JSON.stringify(o.ref)}`).toBe(true)
+      }
     }
   })
   it('a clear on an unowned plot fails PLOT_LOCKED, and works once bought', () => {

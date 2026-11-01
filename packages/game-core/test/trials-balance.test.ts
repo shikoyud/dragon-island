@@ -242,7 +242,8 @@ const MEASURED = {
   node1Team: ['terra', 'terra', 'sea'],
   starterLv4: [100, 100, 100, 100, 100, 100, 100, 95, 96, 100],
   bossDays: {
-    flash14: [[1, 1], [2, 1], [3, 2], [4, 2], [5, 3]],
+    // Flash-14 gained [6, 3] with the UI rework's plot spawns (obstacle gap, U7): the bot's layout and clears shift, one seed, no rule broken. See task-1-report.md.
+    flash14: [[1, 1], [2, 1], [3, 2], [4, 3], [5, 3], [6, 3]],
     flash28: [[1, 1], [2, 1], [3, 1], [4, 3], [5, 4], [6, 4]],
   } as Record<string, number[][]>,
 }
