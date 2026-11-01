@@ -126,14 +126,14 @@ export function rollDamage(atk: number, m: BattleMove, defPrimary: Element, rng:
 ```
 - `rollDamage` always draws exactly twice, even when immune: `rng.int(100)` for crit, then `rng.int(201)` for variance.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - `matrix.test.ts`: the whole §2.2 table as a literal 10×10 array in GDD order, plus the Physical row, compared with `DAMAGE_MATRIX` and `elementMultiplier`. `(I checked: 0 differences today.)` Rules from §2.1: every element 0× to itself; if X deals 2× to Y then Y deals 0.5× to X, except Dark and Light, which deal 2× to each other. Primary only: a Flame/Sea defender takes 2× from a Sea move.
   - `moves.test.ts`: `MOVE_MULT_PCT` and `MOVE_MIN_LEVEL` literal. Per Q1 (a): Terra's kit is Physical, three Terra; `flame-sea` T1 Flame, T2 Sea, T3 Flame; `sea-flame` T1 Sea, T2 Flame, T3 Sea; `flame-ice-sea` T1 Flame, T2 Ice, T3 Sea. Every species in `LAUNCH_CATALOG` has 4 moves, slot 0 Physical. At Lv 9, T2 and T3 are locked; Lv 10 opens T2; Lv 19 keeps T3 locked; Lv 20 opens it. All 31 names unique; `MOVE_NAMES` per R67.
   - `damage.test.ts`, §6.2's table at ATK 3,200, no crit, variance 1000: T3 2× 10,368; T3 1× 5,184; T2 2× 6,400; T2 1× 3,200; Physical 1,664; T2 0.5× 1,600; any 0× 0. Crit: T2 1× 4,800. Variance 900 and 1100: T2 1× 2,880 and 3,520. Immune with crit and variance 1100 is 0, `immune: true`. Minimum 1: ATK 1, T1, 0.5×. Physical against the same primary is 1×. Stats: `flame` attacking `terra` with Physical at any level is 1×. §2.4's finding: Common Lv 40 2× T2 on a Legendary 14,000 HP takes 3 hits with average 6,400 (2.19 rounds up), and a Legendary 0.5× T2 on a Common at 2,800 takes 3 hits (2.86). §6.2's "add 5 % average": over 100,000 seeded rolls the mean is within 1 % of base × 1.05, crit rate within 0.5 points of 10 %, and variance stays in 900..1100. Exactly two draws per call, pinned with a counting `Rng`.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- matrix moves damage` — expected: FAIL.
-- [ ] **Step 3: Implement.** All integer: `floor(atk × multPct × em2 × critNum × var / (100 × 2 × 2 × 1000))`, with `em2` = ElementMult × 2 and `critNum` 3 or 2. Max product about 1.2e10, so safe in a double. Names per R67. The old `STRIKE`, `powerPct` and `damage` go when Task 2 replaces their callers; keep them exported until then.
-- [ ] **Step 4: Run** `pnpm -r typecheck` and game-core tests — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): §2.2 matrix pinned, §6.1 move kit, §6.2 damage in integers`
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- matrix moves damage` — expected: FAIL.
+- [x] **Step 3: Implement.** All integer: `floor(atk × multPct × em2 × critNum × var / (100 × 2 × 2 × 1000))`, with `em2` = ElementMult × 2 and `critNum` 3 or 2. Max product about 1.2e10, so safe in a double. Names per R67. The old `STRIKE`, `powerPct` and `damage` go when Task 2 replaces their callers; keep them exported until then.
+- [x] **Step 4: Run** `pnpm -r typecheck` and game-core tests — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): §2.2 matrix pinned, §6.1 move kit, §6.2 damage in integers`
 
 ---
 
@@ -168,7 +168,7 @@ export function battlePreview(attacker, defender, moves, rng, c): { state: Battl
 ```
 - PvP keeps full HP and its offers. Bastion, energy and the rest are M6. `aiFallback` and `attackerAi` go.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - Turns: attacker moves first; turns alternate; an attack or a swap is one turn; a KO replacement isn't (R63). After turn 30 with both sides alive, the defender wins with `turns: 30`. A KO'd active's owner replaces before anything else, including when it's about to be their turn; the attacker's replacement arrives as `{ kind: 'replace' }`. `replace` to a KO'd or active slot is illegal. `swap` when no bench is alive is illegal. Battle ends when a side has none alive.
   - Tier 3 (R64): using T3 makes it illegal on that dragon's next action; another move clears it; swapping out clears it; a fresh entrant can use it. Level-locked moves are illegal.
   - Immune: a Terra Basic against a Terra Basic can only hurt with Physical; a battle of two mirror L1 teams still ends. Swap loops by both sides reach turn 30 and the defender wins (Review Focus 4).
@@ -176,10 +176,10 @@ export function battlePreview(attacker, defender, moves, rng, c): { state: Battl
   - AI per §6.4 and R66: never a 0× move when another exists; with a seeded `Rng` picks highest expected damage 80 % ± 2 of 10,000 trials, respecting the T3 cooldown; swaps only if every element move is 0.5× or worse and a bench dragon has a 2× move, Physical not counting; replaces with the bench dragon that has the best multiplier against the opponent's active, ties lowest slot (R65).
   - Review Focus 1: for 300 seeds and a random legal player, `simulateBattle` and step-by-step `battlePreview` give deep-equal outcomes and logs. A short list: `MISSING_MOVES`. An illegal move: `ILLEGAL_MOVE` with its index. Trailing moves after the end are ignored.
   - PvP: a forfeit stays a loss with its trophy change (existing tests re-aimed). Shared zod refuses `{ kind: 'attack', move: 4 }`, `{ kind: 'swap', to: 3 }`, `{ kind: 'nope' }`, and lists over 45 moves.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- battle` — expected: FAIL.
-- [ ] **Step 3: Implement.** `step` is pure and returns a new state. `simulateBattle` and `battlePreview` both only call `step` and `runDefender`. `apps/web/src/state/battle.ts` and `BattlePanel` move to the new moves with plain buttons: a full battle screen comes in Task 8. PvE still runs through the old `pveBattle` handler with the new simulator until Task 4, with `aiFallback` replaced by: the AI's `aiChoice` plays for a missing attacker move, in that handler only.
-- [ ] **Step 4: Run** `pnpm -r typecheck`, every package's tests, and e2e via the temporary config — expected: PASS.
-- [ ] **Step 5: Commit** — `feat: alternating 3v3 battle machine with Swap, KO replacement and §6.4 AI`
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- battle` — expected: FAIL.
+- [x] **Step 3: Implement.** `step` is pure and returns a new state. `simulateBattle` and `battlePreview` both only call `step` and `runDefender`. `apps/web/src/state/battle.ts` and `BattlePanel` move to the new moves with plain buttons: a full battle screen comes in Task 8. PvE still runs through the old `pveBattle` handler with the new simulator until Task 4, with `aiFallback` replaced by: the AI's `aiChoice` plays for a missing attacker move, in that handler only.
+- [x] **Step 4: Run** `pnpm -r typecheck`, every package's tests, and e2e via the temporary config — expected: PASS.
+- [x] **Step 5: Commit** — `feat: alternating 3v3 battle machine with Swap, KO replacement and §6.4 AI`
 
 ---
 
@@ -207,7 +207,7 @@ export function nodeLocked(s: PlayerState, chapter: number, node: number): 'LEVE
 export function starsFor(won: boolean, attackerKos: number, turns: number): 0 | 1 | 2 | 3
 ```
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - The §6.3 table literal, all 10 rows: Terra Wilds L1–4 Common, PL 4, counters Metal and War; Flame Peaks 3–7 Common, PL 5, Terra, Sea; Sea Depths 6–10 Common/Uncommon, PL 6, Nature, Electric; Nature Grove 9–13 Common/Uncommon, PL 8, Flame, Ice; Electric Storm 12–16 Uncommon/Rare, PL 10, Terra, Light; Ice Wastes 15–20 Uncommon/Rare, PL 13, Flame, Metal; Metal Forge 19–24 Rare, PL 16, Electric, Dark; Dark Hollow 23–29 Rare/Epic, PL 19, Light, War; Light Sanctum 28–34 Epic, PL 23, Nature, Dark; War Citadel 33–40 Epic, Legendary Boss, PL 28, Sea, Ice. Each row's `counters` equals that element's weaknesses in §2.1. `unlockPl('trial:n')` matches; `trial:1` equals `unlockPl('pve')`.
   - `nodeLevel`: `min + floor((max − min) × (node − 1) / 9)`: Ch 1 node 1 L1, node 10 L4; Ch 10 node 10 L40.
   - `nodeTeam` for every node of every chapter: 3 specs of known species, the same on repeat; level is `nodeLevel`; slots 0 and 1 have the chapter's primary; slot 2 is a wildcard with another primary, so exactly 10 of 30 per chapter are off-element; a wildcard's primary deals 2× to one of the chapter's counters, so one counter can't sweep; rarity per R72 (two rarities: nodes 1–5 lower, 6–10 upper). Boss node's slot 0 has the Boss rarity. Per Q4 (a): Ch 9's slots 0 and 1 are Light Rares and its wildcards Epics. Per Q5 (a): Ch 10's Boss is `trial-champion` (War/Metal, rarity legendary, not a breed result: not in any pool). Catalog count 107.
@@ -215,10 +215,10 @@ export function starsFor(won: boolean, attackerKos: number, turns: number): 0 | 
   - `starsFor`: loss 0; win with a KO 1; no KOs at 9 turns 2; no KOs at 8 turns 3; a KO at 5 turns 1 (per Q2 (a)).
   - `nodeLocked`: Ch 2 at PL 4 `LEVEL`; Ch 2 at PL 5 with Ch 1's Boss unbeaten `PREVIOUS`; node 2 before node 1 `PREVIOUS`; replaying a cleared node `null` (R71).
   - The level-up list reads `Elemental Trials: Flame Peaks` for `trial:n`; no raw keys.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- trials` — expected: FAIL.
-- [ ] **Step 3: Implement.** Wildcards rotate by node through the elements strong against either counter, excluding the chapter's, and only those with a species at that node's rarity. A chapter whose top rarity has one on-element species uses it twice (Dark-Terra, War-Sea). Pick species by sorted id from a seeded `createRng(chapter × 100 + node)`, and never a Legendary except a Boss. `nodeTeam` is pure data: it doesn't touch the action's `Rng`.
-- [ ] **Step 4: Run** `pnpm -r typecheck` and game-core and web tests — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(game-core): §6.3 Trials: chapters, enemies, rewards and stars`
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- trials` — expected: FAIL.
+- [x] **Step 3: Implement.** Wildcards rotate by node through the elements strong against either counter, excluding the chapter's, and only those with a species at that node's rarity. A chapter whose top rarity has one on-element species uses it twice (Dark-Terra, War-Sea). Pick species by sorted id from a seeded `createRng(chapter × 100 + node)`, and never a Legendary except a Boss. `nodeTeam` is pure data: it doesn't touch the action's `Rng`.
+- [x] **Step 4: Run** `pnpm -r typecheck` and game-core and web tests — expected: PASS.
+- [x] **Step 5: Commit** — `feat(game-core): §6.3 Trials: chapters, enemies, rewards and stars`
 
 ---
 
@@ -226,7 +226,7 @@ export function starsFor(won: boolean, attackerKos: number, turns: number): 0 | 
 
 **Files:**
 - Create: `packages/game-core/src/fatigue.ts`, `src/actions/trial-actions.ts`, `test/fatigue.test.ts`, `test/trial-actions.test.ts`, `apps/server/src/routes/pve.ts`, `apps/server/test/trials.test.ts`, `apps/web/src/panels/TrialsPanel.tsx`
-- Modify: `src/state.ts` (`STATE_VERSION` 10), `src/actions/types.ts`, `actions/validate.ts`, `actions/apply.ts`, `actions/battle-actions.ts`, `actions/island-actions.ts` (`sellDragon`), `src/store.ts`, `actions/economy-actions.ts`, `src/data/trials.ts`, `packages/shared/src/actions.ts`, `packages/shared/src/api.ts`, `apps/server/src/app.ts`, `apps/server/src/services/actions.ts`, `apps/web/src/state/battle.ts`, `apps/web/src/panels/BattleHub.tsx`, `panels/PanelHost.tsx`, `api/errors.ts`, `apps/web/e2e/battle.spec.ts`
+- Modify: `src/state.ts` (`STATE_VERSION` 11; Task 3 took 10 for `pve.stars`), `src/actions/types.ts`, `actions/validate.ts`, `actions/apply.ts`, `actions/battle-actions.ts`, `actions/island-actions.ts` (`sellDragon`), `src/store.ts`, `actions/economy-actions.ts`, `src/data/trials.ts`, `packages/shared/src/actions.ts`, `packages/shared/src/api.ts`, `apps/server/src/app.ts`, `apps/server/src/services/actions.ts`, `apps/web/src/state/battle.ts`, `apps/web/src/panels/BattleHub.tsx`, `panels/PanelHost.tsx`, `api/errors.ts`, `apps/web/e2e/battle.spec.ts`
 - Delete: `src/pve.ts` (PvP constants move to `src/data/pvp.ts`), `apps/web/src/panels/PvePanel.tsx`, `test/pve.test.ts`
 
 **Interfaces:**
@@ -261,7 +261,7 @@ export function afterBattle(d: Dragon, hp: number, c: Catalog, nowMs: number): D
 ```
 - `finishTrial`'s RNG is seeded by that same label, in `services/actions.ts`, as `pvpBattle` is from its offer.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - Fatigue on a Common Lv 40, 8,000 HP. `hp: 1`, Flash-14: 481 after 1 minute; full after 17 minutes; Flash-28: 321 after 1 minute. 2,000 HP fights (25 %); 1,999 is `DRAGON_TIRED`. `atMs` in the future reads no more than `hp`, and never less (clock back). Level-up while tired: HP is unchanged, max rises (R68). `afterBattle`: 0 becomes 1 HP; max clears `fatigue`.
   - `startTrial`: `LEVEL_TOO_LOW`, `STAGE_LOCKED` for a locked node, `INVALID_TEAM` for fewer than 3 or duplicates, `DRAGON_TIRED`, `TRIAL_ACTIVE` when one is running, `DAILY_CAP_REACHED` at 6th replay of a node in a game day. A refusal changes nothing. Success stores `active` with specs including HP and level at that moment, and counts a replay now. The replay counter rolls on a new game day (`ctx.day`). 5 replays of node A don't touch node B's count.
   - `finishTrial`: re-simulates from `active`, ignoring later level or HP changes. Win: rewards per `nodeRewards`, first clear on first ever win, stars kept at best, `active: null`, `battles` + 1, HP written back. Replays: 50 %, no XP. A loss pays nothing but carries HP. A short or illegal list is a loss with the whole team on 1 HP (R70). `NO_ACTIVE_TRIAL` with none. XP goes through `addXp` with `xpMult` (Flash-14 Ch 1 node 1: 240), and above the day's limit banks. Gold and Food are flat (R73).
@@ -271,10 +271,10 @@ export function afterBattle(d: Dragon, hp: number, c: Catalog, nowMs: number): D
   - Server, real path (`trials.test.ts`): `GET /pve/seed` 409 with no active Trial; after `startTrial` it returns a seed that changes with `battles` and never for another player; `finishTrial` on the revealed seed gives exactly the client-side `simulateBattle` outcome; replaying a `finishTrial` `actionId` pays once; replaying `abandonTrial` once; a second start refused (Review Focus 2).
   - Shared zod: `chapter` 1..10, `node` 1..10, integer; refuses 11, 0, 1.5.
   - Web: `TrialsPanel` lists the 10 chapters with theme, PL and stars; nodes with level, reward and lock reason; team picker shows HP %; `Resting: 12 %` is disabled; `Heal all · $0.05`; `Need 3 dragons`. `messageFor` covers the new errors.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- fatigue trial-actions` — expected: FAIL.
-- [ ] **Step 3: Implement.** `useBattle`'s PvE path: `startTrial`, then `GET /pve/seed`, then local play with `battlePreview`, then `finishTrial` when `done`. Draft moves stay in `localStorage` by `active.index`, so a reload resumes. If `/me` has an `active` on load, the client offers `Resume` or `Abandon`.
-- [ ] **Step 4: Run** `pnpm -r typecheck`, every package's tests, and e2e via the temporary config — expected: PASS.
-- [ ] **Step 5: Commit** — `feat: Trials with fatigue, a seed revealed after start, and heal-all`
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- fatigue trial-actions` — expected: FAIL.
+- [x] **Step 3: Implement.** `useBattle`'s PvE path: `startTrial`, then `GET /pve/seed`, then local play with `battlePreview`, then `finishTrial` when `done`. Draft moves stay in `localStorage` by `active.index`, so a reload resumes. If `/me` has an `active` on load, the client offers `Resume` or `Abandon`.
+- [x] **Step 4: Run** `pnpm -r typecheck`, every package's tests, and e2e via the temporary config — expected: PASS.
+- [x] **Step 5: Commit** — `feat: Trials with fatigue, a seed revealed after start, and heal-all`
 
 ---
 
@@ -292,11 +292,11 @@ export const BOSS_EGGS: Readonly<Record<number, Rarity>>   // 5: 'uncommon', 7: 
 export const TRIAL_CHAMPION_ID = 'trial-champion'
 ```
 
-- [ ] **Step 1: Write the failing tests.** First clear of each Boss, literal (R75): Ch 1 and 2: 15 min × 2; Ch 3: 15 min × 3; Ch 4: 1 h × 3; Ch 5 and 6: 1 h × 4; Ch 7: 3 h × 5; none on Ch 8–10. Replays never pay them. They add to `speedUps`, and `useSpeedUp` spends them. Ch 5's egg is an Uncommon with primary Electric, Ch 7's a Rare with primary Metal, chosen by the action's `Rng`, deterministic on replay. It enters the Hatchery with its §3.5 hatch time ÷ preset, not `xpFree`, and a full Hatchery takes it above capacity, so it's never lost and new eggs wait (R76). Ch 10's first Boss clear gives one `trial-champion` at Lv 1 waiting in the Hatchery with no home, per Q5 (a), added to `discovered` on delivery; it needs a habitat of its elements like any hatchling; never a second. A whole chapter at 3 stars: `chestPulls` + 1 and the chapter in `starredChapters`, once, including when the 30th star comes on a replay. Ch 8–10 clears pay no $DRIS in this milestone (R77). `BattleResult` lists stars, Gold, Food, XP, tokens, egg and `Dragon Chest pull saved`.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- trial-actions` — expected: FAIL.
-- [ ] **Step 3: Implement.** Roll drops in `finishTrial` after the battle, so the sim's draw order is unaffected. `chestPulls` is shown in `SpeedUpsRow`'s Settings section beside tokens; M8 spends it.
-- [ ] **Step 4: Run** `pnpm -r typecheck`, game-core and web tests — expected: PASS.
-- [ ] **Step 5: Commit** — `feat: Boss tokens, eggs, Trial Champion and saved chest pulls`
+- [x] **Step 1: Write the failing tests.** First clear of each Boss, literal (R75): Ch 1 and 2: 15 min × 2; Ch 3: 15 min × 3; Ch 4: 1 h × 3; Ch 5 and 6: 1 h × 4; Ch 7: 3 h × 5; none on Ch 8–10. Replays never pay them. They add to `speedUps`, and `useSpeedUp` spends them. Ch 5's egg is an Uncommon with primary Electric, Ch 7's a Rare with primary Metal, chosen by the action's `Rng`, deterministic on replay. It enters the Hatchery with its §3.5 hatch time ÷ preset, not `xpFree`, and a full Hatchery takes it above capacity, so it's never lost and new eggs wait (R76). Ch 10's first Boss clear gives one `trial-champion` at Lv 1 waiting in the Hatchery with no home, per Q5 (a), added to `discovered` on delivery; it needs a habitat of its elements like any hatchling; never a second. A whole chapter at 3 stars: `chestPulls` + 1 and the chapter in `starredChapters`, once, including when the 30th star comes on a replay. Ch 8–10 clears pay no $DRIS in this milestone (R77). `BattleResult` lists stars, Gold, Food, XP, tokens, egg and `Dragon Chest pull saved`.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- trial-actions` — expected: FAIL.
+- [x] **Step 3: Implement.** Roll drops in `finishTrial` after the battle, so the sim's draw order is unaffected. `chestPulls` is shown in `SpeedUpsRow`'s Settings section beside tokens; M8 spends it.
+- [x] **Step 4: Run** `pnpm -r typecheck`, game-core and web tests — expected: PASS.
+- [x] **Step 5: Commit** — `feat: Boss tokens, eggs, Trial Champion and saved chest pulls`
 
 ---
 
@@ -310,15 +310,15 @@ export const TRIAL_CHAMPION_ID = 'trial-champion'
 - Consumes: `aiChoice`, `startTrial`, `finishTrial`, `nodeLocked`.
 - Produces: nothing for later tasks. Literals pinned here are measured, then reported.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - Bots gain `fightTrials`: when a team can fight and a node is open, start it, play by `aiChoice`, finish it. Casual and non-stop bots on Flash-14 and Flash-28.
   - Levels: `endOfDay` stays `[12, 18, 25, 30, 32, 33, 34, 36, 37, 38, 39, 40]` for Flash-14 Days 1–12 for every bot, and Flash-28 stays on its rows. If it moves, stop and report; don't re-pin. XP never lost: `cumulativeXp(level) + xp` matches the sum of awards.
   - All 14 Goals still finish with no grants on both presets.
   - `trials-balance.test.ts`, each as a measured literal: the first day each chapter's Boss falls for the casual bot, with its breeding and feeding only; that every chapter's Boss is beatable by a counter team at the chapter's top level and top rarity with an AI player over 100 seeds, at a win rate above 50 %; share of 2 and 3 stars at equal level, and at +5 levels (answers Q2's effect); turns per battle against §6.2's 10–16 and 1v1 about 2; that Trials' share of Gold earned is reported against §5.7's 3 %, not pinned; minutes of rest per battle against §6.3's fatigue; Chapter 1 winnable by a PL 4 starter team of Terra, Flame and the first hybrid.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- xp-simulation trials-balance` — expected: FAIL.
-- [ ] **Step 3: Implement** the bot change. Keep each bot under `BOT_TIMEOUT_MS`. If a chapter can't be beaten, or turns fall outside 8–20 on average, report it with numbers rather than tuning: all values are the GDD's.
-- [ ] **Step 4: Run** `pnpm --filter @wyrmhaven/game-core test` — expected: PASS.
-- [ ] **Step 5: Commit** — `test(game-core): bots fight Trials; levels hold; chapter balance measured`
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/game-core test -- xp-simulation trials-balance` — expected: FAIL.
+- [x] **Step 3: Implement** the bot change. Keep each bot under `BOT_TIMEOUT_MS`. If a chapter can't be beaten, or turns fall outside 8–20 on average, report it with numbers rather than tuning: all values are the GDD's.
+- [x] **Step 4: Run** `pnpm --filter @wyrmhaven/game-core test` — expected: PASS.
+- [x] **Step 5: Commit** — `test(game-core): bots fight Trials; levels hold; chapter balance measured`
 
 ---
 
@@ -331,11 +331,11 @@ export const TRIAL_CHAMPION_ID = 'trial-champion'
 - Consumes: `TRIAL_CHAPTERS`, `nodeRewards`, `nodeLocked`, `currentHp`, `canFight`.
 - Produces: `TrialsPanel` props `{ onFight(chapter, node, team), onClose }`.
 
-- [ ] **Step 1: Write the failing tests.** Chapters as a list showing theme, element icon, PL lock, `n / 30` stars; a chapter opens to 10 nodes with Boss marked, level, enemy element icons including the wildcard, stars and reward. The first open node is highlighted. `Replays left 3` per node. Team picker: 3 slots in order (first is lead), cards with HP bar, element and a 44 px tap target, counter hint against the node, default the last used team. HP ticks with the clock. `Heal all · $0.05` is disabled with `Everyone is healthy`. A resume banner while `active` exists. A shortcut on the HUD when a Boss is available isn't added: Battle stays the one entry. Attention items are unchanged.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- trials` — expected: FAIL.
-- [ ] **Step 3: Implement.** Read screenshots at 390×844 and 1440×900 before committing.
-- [ ] **Step 4: Run** `pnpm -r typecheck`, web tests — expected: PASS.
-- [ ] **Step 5: Commit** — `feat(web): Elemental Trials screen`
+- [x] **Step 1: Write the failing tests.** Chapters as a list showing theme, element icon, PL lock, `n / 30` stars; a chapter opens to 10 nodes with Boss marked, level, enemy element icons including the wildcard, stars and reward. The first open node is highlighted. `Replays left 3` per node. Team picker: 3 slots in order (first is lead), cards with HP bar, element and a 44 px tap target, counter hint against the node, default the last used team. HP ticks with the clock. `Heal all · $0.05` is disabled with `Everyone is healthy`. A resume banner while `active` exists. A shortcut on the HUD when a Boss is available isn't added: Battle stays the one entry. Attention items are unchanged.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- trials` — expected: FAIL.
+- [x] **Step 3: Implement.** Read screenshots at 390×844 and 1440×900 before committing.
+- [x] **Step 4: Run** `pnpm -r typecheck`, web tests — expected: PASS.
+- [x] **Step 5: Commit** — `feat(web): Elemental Trials screen`
 
 ---
 
@@ -348,16 +348,16 @@ export const TRIAL_CHAMPION_ID = 'trial-champion'
 - Consumes: `BattleState`, `legalMoves`, `battlePreview`.
 - Produces: `moveCard(b, m): { name, element, tier, hint: '2x' | '1x' | '0.5x' | 'IMMUNE', disabledReason: string | null }`, pure, in `state/battle.ts`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - Layout, portrait (R80): enemy active upper right, your active lower left, each with name, level, HP bar and number, bench pips showing alive, KO'd, or hurt; a 2×2 grid of move buttons at the bottom, at least 44 px, then `Swap`; `Turn 7 / 30`, and in a Trial the star goal `3★: 8 turns, no KOs`. On desktop the same column, centred.
   - `moveCard`: name, element icon, tier, hint against the enemy's primary; `IMMUNE` for 0×; Physical `1x`; `Rests this turn` on T3 cooldown; `Lv 20` when locked; a locked or resting move is disabled, an immune one isn't.
   - Swap opens the bench; a KO opens the same list, with no way out (`replace`). Enemy turns play automatically after yours, with a short delay.
   - Scene: damage numbers, crit text, `IMMUNE` text with no damage shown, `2x` and `0.5x` tints, KO fade, swap slide; reduced motion jumps to the result. Dragons face each other using `dragonLook`. Backdrop `battle.backdrop.<element>` by chapter, a colour fill without art. Boss marked. Exit shows `Abandon?` with the cost: team falls to 1 HP.
   - e2e: a real Trial by clicks at 390×844: start, attack, swap, take a KO and replace, win, result shows stars. Same at 1440×900 for PvP.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- battle` — expected: FAIL.
-- [ ] **Step 3: Implement.** The stage becomes portrait, 360×420, whole-number zoom, above the React controls. `integerZoom` follows it, and `BattleScene` keeps its `BATTLE` constant in `layout.ts`. The level-up screen waits for the end, as today.
-- [ ] **Step 4: Run** `pnpm -r typecheck`, web tests, e2e via the temporary config — expected: PASS. Read screenshots at 390×844 and 1440×900.
-- [ ] **Step 5: Commit** — `feat(web): portrait battle screen with moves, Swap, KO replacement and fx`
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- battle` — expected: FAIL.
+- [x] **Step 3: Implement.** The stage becomes portrait, 360×420, whole-number zoom, above the React controls. `integerZoom` follows it, and `BattleScene` keeps its `BATTLE` constant in `layout.ts`. The level-up screen waits for the end, as today.
+- [x] **Step 4: Run** `pnpm -r typecheck`, web tests, e2e via the temporary config — expected: PASS. Read screenshots at 390×844 and 1440×900.
+- [x] **Step 5: Commit** — `feat(web): portrait battle screen with moves, Swap, KO replacement and fx`
 
 ---
 
@@ -371,24 +371,24 @@ export const TRIAL_CHAMPION_ID = 'trial-champion'
 - Consumes: keys from Tasks 7 and 8.
 - Produces: the list, and code reading each key with a fallback.
 
-- [ ] **Step 1: Write the failing tests.** Each new key has a fallback and is read when the manifest has it. A manifest with none still plays a whole battle.
-- [ ] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- art` — expected: FAIL.
-- [ ] **Step 3: Implement plumbing, and write the list** in the M4 list's format, written so an art thread with no other context can work from it, on its own branch from `gdd-m5`, committing only PNGs, the manifest, `apps/web/art/prompts.md` and `docs/art`. Fix any size against the code before listing it:
+- [x] **Step 1: Write the failing tests.** Each new key has a fallback and is read when the manifest has it. A manifest with none still plays a whole battle.
+- [x] **Step 2: Run** `pnpm --filter @wyrmhaven/web test -- art` — expected: FAIL.
+- [x] **Step 3: Implement plumbing, and write the list** in the M4 list's format, written so an art thread with no other context can work from it, on its own branch from `gdd-m5`, committing only PNGs, the manifest, `apps/web/art/prompts.md` and `docs/art`. Fix any size against the code before listing it:
   - **Backdrops.** `battle.backdrop.<element>` × 10, 360×420 portrait, the chapter's theme, with space for dragons at the two standing spots.
   - **Move fx.** `fx.move.<element>` × 10 and `fx.move.physical`, one-shot, 64×64, with a stronger look possible by scale for Tier 3. `fx.hit`, `fx.crit`, `fx.immune`, `fx.ko`, `fx.swap`.
   - **Boss.** `battle.boss.marker` (crown, 16×16). `dragon.trial-champion`, `juvenile.trial-champion` and its egg per Q5, in the size of existing dragon sheets, an original design.
   - **Battle UI.** `ui.battle.platform` 64×32, `ui.battle.hpFrame`, `ui.battle.moveButton`, `ui.battle.swap`, `ui.star`, `ui.star.empty`, `ui.battle.turn`. Tier pips `ui.tier.1..3`.
   - **Trials.** `trial.chapter.<element>` × 10, 64×64 chapter cards, and `trial.node`, `trial.node.boss`, `trial.node.locked`.
   - Budget table with counts against the PixelLab balance (about 1,027 left), priority order: backdrops for Chapters 1–3, move fx, UI, Boss, the rest.
-- [ ] **Step 4: Run** web tests — expected: PASS.
-- [ ] **Step 5: Commit** — `docs(art): M5 art list; every key read with a fallback`
+- [x] **Step 4: Run** web tests — expected: PASS.
+- [x] **Step 5: Commit** — `docs(art): M5 art list; every key read with a fallback`
 
 ---
 
 ### Task 10: M5 verification and report
 
-- [ ] **Step 1: `pnpm -r typecheck`, each package's tests, and e2e** — expected: green; record counts.
-- [ ] **Step 2: Playtest** with `pnpm playtest` through the real UI, with a throwaway Playwright spec (deleted after), at 390×844 and 1440×900:
+- [x] **Step 1: `pnpm -r typecheck`, each package's tests, and e2e** — expected: green; record counts.
+- [x] **Step 2: Playtest** with `pnpm playtest` through the real UI, with a throwaway Playwright spec (deleted after), at 390×844 and 1440×900:
   - Fresh account to PL 4: Trials opens, Chapter 1 node 1 with a real team. Attack, 2×, 0.5×, `IMMUNE`, a crit, Swap, a KO and its replacement, T3's cooldown at Lv 20 with a grant. Compare HP after each turn with the server's result.
   - Fatigue: finish hurt, reopen: HP carried and rising at 6 % a minute by clock; a KO'd dragon at 1 HP refused until 25 %; Heal all at $0.05 with $DRIS; Flash-28 in a unit test only.
   - Stars: 1, 2 and 3 on one node, with a grant for over-levelling; replay at 50 %, no XP, 5 a day and the 6th refused; a new game day by clock.
@@ -396,9 +396,9 @@ export const TRIAL_CHAMPION_ID = 'trial-champion'
   - Abandon mid-battle: team at 1 HP. Reload mid-battle: `Resume` continues on the same seed. Two tabs.
   - PvP still works: one battle by clicks.
   - Frame time during a battle at 4× CPU throttle. Reduced motion. No page errors or unexpected 4xx.
-- [ ] **Step 3: Take** `docs/art/m5-battle.png`, `m5-trials.png`, `m5-swap.png`, `m5-result.png` at 390×844 and `m5-desktop.png` at 1440×900; read each to check it shows what its name says.
-- [ ] **Step 4: Write `docs/superpowers/reports/2026-10-31-m5-report.md`**: what works, what doesn't, what couldn't be verified, test counts, Task 6's measured balance, rulings made, deferred items, and the M4 economy questions restated with any new numbers.
-- [ ] **Step 5: Commit** — `docs: M5 report and playtest screenshots`
+- [x] **Step 3: Take** `docs/art/m5-battle.png`, `m5-trials.png`, `m5-swap.png`, `m5-result.png` at 390×844 and `m5-desktop.png` at 1440×900; read each to check it shows what its name says.
+- [x] **Step 4: Write `docs/superpowers/reports/2026-10-31-m5-report.md`**: what works, what doesn't, what couldn't be verified, test counts, Task 6's measured balance, rulings made, deferred items, and the M4 economy questions restated with any new numbers.
+- [x] **Step 5: Commit** — `docs: M5 report and playtest screenshots`
 
 ---
 
