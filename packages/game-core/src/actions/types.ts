@@ -46,8 +46,9 @@ export type Action =
    */
   | { type: 'pvpBattle'; team: TeamIds; opponent: OpponentSnapshot; moves: PlayerMove[] }
   | { type: 'startTrial'; chapter: number; node: number; team: TeamIds }
-  | { type: 'finishTrial'; moves: PlayerMove[] }
-  | { type: 'abandonTrial' }
+  /** `index` is the `active.index` the caller believes it settles; another is NO_ACTIVE_TRIAL, so a stale tab can't forfeit the next Trial. */
+  | { type: 'finishTrial'; moves: PlayerMove[]; index?: number }
+  | { type: 'abandonTrial'; index?: number }
 
 export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'INSUFFICIENT_GOLD' | 'INSUFFICIENT_FOOD' | 'MAX_LEVEL' | 'LEVEL_CAP'
   | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'OPPOSITE_BASICS' | 'NO_FREE_BREEDER' | 'BREEDER_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'

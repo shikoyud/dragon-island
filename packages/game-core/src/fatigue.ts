@@ -2,7 +2,7 @@
 import { combatStats } from './battle/stats'
 import type { Catalog } from './catalog'
 import type { Preset } from './data/presets'
-import { MIN_FIGHT_PCT } from './data/trials'
+import { MIN_FIGHT_PCT, TRIAL_FLOOR_HP } from './data/trials'
 import type { Dragon, PlayerState } from './state'
 
 const MS_PER_MINUTE = 60_000
@@ -25,9 +25,9 @@ export function canFight(d: Dragon, c: Catalog, nowMs: number, preset: Preset): 
 
 const rested = ({ fatigue: _, ...d }: Dragon): Dragon => d
 
-/** HP after a battle: a KO returns at 1 HP, max clears the record. */
+/** HP after a battle: a KO returns at TRIAL_FLOOR_HP, max clears the record. */
 export function afterBattle(d: Dragon, hp: number, c: Catalog, nowMs: number): Dragon {
-  const kept = Math.max(1, hp)
+  const kept = Math.max(TRIAL_FLOOR_HP, hp)
   return kept >= maxHp(d, c) ? rested(d) : { ...d, fatigue: { hp: kept, atMs: nowMs } }
 }
 

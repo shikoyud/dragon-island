@@ -100,6 +100,14 @@ describe('malformed battle payloads', () => {
     err(raw(s8, { type: 'pvpBattle', team: TEAM, opponent: { ...bot, trophies: 'lots' }, moves: AI }), 'INVALID_ACTION')
     err(raw(s8, { type: 'setDefenceTeam', dragonIds: ['d1', 'd2', 3] }), 'INVALID_ACTION')
   })
+
+  it('refuse a snapshot that carries start HP: it would fight hurt, or crash initBattle on 0', () => {
+    for (const hp of [1, 0, -5, 999_999, 'full', null]) {
+      const team = bot.team.map((d, i) => (i === 1 ? { ...d, hp } : d))
+      err(raw(s8, { type: 'pvpBattle', team: TEAM, opponent: { ...bot, team }, moves: AI }), 'INVALID_ACTION')
+    }
+    expect(ok(raw(s8, { type: 'pvpBattle', team: TEAM, opponent: bot, moves: AI })).trophies).toBeDefined()
+  })
 })
 
 it('never mutates inputs', () => {

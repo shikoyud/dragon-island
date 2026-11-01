@@ -94,8 +94,8 @@ const common = [
   z.object({ type: z.literal('useSpeedUp'), token: z.enum(['15m', '1h', '3h']), target: z.enum(['breeder', 'hatchery', 'farm', 'construction']), index }),
   z.object({ type: z.literal('setDefenceTeam'), dragonIds: teamIdsSchema }),
   z.object({ type: z.literal('startTrial'), chapter: z.number().int().min(1).max(TRIAL_CHAPTERS.length), node: z.number().int().min(1).max(NODES_PER_CHAPTER), team: teamIdsSchema }),
-  z.object({ type: z.literal('finishTrial'), moves: movesSchema }),
-  z.object({ type: z.literal('abandonTrial') }),
+  z.object({ type: z.literal('finishTrial'), moves: movesSchema, index: index.optional() }),
+  z.object({ type: z.literal('abandonTrial'), index: index.optional() }),
 ] as const
 
 /** The full game-core Action, including the server-built pvpBattle opponent. */

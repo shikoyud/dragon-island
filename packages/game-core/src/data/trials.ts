@@ -56,6 +56,8 @@ export const THREE_STAR_TURNS = 8
 /** §6.3 node rewards, first clear: Gold = 1,000 x ch², Food = 50 x ch², XP = 20 x ch (A19). */
 export const TRIAL_REWARD = { goldPerChSq: 1000, foodPerChSq: 50, xpPerCh: 20 }
 
+/** R70, R68: the HP a forfeit leaves each dragon on, and the least a KO'd dragon returns with. */
+export const TRIAL_FLOOR_HP = 1
 /** §6.3 "need 25% to fight" (R68: hp x 4 >= max). The regen rate is the preset's `healPctPerMin`. */
 export const MIN_FIGHT_PCT = 25
 /** §6.3, §7.4: a full heal-all costs $0.05 (R78). */

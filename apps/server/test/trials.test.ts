@@ -66,6 +66,8 @@ describe('GET /pve/seed', () => {
     expect((await post(A.token, START)).statusCode).toBe(200)
     expect((await post(B.token, START)).statusCode).toBe(200)
     const first = (await seed(A.token)).json().seedHex as string
+    // The index names the Trial the seed belongs to, so a client can tell it from a later one.
+    expect((await seed(A.token)).json().index).toBe(0)
     expect(first).toBe(battleSeed(await secret(), `pve:${A.playerId}:0`).seedHex)
     expect((await seed(B.token)).json().seedHex).not.toBe(first)
     expect((await seed(A.token)).json().seedHex).toBe(first)
@@ -79,6 +81,49 @@ describe('GET /pve/seed', () => {
     const second = (await seed(A.token)).json().seedHex as string
     expect(second).toBe(battleSeed(await secret(), `pve:${A.playerId}:1`).seedHex)
     expect(second).not.toBe(first)
+    expect((await seed(A.token)).json().index).toBe(1)
+  })
+})
+
+describe('startTrial', () => {
+  it('replaying the same key answers the same and starts one Trial', async () => {
+    const first = await post(A.token, START, 'start-key')
+    const before = await stateOf(A.playerId)
+    const again = await post(A.token, START, 'start-key')
+    expect(first.statusCode).toBe(200)
+    expect(again.statusCode).toBe(200)
+    expect(again.json()).toEqual(first.json())
+    expect(await stateOf(A.playerId)).toEqual(before)
+    const logs = await t.db.select().from(actionLog).where(eq(actionLog.playerId, A.playerId))
+    expect(logs.filter(l => (l.action as { type: string }).type === 'startTrial')).toHaveLength(1)
+  })
+})
+
+describe('a stale tab names its Trial by index', () => {
+  const ABANDON_OR_FINISH = [(i: number) => ({ type: 'abandonTrial', index: i }), (i: number) => ({ type: 'finishTrial', moves: [], index: i })]
+
+  it.each(ABANDON_OR_FINISH.map((make, n) => [n === 0 ? 'abandonTrial' : 'finishTrial', make] as const))(
+    '%s with another index is NO_ACTIVE_TRIAL and settles nothing',
+    async (_name, make) => {
+      await post(A.token, START)
+      const before = await stateOf(A.playerId)
+      const r = await post(A.token, make(before.pve.active!.index + 1))
+      expect(r.statusCode).toBe(422)
+      expect(r.json()).toEqual({ error: 'NO_ACTIVE_TRIAL' })
+      expect(await stateOf(A.playerId)).toEqual(before)
+    },
+  )
+
+  it('the matching index settles, and so does no index at all', async () => {
+    await post(A.token, START)
+    expect((await post(A.token, { type: 'abandonTrial', index: 0 })).statusCode).toBe(200)
+    await setup(A.playerId, { pve: (await stateOf(A.playerId)).pve })
+    expect((await post(A.token, START)).statusCode).toBe(200)
+    expect((await post(A.token, { type: 'abandonTrial' })).statusCode).toBe(200)
+  })
+
+  it('a non-integer or negative index is a wire error', async () => {
+    for (const index of [-1, 1.5, '0']) expect((await post(A.token, { type: 'abandonTrial', index })).statusCode).toBe(400)
   })
 })
 
@@ -173,6 +218,15 @@ describe('Review Focus 2: no free reroll', () => {
 })
 
 describe('heal-all through the store path', () => {
+  it('with no tokens it is a 402 and the fatigue is untouched', async () => {
+    const tired = sea(20, { fatigue: { hp: 1, atMs: 1_000 } })
+    await setup(A.playerId, { dragons: tired })
+    await t.db.update(balances).set({ tokenWei: 0n }).where(eq(balances.playerId, A.playerId))
+    const r = await post(A.token, { type: 'buy', item: { kind: 'healAll' } })
+    expect([r.statusCode, r.json().error]).toEqual([402, 'INSUFFICIENT_TOKENS'])
+    expect((await stateOf(A.playerId)).dragons).toEqual(tired)
+  })
+
   it('charges and clears; refused uncharged with nobody hurt', async () => {
     await t.db.update(balances).set({ tokenWei: 10n * E18 }).where(eq(balances.playerId, A.playerId))
     const bal = async () => (await t.db.select().from(balances).where(eq(balances.playerId, A.playerId)))[0]!.tokenWei

@@ -1,7 +1,7 @@
 // GDD §6.3, A8, R68-R70, R73: a Trial is frozen when it starts, its seed is readable only then, and finishing re-simulates from the snapshot.
 import { simulateBattle } from '../battle/sim'
 import { breedTimerMs } from '../data/breeding-timers'
-import { BOSS_EGGS, BOSS_NODE, BOSS_TOKENS, NODES_PER_CHAPTER, REPLAYS_PER_NODE_PER_DAY, TRIAL_CHAMPION_ID, TRIAL_CHAPTERS } from '../data/trials'
+import { BOSS_EGGS, BOSS_NODE, BOSS_TOKENS, NODES_PER_CHAPTER, REPLAYS_PER_NODE_PER_DAY, TRIAL_CHAMPION_ID, TRIAL_CHAPTERS, TRIAL_FLOOR_HP } from '../data/trials'
 import { afterBattle, canFight, currentHp } from '../fatigue'
 import { addXp } from '../progression'
 import type { ActiveTrial, Dragon, PlayerState } from '../state'
@@ -11,7 +11,6 @@ import { resolveTeam } from './battle-actions'
 import { discover } from './breed-actions'
 import { failure, success, type ActionCtx, type Handler, type TrialResult } from './types'
 
-const FORFEIT_HP = 1
 const NO_REWARD: TrialResult = { won: false, stars: 0, gold: 0, food: 0, xp: 0, first: false }
 
 export const startTrial: Handler<'startTrial'> = (s, a, ctx) => {
@@ -47,12 +46,16 @@ function settle(s: PlayerState, active: ActiveTrial, hp: (slot: number) => numbe
   return { ...s, dragons: s.dragons.map(write), pve: { ...s.pve, active: null, battles: s.pve.battles + 1 } }
 }
 
+/** The Trial in progress, or null if none, or if the caller names another one (a stale tab). */
+const openTrial = (s: PlayerState, index: number | undefined): ActiveTrial | null =>
+  s.pve.active && (index === undefined || index === s.pve.active.index) ? s.pve.active : null
+
 export const finishTrial: Handler<'finishTrial'> = (s, a, ctx) => {
-  const active = s.pve.active
+  const active = openTrial(s, a.index)
   if (!active) return failure('NO_ACTIVE_TRIAL')
   const outcome = simulateBattle(active.specs, nodeTeam(active.chapter, active.node, ctx.catalog), a.moves, ctx.rng, ctx.catalog)
   // R70: a short or illegal list is a loss with the team on 1 HP, or a revealed seed could be rerolled for free.
-  if (!outcome.ok) return success(settle(s, active, () => FORFEIT_HP, ctx), [], undefined, NO_REWARD)
+  if (!outcome.ok) return success(settle(s, active, () => TRIAL_FLOOR_HP, ctx), [], undefined, NO_REWARD)
 
   const settled = settle(s, active, slot => outcome.attacker[slot]!, ctx)
   if (outcome.winner !== 'attacker') return success(settled, [], outcome, NO_REWARD)
@@ -95,15 +98,15 @@ function bossDrops(s: PlayerState, chapter: number, ctx: ActionCtx): { state: Pl
   if (rarity) {
     const element = TRIAL_CHAPTERS[chapter - 1]!.element
     const pool = [...ctx.catalog.species.values()].filter(x => x.rarity === rarity && x.elements[0] === element).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-    const species = pool[ctx.rng.int(pool.length)]
-    if (species) {
-      // R76: it goes in whether or not the Hatchery has room; the slots only hold the eggs a breeder still waits to deliver.
-      const egg = { speciesId: species.id, readyAtMs: ctx.nowMs + breedTimerMs(species.rarity, species.elements, ctx.preset), xpFree: false }
-      state = { ...state, hatchery: [...state.hatchery, egg] }
-      result.egg = { rarity, element }
-    }
+    // A chapter with an egg and nothing to hatch is a data error: throwing keeps it from being dropped without a word.
+    if (pool.length === 0) throw new Error(`bossDrops: no ${rarity} ${element}-primary species for the Chapter ${chapter} egg`)
+    const species = pool[ctx.rng.int(pool.length)]!
+    // R76: it goes in whether or not the Hatchery has room; the slots only hold the eggs a breeder still waits to deliver.
+    const egg = { speciesId: species.id, readyAtMs: ctx.nowMs + breedTimerMs(species.rarity, species.elements, ctx.preset), xpFree: false }
+    state = { ...state, hatchery: [...state.hatchery, egg] }
+    result.egg = { rarity, element }
   }
-  if (TRIAL_CHAPTERS[chapter - 1]!.bossSpecies === TRIAL_CHAMPION_ID &&!state.discovered.includes(TRIAL_CHAMPION_ID)) {
+  if (TRIAL_CHAPTERS[chapter - 1]!.bossSpecies === TRIAL_CHAMPION_ID && !state.discovered.includes(TRIAL_CHAMPION_ID)) {
     const champion: Dragon = { id: `d${state.nextId}`, speciesId: TRIAL_CHAMPION_ID, level: 1, feeds: 0, habitatId: null }
     state = { ...state, dragons: [...state.dragons, champion], discovered: discover(state.discovered, TRIAL_CHAMPION_ID), nextId: state.nextId + 1 }
     result.champion = true
@@ -111,8 +114,8 @@ function bossDrops(s: PlayerState, chapter: number, ctx: ActionCtx): { state: Pl
   return { state, result }
 }
 
-export const abandonTrial: Handler<'abandonTrial'> = (s, _a, ctx) => {
-  const active = s.pve.active
+export const abandonTrial: Handler<'abandonTrial'> = (s, a, ctx) => {
+  const active = openTrial(s, a.index)
   if (!active) return failure('NO_ACTIVE_TRIAL')
-  return success(settle(s, active, () => FORFEIT_HP, ctx))
+  return success(settle(s, active, () => TRIAL_FLOOR_HP, ctx))
 }

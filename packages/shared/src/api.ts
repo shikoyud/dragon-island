@@ -44,7 +44,8 @@ export interface ActionResponse {
 }
 
 /** GET /pve/seed: the active Trial's battle seed (A8); 409 NO_ACTIVE_TRIAL with none. */
-export interface PveSeedResponse { seedHex: `0x${string}` }
+/** The seed of the active Trial, and that Trial's `index`: a client holding another one knows its picture is stale. */
+export interface PveSeedResponse { seedHex: `0x${string}`; index: number }
 
 export interface Offer { offerId: string; opponent: OpponentSnapshot; seedHex: `0x${string}` }
 export interface OffersResponse { offers: Offer[] }

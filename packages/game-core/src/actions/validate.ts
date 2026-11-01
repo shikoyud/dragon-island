@@ -66,9 +66,9 @@ export function isValidAction(a: unknown): a is Action {
     case 'startTrial':
       return isOneTo(x['chapter'], TRIAL_CHAPTERS.length) && isOneTo(x['node'], NODES_PER_CHAPTER) && isTeam(x['team'])
     case 'finishTrial':
-      return isMoves(x['moves'])
+      return isMoves(x['moves']) && isOptionalIndex(x['index'])
     case 'abandonTrial':
-      return true
+      return isOptionalIndex(x['index'])
     default:
       return false
   }
@@ -77,6 +77,8 @@ export function isValidAction(a: unknown): a is Action {
 const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0
 const isSkipTarget = (v: unknown): boolean => ['breeder', 'hatchery', 'farm', 'construction'].includes(v as string)
 const isIndex = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0
+/** `index` names the Trial a tab thinks it is settling; absent is allowed. */
+const isOptionalIndex = (v: unknown): boolean => v === undefined || isIndex(v)
 const isOneTo = (v: unknown, top: number): boolean => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= top
 const isIsland = (v: unknown): boolean => (ISLAND_ORDER as readonly unknown[]).includes(v)
 const isCoord = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 0 && (v as number) < ISLAND_TILES
@@ -123,7 +125,7 @@ function isMovable(v: unknown): boolean {
     default: return false
   }
 }
-const isTeam = (v: unknown): boolean => Array.isArray(v) && v.length === 3 && v.every(isId)
+const isTeam = (v: unknown): boolean => Array.isArray(v) && v.length === TEAM_SIZE && v.every(isId)
 const isLevel = (v: unknown): boolean => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= MAX_DRAGON_LEVEL
 const isSlot = (v: unknown, size: number): boolean => isIndex(v) && (v as number) < size
 const isMove = (v: unknown): boolean => {
@@ -140,9 +142,15 @@ function isOpponent(v: unknown): boolean {
   const team = o['team']
   return (o['playerId'] === null || isId(o['playerId']))
     && Number.isInteger(o['trophies']) && Number.isInteger(o['level'])
-    && Array.isArray(team) && team.length === 3
-    && team.every(d => typeof d === 'object' && d !== null
-      && isId((d as Record<string, unknown>)['speciesId']) && isLevel((d as Record<string, unknown>)['level']))
+    && Array.isArray(team) && team.length === TEAM_SIZE
+    && team.every(isOpponentDragon)
+}
+
+/** A snapshot carries species and level only: HP is the battle's own (a start HP could fight hurt, or crash initBattle on 0). */
+function isOpponentDragon(v: unknown): boolean {
+  if (typeof v !== 'object' || v === null) return false
+  const d = v as Record<string, unknown>
+  return isId(d['speciesId']) && isLevel(d['level']) && !Object.hasOwn(d, 'hp')
 }
 
 function isStoreItem(v: unknown): boolean {

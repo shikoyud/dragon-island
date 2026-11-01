@@ -1,6 +1,7 @@
 import { simulateBattle } from '../battle/sim'
 import type { BattleDragonSpec } from '../battle/stats'
-import { PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL } from '../data/pvp'
+import { TEAM_SIZE } from '../data/battle'
+import { PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL, PVP_WIN_XP } from '../data/pvp'
 import { addXp } from '../progression'
 import type { PlayerState } from '../state'
 import { dayCounterAt } from '../time'
@@ -8,11 +9,9 @@ import { applyTrophies, pvpWinGold, TROPHY } from '../trophy'
 import { earnGold } from '../wallet'
 import { failure, success, type Handler, type TeamIds } from './types'
 
-export const PVP_WIN_XP = 20
-
 /** Three distinct owned dragons at full HP, or null: PvP ignores fatigue (§6.4). */
 export function resolveTeam(s: PlayerState, ids: TeamIds): BattleDragonSpec[] | null {
-  if (new Set(ids).size !== 3) return null
+  if (new Set(ids).size !== TEAM_SIZE) return null
   const team: BattleDragonSpec[] = []
   for (const id of ids) {
     const d = s.dragons.find(x => x.id === id)

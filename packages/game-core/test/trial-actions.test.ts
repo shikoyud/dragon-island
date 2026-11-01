@@ -2,9 +2,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyAction, battlePreview, BOSS_EGGS, BOSS_TOKENS, breedTimerMs, canLiveIn, createRng, currentHp, FLASH_14, FLASH_28, HEAL_ALL_MICRO_USD, hatcherySlots, hatcheryUsed, isValidAction, LAUNCH_CATALOG, legalMoves, levelLimit, maxHp, newPlayer,
-  nodeRewards, nodeTeam, priceMicroUsd, simulateBattle, TRIAL_CHAMPION_ID, xpToNext,
+  nodeRewards, nodeTeam, priceMicroUsd, simulateBattle, TRIAL_CHAMPION_ID, TRIAL_FLOOR_HP, xpToNext,
   type Action, type ActionResult, type ActiveTrial, type BattleDragonSpec, type Dragon, type Habitat, type PlayerMove, type PlayerState, type Preset,
 } from '../src/index'
+import { makeCatalog } from '../src/catalog'
 import { err, ok } from './helpers'
 
 const C = LAUNCH_CATALOG
@@ -299,6 +300,55 @@ describe('abandonTrial', () => {
   })
 })
 
+describe('a stale tab names its Trial (finishTrial and abandonTrial carry the index)', () => {
+  const settled = (index?: number): Action[] => [
+    { type: 'abandonTrial', ...(index === undefined ? {} : { index }) },
+    { type: 'finishTrial', moves: [], ...(index === undefined ? {} : { index }) },
+  ]
+
+  it('another Trial index is NO_ACTIVE_TRIAL, and nothing changes', () => {
+    const s = started()
+    const before = JSON.stringify(s)
+    for (const a of settled(activeOf(s).index + 1)) err(run(s, a), 'NO_ACTIVE_TRIAL')
+    for (const a of settled(activeOf(s).index + 5)) err(run(s, a), 'NO_ACTIVE_TRIAL')
+    expect(JSON.stringify(s)).toBe(before)
+  })
+
+  it('the stale tab cannot forfeit the next Trial: Trial 0 settled, Trial 1 started, a tab still holding 0 is turned away', () => {
+    const first = ok(run(started(), { type: 'abandonTrial', index: 0 }, MIN))
+    const rested = { ...first, dragons: first.dragons.map(({ fatigue: _, ...d }) => d) }
+    const second = ok(run(rested, start(), MIN))
+    expect(activeOf(second).index).toBe(1)
+    err(run(second, { type: 'abandonTrial', index: 0 }, MIN), 'NO_ACTIVE_TRIAL')
+    err(run(second, { type: 'finishTrial', moves: [], index: 0 }, MIN), 'NO_ACTIVE_TRIAL')
+    expect(ok(run(second, { type: 'abandonTrial', index: 1 }, MIN)).pve.active).toBeNull()
+  })
+
+  it('the matching index, or none at all, settles as before', () => {
+    const s = started()
+    expect(ok(run(s, { type: 'abandonTrial', index: activeOf(s).index })).pve.active).toBeNull()
+    expect(ok(run(s, { type: 'abandonTrial' })).pve.active).toBeNull()
+    const moves = play(activeOf(s))
+    expect(ok(run(s, { type: 'finishTrial', moves, index: activeOf(s).index })).pve.battles).toBe(1)
+  })
+
+  it('is well-formed only as a non-negative integer when present', () => {
+    for (const index of [-1, 1.5, '0', null, NaN]) {
+      expect(isValidAction({ type: 'abandonTrial', index })).toBe(false)
+      expect(isValidAction({ type: 'finishTrial', moves: [], index })).toBe(false)
+    }
+    expect(isValidAction({ type: 'abandonTrial', index: 0 })).toBe(true)
+    expect(isValidAction({ type: 'finishTrial', moves: [], index: 7 })).toBe(true)
+  })
+})
+
+describe('the floor HP of a forfeit or a KO (R70, R68)', () => {
+  it('is TRIAL_FLOOR_HP, which is 1, for a forfeit and for a KO dragon', () => {
+    expect(TRIAL_FLOOR_HP).toBe(1)
+    for (const d of ok(run(started(), { type: 'abandonTrial' }, MIN)).dragons) expect(d.fatigue).toEqual({ hp: TRIAL_FLOOR_HP, atMs: MIN })
+  })
+})
+
 describe('selling', () => {
   it('a dragon on the active team is IN_TRIAL; one off it can go', () => {
     const fourth: Dragon = { id: 'd4', speciesId: 'sea', level: 1, feeds: 0, habitatId: null }
@@ -440,6 +490,31 @@ describe('Boss drops', () => {
     expect(r.ok && r.trial?.won).toBe(false)
     expect(ok(r).speedUps).toEqual({ '15m': 0, '1h': 0, '3h': 0 })
     expect(ok(r).hatchery).toEqual([])
+  })
+
+  it('a loss on a Boss pays nothing, and the first win after it pays every drop, once', () => {
+    const lost = ok(run(started(atBoss(5, 'terra', {}, 1), 5, 10), { type: 'abandonTrial' }, 0))
+    expect(lost.speedUps).toEqual({ '15m': 0, '1h': 0, '3h': 0 })
+    expect(lost.hatchery).toEqual([])
+    // The team rests, is raised, and wins: the Boss is still the first clear.
+    const rested: PlayerState = { ...lost, dragons: team(WINNERS[5]!, 40, { habitatId: 'away' }), pve: { ...lost.pve, active: null } }
+    const s = ok(run(rested, start(5, 10), 0))
+    const r = run(s, { type: 'finishTrial', moves: play(activeOf(s)) }, 0)
+    expect(r.ok && r.trial).toMatchObject({ won: true, first: true, tokens: BOSS_TOKENS[5], egg: { rarity: 'uncommon', element: 'electric' } })
+    expect(ok(r).speedUps['1h']).toBe(BOSS_TOKENS[5]!.count)
+    expect(ok(r).hatchery).toHaveLength(1)
+    // And a replay after that pays none of it.
+    const again = finish(started(ok(r), 5, 10, 10 * 60 * MIN), strike, 10 * 60 * MIN)
+    expect(again.ok && again.trial).toMatchObject({ won: true, first: false })
+    expect(ok(again).hatchery).toHaveLength(1)
+    expect(ok(again).speedUps['1h']).toBe(BOSS_TOKENS[5]!.count)
+  })
+
+  it('an empty egg pool is an error, not an egg that quietly goes unpaid', () => {
+    const s = started(atBoss(5), 5, 10)
+    const noElectricUncommons = makeCatalog([...C.species.values()].filter(x => !(x.rarity === 'uncommon' && x.elements[0] === 'electric')))
+    const moves = play(activeOf(s))
+    expect(() => applyAction(s, { type: 'finishTrial', moves }, 0, createRng(SEED), noElectricUncommons, FLASH_14, 1)).toThrow(/egg/i)
   })
 
   it('tokens are spent by useSpeedUp (M4 Q2)', () => {

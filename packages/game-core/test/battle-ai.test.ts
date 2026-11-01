@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { aiChoice, runDefender } from '../src/battle/ai'
 import { baseDamage } from '../src/battle/damage'
+import { AI_EXPECTED_VARIANCE, AI_SWAP_BELOW_MULT, AI_SWAP_TARGET_MULT, VARIANCE_MAX, VARIANCE_MIN } from '../src/data/battle'
 import { initBattle, legalMoves, step, type BattleState, type Side } from '../src/battle/machine'
 import type { BattleDragonSpec } from '../src/battle/stats'
+import { makeCatalog } from '../src/catalog'
 import { createRng, type Rng } from '../src/rng'
 import { FIXTURE_CATALOG as C } from './fixtures'
 
@@ -122,6 +124,13 @@ describe('aiChoice: highest expected damage 80 % (§6.4)', () => {
   })
 })
 
+describe('AI constants live in data/battle', () => {
+  it('names the 0.5x line, the 2x bench test and the expected-damage variance', () => {
+    expect([AI_SWAP_BELOW_MULT, AI_SWAP_TARGET_MULT, AI_EXPECTED_VARIANCE]).toEqual([0.5, 2, 1000])
+    expect(AI_EXPECTED_VARIANCE).toBe(Math.round((VARIANCE_MIN + VARIANCE_MAX) / 2))
+  })
+})
+
 describe('aiChoice: swap (§6.4, R66)', () => {
   // Flame on Sea is 0.5x. Physical (1x) doesn't count, so the test fires as long as the bench has a 2x move.
   it('swaps when every element move is 0.5x or worse and a bench dragon has a 2x move, lowest such slot', () => {
@@ -160,6 +169,30 @@ describe('aiChoice: swap (§6.4, R66)', () => {
     const b = initBattle(three('sea', 1), [spec('flame', 1), spec('nature', 1), spec('terra', 1)], C)
     const dead = toAct({ ...b, sides: { ...b.sides, defender: { ...b.sides.defender, team: b.sides.defender.team.map((f, i) => (i === 1 ? { ...f, hp: 0 } : f)) } } }, 'defender')
     expect(aiChoice(dead, 'defender', scripted(0)).kind).toBe('attack')
+  })
+})
+
+describe('aiChoice: swap with a three-element dragon (R66)', () => {
+  // flame-war-nature: T1 flame, T2 war, T3 nature. Against a Sea primary that is 0.5x, 0.5x and 2x.
+  const TRI = makeCatalog([...C.species.values(), { id: 'tri', name: 'tri', elements: ['flame', 'war', 'nature'], rarity: 'epic' }])
+  const rest = (b: BattleState, cooling: boolean): BattleState => ({
+    ...b, sides: { ...b.sides, defender: { ...b.sides.defender, team: b.sides.defender.team.map((f, i) => (i === 0 ? { ...f, t3Cooling: cooling } : f)) } },
+  })
+
+  it('a Tier 3 that is resting still counts: its 2x keeps the dragon in, so no swap', () => {
+    const b = initBattle(three('sea', 20), [spec('tri', 20), spec('nature', 20), spec('terra', 20)], TRI)
+    for (const cooling of [false, true]) {
+      const pick = aiChoice(toAct(rest(b, cooling), 'defender'), 'defender', scripted(0))
+      expect(pick.kind).toBe('attack')
+    }
+    // Resting, the T3 can't be picked: the best move left is one of the 0.5x ones, or Strike.
+    const resting = aiChoice(toAct(rest(b, true), 'defender'), 'defender', scripted(0))
+    expect(resting).not.toEqual({ kind: 'attack', move: 3 })
+  })
+
+  it('before the Tier 3 unlocks, the same dragon is all 0.5x and swaps to the 2x on its bench', () => {
+    const b = initBattle(three('sea', 20), [spec('tri', 19), spec('nature', 20), spec('terra', 20)], TRI)
+    expect(aiChoice(toAct(b, 'defender'), 'defender', scripted())).toEqual({ kind: 'swap', to: 1 })
   })
 })
 
