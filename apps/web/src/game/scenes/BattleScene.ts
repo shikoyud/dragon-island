@@ -6,7 +6,7 @@ import { FALLBACK_ART } from '../../art/slots'
 import { backdropFill, battleView, dragonFlip, hitFx } from '../battleModel'
 import type { Bridge } from '../bridge'
 import { dragonLook } from '../islandModel'
-import { BATTLE, BATTLE_BLEED, BATTLE_DRAGON_SCALE, BATTLE_HORIZON_Y, BATTLE_PLATFORM, BATTLE_SPOT, battleCamera, battleStage } from '../layout'
+import { BATTLE, BATTLE_BLEED, BATTLE_DRAGON_SCALE, BATTLE_HEADER_H, BATTLE_HORIZON_Y, BATTLE_PLATFORM, BATTLE_SPOT, battleCamera, battleStage } from '../layout'
 
 const SIDES: readonly Side[] = ['attacker', 'defender']
 /** Just past the stage's edge, where a dragon slides from. */
@@ -19,6 +19,10 @@ const SLIDE_MS = 170
 const FLOAT_PX = 26
 const FLOAT_MS = 520
 const FX_DEPTH = 8
+/** An IMMUNE word has no number to sit with: it floats this far above the target's head. */
+const IMMUNE_GAP = 8
+/** The font size of a floating number: its height, as far as clearing the header is concerned. */
+const TEXT_PX = 20
 /** A still fx fades over this long; a sheet plays its own length. */
 const FX_MS = 420
 /** Art platform (64x32) and fx (64x64) draw at these scales: a Tier 3 move reads stronger by size alone. */
@@ -26,7 +30,7 @@ const PLATFORM_SCALE = 2
 const FX_SCALE = 2
 const MOVE_FX_SCALE: Record<'physical' | 1 | 2 | 3, number> = { physical: 2, 1: 2, 2: 2.5, 3: 3.5 }
 const TEXT_DEPTH = 10
-const TEXT: Phaser.Types.GameObjects.Text.TextStyle = { fontFamily: 'Silkscreen, monospace', fontSize: '20px', color: '#ffffff', stroke: '#141627', strokeThickness: 4 }
+const TEXT: Phaser.Types.GameObjects.Text.TextStyle = { fontFamily: 'Silkscreen, monospace', fontSize: `${TEXT_PX}px`, color: '#ffffff', stroke: '#141627', strokeThickness: 4 }
 
 interface Slot {
   sprite: Phaser.GameObjects.Sprite
@@ -171,9 +175,13 @@ export class BattleScene extends Phaser.Scene {
     this.tweens.add({ targets: me, x: BATTLE_SPOT[e.side].x + dir * LUNGE_PX, duration: LUNGE_MS, yoyo: true, ease: 'Quad.easeOut' })
 
     const { x, y } = BATTLE_SPOT[foeSide]
-    // Over the target's body, whatever its stage's size, clear of the plates and the Exit button above.
-    const top = y - Math.round(foe.sprite.displayHeight * 0.6)
-    this.floatText(x, top, fx.text, fx.colour)
+    // A number sits over the target's body, whatever its stage's size, clear of the plates and the Exit button above; IMMUNE rides above the head.
+    // IMMUNE: above the head, but never under the title row and the Exit button (an adult has only a few px of room there, so
+    // the word then rests on the horns instead) and in place, since a rise would carry it into them.
+    const top = e.immune
+      ? Math.max(y - foe.sprite.displayHeight - IMMUNE_GAP, BATTLE_HEADER_H + TEXT_PX)
+      : y - Math.round(foe.sprite.displayHeight * 0.6)
+    this.floatText(x, top, fx.text, fx.colour, undefined, e.immune ? 0 : FLOAT_PX)
     if (fx.label) this.floatText(x, top + 22, fx.label, fx.colour, 14)
     if (fx.crit) this.floatText(x, top - 22, 'CRIT!', '#f4d03f', 16)
 
@@ -232,12 +240,12 @@ export class BattleScene extends Phaser.Scene {
     if (!playOneShot(fx, key, sprite)) this.tweens.add({ targets: fx, alpha: 0, duration: FX_MS, onComplete: () => fx.destroy() })
   }
 
-  private floatText(x: number, y: number, text: string, color: string, size?: number): void {
+  private floatText(x: number, y: number, text: string, color: string, size?: number, rise = FLOAT_PX): void {
     const style = size ? { ...TEXT, color, fontSize: `${size}px` } : { ...TEXT, color }
     const t = this.add.text(x, y, text, style).setOrigin(0.5, 1).setDepth(TEXT_DEPTH)
     this.fx.push(t)
     this.tweens.add({
-      targets: t, y: y - FLOAT_PX, alpha: 0, duration: FLOAT_MS, ease: 'Quad.easeIn',
+      targets: t, y: y - rise, alpha: 0, duration: FLOAT_MS, ease: 'Quad.easeIn',
       onComplete: () => { this.fx = this.fx.filter(o => o !== t); t.destroy() },
     })
   }

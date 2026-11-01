@@ -10,7 +10,7 @@ import { backdropFill, dragonFlip } from '../src/game/battleModel'
 import { createBridge } from '../src/game/bridge'
 import { createGame } from '../src/game/config'
 import { dragonKey } from '../src/game/islandModel'
-import { BATTLE, BATTLE_SPOT } from '../src/game/layout'
+import { BATTLE, BATTLE_HEADER_H, BATTLE_SPOT } from '../src/game/layout'
 import type { BattleScene } from '../src/game/scenes/BattleScene'
 
 vi.mock('phaser', async () => {
@@ -100,6 +100,39 @@ describe('BattleScene', () => {
     const said = texts.mock.calls.map(a => String(a[2]))
     expect(said).toContain('IMMUNE')
     expect(said.some(t => /^-\d/.test(t))).toBe(false)
+  })
+
+  it("IMMUNE floats above a small target's head, clear of the sprite, not over its body", async () => {
+    const { scene, bridge } = await fight(three('flame', 20), three('flame', 1), [{ kind: 'attack', move: 1 }])
+    const texts = vi.spyOn(scene.add, 'text')
+    bridge.setBattleShown(1)
+    const call = texts.mock.calls.find(a => String(a[2]) === 'IMMUNE')!
+    const foe = scene.dragon('defender')
+    // Origin (0.5, 1): the text's bottom edge is its y, and the sprite's top is its feet minus its height.
+    expect(call[1]).toBeLessThanOrEqual(foe.y - foe.displayHeight)
+  })
+
+  it('IMMUNE on an adult stays under the title row and Exit button, above where a number sits', async () => {
+    const { scene, bridge } = await fight(three('flame', 20), three('flame', 40), [{ kind: 'attack', move: 1 }])
+    const texts = vi.spyOn(scene.add, 'text')
+    const tweens = vi.spyOn(scene.tweens, 'add')
+    bridge.setBattleShown(1)
+    const call = texts.mock.calls.find(a => String(a[2]) === 'IMMUNE')!
+    const foe = scene.dragon('defender')
+    // The word is 20 px tall with its bottom at y: its top must clear the header, and it must not rise into it.
+    expect(call[1] - 20).toBeGreaterThanOrEqual(BATTLE_HEADER_H)
+    expect(call[1]).toBeLessThan(foe.y - Math.round(foe.displayHeight * 0.6))
+    const tween = tweens.mock.calls.map(a => a[0] as { y?: number; alpha?: number }).find(t => t.alpha === 0 && t.y !== undefined)!
+    expect(tween.y).toBe(call[1])
+  })
+
+  it('a damage number still floats over the body', async () => {
+    const { scene, bridge } = await fight(three('sea', 40), three('flame', 1), [{ kind: 'attack', move: 1 }])
+    const texts = vi.spyOn(scene.add, 'text')
+    bridge.setBattleShown(1)
+    const call = texts.mock.calls.find(a => /^-\d/.test(String(a[2])))!
+    const foe = scene.dragon('defender')
+    expect(call[1]).toBeGreaterThan(foe.y - foe.displayHeight)
   })
 
   it('a swap slides the new dragon in', async () => {

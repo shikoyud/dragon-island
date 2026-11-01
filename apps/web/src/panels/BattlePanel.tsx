@@ -36,11 +36,12 @@ function Plate({ label, state, side, view, boss }: { label: 'Enemy' | 'Yours'; s
   const pct = Math.ceil((hp * 100) / f.stats.hp)
   return (
     <div role="group" aria-label={label} className={`battle__plate battle__plate--${side}`}>
+      {/* The Boss badge has a row of its own: beside the name it left the name no room (TERRA BA... L4 BOSS). */}
+      {boss && <div className="battle__plate-boss"><span className="battle__boss"><ArtMark name="battle.boss.marker" size={16} className="battle__crown" />Boss</span></div>}
       <div className="battle__plate-head">
         <Icon name={f.species.elements[0]!} size={16} />
         <span className="battle__name">{f.species.name}</span>
         <span className="battle__level">L{f.spec.level}</span>
-        {boss && <span className="battle__boss"><ArtMark name="battle.boss.marker" size={16} className="battle__crown" />Boss</span>}
       </div>
       <div className="battle__hp" role="progressbar" aria-label="HP" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
         <span className={`battle__hp-fill${pct <= 25 ? ' battle__hp-fill--low' : ''}`} style={{ transform: `scaleX(${hp / f.stats.hp})` }} />

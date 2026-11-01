@@ -13,6 +13,8 @@ export const BATTLE = { w: 360, h: 420 } as const
 export const BATTLE_CONTROLS_H = 192
 /** Where each active dragon's feet stand, in stage pixels: enemy upper right, yours lower left (R80). */
 export const BATTLE_SPOT = { attacker: { x: 96, y: 376 }, defender: { x: 264, y: 196 } } as const
+/** The React title row and Exit button over the stage's top (4 px down, a 44 px tap): nothing the scene floats there is legible. */
+export const BATTLE_HEADER_H = 48
 /** Dragons draw at this scale on the stage, so a 48 px adult is 144 and a 32 px hatchling 96. */
 export const BATTLE_DRAGON_SCALE = 3
 /** The code-drawn platform under a dragon, until `battle.platform` has art. */

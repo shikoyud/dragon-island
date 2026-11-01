@@ -462,6 +462,16 @@ describe('useBattle, PvE', () => {
       expect(within(screen.getByRole('group', { name: 'Enemy' })).getByText('Boss')).toBeInTheDocument()
     })
 
+    it('puts the Boss badge on its own row, so the name keeps its room', async () => {
+      await screenFor({ ...active, node: 10 })
+      const enemy = within(screen.getByRole('group', { name: 'Enemy' }))
+      const badge = enemy.getByText('Boss')
+      expect(badge.closest('.battle__plate-head')).toBeNull()
+      expect(badge.closest('.battle__plate-boss')).not.toBeNull()
+      // The name's row is still there, with the name in it.
+      expect(enemy.getByText(/^L\d+$/).closest('.battle__plate-head')).not.toBeNull()
+    })
+
     it('draws the crown from battle.boss.marker on the Boss only, and the tier pips from ui.tier.*', async () => {
       const art = { 'battle.boss.marker': mark('crown'), 'ui.tier.1': mark('t1'), 'ui.tier.2': mark('t2'), 'ui.tier.3': mark('t3') }
       await screenFor({ ...active, node: 10 }, vi.fn(), art)

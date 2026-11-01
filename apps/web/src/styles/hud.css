@@ -132,6 +132,12 @@
 .hud-scrim { position: absolute; inset: 0; background: rgba(8, 10, 20, 0.55); }
 .hud-dialog { position: relative; width: min(560px, 100%); max-height: min(82vh, 760px); overflow: auto; overscroll-behavior: contain; }
 .hud-dialog > .panel, .hud-dialog .panel { box-shadow: 0 4px 0 var(--ink); }
+/* On a wide screen a centred dialog stays clear of the HUD: the Finals clock under the pills (to 94 px) and the menu bar (from 811 of
+   900, 89 px) were both covered by a 738 px dialog. Narrow screens use a bottom sheet over the bar, below. */
+@media (min-width: 700px) {
+  .hud-dialog-layer:not(.hud-dialog-layer--dock) { padding: 102px 16px 98px; }
+  .hud-dialog-layer:not(.hud-dialog-layer--dock) .hud-dialog { max-height: min(760px, 100%); }
+}
 .hud-dialog-layer--dock { pointer-events: none; align-items: flex-end; justify-content: flex-end; }
 .hud-dialog-layer--dock .hud-dialog { pointer-events: auto; width: min(400px, 100%); max-height: 70vh; }
 .panel header .btn--ghost[aria-label="Close"] {
@@ -301,6 +307,7 @@
 .battle__plate-head { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 12px; }
 .battle__name { flex: 1; min-width: 0; font-family: var(--font-display); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .battle__level { flex: none; font: 10px var(--font-display); color: var(--text-muted); }
+.battle__plate-boss { display: flex; }
 .battle__boss { flex: none; font: 10px var(--font-display); padding: 0 3px; color: #1b1300; background: var(--accent); }
 .battle__hp { height: 8px; background: var(--bg); border: 1px solid var(--ink); overflow: hidden; }
 .battle__hp-fill { display: block; height: 100%; width: 100%; transform-origin: left; background: var(--ok); transition: transform 220ms linear; }

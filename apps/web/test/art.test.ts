@@ -339,15 +339,16 @@ describe('drawFallback', () => {
 // ---- M5: combat and PvE art. Every key is read when the manifest has it and has a fallback when it does not. ----
 const still = (file: string, w: number, h: number) => ({ file, w, h, frames: 1, fps: 0 })
 const sheet = (file: string, w: number, h: number, frames: number, fps: number) => ({ file, w, h, frames, fps })
+// `w` is one frame's width, as in the real manifest (a 6-frame fx sheet is 384 wide on disk and says 64 here).
 const M5: Manifest['assets'] = {
   ...Object.fromEntries(ELEMENTS.flatMap(e => [
     [`battle.backdrop.${e}`, still(`bd-${e}.png`, 360, 420)],
-    [`fx.move.${e}`, sheet(`fxm-${e}.png`, 384, 64, 6, 14)],
+    [`fx.move.${e}`, sheet(`fxm-${e}.png`, 64, 64, 6, 14)],
     [`trial.chapter.${e}`, still(`tc-${e}.png`, 64, 64)],
   ])),
-  'fx.move.physical': sheet('fxm-physical.png', 384, 64, 6, 14),
-  'fx.hit': sheet('fx-hit.png', 256, 64, 4, 14), 'fx.crit': sheet('fx-crit.png', 256, 64, 4, 14), 'fx.immune': sheet('fx-immune.png', 256, 64, 4, 14),
-  'fx.ko': sheet('fx-ko.png', 384, 64, 6, 14), 'fx.swap': sheet('fx-swap.png', 320, 64, 5, 14),
+  'fx.move.physical': sheet('fxm-physical.png', 64, 64, 6, 14),
+  'fx.hit': sheet('fx-hit.png', 64, 64, 4, 14), 'fx.crit': sheet('fx-crit.png', 64, 64, 4, 14), 'fx.immune': sheet('fx-immune.png', 64, 64, 4, 14),
+  'fx.ko': sheet('fx-ko.png', 64, 64, 6, 14), 'fx.swap': sheet('fx-swap.png', 64, 64, 5, 14),
   'battle.boss.marker': still('boss.png', 16, 16),
   'ui.battle.platform': still('plat.png', 64, 32), 'ui.battle.hpFrame': still('hp.png', 16, 16), 'ui.battle.moveButton': still('mb.png', 16, 16),
   'ui.battle.swap': still('sw.png', 16, 16), 'ui.battle.turn': still('turn.png', 96, 16), 'ui.star': still('star.png', 12, 12), 'ui.star.empty': still('star0.png', 12, 12),
@@ -377,7 +378,7 @@ describe('M5 art keys', () => {
   it('reads backdrops, move fx, the other fx and the platform when the manifest has them', () => {
     for (const e of ELEMENTS) {
       expect(all.battle.backdrop[e], e).toMatchObject({ src: `/art/v1/bd-${e}.png`, w: 360, h: 420 })
-      expect(all.battle.moveFx[e], e).toMatchObject({ w: 384, h: 64, frames: 6, fps: 14 })
+      expect(all.battle.moveFx[e], e).toMatchObject({ w: 64, h: 64, frames: 6, fps: 14 })
     }
     expect(all.battle.moveFx.physical).toMatchObject({ src: '/art/v1/fxm-physical.png' })
     expect(Object.keys(all.battle.fx).sort()).toEqual(['crit', 'hit', 'immune', 'ko', 'swap'])
