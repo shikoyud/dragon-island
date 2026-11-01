@@ -242,7 +242,7 @@ const MEASURED = {
   node1Team: ['terra', 'terra', 'sea'],
   starterLv4: [100, 100, 100, 100, 100, 100, 100, 95, 96, 100],
   bossDays: {
-    flash14: [[1, 1], [2, 1], [3, 2], [4, 3], [5, 3]],
+    flash14: [[1, 1], [2, 1], [3, 2], [4, 2], [5, 3]],
     flash28: [[1, 1], [2, 1], [3, 1], [4, 3], [5, 4], [6, 4]],
   } as Record<string, number[][]>,
 }

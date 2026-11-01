@@ -2,7 +2,7 @@ import { OBSTACLES } from '../../src/data/obstacles'
 import { FOOTPRINT, placementError, type Footprint } from '../../src/island'
 import { clearCost } from '../../src/obstacles'
 import { placementRuleError, subjectFootprint, type PlacementSubject } from '../../src/placement-rules'
-import { ISLAND_TILES, PLOTS_PER_SIDE } from '../../src/plots'
+import { HOME_PLOT_ORDER, ISLAND_TILES, PLOTS_PER_SIDE } from '../../src/plots'
 import { newPlayer, type IslandId, type Obstacle, type Placement, type PlayerState } from '../../src/state'
 
 /**
@@ -60,8 +60,8 @@ export function withObstacleField(s: PlayerState, island: IslandId = 'home'): Pl
   return cur
 }
 
-/** Home's plots in a legal buying order (each touches what came before). */
-export const HOME_BUY_ORDER: readonly number[] = [4, 8, 7, 11, 1, 2, 13, 14, 0, 3, 12, 15]
+/** Home's plots in the only legal buying order (U1: each is offered when its turn comes). */
+export const HOME_BUY_ORDER: readonly number[] = HOME_PLOT_ORDER
 
 /** A free cell on a new player's Home that fits any footprint. */
 export const FREE: Placement = freeCell(newPlayer(0), FOOTPRINT.breeder)

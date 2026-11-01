@@ -44,7 +44,10 @@ describe('pickTarget', () => {
 })
 
 describe('the starting Farm with Bushes in front of it', () => {
-  const s = newPlayer(0)
+  // The Start no longer puts Bushes in front of the Farm (U6), so the test lays the three it needs.
+  const start = newPlayer(0)
+  const front = [[22, 11], [23, 11], [21, 11]].map(([col, row], i) => ({ id: `ob${i}`, kind: 'bush' as const, island: 'home' as const, col: col!, row: row! }))
+  const s = { ...start, islands: { ...start.islands, obstacles: [...start.islands.obstacles, ...front] } }
   const objects = buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, 'home', null).objects
   const farm = objects.find(o => o.target.kind === 'farm' && o.id.startsWith('farm:'))!
   const bushes = objects.filter(o => o.target.kind === 'obstacle')

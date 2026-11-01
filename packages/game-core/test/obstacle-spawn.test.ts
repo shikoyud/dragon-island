@@ -54,29 +54,29 @@ describe('Home\'s start (R50)', () => {
     expect(base.islands.obstacles).toEqual(HOME_OBSTACLES)
     expect(base.nextId).toBe(3)
     const count = (k: ObstacleKind) => base.islands.obstacles.filter(o => o.kind === k).length
-    expect(KINDS.map(count)).toEqual([1, 1, 1, 3, 3, 12])
+    expect(KINDS.map(count)).toEqual([1, 1, 2, 4, 3, 6])
     const at = (k: ObstacleKind) => base.islands.obstacles.filter(o => o.kind === k).map(o => [o.col, o.row])
-    expect(at('ancientTree')).toEqual([[20, 20]])
-    expect(at('boulder')).toEqual([[8, 20]])
-    expect(at('largeRock')).toEqual([[20, 16]])
-    expect(at('tree')).toEqual([[13, 21], [17, 20], [8, 18]])
-    expect(at('smallRock')).toEqual([[15, 22], [10, 18], [18, 22]])
-    expect(at('bush')).toEqual([[22, 11], [23, 11], [21, 11], [12, 18], [12, 21], [14, 20], [16, 21], [13, 23], [17, 23], [19, 20], [23, 16], [20, 19]])
+    expect(at('ancientTree')).toEqual([[27, 8]])
+    expect(at('boulder')).toEqual([[16, 0]])
+    expect(at('largeRock')).toEqual([[20, 20], [29, 18]])
+    expect(at('tree')).toEqual([[12, 21], [8, 18], [22, 1], [25, 18]])
+    expect(at('smallRock')).toEqual([[16, 21], [8, 22], [24, 14]])
+    expect(at('bush')).toEqual([[21, 14], [18, 17], [14, 17], [18, 6], [31, 14], [26, 23]])
   })
-  it('covers a third of the starting plots, clear of the buildings and of itself', () => {
-    const tiles = base.islands.obstacles.reduce((n, o) => n + OBSTACLES[o.kind].size ** 2, 0)
-    const total = STARTING_PLOTS.length * TILES_PER_PLOT ** 2
-    expect(tiles).toBe(77)
-    expect(tiles / total).toBeGreaterThanOrEqual(0.25)
-    expect(tiles / total).toBeLessThanOrEqual(0.35)
+  it('covers 28 tiles of the starting plots, clear of the buildings and of itself (U6)', () => {
+    const owned = (o: Obstacle) => {
+      const size = OBSTACLES[o.kind].size
+      return [[o.col, o.row], [o.col + size - 1, o.row + size - 1]].every(([c, r]) => STARTING_PLOTS.includes(Math.floor(r! / TILES_PER_PLOT) * 4 + Math.floor(c! / TILES_PER_PLOT)))
+    }
+    const mine = base.islands.obstacles.filter(owned)
+    const tiles = mine.reduce((n, o) => n + OBSTACLES[o.kind].size ** 2, 0)
+    expect(mine).toHaveLength(8)
+    expect(tiles).toBe(28)
+    expect(tiles / (STARTING_PLOTS.length * TILES_PER_PLOT ** 2)).toBeLessThan(0.12)
     const all = occupants(base, 'home')
     all.forEach((a, i) => all.slice(i + 1).forEach(b => expect(overlaps(a, b), `${JSON.stringify(a.ref)} / ${JSON.stringify(b.ref)}`).toBe(false)))
-    for (const o of base.islands.obstacles) {
-      const size = OBSTACLES[o.kind].size
-      for (const [c, r] of [[o.col, o.row], [o.col + size - 1, o.row + size - 1]] as const) {
-        expect(STARTING_PLOTS).toContain(Math.floor(r / TILES_PER_PLOT) * 4 + Math.floor(c / TILES_PER_PLOT))
-      }
-    }
+    // The other nine stand on plots 2, 7 and 11, not on owned land.
+    expect(base.islands.obstacles.filter(o => !owned(o))).toHaveLength(9)
   })
   it('gives every starting obstacle its own id, clear of the d, h and c ids', () => {
     const ids = base.islands.obstacles.map(o => o.id)
@@ -89,7 +89,7 @@ describe('spawning on a plot (R51)', () => {
   it('puts 2 to 4 obstacles inside the plot, none overlapping, over 200 seeds', () => {
     for (let seed = 1; seed <= 200; seed++) {
       const plot = seed % 16
-      const out = spawnPlotObstacles('isle3', plot, 40, createRng(seed))
+      const out = spawnPlotObstacles('isle3', plot, 40, createRng(seed), [])
       expect(out.length).toBeGreaterThanOrEqual(2)
       expect(out.length).toBeLessThanOrEqual(4)
       const o = plotOrigin(plot)
@@ -107,25 +107,25 @@ describe('spawning on a plot (R51)', () => {
     }
   })
   it('is deterministic for a seed, and reaches every count and kind', () => {
-    expect(spawnPlotObstacles('home', 0, 3, createRng(7))).toEqual(spawnPlotObstacles('home', 0, 3, createRng(7)))
+    expect(spawnPlotObstacles('home', 0, 3, createRng(7), [])).toEqual(spawnPlotObstacles('home', 0, 3, createRng(7), []))
     const counts = new Set<number>()
     const kinds = new Set<string>()
     for (let seed = 1; seed <= 400; seed++) {
-      const out = spawnPlotObstacles('home', 0, 3, createRng(seed))
+      const out = spawnPlotObstacles('home', 0, 3, createRng(seed), [])
       counts.add(out.length)
       out.forEach(o => kinds.add(o.kind))
     }
     expect([...counts].sort()).toEqual([2, 3, 4])
     expect([...kinds].sort()).toEqual([...KINDS].sort())
   })
-  it('a bought plot spawns on its own tiles and advances nextId by the count', () => {
-    const r = ok(run({ ...rich, level: 30 }, { type: 'buyPlot', island: 'home', plot: 4 }, 0, 5))
+  it('a bought Home plot spawns on the plot it reveals and advances nextId by the count (U4)', () => {
+    const r = ok(run({ ...rich, level: 30 }, { type: 'buyPlot', island: 'home', plot: 7 }, 0, 5)) // offered [2,7,11] -> [2,11,1]
     const fresh = r.islands.obstacles.filter(o => !base.islands.obstacles.includes(o))
     expect(fresh.length).toBeGreaterThanOrEqual(2)
     expect(fresh.length).toBeLessThanOrEqual(4)
     expect(r.nextId).toBe(base.nextId + fresh.length)
     expect(fresh.map(o => o.id)).toEqual(fresh.map((_, i) => `o${base.nextId + i}`))
-    const o = plotOrigin(4)
+    const o = plotOrigin(1)
     for (const x of fresh) expect([x.col >= o.col, x.col < o.col + 8, x.row >= o.row, x.row < o.row + 8]).toEqual([true, true, true, true])
   })
   it('a Bridge spawns on all 4 of its plots, ids unique across them (R48)', () => {
@@ -144,9 +144,9 @@ describe('spawning on a plot (R51)', () => {
     all.forEach((a, i) => all.slice(i + 1).forEach(b => expect(overlaps(a, b)).toBe(false)))
   })
   it('replays the same obstacles from the same seed and action', () => {
-    const go = () => ok(run({ ...rich }, { type: 'buyPlot', island: 'home', plot: 4 }, 0, 11)).islands.obstacles
+    const go = () => ok(run({ ...rich }, { type: 'buyPlot', island: 'home', plot: 7 }, 0, 11)).islands.obstacles
     expect(go()).toEqual(go())
-    const other = ok(run({ ...rich }, { type: 'buyPlot', island: 'home', plot: 4 }, 0, 12)).islands.obstacles
+    const other = ok(run({ ...rich }, { type: 'buyPlot', island: 'home', plot: 7 }, 0, 12)).islands.obstacles
     expect(other).not.toEqual(go())
   })
 })
@@ -209,9 +209,10 @@ describe('completing a clear', () => {
     expect(d.gold).toBe(before.gold)
   })
   it('banks XP above the day\'s limit (R40)', () => {
-    const big = base.islands.obstacles.find(o => o.kind === 'ancientTree')!
+    const big = base.islands.obstacles.find(o => o.kind === 'ancientTree')! // on plot 7, so buy it first (U5)
     const top = levelLimit(1, FLASH_14)!
-    const s0 = ok(run({ ...rich, level: top, xp: 0 }, clear(big.id)))
+    const s7 = ok(run({ ...rich, level: top, xp: 0 }, { type: 'buyPlot', island: 'home', plot: 7 }))
+    const s0 = ok(run({ ...s7, xp: 0 }, clear(big.id)))
     const d = ok(run(s0, { type: 'finishConstruction', index: 0 }, 20_000_000, SEEDS.miss))
     expect([d.level, d.xp]).toEqual([top, 1_250 * FLASH_14.xpMult])
     expect(d.xp).toBeGreaterThan(xpToNext(top))

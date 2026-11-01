@@ -17,7 +17,7 @@ describe('island geometry', () => {
     expect(placementError(s, { island: 'isle2', col: 0, row: 0, facing: 0 }, 1)).toBe('ISLAND_LOCKED')
     expect(placementError(s, P(0, 0), 1)).toBe('NOT_OWNED')
     expect(placementError(s, P(8, 8), 2)).toBe('OVERLAP')
-    expect(placementError(s, P(20, 12), FOOTPRINT.habitat)).toBeNull()
+    expect(placementError(s, P(20, 16), FOOTPRINT.habitat)).toBeNull()
     expect(placementError(s, P(17, 8), FOOTPRINT.habitat, { type: 'habitat', id: 'h2' })).toBeNull()
   })
   it('a Bridge reads the one before it, then its level', () => {

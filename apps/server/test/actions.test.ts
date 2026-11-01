@@ -64,7 +64,7 @@ describe('POST /actions', () => {
 
   it('replaying a buyPlot idempotency key charges once (§5.5)', async () => {
     await setState({ level: 2, gold: 1_000 })
-    const buy = { type: 'buyPlot', island: 'home', plot: 4 }
+    const buy = { type: 'buyPlot', island: 'home', plot: 7 }
     const first = await post(buy, 'plot-1')
     const replay = await post(buy, 'plot-1')
     expect([first.statusCode, replay.statusCode]).toEqual([200, 200])
@@ -73,7 +73,7 @@ describe('POST /actions', () => {
     const [p] = await t.db.select().from(players).where(eq(players.id, playerId))
     const s = p!.state as PlayerState
     expect(s.gold).toBe(900)
-    expect(s.islands.plots.home).toEqual([5, 6, 9, 10, 4])
+    expect(s.islands.plots.home).toEqual([5, 6, 9, 10, 7])
     // A new key on the same plot is refused, and still charges nothing.
     const again = await post(buy, 'plot-2')
     expect([again.statusCode, again.json().error]).toEqual([422, 'PLOT_OWNED'])

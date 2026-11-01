@@ -69,7 +69,7 @@ describe('build XP is paid when the Gold is spent (R31)', () => {
   })
   it('a plot for 100 Gold awards the 5 minimum', () => {
     const st: PlayerState = { ...base, level: 2, gold: 100 }
-    expect(gained(st, ok(run(st, { type: 'buyPlot', island: 'home', plot: 4 })))).toBe(5)
+    expect(gained(st, ok(run(st, { type: 'buyPlot', island: 'home', plot: 7 })))).toBe(5)
   })
   it('a Bridge pays build XP', () => {
     const st: PlayerState = { ...base, level: 12, gold: 150_000 }

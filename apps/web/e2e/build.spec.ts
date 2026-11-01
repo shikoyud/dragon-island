@@ -21,10 +21,10 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows Emb
   await expect(page.getByRole('status', { name: /resources/i })).toContainText('50,000')
   await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: { state: unknown } }).__bridge?.state))
 
-  // Shop (Build tab) -> Farm plot -> ghost on the free cell (20,12) -> Confirm.
+  // Shop (Build tab) -> Farm plot -> ghost on the free cell (20,16) -> Confirm.
   await openPanel(page, 'Shop')
   await page.locator('#shop-farm').click()
-  await bridge(page, b => b.emit({ type: 'cell', col: 20, row: 12 }))
+  await bridge(page, b => b.emit({ type: 'cell', col: 20, row: 16 }))
   const placement = page.getByRole('toolbar', { name: /placement/i })
   await expect(placement.getByRole('button', { name: /confirm/i })).toBeEnabled()
   await placement.getByRole('button', { name: /confirm/i }).click()

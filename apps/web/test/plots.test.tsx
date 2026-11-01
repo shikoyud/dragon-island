@@ -112,7 +112,8 @@ describe('the ghost agrees with the server on odd land (§5.5)', () => {
     expect(model(lShape, 'home', grove).markers.ghost).toMatchObject({ legal: false })
   })
   it('a straddling building is sent', () => {
-    expect(placingAction(lShape, 'home', { what: { kind: 'habitat', element: 'terra' }, size: 4, col: 21, row: 12, facing: 0 })).toMatchObject({ type: 'placeBuilding' })
+    const bare = { ...lShape, islands: { ...lShape.islands, obstacles: [] } } // the Start's Bush at (21, 14) is not the point here
+    expect(placingAction(bare, 'home', { what: { kind: 'habitat', element: 'terra' }, size: 4, col: 21, row: 12, facing: 0 })).toMatchObject({ type: 'placeBuilding' })
   })
   it('a new building opens on owned land, never on the 12x12 corner', () => {
     const { cell } = placementStart(base, { kind: 'farm' }, 3, 'home', null)

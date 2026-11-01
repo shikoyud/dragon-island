@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { occupants, overlaps, placementError } from '../src/island'
 import { HOME_OBSTACLES } from '../src/data/island-start'
+import { ownsFootprint } from '../src/plots'
 import { newPlayer, STATE_VERSION } from '../src/state'
 
 describe('newPlayer', () => {
@@ -35,7 +36,7 @@ describe('newPlayer', () => {
     const s = newPlayer(0)
     const occ = occupants(s, 'home')
     expect(occ).toHaveLength(5 + HOME_OBSTACLES.length)
-    for (const o of occ) {
+    for (const o of occ.filter(x => x.ref.type !== 'obstacle' || ownsFootprint(s, { island: 'home', col: x.col, row: x.row }, x.size))) { // the 9 on plots 2, 7 and 11 stand on unowned land (U4)
       expect(placementError(s, { island: 'home', col: o.col, row: o.row, facing: 0 }, o.size, o.ref)).toBeNull()
     }
     for (const [i, a] of occ.entries()) for (const b of occ.slice(i + 1)) expect(overlaps(a, b)).toBe(false)

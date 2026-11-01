@@ -21,7 +21,7 @@ describe('the start (§5.5, R50)', () => {
   it('owns the centre 2x2 of Home, on a new state version', () => {
     expect(base.islands.plots.home).toEqual([5, 6, 9, 10])
     expect(base.islands.unlocked).toEqual(['home'])
-    expect(base.islands.obstacles).toHaveLength(21)
+    expect(base.islands.obstacles).toHaveLength(17)
     expect(base.islands).not.toHaveProperty('homeStep')
     expect(STATE_VERSION).toBe(11)
   })
@@ -33,9 +33,12 @@ describe('the start (§5.5, R50)', () => {
   })
   it('nothing overlaps and everything stands on owned land', () => {
     const occ = occupants(base, 'home')
-    expect(occ).toHaveLength(5 + 21)
+    expect(occ).toHaveLength(5 + 8 + 9)
     occ.forEach((a, i) => occ.slice(i + 1).forEach(b => expect(overlaps(a, b)).toBe(false)))
-    for (const o of occ) expect(ownsFootprint(base, P(o.col, o.row), o.size)).toBe(true)
+    // The 9 obstacles on plots 2, 7 and 11 (U4) stand on land not yet owned; everything else is on owned land.
+    const unowned = occ.filter(o => !ownsFootprint(base, P(o.col, o.row), o.size))
+    expect(unowned).toHaveLength(9)
+    expect(unowned.every(o => o.ref.type === 'obstacle')).toBe(true)
   })
 })
 
@@ -51,8 +54,8 @@ describe('footprints (§5.4)', () => {
 
 describe('placement on owned land (R43)', () => {
   it('a habitat inside the holding is legal, one tile over is NOT_OWNED', () => {
-    expect(placementError(base, P(20, 12), FOOTPRINT.habitat)).toBeNull()
-    expect(placementError(base, P(21, 12), FOOTPRINT.habitat)).toBe('NOT_OWNED')
+    expect(placementError(base, P(20, 16), FOOTPRINT.habitat)).toBeNull()
+    expect(placementError(base, P(21, 16), FOOTPRINT.habitat)).toBe('NOT_OWNED')
   })
   it('off the island is OUT_OF_BOUNDS, ahead of ownership', () => {
     expect(placementError(base, P(-1, 8), FOOTPRINT.habitat)).toBe('OUT_OF_BOUNDS')
@@ -101,20 +104,20 @@ describe('plot helpers', () => {
     expect(plotsTouch(3, 4)).toBe(false)
   })
   it('plotError leaves Gold to the handler', () => {
-    expect(plotError({ ...base, level: 2, gold: 0 }, 'home', 4)).toBeNull()
+    expect(plotError({ ...base, level: 2, gold: 0 }, 'home', 7)).toBeNull()
   })
 })
 
 describe('buyPlot (§5.5, R44-R47)', () => {
   it('prices by the count bought, pays build XP, adds the plot', () => {
     const s = { ...base, level: 2, gold: 600 }
-    const a = ok(buy(s, 4))
+    const a = ok(buy(s, 7))
     expect(a.gold).toBe(500)
     expect(a.xp).toBe(s.xp + buildXp(100, s))
-    expect(a.islands.plots.home).toEqual([5, 6, 9, 10, 4])
-    const b = ok(buy(a, 8)) // touches 4 and 9
+    expect(a.islands.plots.home).toEqual([5, 6, 9, 10, 7])
+    const b = ok(buy(a, 11)) // offered after 7, touches 7 and 10
     expect(b.gold).toBe(0)
-    expect(b.islands.plots.home).toContain(8)
+    expect(b.islands.plots.home).toContain(11)
   })
   it('a third at PL 2 is LEVEL_TOO_LOW with nothing charged', () => {
     const two = withPlots({ ...base, level: 2, gold: 10_000 }, [5, 6, 9, 10, 4, 8])
@@ -131,10 +134,10 @@ describe('buyPlot (§5.5, R44-R47)', () => {
     err(buy({ ...base, level: 2 }, 5), 'PLOT_OWNED')
   })
   it('too little Gold is INSUFFICIENT_GOLD', () => {
-    err(buy({ ...base, level: 2, gold: 99 }, 4), 'INSUFFICIENT_GOLD')
+    err(buy({ ...base, level: 2, gold: 99 }, 7), 'INSUFFICIENT_GOLD')
   })
   it('a level below the gate is LEVEL_TOO_LOW', () => {
-    err(buy(base, 4), 'LEVEL_TOO_LOW')
+    err(buy(base, 7), 'LEVEL_TOO_LOW')
   })
   it('a bad index or island is INVALID_ACTION', () => {
     for (const plot of [16, -1, 1.5]) err(buy({ ...base, level: 2 }, plot), 'INVALID_ACTION')

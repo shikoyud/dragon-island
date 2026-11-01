@@ -21,7 +21,7 @@ test('builds the Roost, skips the build, reads its tier, then Ascends through th
 
   await page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name: 'Shop', exact: true }).click()
   await page.locator('#shop-roost').click()
-  await bridge(page, b => b.emit({ type: 'cell', col: 20, row: 12 }))
+  await bridge(page, b => b.emit({ type: 'cell', col: 20, row: 16 }))
   const placement = page.getByRole('toolbar', { name: /placement/i })
   await placement.getByRole('button', { name: /confirm/i }).click()
   await expect(placement).toBeHidden()
@@ -35,7 +35,7 @@ test('builds the Roost, skips the build, reads its tier, then Ascends through th
   await expect(roost.getByText('Tier 1 · cap 10')).toBeVisible()
 
   // Ascension: Tier 4 at PL 30 with the Gold; the $2.00 is charged in the same action.
-  const at = { island: 'home', col: 20, row: 12, facing: 0 }
+  const at = { island: 'home', col: 20, row: 16, facing: 0 }
   await resetPlayer(request, { gold: 10_000_000, level: 30, xp: 0, roostTier: 4, roostPlacement: at }, { tokenWei: (100n * 10n ** 18n).toString() })
   await ready(page)
   await bridge(page, b => b.emit({ type: 'select', target: { kind: 'roost' } }))
