@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  anchor, BATTLE, cellCentre, cellTop, depthOrder, dragonSpot, footprintDiamond, HATCHERY_ITEM_SCALE, hatcherySpot, integerZoom,
+  anchor, BATTLE, BATTLE_CONTROLS_H, BATTLE_DRAGON_SCALE, BATTLE_SPOT, battleCamera, battleStage, cellCentre, cellTop, depthOrder, dragonSpot, footprintDiamond, HATCHERY_ITEM_SCALE, hatcherySpot, integerZoom,
   islandBox, ISO, pointerToCell,
 } from '../src/game/layout'
 
@@ -83,11 +83,53 @@ describe('isometric layout', () => {
     for (let i = 1; i < 5; i++) expect(spots[i]!.x).toBeGreaterThan(spots[i - 1]!.x)
   })
 
-  it('fits the 480x270 battle stage by whole-number zoom', () => {
-    expect(BATTLE).toEqual({ w: 480, h: 270 })
-    expect(integerZoom(1920, 1080)).toBe(4)
-    expect(integerZoom(500, 280)).toBe(1)
+  it('fits the 360x420 portrait battle stage by whole-number zoom, never below 1', () => {
+    expect(BATTLE).toEqual({ w: 360, h: 420 })
+    expect(integerZoom(1920, 1080)).toBe(2)
     expect(integerZoom(390, 600)).toBe(1)
-    expect(integerZoom(1439, 900)).toBe(2)
+    expect(integerZoom(720, 840)).toBe(2)
+    expect(integerZoom(719, 840)).toBe(1)
+    expect(integerZoom(200, 200)).toBe(1)
+  })
+
+  describe('battleStage', () => {
+    it('rests the stage 8 px above the controls, spare room over it, by whole pixels, on the three screens that matter', () => {
+      expect(battleStage(390, 844)).toEqual({ zoom: 1, x: 15, y: 844 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
+      expect(battleStage(360, 640)).toEqual({ zoom: 1, x: 0, y: 640 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
+      expect(battleStage(1440, 900)).toEqual({ zoom: 1, x: 540, y: 900 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
+    })
+    it('the stage and the controls together fit 360x640 with nothing covered', () => {
+      const s = battleStage(360, 640)
+      expect(s.y).toBeGreaterThanOrEqual(0)
+      expect(s.y + s.h).toBeLessThanOrEqual(640 - BATTLE_CONTROLS_H)
+    })
+    it('zooms only as far as the room above the controls allows', () => {
+      expect(battleStage(1920, 1080).zoom).toBe(2)
+      expect(battleStage(2560, 1440).zoom).toBe(2)
+      expect(battleStage(3840, 2160).zoom).toBe(4)
+    })
+    it('a short screen pins the stage to the top: the controls stay reachable over it', () => {
+      expect(battleStage(844, 390)).toMatchObject({ zoom: 1, y: 0 })
+    })
+    it('the camera centre puts the stage where the box says', () => {
+      for (const [w, h] of [[390, 844], [360, 640], [1440, 900], [1920, 1080]] as const) {
+        const box = battleStage(w, h)
+        const cam = battleCamera(w, h)
+        // screen = (world - centre) * zoom + viewport / 2
+        expect((0 - cam.x) * box.zoom + w / 2).toBe(box.x)
+        expect((0 - cam.y) * box.zoom + h / 2).toBe(box.y)
+      }
+    })
+    it('the dragons stand on the stage, the enemy upper right and yours lower left', () => {
+      const scale = BATTLE_DRAGON_SCALE
+      const halfAdult = (48 * scale) / 2
+      for (const side of ['attacker', 'defender'] as const) {
+        expect(BATTLE_SPOT[side].x - halfAdult).toBeGreaterThanOrEqual(0)
+        expect(BATTLE_SPOT[side].x + halfAdult).toBeLessThanOrEqual(BATTLE.w)
+        expect(BATTLE_SPOT[side].y).toBeLessThanOrEqual(BATTLE.h)
+      }
+      expect(BATTLE_SPOT.defender.x).toBeGreaterThan(BATTLE_SPOT.attacker.x)
+      expect(BATTLE_SPOT.defender.y).toBeLessThan(BATTLE_SPOT.attacker.y)
+    })
   })
 })

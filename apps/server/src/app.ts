@@ -24,6 +24,7 @@ import { e2eRoutes } from './routes/e2e'
 import { gameRoutes } from './routes/game'
 import { gameInfo } from './services/game'
 import { authRoutes } from './routes/auth'
+import { pveRoutes } from './routes/pve'
 import { pvpRoutes } from './routes/pvp'
 import { withdrawRoutes } from './routes/withdraw'
 import type { WithdrawDeps } from './services/withdraw'
@@ -86,6 +87,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   authRoutes(app, deps)
   actionRoutes(app, deps, actionDeps)
   pvpRoutes(app, deps)
+  pveRoutes(app, deps)
   gameRoutes(app, deps)
   withdrawRoutes(app, deps, withdrawDeps)
 

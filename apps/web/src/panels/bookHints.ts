@@ -10,6 +10,7 @@ export function bookHint(sp: Species, preset: Preset, _c: Catalog): string {
   const names = sp.elements.map(elementName)
   if (sp.rarity === 'legendary') {
     const ev = LEGENDARY_EVENTS.find(e => e.speciesId === sp.id)
+    if (sp.id === 'trial-champion') return 'Reward: beat the Chapter 10 Boss of the Elemental Trials' // A21: not a breed result
     if (!ev) return 'Not bred'
     const [from, to] = ev.days[preset.id]
     return `Breeding event, days ${from}–${to}: ${names.join(' and ')} parents`

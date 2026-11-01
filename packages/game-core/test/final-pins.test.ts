@@ -3,7 +3,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
-  applyAction, basicPriceGold, createRng, ELEMENTS, generateBotTeam, LAUNCH_CATALOG, MAX_ROUNDS, newPlayer, simulateBattle, stageTeam,
+  aiChoice, applyAction, basicPriceGold, createRng, ELEMENTS, generateBotTeam, initBattle, LAUNCH_CATALOG, newPlayer, NODES_PER_CHAPTER, nodeTeam, runDefender, step, TRIAL_CHAPTERS, TURN_LIMIT,
   type Action, type BattleDragonSpec, type PlayerState,
 } from '../src/index'
 import { ok } from './helpers'
@@ -13,27 +13,25 @@ const run = (s: PlayerState, a: Action) => ok(applyAction(s, a, 0, createRng(1),
 describe('the battle sim finishes on the launch catalog (Review Focus)', () => {
   const tri: BattleDragonSpec[] = [{ speciesId: 'flame-ice-sea', level: 20 }, { speciesId: 'ice-sea', level: 20 }, { speciesId: 'terra-flame', level: 20 }]
   const check = (a: readonly BattleDragonSpec[], b: readonly BattleDragonSpec[], seed: number) => {
-    const o = simulateBattle(a, b, [], createRng(seed), LAUNCH_CATALOG, { attackerAi: true, aiFallback: true })
-    expect(o.ok).toBe(true)
-    if (o.ok) expect(o.rounds).toBeLessThanOrEqual(MAX_ROUNDS)
+    const rng = createRng(seed)
+    let s = initBattle(a, b, LAUNCH_CATALOG)
+    while (s.winner === null) s = runDefender(step(s, 'attacker', aiChoice(s, 'attacker', rng), rng)!, rng)
+    expect(s.turn).toBeLessThanOrEqual(TURN_LIMIT)
   }
 
-  it('over every campaign stage against a seeded bot team', () => {
-    for (let n = 1; n <= 30; n++) check(generateBotTeam(n * 2, LAUNCH_CATALOG, createRng(n)), stageTeam(n, LAUNCH_CATALOG), n)
+  const nodes = TRIAL_CHAPTERS.flatMap(c => Array.from({ length: NODES_PER_CHAPTER }, (_, i) => nodeTeam(c.chapter, i + 1, LAUNCH_CATALOG)))
+
+  it('over every Trial node against a seeded bot team', () => {
+    nodes.forEach((team, i) => check(generateBotTeam(1 + (i % 45), LAUNCH_CATALOG, createRng(i + 1)), team, i + 1))
   })
 
   it('with a team that holds flame-ice-sea, on both sides', () => {
-    for (let n = 1; n <= 30; n++) {
-      check(tri, stageTeam(n, LAUNCH_CATALOG), n)
-      check(stageTeam(n, LAUNCH_CATALOG), tri, n)
-    }
+    nodes.forEach((team, i) => {
+      check(tri, team, i + 1)
+      check(team, tri, i + 1)
+    })
   })
 
-  it('with the AI fallback alone, from an empty move list', () => {
-    const o = simulateBattle(tri, stageTeam(1, LAUNCH_CATALOG), [], createRng(1), LAUNCH_CATALOG, { aiFallback: true })
-    expect(o.ok).toBe(true)
-    if (o.ok) expect(o.rounds).toBeLessThanOrEqual(MAX_ROUNDS)
-  })
 })
 
 describe('Dragon Book and Basic prices (deferred gaps)', () => {

@@ -35,6 +35,9 @@ export interface ActionDeps {
 
 export interface ResolvedOffer { opponent: OpponentSnapshot; opponentPlayerId: string | null; seed32: number; seedHex: `0x${string}` }
 
+/** Names a Trial's seed (R69): the battles settled when it started, read from the player's own state. Not client input. */
+export const pveSeedLabel = (playerId: string, index: number): string => `pve:${playerId}:${index}`
+
 export type RunResult = { status: number; body: ActionResponse | ErrorResponse }
 
 /**
@@ -84,9 +87,10 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
     } else {
       action = client
       logged = client
-      // Battles get their own seed, domain-separated from action seeds (spec §17).
-      if (client.type === 'pveBattle') {
-        const label = `${playerId}:${nonce}`
+      // Battles get their own seed, domain-separated from action seeds (spec §17). A Trial's is the one GET /pve/seed revealed,
+      // named by the row locked above: nothing the client sends can reach it.
+      if (client.type === 'finishTrial' && state.pve.active) {
+        const label = pveSeedLabel(playerId, state.pve.active.index)
         ;({ seedHex, seed32 } = battleSeed(secret, label))
         seedLabel = `battle:${label}`
       }
@@ -114,7 +118,7 @@ export async function runAction(deps: ActionDeps, playerId: string, request: Act
       const next: PlayerState = result.state
       await tx.update(players).set({ state: next, updatedAt: new Date(nowMs) }).where(eq(players.id, playerId))
       status = 200
-      body = { state: next, effects: result.effects, ...(result.battle ? { battle: result.battle } : {}) }
+      body = { state: next, effects: result.effects, ...(result.battle ? { battle: result.battle } : {}), ...(result.trial ? { trial: result.trial } : {}) }
     }
 
     // Keep the query columns mirrored from state on every action, including failures.

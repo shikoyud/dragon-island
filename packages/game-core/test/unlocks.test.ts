@@ -39,6 +39,8 @@ const SECTION_4_4: Record<number, string[]> = {
   25: ['island:isle4'],
   30: ['roost:5'],
 }
+// §6.3 Unlock PL of Elemental Trials chapters 1-10 (R71): `pve` is chapter 1.
+const TRIALS: Record<number, string[]> = { 4: ['trial:1'], 5: ['trial:2'], 6: ['trial:3'], 8: ['trial:4'], 10: ['trial:5'], 13: ['trial:6'], 16: ['trial:7'], 19: ['trial:8'], 23: ['trial:9'], 28: ['trial:10'] }
 // Gates §4.4's table leaves to §5.3 (farms 5-8) and §5.4 (the fifth slot, Mountain and Grove levels).
 const SECTION_5: Record<number, string[]> = {
   10: ['farm:5', 'mountain:2'],
@@ -50,7 +52,7 @@ const SECTION_5: Record<number, string[]> = {
 describe('the §4.4 unlock schedule, PL 1 to 30', () => {
   for (let pl = 1; pl <= 30; pl++) {
     it(`PL ${pl} opens exactly its row`, () => {
-      expect(at(pl)).toEqual(sorted([...(SECTION_4_4[pl] ?? []), ...(SECTION_5[pl] ?? [])]))
+      expect(at(pl)).toEqual(sorted([...(SECTION_4_4[pl] ?? []), ...(SECTION_5[pl] ?? []), ...(TRIALS[pl] ?? [])]))
     })
   }
   it('R32, R46: Islands 5 and 6 sit at PL 32 and 40; Home plots open at PL 2, 2, 3 then one per level to 12', () => {
@@ -59,8 +61,8 @@ describe('the §4.4 unlock schedule, PL 1 to 30', () => {
   })
   it('lists every key once, with a positive whole level', () => {
     for (const [k, pl] of Object.entries(UNLOCKS)) expect(Number.isInteger(pl) && pl >= 1, k).toBe(true)
-    // 10 habitats + 10 basics + 6 crops + 8 farms + 3 + 3 + 4 + the fifth slot + 5 roosts + pve + wings + 12 home + 5 islands
-    expect(Object.keys(UNLOCKS)).toHaveLength(10 + 10 + 6 + 8 + 3 + 3 + 4 + 1 + 5 + 1 + 1 + 12 + 5)
+    // 10 Trials chapters at the end; 10 habitats + 10 basics + 6 crops + 8 farms + 3 + 3 + 4 + the fifth slot + 5 roosts + pve + wings + 12 home + 5 islands
+    expect(Object.keys(UNLOCKS)).toHaveLength(10 + 10 + 6 + 8 + 3 + 3 + 4 + 1 + 5 + 1 + 1 + 12 + 5 + 10)
   })
   it('a Basic opens with its Habitat (§4.4), as two separate keys', () => {
     for (const e of ELEMENTS) expect(unlockPl(`basic:${e}`)).toBe(unlockPl(`habitat:${e}`))
@@ -140,7 +142,12 @@ const probes = (): [UnlockKey, Probe][] => {
     state: { ...rich(base, l), roostPlacement: FREE, roostTier: n - 1 }, action: { type: 'startUpgrade', building: { type: 'roost' } },
   })])
   list.push(['roost:5', l => ({ state: { ...rich(base, l), roostPlacement: FREE, roostTier: 4 }, action: { type: 'buy', item: { kind: 'ascension' } } })])
-  list.push(['pve', l => ({ state: rich(base, l), action: { type: 'pveBattle', stage: 1, team: ['d1', 'd2', 'dX'], moves: [] } })])
+  list.push(['pve', l => ({ state: rich(base, l), action: { type: 'startTrial', chapter: 1, node: 1, team: ['d1', 'd2', 'dX'] } })])
+  // Each chapter's first node, with the previous Boss beaten (R71): past the level gate, only the team is wrong.
+  for (let n = 1; n <= 10; n++) list.push([`trial:${n}` as UnlockKey, l => ({
+    state: { ...rich(base, l), pve: { ...base.pve, stars: { [`${n - 1}:10` as const]: 1 } } },
+    action: { type: 'startTrial', chapter: n, node: 1, team: ['d1', 'd2', 'dX'] },
+  })])
   for (let i = 0; i < 12; i++) list.push([`home:${i}`, l => ({ state: withPlots(rich(base, l), [5, 6, 9, 10, ...HOME_BUY_ORDER.slice(0, i)]), action: { type: 'buyPlot', island: 'home', plot: HOME_BUY_ORDER[i]! } })])
   const order: IslandId[] = ['home', 'isle2', 'isle3', 'isle4', 'isle5', 'isle6']
   for (const id of order.slice(1) as Exclude<IslandId, 'home'>[]) list.push([`island:${id}` as UnlockKey, l => ({
@@ -169,7 +176,7 @@ describe('every gate refuses at PL - 1 and opens at PL', () => {
       if (r.ok) return
       expect(r.error, key).not.toBe('LEVEL_TOO_LOW')
       // Past the level gate, each probe's only expected refusal is a missing second Hatchery team, never the level.
-      if (key === 'pve') expect(r.error).toBe('INVALID_TEAM')
+      if (key === 'pve' || key.startsWith('trial:')) expect(r.error).toBe('INVALID_TEAM')
     })
   }
   it('actions that spend a gate succeed at PL (Gold and room given)', () => {

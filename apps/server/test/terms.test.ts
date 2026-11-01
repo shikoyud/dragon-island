@@ -36,6 +36,7 @@ describe('terms acceptance', () => {
     expect(res.statusCode).toBe(428)
     expect(res.json()).toEqual({ error: 'TERMS_REQUIRED' })
     expect((await t.app.inject({ method: 'GET', url: '/pvp/offers', headers: bearer(token) })).statusCode).toBe(428)
+    expect((await t.app.inject({ method: 'GET', url: '/pve/seed', headers: bearer(token) })).statusCode).toBe(428)
     // /me still works and tells the client which version to show.
     expect((await me(token)).termsRequired).toBe('2026-10')
   })
@@ -94,6 +95,8 @@ describe('terms acceptance', () => {
     const res = await t.app.inject({ method: 'GET', url: '/pvp/offers', headers: bearer(token) })
     expect(res.statusCode).toBe(403)
     expect(res.json()).toEqual({ error: 'BANNED' })
+    const seed = await t.app.inject({ method: 'GET', url: '/pve/seed', headers: bearer(token) })
+    expect([seed.statusCode, seed.json()]).toEqual([403, { error: 'BANNED' }])
   })
 
   it('withdrawals, /me and sign-in are never terms-gated', async () => {

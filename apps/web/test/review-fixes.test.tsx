@@ -128,17 +128,18 @@ describe('C2/I1: deposit step machine, receipt waits and account guard', () => {
 })
 
 describe('I4: a finished battle cannot be submitted twice', () => {
-  it('disables Submit and Undo after a result', async () => {
+  it('disables Submit after a result', async () => {
     const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
     const s8: PlayerState = { ...newPlayer(0), level: 8, defenceTeam: TEAM, dragons: TEAM.map(id => ({ id, speciesId: 'flame', level: 20, feeds: 0, habitatId: 'h1' })) }
-    const api = { action: vi.fn(async () => ({ state: s8, effects: [], battle: { ok: true, winner: 'attacker', rounds: 1, log: [], attacker: [1, 1, 1], defender: [0, 0, 0] } })) }
+    const api = { action: vi.fn(async () => ({ state: s8, effects: [], battle: { ok: true, winner: 'attacker', turns: 1, log: [], attacker: [1, 1, 1], defender: [0, 0, 0], attackerKos: 0 } })) }
     const h = harness(s8, api)
     const { result } = renderHook(() => useBattle(), { wrapper: h.wrapper })
-    act(() => result.current.startPve(1, TEAM))
-    act(() => result.current.choose(0, 0))
+    // Flame L20 one-shots these nature L1s with Tier 1.
+    const team = [1, 2, 3].map(() => ({ speciesId: 'nature', level: 1 }))
+    act(() => result.current.startPvp({ offerId: 'o', seedHex: `0x${'ab'.repeat(32)}`, opponent: { playerId: null, trophies: 0, level: 8, team } }, TEAM))
+    for (let i = 0; i < 3; i++) act(() => result.current.choose({ kind: 'attack', move: 1 }))
     expect(result.current.canSubmit).toBe(true)
     await act(async () => { await result.current.submit() })
     expect(result.current.canSubmit).toBe(false)
-    expect(result.current.canUndo).toBe(false)
   })
 })

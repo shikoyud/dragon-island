@@ -3,7 +3,7 @@ import { newPlayer, unlockPl, type PlayerState } from '@wyrmhaven/game-core'
 import { cleanup, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { FarmPanel } from '../src/panels/FarmPanel'
-import { PvePanel } from '../src/panels/PvePanel'
+import { TrialsPanel } from '../src/panels/TrialsPanel'
 import { ShopPanel } from '../src/panels/ShopPanel'
 import { harness } from './harness'
 
@@ -61,16 +61,16 @@ describe('Shop and panel reasons follow the unlock table', () => {
     expect(button(/Sea Melon/)).toBeEnabled()
   })
 
-  it('pve in the Campaign panel', () => {
+  it('pve in the Trials panel', () => {
     const pl = unlockPl('pve')
     expect(pl).toBe(4)
     const low = harness(rich(pl - 1, { dragons: [...base.dragons, { id: 'd3', speciesId: 'terra', level: 1, feeds: 0, habitatId: 'h1' }] }))
-    render(<PvePanel onFight={() => {}} />, { wrapper: low.wrapper })
-    expect(screen.getByText(`The campaign unlocks at player level ${pl}.`)).toBeInTheDocument()
+    render(<TrialsPanel nowMs={0} onFight={() => {}} onResume={() => {}} />, { wrapper: low.wrapper })
+    expect(screen.getByText(`The Trials unlock at player level ${pl}.`)).toBeInTheDocument()
     cleanup()
     const ok = harness(rich(pl, { dragons: [...base.dragons, { id: 'd3', speciesId: 'terra', level: 1, feeds: 0, habitatId: 'h1' }] }))
-    render(<PvePanel onFight={() => {}} />, { wrapper: ok.wrapper })
-    expect(screen.queryByText(/The campaign unlocks at player level/)).toBeNull()
+    render(<TrialsPanel nowMs={0} onFight={() => {}} onResume={() => {}} />, { wrapper: ok.wrapper })
+    expect(screen.queryByText(/The Trials unlock at player level/)).toBeNull()
   })
 })
 

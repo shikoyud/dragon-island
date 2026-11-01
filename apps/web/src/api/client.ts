@@ -1,6 +1,6 @@
 import type {
   ActionRequest, ActionResponse, ClientAction, MeResponse, NonceResponse, OffersResponse,
-  PendingWithdrawResponse, VerifyResponse, WithdrawResponse,
+  PendingWithdrawResponse, PveSeedResponse, VerifyResponse, WithdrawResponse,
 } from '@wyrmhaven/shared'
 
 /** A server `{ error }` reply, mapped straight from the HTTP status and code (spec §19). */
@@ -66,6 +66,7 @@ export function createApi(opts: ApiOptions) {
     action: (action: ClientAction, idempotencyKey: string) =>
       call<ActionResponse>('POST', '/actions', { action, idempotencyKey } satisfies ActionRequest),
     offers: () => call<OffersResponse>('GET', '/pvp/offers'),
+    pveSeed: () => call<PveSeedResponse>('GET', '/pve/seed'),
     withdraw: async (grossWei: bigint) => toVoucher(await call<WithdrawResponse>('POST', '/withdraw', { grossWei: grossWei.toString() })),
     pendingWithdraw: async (): Promise<{ voucher: Voucher | null }> => {
       const p = await call<PendingWithdrawResponse>('GET', '/withdraw/pending')

@@ -6,7 +6,7 @@ export interface ManifestEntry { file: string; w: number; h: number; frames: num
 export interface Manifest { assets: Record<string, ManifestEntry> }
 
 /** Manifest keys the HUD reads (docs/art/hud-art-list.md). */
-const HUD_KEY = /^(icon\.[a-z]+\.(16|32)|ui\..+|map\.backdrop|map\.bridge)$/
+const HUD_KEY = /^(icon\.[a-z]+\.(16|32)|ui\..+|map\.backdrop|map\.bridge|battle\.boss\.marker|trial\.chapter\.[a-z]+|trial\.node(\.boss|\.locked)?)$/
 
 /** Manifest keys tried in turn for each obstacle until its own art lands: the nearest old sprite by footprint. */
 const OBSTACLE_ART: Record<ObstacleKind, readonly string[]> = {
@@ -14,6 +14,7 @@ const OBSTACLE_ART: Record<ObstacleKind, readonly string[]> = {
   tree: ['tree'], smallRock: ['smallRock', 'rock'], bush: ['bush'],
 }
 
+const BATTLE_FX = ['hit', 'crit', 'immune', 'ko', 'swap'] as const
 const CROPS: CropId[] = ['dragonBush', 'emberWheat', 'seaMelon', 'thunderPumpkin', 'frostBerries', 'warlordPepper']
 
 /** Builds the typed art set; any key the manifest lacks becomes an empty sprite at its slot's default size. */
@@ -30,6 +31,10 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     Object.fromEntries(Array.from({ length: max }, (_, i) => i + 1).flatMap(l => (manifest.assets[`building.${name}.${l}`] ? [[l, get(`building.${name}.${l}`, { w: size, h: size })]] : [])))
   const perElement = (prefix: string, slot: SlotName): Record<Element, Sprite> =>
     Object.fromEntries(ELEMENTS.map(el => [el, get(`${prefix}.${el}`, slot)])) as Record<Element, Sprite>
+
+  /** `<prefix>.<speciesId>` for species with an id of their own (not an element's Basic), only when the manifest has the key. */
+  const speciesSheets = (prefix: string): Record<string, Sprite> =>
+    Object.fromEntries([...catalog.species.keys()].filter(id => !(ELEMENTS as readonly string[]).includes(id)).flatMap(id => { const s = present(`${prefix}.${id}`); return s ? [[id, s]] : [] }))
 
   const layerKeys = Object.keys(manifest.assets)
     .filter(k => /^island\.layer\.\d+$/.test(k))
@@ -75,6 +80,16 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
         return grass.length > 0 || cliffSw || cliffSe ? [[i, { grass, cliffSw, cliffSe }]] : []
       })),
       plotEdge: present('ground.plotEdge'),
+    },
+    battle: {
+      backdrop: Object.fromEntries(ELEMENTS.flatMap(el => { const s = present(`battle.backdrop.${el}`); return s ? [[el, s]] : [] })),
+      platform: present('ui.battle.platform'),
+      moveFx: Object.fromEntries([...ELEMENTS, 'physical'].flatMap(m => { const s = present(`fx.move.${m}`); return s ? [[m, s]] : [] })),
+      fx: Object.fromEntries(BATTLE_FX.flatMap(n => { const s = present(`fx.${n}`); return s ? [[n, s]] : [] })),
+    },
+    special: {
+      egg: speciesSheets('egg'),
+      hatchling: speciesSheets('hatchling'),
     },
     hud: Object.fromEntries(Object.keys(manifest.assets).filter(k => HUD_KEY.test(k)).map(k => [k, get(k, 'icon')])),
   }

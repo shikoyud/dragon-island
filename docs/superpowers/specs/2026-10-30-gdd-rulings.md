@@ -45,6 +45,11 @@ shiko also said the token use and reward system will be discussed again after th
 | M3 Goals | The 14 Goals | As drafted (R36). |
 | M4 Q1 | Clearing and building slots (2026-10-31) | (a) Separate limits: 2 clears at once, and 2 builds or upgrades at once. |
 | M4 Q2 | Speed-up token durations (2026-10-31) | (a) Real hours: a 3 h token takes 3 h off any running timer. |
+| A17 | M5 Q1: hybrid move kit (2026-10-31) | (a) Fixed kit. Basic: all three in its element. Two elements: Tier 1 primary, Tier 2 secondary, Tier 3 primary. Three elements: Tier 1 primary, Tier 2 secondary, Tier 3 third. |
+| A18 | M5 Q2: 3-star turn count (2026-10-31) | (a) 3-star turns are counted across both sides, as in the rest of §6. |
+| A19 | M5 Q3: PvE XP (2026-10-31) | (a) §6.3 governs over §4.3's 10–50: XP = 20 × chapter, Boss × 3. |
+| A20 | M5 Q4: Chapter 9 enemies (2026-10-31) | (a) Light Rares on-element, Epic wildcards, and a Light Rare L34 Boss. |
+| A21 | M5 Q5: Chapter 10 Boss (2026-10-31) | (a) Add species `trial-champion`, War/Metal Legendary, not breedable, name editable; it is the Boss and the one-time reward; catalog 107. |
 
 ## Rulings applied by the plans (defaults, not GDD text)
 
@@ -111,3 +116,22 @@ shiko also said the token use and reward system will be discussed again after th
 | R59 | **Warlord's Crown decorations keep their PL 45 gate until M7,** when A9 reprices them. | M7 owns them; the gap is noted, and harmless until PL 45. |
 | R60 | **The Map is a Phaser scene with a matching DOM list of buttons.** Positions are display only. | Reuses the island's gestures; the list keeps keyboard and screen-reader access. |
 | R61 | **Habitat and Farm sprites draw at footprint width ÷ sheet width,** until art lands at final size. | The game runs before the art does, and art needs no code change. |
+| R62 | **Damage is integer maths:** MoveMult in hundredths, variance in whole thousandths from `rng.int(201)`, crit from `rng.int(100)`; two draws on every attack, even immune. | Client and server must not diverge; §6.2 gives the same results to the floor. |
+| R63 | **A turn is an attack or a Swap, counted across both sides; a KO replacement isn't.** | §6.1: "Swap (uses the turn)", "enters free", "30 total turns". |
+| R64 | **Tier 3's rest belongs to the dragon:** illegal on its next action, cleared by another move or by swapping out; a new entrant may use it. | §6.1 says "two turns in a row"; a swap breaks the row. |
+| R65 | **PvE enemies use §6.4's AI.** It replaces a KO with the bench dragon that has the best multiplier against your active, ties lowest slot. | §6.3 names no AI, §6.4's is the only one, and it doesn't cover replacement. |
+| R66 | **§6.4's swap test ignores Physical:** "every element move is 0.5× or worse". | Physical is always 1×, so as written the swap could never fire. |
+| R67 | **Move names are ours, editable by shiko:** Strike (Physical); Terra Stone Toss, Quake Stomp, Mountain Fall; Flame Cinder Spit, Blaze Lash, Inferno Crown; Sea Spray Bolt, Riptide Lash, Abyss Surge; Nature Thorn Flick, Bramble Lash, Verdant Wrath; Electric Spark Jab, Arc Burst, Storm Lance; Ice Frost Nip, Rime Shard, Glacier Break; Metal Iron Tap, Steel Rake, Anvil Drop; Dark Shade Nip, Gloom Rend, Umbral Maw; Light Glint, Radiant Slash, Dawn Verdict; War Spear Jab, War Cleave, Warlord's Decree. | §6.1 sources ratios from another game; CLAUDE.md forbids copying its names. |
+| R68 | **Fatigue is absolute HP plus a timestamp, regen floored, capped at max; a level-up raises max, not HP; 25 % means hp × 4 ≥ max.** | §6.3 gives rates only; this stays integer and pure. |
+| R69 | **A Trial is frozen when it starts:** node, team, levels and HP are stored, and only then can the seed be read, named by `pve:playerId:index`. | Regen would make a client's preview differ from the server's re-simulation (A8). |
+| R70 | **Abandoning, or a short or illegal list, is a loss with the team on 1 HP.** | Phase 2's forfeit rule: otherwise a revealed seed can be rerolled for free until it's perfect. |
+| R71 | **A chapter needs its PL and the previous Boss; nodes go in order; gates are `trial:n` in `UNLOCKS`.** | §6.3 lists PLs and "10 nodes"; M3's one-table rule. |
+| R72 | **Enemies are fixed per node:** level by linear steps through §6.3's range; two-rarity chapters split at node 5/6; slot 3 is the wildcard, one in three, with a primary that beats one of the chapter's counters; a Boss is top rarity and level with no stat bonus, and only marked. | §6.3 gives ranges and "about a third"; "one counter can't sweep it". |
+| R73 | **Trials' Gold and Food are flat; XP takes `xpMult` and banks. Losses pay nothing. A replay is 50 %, floored, of the node's reward including a Boss's ×3, counted at start, per node and game day.** | §7.2 lists no PvE multiplier and §4.3 says all XP. |
+| R74 | **Best stars are kept. A chapter's 30 stars save one `chestPulls`, once, spent in M8.** | Chests don't exist until M8. |
+| R75 | **Boss tokens:** Ch 1–2 15 min × 2; Ch 3 15 min × 3; Ch 4 1 h × 3; Ch 5–6 1 h × 4; Ch 7 3 h × 5. | §6.3 says "2–5" with no sizes; rising with the chapter, from the sizes §5.6 has. |
+| R76 | **A Boss egg has the chapter's primary, normal hatch time, and enters the Hatchery above capacity if full.** | §6.3 gives only rarity; a reward must never be lost, and §5.4's waiting rule needs a building. |
+| R77 | **Chapters 8–10 pay no $DRIS until M7.** Stars are stored, so M7 can pay what's earned if it chooses. | A16: P is zero, and shiko will discuss tokens after gameplay. |
+| R78 | **Heal-all is a store item at 50,000 micro-USD; unavailable when nobody's hurt or for a team in a Trial.** | §6.3, §7.4; the snapshot must not go stale. |
+| R79 | **`BOT_RARITIES` stays until M6.** R24's PvE half ends here. | M6 owns matchmaking and Ghost teams. |
+| R80 | **Battle screen:** portrait column with enemy upper right and yours lower left, 2×2 moves and Swap below, the same on desktop. | The GDD has no UI section despite the roadmap's "UI direction"; this is the genre's standard shape. |

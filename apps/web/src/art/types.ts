@@ -12,6 +12,8 @@ export interface Sprite {
   top?: number
 }
 
+export type BattleFxName = 'hit' | 'crit' | 'immune' | 'ko' | 'swap'
+
 export interface GameArtSet {
   /** Folder under /art/ and cache-buster. */
   version: string
@@ -58,7 +60,20 @@ export interface GameArtSet {
     /** Optional mark drawn on the border cells of an owned plot (`ground.plotEdge`). */
     plotEdge: Sprite | null
   }
-  /** HUD art present in the manifest (icon.<name>.16/.32, ui.*), by manifest key; absent keys use drawn placeholders. */
+  /** Battle stage art (docs/art/gdd-m5-art-list.md): each piece only when the manifest has it; the scene draws a colour fill, an ellipse and text without. */
+  battle: {
+    /** `battle.backdrop.<element>`, 360x420, the chapter's element. */
+    backdrop: Partial<Record<Element, Sprite>>
+    /** `ui.battle.platform`, 64x32, under each dragon. */
+    platform: Sprite | null
+    /** `fx.move.<element|physical>`, a one-shot over the target. */
+    moveFx: Partial<Record<Element | 'physical', Sprite>>
+    /** One-shots: `fx.hit`, `fx.crit`, `fx.immune`, `fx.ko`, `fx.swap`. */
+    fx: Partial<Record<BattleFxName, Sprite>>
+  }
+  /** Sheets for one species rather than one element (`egg.trial-champion`, `hatchling.trial-champion`), only the ones the manifest has. */
+  special: { egg: Record<string, Sprite>; hatchling: Record<string, Sprite> }
+  /** HUD art present in the manifest (icon.<name>.16/.32, icon.<element>, ui.*, battle.boss.marker, trial.*), by manifest key; absent keys use drawn placeholders. */
   hud: Record<string, Sprite>
 }
 

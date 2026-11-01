@@ -1,6 +1,7 @@
 import {
   createRng, newPlayer, simulateBattle, type BattleDragonSpec, type OpponentSnapshot, type PlayerState,
 } from '@wyrmhaven/game-core'
+import type { PlayerMove } from '@wyrmhaven/game-core'
 import type { Offer } from '@wyrmhaven/shared'
 import { eq } from 'drizzle-orm'
 import { hexToBytes } from 'viem'
@@ -11,7 +12,7 @@ import { bearer, testApp, type TestApp } from './helpers/testApp'
 import { TEST_KEYS, wallet } from './helpers/wallet'
 
 const TEAM: [string, string, string] = ['d1', 'd2', 'd3']
-const SWEEP = [{ move: 0, target: 0 }, { move: 0, target: 1 }, { move: 0, target: 2 }]
+const SWEEP: PlayerMove[] = [{ kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }, { kind: 'attack', move: 1 }]
 let t: TestApp
 let A: { token: string; playerId: string }
 let B: { token: string; playerId: string }
@@ -133,22 +134,5 @@ describe('pvpBattle via offers', () => {
     expect(a.trophies).toBe(35)
     expect(b.trophies).toBe(0)
     expect((a.state as PlayerState).trophies).toBe(35)
-  })
-})
-
-describe('pveBattle seeding', () => {
-  it('is deterministic from the game secret and the action nonce', async () => {
-    const run = async () => {
-      const r = await post(A.token, { type: 'pveBattle', stage: 1, team: TEAM, moves: SWEEP })
-      expect(r.statusCode).toBe(200)
-      return r.json().battle
-    }
-    const first = await run()
-    // Rebuild the same player on a fresh offer list: same secret, same nonce → same battle.
-    const [p] = await t.db.select().from(players).where(eq(players.id, A.playerId))
-    await t.db.update(players).set({ actionNonce: p!.actionNonce - 1n }).where(eq(players.id, A.playerId))
-    await setup(A.playerId, { level: 8, dragons: seaTeam(20), defenceTeam: TEAM })
-    const second = await run()
-    expect(second).toEqual(first)
   })
 })

@@ -6,7 +6,11 @@ import type { GameArtSet, Sprite } from './types'
 /** Texture key for a slot path such as `egg.flame` or `dragon.fw-rare`. */
 export const textureKey = (slotPath: string): string => `art:${slotPath}`
 
-interface Entry { key: string; sprite: Sprite; slot: FallbackSlot; element: Element }
+interface Entry {
+  key: string; sprite: Sprite; slot: FallbackSlot; element: Element
+  /** No placeholder is drawn if the PNG fails: the scene treats the texture's absence as "no art" and draws its own look. */
+  optional?: boolean
+}
 
 /** Flattens the art set into (texture key, sprite, fallback slot, element) rows. */
 export function artEntries(art: GameArtSet): Entry[] {
@@ -15,6 +19,9 @@ export function artEntries(art: GameArtSet): Entry[] {
     rows.push({ key: textureKey(path), sprite, slot, element })
   for (const [el, s] of Object.entries(art.egg) as [Element, Sprite][]) add(`egg.${el}`, s, 'egg', el)
   for (const [el, s] of Object.entries(art.hatchling) as [Element, Sprite][]) add(`hatchling.${el}`, s, 'hatchling', el)
+  // Species-specific egg and hatchling sheets exist only when the manifest has them.
+  for (const [id, s] of Object.entries(art.special.egg)) add(`egg.${id}`, s, 'egg', elementOfSpecies(id))
+  for (const [id, s] of Object.entries(art.special.hatchling)) add(`hatchling.${id}`, s, 'hatchling', elementOfSpecies(id))
   for (const [id, s] of Object.entries(art.dragon)) add(`dragon.${id}`, s, 'dragon', elementOfSpecies(id))
   for (const [id, s] of Object.entries(art.juvenile)) add(`juvenile.${id}`, s, 'dragon', elementOfSpecies(id))
   for (const [el, s] of Object.entries(art.habitat) as [Element, Sprite][]) add(`habitat.${el}`, s, 'habitat', el)
@@ -47,6 +54,12 @@ export function artEntries(art: GameArtSet): Entry[] {
   add('fx.coins', art.fx.coins, 'fxCoins', 'light')
   if (art.fx.levelUp) add('fx.levelUp', art.fx.levelUp, 'fx', 'light')
   // Ground tiles load only when they exist: without them the island scene draws its own diamonds.
+  // Battle stage art loads only when it exists, and a sheet that fails to load is simply absent (the scene draws its own look).
+  const opt = (path: string, s: Sprite) => rows.push({ key: textureKey(path), sprite: s, slot: 'fx', element: 'light', optional: true })
+  for (const [el, s] of Object.entries(art.battle.backdrop)) opt(`battle.backdrop.${el}`, s)
+  if (art.battle.platform) opt('ui.battle.platform', art.battle.platform)
+  for (const [m, s] of Object.entries(art.battle.moveFx)) opt(`fx.move.${m}`, s)
+  for (const [n, s] of Object.entries(art.battle.fx)) opt(`fx.${n}`, s)
   const ground = art.ground
   ground.grass.forEach((s, i) => add(`ground.grass.${i}`, s, 'island', 'nature'))
   for (const [k, s] of [['fog', ground.fog], ['water', ground.water], ['cliff.sw', ground.cliffSw], ['cliff.se', ground.cliffSe]] as const) if (s) add(`ground.${k}`, s, 'island', 'terra')
@@ -71,6 +84,7 @@ function elementOfSpecies(id: string): Element {
 export function loadArt(scene: Phaser.Scene, art: GameArtSet): void {
   const entries = artEntries(art)
   const drawn = (e: Entry): void => {
+    if (e.optional) return
     const tex = scene.textures.createCanvas(e.key, e.sprite.w, e.sprite.h)
     if (!tex) return
     drawFallback(tex.context, e.slot, e.element, e.sprite.w, e.sprite.h)

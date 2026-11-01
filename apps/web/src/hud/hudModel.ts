@@ -1,4 +1,4 @@
-import { CROPS, currentGoal, goalProgress, ISLANDS, LAUNCH_CATALOG, levelLimit, unlocksAt, xpToNext, type Preset, type BreederKind, type CropId, type UnlockKey, type BuildingRef, type Construction, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { CROPS, currentGoal, goalProgress, ISLANDS, LAUNCH_CATALOG, levelLimit, TRIAL_CHAPTERS, unlocksAt, xpToNext, type Preset, type BreederKind, type CropId, type UnlockKey, type BuildingRef, type Construction, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
 import type { ClientAction } from '@wyrmhaven/shared'
 import type { Target } from '../game/bridge'
 import { hatcheryHasRoom } from '../game/islandModel'
@@ -49,7 +49,7 @@ export function xpBarText(s: PlayerState, format: (n: number) => string, clock?:
 /** What the bar shows in its small form while the day's limit holds; the whole sentence is its title and value text. */
 export const XP_LIMIT_SHORT = 'Level limit'
 
-/** One unlock key in plain words; null for what the level-up screen leaves out (`wings`, and `home:n`, which is one shared line). */
+/** One unlock key in plain words; null for what the level-up screen leaves out (`wings`, `pve`, and `home:n`, which is one shared line). */
 function unlockLine(key: UnlockKey): string | null {
   const [kind, arg = ''] = key.split(':') as [string, string?]
   switch (kind) {
@@ -62,7 +62,8 @@ function unlockLine(key: UnlockKey): string | null {
     case 'hatchery': return `Hatchery level ${arg}`
     case 'hatcheryFifthSlot': return 'Hatchery fifth slot'
     case 'roost': return `Roost Tier ${arg}`
-    case 'pve': return 'Campaign'
+    case 'pve': return null // the same level opens `trial:1`, which names it: one line (R71)
+    case 'trial': return `Elemental Trials: ${TRIAL_CHAPTERS[Number(arg) - 1]!.theme}`
     case 'island': return `Bridge to ${ISLANDS[arg as IslandId].name}`
     default: return null
   }
@@ -173,10 +174,12 @@ export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
   if (waiting > 0) {
     items.push({ id: 'noRoom', label: waiting === 1 ? 'Hatchling: no room' : `${waiting} hatchlings: no room`, ready: true, panel: { kind: 'hatcheryBuilding' } })
   }
+  // A Trial left open (a reload, another tab) turns every Trial and heal into IN_TRIAL: this leads to the banner with Resume and Abandon.
+  if (s.pve.active) items.push({ id: 'trial', label: 'Trial in progress', ready: true, open: { kind: 'panel', id: 'battle' } })
   if (goalClaimable(s)) {
     items.push({ id: 'goal', label: 'Goal ready', ready: true, action: { type: 'claimGoal' }, open: { kind: 'panel', id: 'quests' } })
   }
-  // Ready first, then by time; among equals the Goal goes first, so MAX_ATTENTION never cuts the one claim the player can take.
-  const ordered = items.sort((p, q) => Number(q.ready) - Number(p.ready) || (p.readyAtMs ?? 0) - (q.readyAtMs ?? 0) || Number(q.id === 'goal') - Number(p.id === 'goal'))
+  // Ready first, then by time; among equals a Trial left open goes first (it blocks every Trial and heal), then the Goal, so MAX_ATTENTION never cuts the two things the player must act on.
+  const ordered = items.sort((p, q) => Number(q.ready) - Number(p.ready) || (p.readyAtMs ?? 0) - (q.readyAtMs ?? 0) || Number(q.id === 'trial') - Number(p.id === 'trial') || Number(q.id === 'goal') - Number(p.id === 'goal'))
   return ordered.slice(0, MAX_ATTENTION)
 }

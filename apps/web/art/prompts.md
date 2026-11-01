@@ -236,3 +236,31 @@ Tiles (code): the game's `(col*7+row*13)%3` equals `(col+row)%3`, so a strong fe
 Slab prompt: "same diamond platform, same angle, same colours: <top face>. Add at the back corner <prop>, rising above the platform. Front half of the top face stays flat and clear. Crisp pixel art, 1px dark outline, transparent background". Props: flame one slim narrow black lava rock spire with glowing orange cracks and a small flame; sea small grey rock outcrop with a little waterfall, one lily pad; nature small leafy young tree with ferns; electric one slim copper lightning rod with a coil and yellow sparks; ice cluster of tall pointed blue-white ice crystals; metal small iron forge chimney with a glowing furnace hatch and an anvil; dark slim black obelisk with violet runes and a violet flame; light slim white marble pillar with a small radiant golden sun; terra two tall tan standing stones leaning together; war crimson banners stay, small iron brazier at the back; Aerie ring of ten small glowing gem motes above the back half, white stone with gold trim.
 
 Island prompt: "a fantasy island seen whole from above and in front, floating alone with no water around it: <theme>, <rock> cliffs under its edge, filling the whole canvas width, 1px dark outline, transparent background, no shadow".
+
+## GDD M5 set (2026-11-01)
+
+Keys follow `docs/art/gdd-m5-art-list.md` (53 required and the optional `egg.trial-champion`). Cost 38 generations. Original designs; `dragon-war`, `hatchling-war` and `egg-war` frame 0 are only the start image for the Champion.
+
+| Run | Tool | Cost | Used for |
+| --- | --- | --- | --- |
+| Backdrops | `create_image_pixen` 360x420, view low top-down. Seed 502: flame, nature, dark, terra, metal, light, war. Seed 503: sea, electric, ice | 16 | `battle.backdrop.<element>` |
+| Backdrop rerolls | seed 501 terra (drew a fake HUD), flame (paved road), sea (bright pool on the plate); seed 502 sea, electric, ice (busy floors) | (in the 16) | discarded |
+| Move and impact fx | `vfx_workbench` recipes, 64x64, 14 fps, cut from its grid into one strip | 0 | `fx.move.<element\|physical>`, `fx.hit`, `.crit`, `.immune`, `.ko`, `.swap` |
+| Champion adult | `edit_image_pixen` on `dragon-war` frame 0, seed 511 (seed 512 discarded) | 2 | `dragon.trial-champion` frame 0 |
+| Champion juvenile | `edit_image_pixen` on the adult, width and height 40, seed 521 (seed 522 discarded) | 2 | `juvenile.trial-champion` frame 0 |
+| Champion hatchling | `edit_image_pixen` on `hatchling-war` frame 0, seed 511 (seed 512 discarded) | 2 | `hatchling.trial-champion` frame 0 |
+| Champion egg | `edit_image_pixen` on `egg-war` frame 0, seed 561 | 1 | `egg.trial-champion` frame 0 |
+| Champion motion | `animate_image` tried on the adult and hatchling, seed 531, discarded (face and chest flash pale between frames); drawn in code | 2 | none |
+| Crown | `create_image_pixen` 16x16, seed 541 | 1 | `battle.boss.marker` |
+| Platform | `create_image_pixen` 64x32, view high top-down, seed 541, alpha hardened | 1 | `ui.battle.platform` |
+| Shield | `create_image_pixen` 16x16, seed 541, discarded (too round); node marks drawn in code from one shield shape | 1 | none |
+| Chapter cards | `create_image_pixen` 28x28, seed 551; centre 26x26 in a code-drawn frame of the element colour, then 2x | 10 | `trial.chapter.<element>` |
+| Battle UI | drawn in code: 2 px nine-slice corners and flat centres, flat turn band, stars, tier gems | 0 | `ui.battle.hpFrame`, `.moveButton`, `.swap`, `.turn`, `ui.star`, `ui.star.empty`, `ui.tier.<n>`, `trial.node`, `.boss`, `.locked` |
+
+Backdrop prompt: "Background scene for a turn-based battle: <place>. <sky or ceiling> in the upper third only (top 35 percent for seed 503). From 40 percent down a broad flat empty <ground> fills the whole width, same simple texture everywhere, nothing standing on it. Muted mid-dark tones, low contrast, simple side edges. Scene only: no interface, no HUD, no icons, no text, no characters, no creatures, no border, no frame. Crisp pixel art." Without "no interface, no HUD" the model drew a health bar into the sky.
+
+Backdrop pass (code): sea moved up 30 px and nature 40 px so both standing spots land on the ground. Ledges at the bottom of terra, sea, ice and light are replaced by repeating a band of clean floor rows (a mirror showed as symmetric grass). Ice floor at 86 % and light floor at 90 % brightness; dark spores in the top rows at 50 %. Under the two plates (feather 6 px): 65 % toward a 7 px blur, then 30 % darker. Top strip 35 % and 25 %, bottom strip 50 % and 30 %.
+
+Champion loop (code): frame 0 is the generated frame, unchanged. Frames 1 and 2 move the rows above 55 % of the body height down 1 px; amber pixels brighten by 1, 1.12, 1.28, 1.12 over the four frames. The egg takes only the glow.
+
+Champion adult prompt: "same dragon, same pose, facing left: turn it into a regal heavily armoured legendary war-drake: dark crimson hide, big riveted steel plates over shoulders, chest and tail, a horned visored steel helmet on the head, a crest of crimson spines on the neck, a dull amber glow in a chest seam, the tail ends in a big spiked steel club. Crisp, 1px dark outline, transparent background". Juvenile: "same dragon one growth stage younger, same facing left: smaller steel plates on the shoulders only, a bare crimson head with no helmet and two small horn buds, shorter tail with a small steel knob, amber glow in the chest seam". Hatchling: "same hatchling, same pose, facing right: a round dark crimson baby dragon with two tiny steel studs on its brow and a bright amber spark in its eye, small steel tail tip".

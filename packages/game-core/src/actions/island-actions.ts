@@ -1,6 +1,7 @@
 import { getSpecies, type Catalog } from '../catalog'
 import type { Preset } from '../data/presets'
 import { FEEDS_PER_LEVEL, feedXp, foodPerFeed, levelCap } from '../dragon'
+import { holdHp } from '../fatigue'
 import { isUnfinished } from '../construction'
 import { canLiveIn, habitatSlots, residents, storedGold } from '../habitat'
 import { addXp } from '../progression'
@@ -59,7 +60,8 @@ export const feed: Handler<'feed'> = (s, a, ctx) => {
     food: collected.food - cost,
     dragons: collected.dragons.map(x => {
       if (x.id !== d.id) return x
-      return x.feeds + 1 >= FEEDS_PER_LEVEL ? { ...x, level: x.level + 1, feeds: 0 } : { ...x, feeds: x.feeds + 1 }
+      // R68: a level-up raises max, not HP, so HP is frozen at what regen has given under the old max.
+      return x.feeds + 1 >= FEEDS_PER_LEVEL ? { ...holdHp(x, ctx.catalog, ctx.nowMs, ctx.preset), level: x.level + 1, feeds: 0 } : { ...x, feeds: x.feeds + 1 }
     }),
   }
   return success(addXp({ ...fed, goalStats: { ...fed.goalStats, feeds: fed.goalStats.feeds + 1 } }, feedXp(cost), ctx.preset, ctx.day))
@@ -69,6 +71,7 @@ export const feed: Handler<'feed'> = (s, a, ctx) => {
 export const sellDragon: Handler<'sellDragon'> = (s, a, ctx) => {
   const d = s.dragons.find(x => x.id === a.dragonId)
   if (!d) return failure('NOT_FOUND')
+  if (s.pve.active?.team.includes(d.id)) return failure('IN_TRIAL')
   if (s.dragons.length <= 2) return failure('LAST_DRAGONS')
   const gold = SELL_GOLD[getSpecies(ctx.catalog, d.speciesId).rarity]
   if (gold === null) return failure('NOT_SELLABLE')

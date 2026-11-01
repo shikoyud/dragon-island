@@ -3,7 +3,8 @@ import { LAUNCH_CATALOG } from '../data/launch-catalog'
 import { DEFAULT_PRESET, type Preset } from '../data/presets'
 import type { Rng } from '../rng'
 import type { PlayerState } from '../state'
-import { pveBattle, pvpBattle, setDefenceTeam } from './battle-actions'
+import { pvpBattle, setDefenceTeam } from './battle-actions'
+import { abandonTrial, finishTrial, startTrial } from './trial-actions'
 import { buyBasic, collectEgg, hatch, startBreed } from './breed-actions'
 import { buy, useSpeedUp } from './economy-actions'
 import { harvest, plant } from './farm-actions'
@@ -52,6 +53,8 @@ function dispatch(s: PlayerState, a: Action, ctx: ActionCtx): ActionResult {
     case 'useSpeedUp': return useSpeedUp(s, a, ctx)
     case 'setDefenceTeam': return setDefenceTeam(s, a, ctx)
     case 'pvpBattle': return pvpBattle(s, a, ctx)
-    case 'pveBattle': return pveBattle(s, a, ctx)
+    case 'startTrial': return startTrial(s, a, ctx)
+    case 'finishTrial': return finishTrial(s, a, ctx)
+    case 'abandonTrial': return abandonTrial(s, a, ctx)
   }
 }

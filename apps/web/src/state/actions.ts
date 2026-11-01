@@ -10,8 +10,13 @@ import { dropMessages } from './drops'
 import { applyStateFromResponse, ME_KEY } from './me'
 
 export interface ActionHook {
-  /** Resolves to the response, or `null` after a failure that was already shown as a toast. Never rejects. */
-  run(action: ClientAction): Promise<ActionResponse | null>
+  /**
+   * Resolves to the response, or `null` after a failure that was already shown as a toast. Never rejects. `key` keeps one
+   * idempotency key across tries of one thing, so a reply lost after the server applied it comes back as a replay of that reply.
+   * `onError` hears the failure itself, for a caller whose next step depends on it. `quiet` skips the toast, for a caller
+   * whose screen already says why (two messages for one failure cover each other).
+   */
+  run(action: ClientAction, opts?: { key?: string; onError?: (e: unknown) => void; quiet?: boolean }): Promise<ActionResponse | null>
   pending: boolean
   error: ApiError | null
   clearError(): void
@@ -19,7 +24,7 @@ export interface ActionHook {
 
 /**
  * The one way the client changes game state. One action in flight at a time (the server locks the
- * row anyway); a fresh idempotency key per run, reused only when the network failed before a reply.
+ * row anyway); a fresh idempotency key per run unless the caller names one, reused when the network failed before a reply.
  * A successful reply replaces the cached state; a failure leaves it untouched, exposes the code and
  * toasts the mapped message, so panels can `void run(...)` safely.
  */
@@ -31,12 +36,12 @@ export function useAction(): ActionHook {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
 
-  const run = useCallback(async (action: ClientAction): Promise<ActionResponse | null> => {
+  const run = useCallback(async (action: ClientAction, opts?: { key?: string; onError?: (e: unknown) => void; quiet?: boolean }): Promise<ActionResponse | null> => {
     if (inFlight.current) return null
     inFlight.current = true
     setPending(true)
     setError(null)
-    const key = crypto.randomUUID()
+    const key = opts?.key ?? crypto.randomUUID()
     try {
       let res: ActionResponse
       try {
@@ -58,7 +63,8 @@ export function useAction(): ActionHook {
         if (e.status === 401) sessionStore.clear()
         setError(e)
       }
-      toasts.error(e)
+      if (!opts?.quiet) toasts.error(e)
+      opts?.onError?.(e)
       return null
     } finally {
       inFlight.current = false

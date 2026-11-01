@@ -1,13 +1,13 @@
 // GDD §4.4 (unlock schedule), §5.2 (habitats), §5.3 (crops, farms), §5.4 (Hatchery, Mountain, Grove), §5.5 (islands).
 // R32: PvE moves to PL 4, Islands 3-6 to PL 18, 25, 32, 40; Home plots follow R46.
-// PvP (pve.ts) and decorations keep their own gates until M6 and M7. This file is the only place a gate is a number.
+// PvP (data/pvp.ts) and decorations keep their own gates until M6 and M7. This file is the only place a gate is a number.
 import type { Element } from '../elements'
 import type { CropId, IslandId } from '../state'
 
 export type UnlockKey =
   | `habitat:${Element}` | `basic:${Element}` | `crop:${CropId}` | `farm:${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`
   | `mountain:${1 | 2 | 3}` | `grove:${1 | 2 | 3}` | `hatchery:${1 | 2 | 3 | 4}` | 'hatcheryFifthSlot'
-  | `roost:${1 | 2 | 3 | 4 | 5}` | 'pve' | 'wings' | `home:${number}` | `island:${Exclude<IslandId, 'home'>}`
+  | `roost:${1 | 2 | 3 | 4 | 5}` | 'pve' | `trial:${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10}` | 'wings' | `home:${number}` | `island:${Exclude<IslandId, 'home'>}`
 
 /** The level every player starts at; a gate with nothing to wait for reads this. */
 export const START_PL = 1
@@ -28,6 +28,8 @@ const GROVE_PL: readonly number[] = [12, 20, 25]
 const HATCHERY_PL: readonly number[] = [1, 4, 13, 21]
 /** §4.4: Roost Tiers 1-5. */
 const ROOST_PL: readonly number[] = [5, 10, 15, 22, 30]
+/** §6.3 Unlock PL of Elemental Trials chapters 1-10 (R71). `pve` is the first. Index = chapter - 1. */
+const TRIAL_PL: readonly number[] = [4, 5, 6, 8, 10, 13, 16, 19, 23, 28]
 /** R46: the 12 Home Isle plots open at PL 2, 2, 3, then one per level up to 12. Index = plots bought before the purchase. */
 const HOME_PL: readonly number[] = [2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
@@ -41,6 +43,7 @@ HATCHERY_PL.forEach((pl, i) => entries.push([`hatchery:${i + 1}`, pl]))
 entries.push(['hatcheryFifthSlot', 15]) // §5.4 "15+"
 ROOST_PL.forEach((pl, i) => entries.push([`roost:${i + 1}`, pl]))
 entries.push(['pve', 4], ['wings', 8])
+TRIAL_PL.forEach((pl, i) => entries.push([`trial:${i + 1}`, pl]))
 HOME_PL.forEach((pl, i) => entries.push([`home:${i}`, pl]))
 entries.push(['island:isle2', 12], ['island:isle3', 18], ['island:isle4', 25], ['island:isle5', 32], ['island:isle6', 40])
 

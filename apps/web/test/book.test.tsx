@@ -22,6 +22,7 @@ describe('bookHint (§1.4, §3.4, §8.4)', () => {
     expect(hint('magma-sovereign')).toBe('Breeding event, days 1–4: Terra and Flame parents')
     expect(hint('magma-sovereign', FLASH_28)).toBe('Breeding event, days 1–7: Terra and Flame parents')
     expect(hint('last-light')).toBe('Not bred')
+    expect(hint('trial-champion')).toBe('Reward: beat the Chapter 10 Boss of the Elemental Trials')
   })
 })
 

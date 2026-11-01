@@ -7,7 +7,7 @@ import { artSetFromManifest, type Manifest } from '../src/art/fromManifest'
 import { ART_VERSION, FALLBACK_ART } from '../src/art/slots'
 import { artEntries } from '../src/art/phaserLoader'
 import { SLOT_SIZES } from '../src/art/types'
-import { buildIslandModel, groundTiles } from '../src/game/islandModel'
+import { buildIslandModel, dragonLook, groundTiles } from '../src/game/islandModel'
 
 const manifest: Manifest = {
   assets: {
@@ -333,5 +333,88 @@ describe('drawFallback', () => {
   it('keys fallbacks by slot and element', () => {
     expect(fallbackKey('egg', 'flame')).toBe('fallback:egg:flame')
     expect(fallbackKey('panel')).toBe('fallback:panel')
+  })
+})
+
+// ---- M5: combat and PvE art. Every key is read when the manifest has it and has a fallback when it does not. ----
+const still = (file: string, w: number, h: number) => ({ file, w, h, frames: 1, fps: 0 })
+const sheet = (file: string, w: number, h: number, frames: number, fps: number) => ({ file, w, h, frames, fps })
+// `w` is one frame's width, as in the real manifest (a 6-frame fx sheet is 384 wide on disk and says 64 here).
+const M5: Manifest['assets'] = {
+  ...Object.fromEntries(ELEMENTS.flatMap(e => [
+    [`battle.backdrop.${e}`, still(`bd-${e}.png`, 360, 420)],
+    [`fx.move.${e}`, sheet(`fxm-${e}.png`, 64, 64, 6, 14)],
+    [`trial.chapter.${e}`, still(`tc-${e}.png`, 64, 64)],
+  ])),
+  'fx.move.physical': sheet('fxm-physical.png', 64, 64, 6, 14),
+  'fx.hit': sheet('fx-hit.png', 64, 64, 4, 14), 'fx.crit': sheet('fx-crit.png', 64, 64, 4, 14), 'fx.immune': sheet('fx-immune.png', 64, 64, 4, 14),
+  'fx.ko': sheet('fx-ko.png', 64, 64, 6, 14), 'fx.swap': sheet('fx-swap.png', 64, 64, 5, 14),
+  'battle.boss.marker': still('boss.png', 16, 16),
+  'ui.battle.platform': still('plat.png', 64, 32), 'ui.battle.hpFrame': still('hp.png', 16, 16), 'ui.battle.moveButton': still('mb.png', 16, 16),
+  'ui.battle.swap': still('sw.png', 16, 16), 'ui.battle.turn': still('turn.png', 96, 16), 'ui.star': still('star.png', 12, 12), 'ui.star.empty': still('star0.png', 12, 12),
+  'ui.tier.1': still('t1.png', 12, 12), 'ui.tier.2': still('t2.png', 12, 12), 'ui.tier.3': still('t3.png', 12, 12),
+  'trial.node': still('n.png', 16, 16), 'trial.node.boss': still('nb.png', 16, 16), 'trial.node.locked': still('nl.png', 16, 16),
+  'dragon.trial-champion': sheet('dtc.png', 192, 48, 4, 6), 'juvenile.trial-champion': sheet('jtc.png', 192, 48, 4, 6),
+  'hatchling.trial-champion': sheet('htc.png', 128, 32, 4, 6), 'egg.trial-champion': sheet('etc.png', 192, 32, 6, 8),
+}
+
+describe('M5 art keys', () => {
+  const none = artSetFromManifest('v1', { assets: {} }, LAUNCH_CATALOG)
+  const all = artSetFromManifest('v1', { assets: M5 }, LAUNCH_CATALOG)
+  const m5Rows = (a: typeof all) => artEntries(a).filter(r => /^art:(battle\.|fx\.(move|hit|crit|immune|ko|swap)|ui\.battle\.platform)/.test(r.key))
+
+  it('a manifest with none of them has no battle art, requests nothing for it, and still draws every dragon', () => {
+    expect(none.battle).toEqual({ backdrop: {}, platform: null, moveFx: {}, fx: {} })
+    expect(none.special).toEqual({ egg: {}, hatchling: {} })
+    expect(m5Rows(none)).toEqual([])
+    expect(Object.keys(none.hud).filter(k => /^(battle|trial)\.|^ui\.(battle|star|tier)/.test(k))).toEqual([])
+    for (const id of ['trial-champion', 'flame', 'sea']) for (const level of [1, 5, 20]) {
+      const look = dragonLook(id, level, none)
+      expect(look.key, `${id} L${level}`).toMatch(/^art:(hatchling|dragon)\.(war|flame|sea)$/)
+      expect(look.sprite.w).toBeGreaterThan(0)
+    }
+  })
+
+  it('reads backdrops, move fx, the other fx and the platform when the manifest has them', () => {
+    for (const e of ELEMENTS) {
+      expect(all.battle.backdrop[e], e).toMatchObject({ src: `/art/v1/bd-${e}.png`, w: 360, h: 420 })
+      expect(all.battle.moveFx[e], e).toMatchObject({ w: 64, h: 64, frames: 6, fps: 14 })
+    }
+    expect(all.battle.moveFx.physical).toMatchObject({ src: '/art/v1/fxm-physical.png' })
+    expect(Object.keys(all.battle.fx).sort()).toEqual(['crit', 'hit', 'immune', 'ko', 'swap'])
+    expect(all.battle.platform).toMatchObject({ w: 64, h: 32 })
+    const keys = m5Rows(all).map(r => r.key)
+    for (const k of ['art:battle.backdrop.sea', 'art:fx.move.war', 'art:fx.move.physical', 'art:fx.hit', 'art:fx.crit', 'art:fx.immune', 'art:fx.ko', 'art:fx.swap', 'art:ui.battle.platform']) expect(keys, k).toContain(k)
+    expect(keys).toHaveLength(10 + 11 + 5 + 1)
+  })
+
+  it('a partial set gives only what is there', () => {
+    const part = artSetFromManifest('v1', { assets: { 'battle.backdrop.flame': M5['battle.backdrop.flame']!, 'fx.move.sea': M5['fx.move.sea']! } }, LAUNCH_CATALOG)
+    expect(Object.keys(part.battle.backdrop)).toEqual(['flame'])
+    expect(Object.keys(part.battle.moveFx)).toEqual(['sea'])
+    expect(part.battle.platform).toBeNull()
+  })
+
+  it('React-side keys reach the HUD record: stars, tier pips, battle ui, Boss marker, chapter cards and nodes', () => {
+    const keys = ['ui.star', 'ui.star.empty', 'ui.tier.1', 'ui.tier.2', 'ui.tier.3', 'ui.battle.hpFrame', 'ui.battle.moveButton', 'ui.battle.swap', 'ui.battle.turn',
+      'battle.boss.marker', 'trial.node', 'trial.node.boss', 'trial.node.locked', ...ELEMENTS.map(e => `trial.chapter.${e}`)]
+    for (const k of keys) expect(all.hud[k]?.src, k).toBe(`/art/v1/${M5[k]!.file}`)
+  })
+
+  it('the Trial Champion: adult, juvenile and hatchling are read by species; its egg is kept for an egg of that species', () => {
+    expect(dragonLook('trial-champion', 20, all)).toMatchObject({ key: 'art:dragon.trial-champion', sprite: { w: 192 } })
+    expect(dragonLook('trial-champion', 5, all).key).toBe('art:juvenile.trial-champion')
+    expect(dragonLook('trial-champion', 1, all).key).toBe('art:hatchling.trial-champion')
+    expect(all.special.egg['trial-champion']).toMatchObject({ src: '/art/v1/etc.png' })
+    const keys = artEntries(all).map(r => r.key)
+    for (const k of ['art:dragon.trial-champion', 'art:juvenile.trial-champion', 'art:hatchling.trial-champion', 'art:egg.trial-champion']) expect(keys, k).toContain(k)
+    // Without the art it is a War dragon of the primary element, like any species without its own sheet (R23).
+    expect(dragonLook('trial-champion', 20, none).key).toBe('art:dragon.war')
+    expect(dragonLook('trial-champion', 1, none).key).toBe('art:hatchling.war')
+    expect(artEntries(none).map(r => r.key)).not.toContain('art:egg.trial-champion')
+  })
+
+  it('draws no placeholder for a battle sheet that fails to load: only its absence', () => {
+    for (const r of m5Rows(all)) expect(r.optional, r.key).toBe(true)
   })
 })

@@ -1,5 +1,8 @@
+import type { TeamIds } from './actions/types'
+import type { BattleDragonSpec } from './battle/stats'
 import { HOME_OBSTACLES, HOME_START } from './data/island-start'
 import type { SpeedUpToken } from './data/speedups'
+import type { NodeKey } from './data/trials'
 import type { Element } from './elements'
 import { STARTING_PLOTS } from './plots'
 import { utcDay, type DayCounter } from './time'
@@ -8,8 +11,14 @@ export type CropId = 'dragonBush' | 'emberWheat' | 'seaMelon' | 'thunderPumpkin'
 
 /** `xpFree`: bred from Commons alone, hatches for no XP (Q1 a). */
 export interface Egg { speciesId: string; readyAtMs: number; xpFree?: boolean }
-/** `habitatId: null` = hatched and waiting in the hatchery. */
-export interface Dragon { id: string; speciesId: string; level: number; /** Feeds toward the next level, 0..3 (§4.1). */ feeds: number; habitatId: string | null }
+/**
+ * `habitatId: null` = hatched and waiting in the hatchery.
+ * `fatigue`: HP left when it was last written, regen counted from `atMs` (§6.3, R68). Absent = full.
+ */
+export interface Dragon { id: string; speciesId: string; level: number; /** Feeds toward the next level, 0..3 (§4.1). */ feeds: number; habitatId: string | null; fatigue?: { hp: number; atMs: number } }
+
+/** A Trial as it stood when it started (R69): the battle runs from this, whatever the dragons do later. `index` names its seed. */
+export interface ActiveTrial { chapter: number; node: number; team: TeamIds; specs: BattleDragonSpec[]; index: number; startedAtMs: number; replay: boolean }
 
 export type IslandId = 'home' | 'isle2' | 'isle3' | 'isle4' | 'isle5' | 'isle6'
 export type Facing = 0 | 1 | 2 | 3
@@ -31,7 +40,7 @@ export type Construction =
   | { kind: 'clear'; obstacleId: string; readyAtMs: number }
 
 /** Bumped when the saved shape changes; there is no save migration (R2). */
-export const STATE_VERSION = 9
+export const STATE_VERSION = 11
 
 /** Counters the Goals read (§1.4, R37); each rises only when its action succeeds. */
 export interface GoalStats { collects: number; harvests: number; feeds: number; breeds: number; hatches: number }
@@ -74,7 +83,18 @@ export interface PlayerState {
   trophies: number
   /** PvP attacks today. */
   pvp: DayCounter
-  pve: { cleared: number; replays: DayCounter }
+  /** Elemental Trials (§6.3). */
+  pve: {
+    /** Best stars per node; a node with stars is cleared (R71, R74). */
+    stars: Record<NodeKey, 1 | 2 | 3>
+    /** Replays started on game day `day`, per node (R73). */
+    replays: { day: number; counts: Record<NodeKey, number> }
+    active: ActiveTrial | null
+    /** Trials settled so far; names the next seed. */
+    battles: number
+    chestPulls: number
+    starredChapters: number[]
+  }
 }
 
 const home = (cell: { col: number; row: number }): Placement => ({ island: 'home', col: cell.col, row: cell.row, facing: 0 })
@@ -109,6 +129,6 @@ export function newPlayer(nowMs: number): PlayerState {
     defenceTeam: null,
     trophies: 0,
     pvp: { day: utcDay(nowMs), count: 0 },
-    pve: { cleared: 0, replays: { day: utcDay(nowMs), count: 0 } },
+    pve: { stars: {}, replays: { day: 0, counts: {} }, active: null, battles: 0, chestPulls: 0, starredChapters: [] },
   }
 }

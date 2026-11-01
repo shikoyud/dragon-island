@@ -41,9 +41,9 @@ test('lists the scripted first hybrids, breeds, moves the egg to the Hatchery an
     await expect(page.getByText('Empty')).toBeVisible()
     await expect(page.getByRole('status').filter({ hasText: /^Hatched / })).toBeVisible()
 
-    // The new dragon (d3) is now part of the state: it appears in the Arena team picker.
+    // The new dragon is now part of the state: the Arena team picker lists all three, named by species and level.
     await openPanel(page, 'Arena')
-    await expect(page.getByRole('button', { name: /^d3 ·/ })).toBeVisible()
+    await expect(page.getByRole('group', { name: /attack team/i }).getByRole('button', { name: / L\d+$/ })).toHaveCount(3)
   } finally {
     await setServerClock(request, 0)
   }

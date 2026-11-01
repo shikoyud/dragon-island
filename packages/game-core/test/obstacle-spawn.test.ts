@@ -48,8 +48,8 @@ describe('the §5.6 table', () => {
 
 describe('Home\'s start (R50)', () => {
   it('is a new state version with exactly the fixed rows', () => {
-    expect(STATE_VERSION).toBe(9)
-    expect(base.version).toBe(9)
+    expect(STATE_VERSION).toBe(11)
+    expect(base.version).toBe(11)
     expect(base.speedUps).toEqual({ '15m': 0, '1h': 0, '3h': 0 })
     expect(base.islands.obstacles).toEqual(HOME_OBSTACLES)
     expect(base.nextId).toBe(3)

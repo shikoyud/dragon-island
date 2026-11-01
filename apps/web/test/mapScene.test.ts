@@ -34,7 +34,7 @@ async function boot(art: GameArtSet = FALLBACK_ART) {
   return { bridge, game }
 }
 
-const PREVIEW = { attacker: [], defender: [], log: [] } as unknown as BattlePreview
+const PREVIEW = { state: { sides: { attacker: { team: [], active: 0 }, defender: { team: [], active: 0 } }, log: [] }, done: null } as unknown as BattlePreview
 
 describe('the scene switch', () => {
   const games: Phaser.Game[] = []

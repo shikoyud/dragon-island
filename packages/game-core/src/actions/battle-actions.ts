@@ -1,22 +1,17 @@
 import { simulateBattle } from '../battle/sim'
 import type { BattleDragonSpec } from '../battle/stats'
+import { TEAM_SIZE } from '../data/battle'
+import { PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL, PVP_WIN_XP } from '../data/pvp'
 import { addXp } from '../progression'
-import {
-  PVE_REPLAYS_PER_DAY, PVE_STAGES, PVP_ATTACKS_PER_DAY, PVP_MIN_PLAYER_LEVEL,
-  stageRewards, stageTeam,
-} from '../pve'
 import type { PlayerState } from '../state'
 import { dayCounterAt } from '../time'
 import { applyTrophies, pvpWinGold, TROPHY } from '../trophy'
 import { earnGold } from '../wallet'
-import { isUnlocked } from '../data/unlocks'
-import { failure, success, type BattleReport, type Handler, type TeamIds } from './types'
+import { failure, success, type Handler, type TeamIds } from './types'
 
-export const PVP_WIN_XP = 20
-
-/** Three distinct owned dragons, or null. */
+/** Three distinct owned dragons at full HP, or null: PvP ignores fatigue (§6.4). */
 export function resolveTeam(s: PlayerState, ids: TeamIds): BattleDragonSpec[] | null {
-  if (new Set(ids).size !== 3) return null
+  if (new Set(ids).size !== TEAM_SIZE) return null
   const team: BattleDragonSpec[] = []
   for (const id of ids) {
     const d = s.dragons.find(x => x.id === id)
@@ -59,27 +54,4 @@ export const pvpBattle: Handler<'pvpBattle'> = (s, a, ctx) => {
     trophyDelta: won ? TROPHY.defenceLoss : TROPHY.defenceWin,
   }]
   return success(next, effects, outcome.ok ? outcome : undefined)
-}
-
-export const pveBattle: Handler<'pveBattle'> = (s, a, ctx) => {
-  if (!isUnlocked('pve', s.level)) return failure('LEVEL_TOO_LOW')
-  if (a.stage < 1 || a.stage > PVE_STAGES) return failure('NOT_FOUND')
-  if (a.stage > s.pve.cleared + 1) return failure('STAGE_LOCKED')
-  const team = resolveTeam(s, a.team)
-  if (!team) return failure('INVALID_TEAM')
-  const firstClear = a.stage > s.pve.cleared
-  const replays = dayCounterAt(s.pve.replays, ctx.nowMs)
-  if (!firstClear && replays.count >= PVE_REPLAYS_PER_DAY) return failure('DAILY_CAP_REACHED')
-
-  // The PvE seed is never revealed, so the client's plan can only be a guess: the AI finishes it.
-  const outcome = simulateBattle(team, stageTeam(a.stage, ctx.catalog), a.moves, ctx.rng, ctx.catalog, { aiFallback: true })
-  const report: BattleReport | undefined = outcome.ok ? outcome : undefined
-
-  let next: PlayerState = firstClear ? s : { ...s, pve: { ...s.pve, replays: { ...replays, count: replays.count + 1 } } }
-  if (outcome.ok && outcome.winner === 'attacker') {
-    const reward = stageRewards(a.stage, firstClear)
-    next = addXp(earnGold({ ...next, food: next.food + reward.food }, reward.gold), reward.xp, ctx.preset, ctx.day)
-    if (firstClear) next = { ...next, pve: { ...next.pve, cleared: a.stage } }
-  }
-  return success(next, [], report)
 }
