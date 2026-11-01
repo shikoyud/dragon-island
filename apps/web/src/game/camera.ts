@@ -95,6 +95,20 @@ export function fitZoom(viewportW: number, viewportH: number, b: Box): number {
   return Math.max(1, viewportH > viewportW ? Math.ceil(f) : Math.round(f + 0.1))
 }
 
+/**
+ * How far to pan, in screen px, to bring a thing into the band the HUD leaves free: from the `top` of what it shows above
+ * itself to its `bottom`, and its `x` from the sides. If it's taller than the band, the bottom wins: that keeps it clear of the buttons.
+ */
+export function revealPan(s: { x: number; top: number; bottom: number }, screen: { w: number; h: number }, insets: { top: number; bottom: number }): { dx: number; dy: number } {
+  const side = 48
+  const minY = insets.top + 8
+  const maxY = screen.h - insets.bottom - 24
+  const dx = s.x < side ? side - s.x : s.x > screen.w - side ? screen.w - side - s.x : 0
+  let dy = s.top < minY ? minY - s.top : 0
+  if (s.bottom + dy > maxY) dy = maxY - s.bottom
+  return { dx, dy }
+}
+
 /** World px kept round owned land when fitting it: a plot sign (drawn at half size) and its caption at the corner stay clear of the HUD, a building on the edge uncropped. */
 const OPENING_PAD = 32
 

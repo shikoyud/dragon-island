@@ -1,13 +1,11 @@
 import type { IslandId } from '@wyrmhaven/game-core'
-import { ArtMark, useHudSprite } from '../hud/ArtMark'
 import type { IslandChoice } from '../state/placing'
 
-/** A round button with its label beneath: the art for `art` when the manifest has it, until then a glyph made of CSS blocks. */
-function GoButton({ name, label, kind, art, disabled, onClick }: { name: string; label: string; kind: 'cancel' | 'ok'; art: string; disabled?: boolean; onClick: () => void }) {
-  const hasArt = Boolean(useHudSprite(art))
+/** A round button with its label beneath; its glyph is made of CSS blocks. */
+function GoButton({ name, label, kind, disabled, onClick }: { name: string; label: string; kind: 'cancel' | 'ok'; disabled?: boolean; onClick: () => void }) {
   return (
     <button type="button" className={`placement-go placement-go--${kind}`} aria-label={name} disabled={disabled} onClick={onClick}>
-      <span className="placement-go__plate" aria-hidden="true">{hasArt ? <ArtMark name={art} size={40} /> : <span className="placement-go__glyph" />}</span>
+      <span className="placement-go__plate" aria-hidden="true"><span className="placement-go__glyph" /></span>
       <span className="placement-go__label outlined">{label}</span>
     </button>
   )
@@ -39,11 +37,11 @@ export function PlacementBar({ legal, pending, islands = [], onIsland, onTurn, o
             {c.name}
           </button>
         ))}
-        <button type="button" className="btn" onClick={onTurn}>Turn</button>
+        <button type="button" className="btn" disabled={pending} onClick={onTurn}>Turn</button>
       </div>
       <div className="placement-bar__go">
-        <GoButton name="Cancel" label="CANCEL" kind="cancel" art="ui.placement.cancel" disabled={pending} onClick={onCancel} />
-        <GoButton name="OK" label="OK" kind="ok" art="ui.placement.ok" disabled={!legal || pending} onClick={onConfirm} />
+        <GoButton name="Cancel" label="CANCEL" kind="cancel" disabled={pending} onClick={onCancel} />
+        <GoButton name="OK" label="OK" kind="ok" disabled={!legal || pending} onClick={onConfirm} />
       </div>
     </div>
   )

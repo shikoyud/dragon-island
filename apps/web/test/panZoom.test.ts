@@ -176,6 +176,18 @@ describe('panZoom', () => {
       expect(moves).toEqual([{ x: 80, y: 50 }])
     })
 
+    it('a wheel during a press cancels the pending click, claimed or not', () => {
+      for (const x of [50, 200]) {
+        const { pz } = grabbing()
+        pz.down({ x, y: 50 }, [{ x, y: 50 }])
+        pz.wheel({ x, y: 50 }, -100)
+        expect(pz.up({ x, y: 50 }, [])).toBe(false)
+        // The next press is a click again.
+        pz.down({ x, y: 50 }, [{ x, y: 50 }])
+        expect(pz.up({ x, y: 50 }, [])).toBe(true)
+      }
+    })
+
     it('reset forgets it', () => {
       const { pz, moves } = grabbing()
       pz.down({ x: 50, y: 50 }, [{ x: 50, y: 50 }])

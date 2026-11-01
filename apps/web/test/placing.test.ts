@@ -121,6 +121,18 @@ describe('moving between plots and islands (R57)', () => {
     })
   })
 
+  it('a cell from the scene is ignored while an action is pending', () => {
+    const bridge = createBridge()
+    const { result, rerender } = renderHook(({ locked }) => usePlacing(bridge, locked), { initialProps: { locked: false } })
+    act(() => result.current.dispatch({ type: 'start', what: h1, size: 4, island: 'home', from: { island: 'home', col: 13, row: 8, facing: 0 } }))
+    rerender({ locked: true })
+    act(() => bridge.emit({ type: 'cell', col: 14, row: 13 }))
+    expect(result.current.placing).toMatchObject({ col: 13, row: 8 })
+    rerender({ locked: false })
+    act(() => bridge.emit({ type: 'cell', col: 14, row: 13 }))
+    expect(result.current.placing).toMatchObject({ col: 14, row: 13 })
+  })
+
   it('a switch has the ghost on its new cell by the time the view changes, so the scene reveals the right spot', () => {
     const bridge = createBridge()
     const { result } = renderHook(() => usePlacing(bridge))

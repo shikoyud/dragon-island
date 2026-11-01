@@ -241,20 +241,95 @@ test('Move: a drag that leaves the land keeps the last good cell, and the next t
   expect(await placing(page)).toEqual({ col: 20, row: 13 })
 })
 
-test('Move: the wheel zooms and leaves the ghost on its cell, also mid-drag', async ({ page }) => {
+test('Move: the wheel zooms and leaves the ghost on its cell', async ({ page }) => {
   await moveH1(page)
   const from = await cellPoint(page, 14, 9)
   await page.mouse.move(from.x, from.y)
   await page.mouse.wheel(0, -100)
   await page.waitForTimeout(100)
   expect(await placing(page)).toEqual({ col: 13, row: 8 })
-  const grab = await cellPoint(page, 14, 9)
+})
+
+test('Move: a wheel mid-drag zooms and moves nothing, also once the press is let go', async ({ page }) => {
+  await moveH1(page)
+  // A cell other than the one a tap would centre on where it stands, so a stray tap or carry would show.
+  const grab = await cellPoint(page, 16, 11)
   await page.mouse.move(grab.x, grab.y)
   await page.mouse.down()
-  await page.mouse.wheel(0, 100)
+  await page.mouse.move(grab.x + 6, grab.y, { steps: 2 }) // past the click threshold, still in that cell
+  await page.mouse.wheel(0, -100)
   await page.waitForTimeout(100)
   expect(await placing(page)).toEqual({ col: 13, row: 8 })
   await page.mouse.up()
+  await page.waitForTimeout(50)
+  expect(await placing(page)).toEqual({ col: 13, row: 8 })
+})
+
+test('Move: press, wheel, release is no tap', async ({ page }) => {
+  await moveH1(page)
+  const grab = await cellPoint(page, 16, 11) // a tap here would centre the footprint on it: (15, 10)
+  await page.mouse.move(grab.x, grab.y)
+  await page.mouse.down()
+  await page.mouse.wheel(0, -100)
+  await page.waitForTimeout(100)
+  await page.mouse.up()
+  await page.waitForTimeout(50)
+  expect(await placing(page)).toEqual({ col: 13, row: 8 })
+  // Off the footprint too: no tap.
+  const off = await cellPoint(page, 21, 14)
+  await page.mouse.move(off.x, off.y)
+  await page.mouse.down()
+  await page.mouse.wheel(0, 100)
+  await page.waitForTimeout(100)
+  await page.mouse.up()
+  await page.waitForTimeout(50)
+  expect(await placing(page)).toEqual({ col: 13, row: 8 })
+})
+
+test('Move: while OK is being sent, a tap on the island moves nothing, and Turn is shut', async ({ page }) => {
+  const bar = await moveH1(page)
+  const to = await cellPoint(page, 15, 14)
+  await page.mouse.click(to.x, to.y)
+  await expect.poll(() => placing(page)).toEqual({ col: 14, row: 13 })
+  // Hold the action's reply back until the taps are done.
+  let release = () => {}
+  const held = new Promise<void>(r => { release = r })
+  await page.route('**/actions', async route => { await held; await route.continue() })
+  await bar.getByRole('button', { name: 'OK' }).click()
+  await expect(bar.getByRole('button', { name: 'Turn' })).toBeDisabled()
+  const other = await cellPoint(page, 21, 14)
+  await page.mouse.click(other.x, other.y)
+  const own = await cellPoint(page, 15, 14)
+  await page.mouse.move(own.x, own.y)
+  await page.mouse.down()
+  await page.mouse.move(other.x, other.y, { steps: 4 })
+  await page.mouse.up()
+  await page.waitForTimeout(50)
+  expect(await placing(page)).toEqual({ col: 14, row: 13 })
+  release()
+  await expect(bar).toBeHidden()
+  await expect.poll(() => h1Placement(page)).toMatchObject({ island: 'home', col: 14, row: 13 })
+})
+
+test('Move, OK and Cancel keep the zoom and the view', async ({ page }) => {
+  const mark = async () => { const a = await cellPoint(page, 18, 13); const b = await cellPoint(page, 19, 13); return { a, cell: b.x - a.x } }
+  // Zoom in, on a spot that keeps h1 on screen.
+  const h1 = await cellPoint(page, 15, 12)
+  await page.mouse.move(h1.x, h1.y)
+  await page.mouse.wheel(0, -100)
+  await page.waitForTimeout(150)
+  const before = await mark()
+  const bar = await moveH1(page)
+  await page.waitForTimeout(200)
+  const moving = await mark()
+  expect(moving.cell).toBe(before.cell)
+  expect(Math.hypot(moving.a.x - before.a.x, moving.a.y - before.a.y)).toBeLessThan(1)
+  await bar.getByRole('button', { name: 'Cancel' }).click()
+  await expect(bar).toBeHidden()
+  await page.waitForTimeout(200)
+  const after = await mark()
+  expect(after.cell).toBe(before.cell)
+  expect(Math.hypot(after.a.x - before.a.x, after.a.y - before.a.y)).toBeLessThan(1)
 })
 
 test('Move: Cancel leaves the building where it was', async ({ page }) => {

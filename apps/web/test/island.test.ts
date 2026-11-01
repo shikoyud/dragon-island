@@ -5,8 +5,8 @@ import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
 import { lockedTiles } from '../src/game/camera'
-import { badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, groundVariant, objectSignature, timerLabel } from '../src/game/islandModel'
-import { anchor, dragonSpot, footprintContains, NEST_EGG_SCALE } from '../src/game/layout'
+import { ARROW_SCALE, badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, groundVariant, objectSignature, timerLabel } from '../src/game/islandModel'
+import { anchor, cellTop, dragonSpot, footprintContains, NEST_EGG_SCALE } from '../src/game/layout'
 import { nearestLegalCell } from '../src/state/placing'
 import { FREE, FREE_2, withIsland, withPlots } from './land'
 
@@ -379,12 +379,15 @@ describe('island model', () => {
       expect(bad.markers.ghost!.legal).toBe(false)
     })
 
-    it('the arrow stands over the ghost, and only while placing', () => {
+    it('the arrow, at half size, has its tip just above the footprint\'s top vertex, and shows only while placing', () => {
       const m = buildIslandModel(withResident, FALLBACK_ART, C, 0, 'home', h1Move)
-      const ghost = m.objects.find(o => o.id === 'ghost')!
       const arrow = m.objects.find(o => o.id === 'arrow')!
-      expect(arrow.x).toBe(ghost.x)
-      expect(arrow.y).toBe(badgeY(ghost))
+      const top = cellTop(14, 13)
+      expect(ARROW_SCALE).toBe(0.5)
+      expect(arrow.scale).toBe(ARROW_SCALE)
+      expect(arrow.x).toBe(top.x)
+      expect(arrow.y).toBeLessThan(top.y)
+      expect(arrow.y).toBeGreaterThanOrEqual(top.y - 4)
       expect(arrow.key).toBe(textureKey('ui.island.arrow'))
       expect(buildIslandModel(withResident, FALLBACK_ART, C, 0, 'home', null).objects.some(o => o.id === 'arrow')).toBe(false)
     })

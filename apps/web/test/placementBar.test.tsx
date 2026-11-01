@@ -40,7 +40,7 @@ describe('PlacementBar', () => {
       { island: 'isle2', name: 'Ember Reach', current: false, room: true },
     ] as const
     render(<PlacementBar legal pending islands={islands} onTurn={vi.fn()} onConfirm={vi.fn()} onCancel={vi.fn()} onIsland={vi.fn()} />)
-    for (const name of ['Move to Home Isle', 'Move to Ember Reach', 'Cancel', 'OK']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true)
+    for (const name of ['Move to Home Isle', 'Move to Ember Reach', 'Turn', 'Cancel', 'OK']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('styles the pressed Island button so the current island shows', () => {

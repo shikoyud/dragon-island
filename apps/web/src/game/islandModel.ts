@@ -1,6 +1,6 @@
 import {
   constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, offeredPlots, ownedPlots, plotOfTile, plotOrigin, plotPrice, plotsBought, TILES_PER_PLOT,
-  DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
+  DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, sameRef, stageOf, storedGold,
   type BreederKind, type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
@@ -258,13 +258,9 @@ export function groundTiles(art: GameArtSet, island: IslandId): { grass: string[
   return { grass, cliffSw: plain ? 'ground.cliff.sw' : null, cliffSe: plain ? 'ground.cliff.se' : null }
 }
 
-const sameRef = (a: MovableRef, b: MovableRef): boolean => {
-  switch (a.type) {
-    case 'habitat': case 'decoration': return b.type === a.type && b.id === a.id
-    case 'farm': case 'breeder': return b.type === a.type && b.index === a.index
-    case 'roost': case 'hatchery': return b.type === a.type
-  }
-}
+/** The placement arrow draws at half its art's size, its tip this many world px above the footprint's top vertex. */
+export const ARROW_SCALE = 0.5
+export const ARROW_GAP = 2
 
 /** What the sign on a plot for sale says on Home. */
 export const SIGN_CAPTION = 'Tap to buy'
@@ -471,7 +467,8 @@ export function buildIslandModel(
       id: 'ghost', ...ghostLook(state, art, placing.what), ...anchor(placing.col, placing.row, placing.size),
       target, ...(legal ? {} : { tint: 'bad' as const }), ...flip(placing.facing),
     }
-    objects.push(ghost, ...carried, { id: 'arrow', key: textureKey('ui.island.arrow'), sprite: art.island.arrow, x: ghost.x, y: badgeY(ghost), target })
+    const top = cellTop(placing.col, placing.row)
+    objects.push(ghost, ...carried, { id: 'arrow', key: textureKey('ui.island.arrow'), sprite: art.island.arrow, x: top.x, y: top.y - ARROW_GAP, scale: ARROW_SCALE, target })
     markers.ghost = { legal, col: placing.col, row: placing.row, size: placing.size }
   }
   return { objects, markers }

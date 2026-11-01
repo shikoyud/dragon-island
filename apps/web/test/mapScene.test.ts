@@ -332,6 +332,77 @@ describe('the scene switch', () => {
       expect(reveal).toHaveBeenCalledTimes(2)
     })
 
+    describe('the camera and the HUD insets', () => {
+      type CamScene = Scene & { view: { cx: number; cy: number; zoom: number }; gestures: { wheel(p: unknown, dy: number): void } }
+      async function island() {
+        const { bridge, game } = await boot()
+        games.push(game)
+        await shown(game, 'island')
+        // A desktop's room: the headless default is too short a band to hold a ghost without a reveal, and a headless game
+        // takes its size from its zero-sized parent, so the size is stood in for here.
+        const size = { w: 1280, h: 720 }
+        Object.defineProperty(game.scale, 'width', { get: () => size.w, configurable: true })
+        Object.defineProperty(game.scale, 'height', { get: () => size.h, configurable: true })
+        const resize = (w: number, h: number) => { size.w = w; size.h = h; game.scale.emit(Phaser.Scale.Events.RESIZE) }
+        resize(1280, 720)
+        return { bridge, game, resize, scene: game.scene.getScene('island') as unknown as CamScene }
+      }
+      const farmAt = (c: { col: number; row: number }) => ({ what: { kind: 'farm' }, size: 3, ...c, facing: 0 }) as const
+
+      it('the first measure of the HUD still fits the opening view to the real insets', async () => {
+        const { bridge, scene } = await island()
+        const before = scene.view
+        bridge.setInsets({ top: 100, bottom: 300 })
+        expect(scene.view.cy).not.toBe(before.cy)
+      })
+
+      it('zoomed in: starting placing, the insets changing and ending placing keep the zoom and the centre', async () => {
+        const { bridge, scene } = await island()
+        bridge.setInsets({ top: 90, bottom: 80 })
+        scene.gestures.wheel({ x: 640, y: 360 }, -100)
+        const view = scene.view
+        expect(view.zoom).toBeGreaterThan(1)
+        bridge.setPlacing(farmAt(bridge.focusCell!()))
+        expect(scene.view).toEqual(view)
+        bridge.setInsets({ top: 90, bottom: 130 })
+        expect(scene.view).toEqual(view)
+        bridge.setPlacing(null)
+        bridge.setInsets({ top: 90, bottom: 80 })
+        expect(scene.view).toEqual(view)
+      })
+
+      it('not zoomed either: Move at the opening view keeps it', async () => {
+        const { bridge, scene } = await island()
+        bridge.setInsets({ top: 90, bottom: 80 })
+        const view = scene.view
+        bridge.setPlacing(farmAt(bridge.focusCell!()))
+        bridge.setInsets({ top: 90, bottom: 130 })
+        expect(scene.view).toEqual(view)
+      })
+
+      it('a new view opens fresh, and takes the HUD measure that follows it', async () => {
+        const { bridge, scene } = await island()
+        bridge.setInsets({ top: 90, bottom: 80 })
+        scene.gestures.wheel({ x: 400, y: 300 }, -100)
+        bridge.setView('isle2')
+        const opened = scene.view
+        bridge.setInsets({ top: 90, bottom: 200 })
+        expect(scene.view.cy).not.toBe(opened.cy)
+      })
+
+      it('a screen resize opens fresh and refits to the measure after it', async () => {
+        const { bridge, scene, resize } = await island()
+        bridge.setInsets({ top: 90, bottom: 80 })
+        scene.gestures.wheel({ x: 640, y: 360 }, -100)
+        const zoomed = scene.view.zoom
+        resize(844, 390)
+        const resized = scene.view
+        expect(resized.zoom).toBeLessThan(zoomed)
+        bridge.setInsets({ top: 150, bottom: 80 })
+        expect(scene.view.cy).not.toBe(resized.cy)
+      })
+    })
+
     it('a game torn down mid-placement takes the arrow and its tween with it', async () => {
       const { bridge, game } = await boot()
       await shown(game, 'island')

@@ -35,6 +35,8 @@ export function createPanZoom(host: PanZoomHost) {
   let last: Point | null = null
   let dragging = false
   let grabbed = false
+  /** A wheel turned during this press: letting go of it is no tap, however little it moved. */
+  let wheeled = false
   let pinch: number | null = null
 
   const zoomTo = (zoom: number, at: Point) => {
@@ -57,6 +59,7 @@ export function createPanZoom(host: PanZoomHost) {
       down = { x: p.x, y: p.y }
       last = { x: p.x, y: p.y }
       dragging = false
+      wheeled = false
       grabbed = host.grab?.(p) ?? false
     },
 
@@ -87,7 +90,7 @@ export function createPanZoom(host: PanZoomHost) {
     /** True when this release ends a click. */
     up(p: Point, held: readonly Point[]): boolean {
       if (held.length === 0) pinch = null
-      const click = !dragging && down !== null && isClick(down.x, down.y, p.x, p.y)
+      const click = !dragging && !wheeled && down !== null && isClick(down.x, down.y, p.x, p.y)
       down = null
       last = null
       dragging = false
@@ -96,6 +99,7 @@ export function createPanZoom(host: PanZoomHost) {
     },
 
     wheel(p: Point, dy: number): void {
+      wheeled = true
       const v = host.view()
       if (!v || dy === 0) return
       zoomTo(stepZoom(v.zoom, dy < 0 ? -1 : 1, host.range()), p)

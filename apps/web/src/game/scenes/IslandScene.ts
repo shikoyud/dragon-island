@@ -5,10 +5,10 @@ import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet, Sprite } from '../../art/types'
 import type { Bridge, Placing, Target } from '../bridge'
 import {
-  cameraBounds, clampView, groundCell, landPlots, lockedTiles, openingView, panBy, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
+  cameraBounds, clampView, groundCell, landPlots, lockedTiles, openingView, panBy, revealPan, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
 } from '../camera'
 import { paintLandmass, type BakeArt, type BakeImage } from '../islandBake'
-import { badgeY, buildIslandModel, groundTiles, groundVariant, objectSignature, type IslandMarkers, type IslandObject } from '../islandModel'
+import { ARROW_GAP, ARROW_SCALE, badgeY, buildIslandModel, groundTiles, groundVariant, objectSignature, type IslandMarkers, type IslandObject } from '../islandModel'
 import { driftCloud, landmass, nearestPlot } from '../islandShape'
 import { anchor, cellCentre, cellTop, footprintContains, footprintDiamond, islandBox, pointerToCell, tapHit, type Box, type Pos } from '../layout'
 import { createPanZoom, heldPointers } from '../panZoom'
@@ -37,7 +37,7 @@ const SKY_FALLBACK = '#8fd0ee'
 /** A waterfall starts this far above the lip, so its foam covers the strip of grass between the river and the edge. */
 const FALL_LIP = 6
 /** How far the placement arrow bobs, in world px, and how long one way takes. */
-const ARROW_BOB = { y: 3, ms: 450 } as const
+const ARROW_BOB = { y: 2, ms: 450 } as const
 /** Where the clouds start, as shares of the camera bounds. */
 const CLOUD_AT = [{ x: 0.08, y: 0.16 }, { x: 0.62, y: 0.06 }, { x: 0.88, y: 0.62 }] as const
 /** World box of the baked landmass on islands other than Home: the island's diamond and the cliff skirt under it. */
@@ -78,7 +78,7 @@ export class IslandScene extends Phaser.Scene {
   private catalog: Catalog = LAUNCH_CATALOG
   private readonly gestures = createPanZoom({
     view: () => this.view,
-    apply: v => this.apply(v),
+    apply: v => { this.fitting = false; this.apply(v) },
     range: () => this.range(),
     size: () => ({ w: this.scale.width, h: this.scale.height }),
     grab: p => this.grabGhost(p),
@@ -93,6 +93,8 @@ export class IslandScene extends Phaser.Scene {
   private groundKey = ''
   private view: View | null = null
   private framed = ''
+  /** The camera is still on the opening view just framed, so a new measure of the HUD refits it. A gesture or placing ends that. */
+  private fitting = false
 
   constructor(private readonly bridge: Bridge) {
     super('island')
@@ -113,9 +115,15 @@ export class IslandScene extends Phaser.Scene {
     const offs = [
       this.bridge.on('state', () => this.sync()),
       this.bridge.on('view', () => { this.sync(); this.revealGhost() }),
-      // The bar is another height from the menu it replaces, and this frames the view again: the ghost must stay in sight.
-      this.bridge.on('insets', () => { this.framed = ''; this.sync(); this.revealGhost() }),
+      // The HUD measures after it mounts: an opening view fits itself to that. Otherwise (the bar is another height from the
+      // menu it replaces) the camera stays where it is, re-clamped, with the ghost kept in sight.
+      this.bridge.on('insets', () => {
+        if (this.fitting) this.framed = ''
+        this.sync()
+        this.revealGhost()
+      }),
       this.bridge.on('placing', e => {
+        this.fitting = false
         this.sync()
         const started = e.placing !== null && e.placing.what !== this.placed
         this.placed = e.placing?.what ?? null
@@ -281,26 +289,24 @@ export class IslandScene extends Phaser.Scene {
     const key = `${this.bridge.view}:${s ? 'state' : 'none'}:${this.scale.width}x${this.scale.height}`
     if (key === this.framed && this.view) return this.apply(this.view)
     this.framed = key
+    this.fitting = true
     this.apply(this.opening())
   }
 
-  /** Pans just enough to bring a world point (the placement ghost) into the band the HUD leaves free. */
-  private reveal(p: Pos): void {
+  /** Pans just enough to bring the footprint standing on world point `p`, up to world height `topY`, into the band the HUD leaves free. */
+  private reveal(p: Pos, topY: number): void {
     if (!this.view) return
     const s = this.toScreen(p)
-    const { top, bottom } = this.bridge.insets
-    const pad = 48
-    const minY = top + pad * 2 // the anchor is the footprint's bottom: leave room for the sprite above it
-    const maxY = this.scale.height - bottom - pad / 2
-    const dx = s.x < pad ? pad - s.x : s.x > this.scale.width - pad ? this.scale.width - pad - s.x : 0
-    const dy = s.y < minY ? minY - s.y : s.y > maxY ? maxY - s.y : 0
+    const { dx, dy } = revealPan({ x: s.x, top: this.toScreen({ x: p.x, y: topY }).y, bottom: s.y }, { w: this.scale.width, h: this.scale.height }, this.bridge.insets)
     if (dx || dy) this.apply(panBy(this.view, dx, dy))
   }
 
-  /** Brings the placement ghost into sight, if there is one and the scene is showing. */
+  /** Brings the placement ghost and its arrow into sight, if there is one and the scene is showing. */
   private revealGhost(): void {
     const p = this.bridge.placing
-    if (p && this.alive() && !this.sys.isSleeping()) this.reveal(anchor(p.col, p.row, p.size))
+    if (!p || !this.alive() || this.sys.isSleeping()) return
+    const arrow = this.art().island.arrow.h * ARROW_SCALE
+    this.reveal(anchor(p.col, p.row, p.size), cellTop(p.col, p.row).y - ARROW_GAP - arrow - ARROW_BOB.y)
   }
 
   private toWorld(p: { x: number; y: number }): { x: number; y: number } {

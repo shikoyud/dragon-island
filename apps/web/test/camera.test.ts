@@ -6,11 +6,38 @@ import { withPlots } from './land'
 import {
   cameraBounds, clampView, fitZoom, groundCell, isClick, landBox, landPlots, lockedTiles, openingView, panBy, screenToWorld, SKIRT, stepZoom, worldToScreen, zoomAt, zoomRange,
   type View,
+  revealPan,
 } from '../src/game/camera'
 import { landmass } from '../src/game/islandShape'
 import { cellCentre, tapBox, tapHit } from '../src/game/layout'
 
 const vp = { w: 1280, h: 720 }
+
+describe('revealPan', () => {
+  const screen = { w: 800, h: 600 }
+  const insets = { top: 100, bottom: 120 }
+  it('leaves alone a thing already in the free band', () => {
+    expect(revealPan({ x: 400, top: 200, bottom: 300 }, screen, insets)).toEqual({ dx: 0, dy: 0 })
+  })
+  it('brings the top of the thing, its arrow included, below the top of the HUD', () => {
+    const { dy } = revealPan({ x: 400, top: 40, bottom: 140 }, screen, insets)
+    expect(40 + dy).toBeGreaterThanOrEqual(100)
+    expect(140 + dy).toBeLessThanOrEqual(480)
+  })
+  it('brings the bottom above the buttons', () => {
+    const { dy } = revealPan({ x: 400, top: 400, bottom: 560 }, screen, insets)
+    expect(dy).toBeLessThan(0)
+    expect(560 + dy).toBeLessThanOrEqual(480)
+  })
+  it('when the thing is taller than the band, the footprint clear of the buttons wins', () => {
+    const { dy } = revealPan({ x: 400, top: 40, bottom: 560 }, screen, insets)
+    expect(560 + dy).toBeLessThanOrEqual(480)
+  })
+  it('brings it in from the sides', () => {
+    expect(revealPan({ x: 10, top: 200, bottom: 300 }, screen, insets).dx).toBeGreaterThan(0)
+    expect(revealPan({ x: 790, top: 200, bottom: 300 }, screen, insets).dx).toBeLessThan(0)
+  })
+})
 
 describe('island camera logic', () => {
   it('bounds the whole 32x32 diamond of an island other than Home plus the cliff skirt and a margin', () => {

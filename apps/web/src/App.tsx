@@ -53,8 +53,8 @@ function Game() {
   const nowMs = useGameClock(me.data?.game?.serverNowMs)
   const [dialog, setDialog] = useDialog(bridge)
   const battle = useBattle()
-  const { placing, view, dispatch, moveToIsland } = usePlacing(bridge)
   const { run, pending } = useAction()
+  const { placing, view, dispatch, moveToIsland } = usePlacing(bridge, pending)
   useAutoFinish(nowMs)
   useRefreshOnNewDay(me.data?.game, nowMs)
   // Waits out placement and battles; a rise from any source (/me, an action reply) counts, and a returning player's stored level decides the first load.

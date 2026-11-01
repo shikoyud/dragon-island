@@ -5,9 +5,10 @@ import { nearestLegalCell, placingReducer, type PlacingEvent } from './placing'
 
 /**
  * Placement mode state, mirrored into the bridge so the island scene draws the ghost. Cell events from the
- * scene (taps and drags of the ghost) feed the same reducer as the bar's buttons. Also tracks the viewed island.
+ * scene (taps and drags of the ghost) feed the same reducer as the bar's buttons, except while `locked` (an action is on its
+ * way, for the cell the ghost has). Also tracks the viewed island.
  */
-export function usePlacing(bridge: Bridge): {
+export function usePlacing(bridge: Bridge, locked = false): {
   placing: Placing | null; view: IslandId; dispatch: (e: PlacingEvent) => void
   /** Shows another island with the ghost on its nearest legal cell (a move may change island, R57). */
   moveToIsland: (s: PlayerState, island: IslandId) => void
@@ -17,6 +18,8 @@ export function usePlacing(bridge: Bridge): {
 
   /** The island in view when placement began: Cancel goes back to it. Send `start` before changing the view. */
   const origin = useRef<IslandId | null>(null)
+  const lockedNow = useRef(locked)
+  lockedNow.current = locked
 
   const dispatch = useCallback((e: PlacingEvent) => {
     // A second start while placing (another Shop card) keeps the first one's origin: the view may have moved since.
@@ -41,7 +44,7 @@ export function usePlacing(bridge: Bridge): {
     const offs = [
       bridge.on('placing', e => setPlacing(e.placing)),
       bridge.on('view', e => setView(e.view)),
-      bridge.on('cell', e => dispatch({ type: 'cell', col: e.col, row: e.row })),
+      bridge.on('cell', e => { if (!lockedNow.current) dispatch({ type: 'cell', col: e.col, row: e.row }) }),
     ]
     return () => offs.forEach(off => off())
   }, [bridge, dispatch])
