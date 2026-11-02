@@ -6,6 +6,7 @@ import { createApi } from './api/client'
 import { sessionStore } from './api/session'
 import { App } from './App'
 import { ME_KEY } from './state/me'
+import { preloadPixelFonts } from './styles/fonts'
 import './styles/tokens.css'
 import './styles/hud.css'
 
@@ -14,6 +15,8 @@ const sentryDsn = import.meta.env.VITE_SENTRY_DSN as string | undefined
 if (sentryDsn) {
   void import('@sentry/react').then(Sentry => Sentry.init({ dsn: sentryDsn, environment: import.meta.env.MODE }))
 }
+
+void preloadPixelFonts()
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } })
 

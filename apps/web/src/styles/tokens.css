@@ -21,8 +21,8 @@
   --danger: #e4572e;
   --ok: #4caf50;
 
-  --font-display: 'Silkscreen', 'Courier New', monospace;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --font-display: 'Silkscreen', monospace;
+  --font-body: 'Pixelify Sans', monospace;
   --px: 1px;
 }
 
@@ -35,6 +35,8 @@ body {
   font-size: 14px;
   line-height: 1.4;
 }
+/* Form controls don't inherit fonts by default; they would draw in the browser's own. */
+button, input, select, textarea { font-family: inherit; }
 h1, h2, h3, .btn, .pixel { font-family: var(--font-display); letter-spacing: 0.5px; }
 canvas, .sprite, img.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
 

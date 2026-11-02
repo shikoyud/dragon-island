@@ -100,3 +100,28 @@ export async function dismissLevelUp(page: Page) {
 
 export const flameTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))
 export const seaTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'sea', level, feeds: 0, habitatId: 'h2' }))
+
+/**
+ * No visible text in a browser default font (UI rework design, "One font family"): every visible element with its own
+ * text draws with Silkscreen or Pixelify Sans, and both families have loaded.
+ */
+export async function expectPixelFonts(page: Page) {
+  const bad = await page.evaluate(async () => {
+    await document.fonts.ready
+    const loaded = document.fonts.check('12px "Pixelify Sans"') && document.fonts.check('12px "Silkscreen"')
+    const offenders: string[] = []
+    for (const el of Array.from(document.body.querySelectorAll<HTMLElement>('*'))) {
+      const ownText = Array.from(el.childNodes).some(n => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim() !== '')
+      const isField = el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement
+      if (!ownText && !isField) continue
+      const r = el.getBoundingClientRect()
+      const cs = getComputedStyle(el)
+      if (r.width === 0 || r.height === 0 || cs.visibility === 'hidden' || cs.display === 'none') continue
+      const first = cs.fontFamily.split(',')[0].trim().replace(/^["']|["']$/g, '')
+      if (first !== 'Silkscreen' && first !== 'Pixelify Sans') offenders.push(`${el.tagName.toLowerCase()}.${el.className}: ${first}`)
+    }
+    return { loaded, offenders: offenders.slice(0, 10) }
+  })
+  expect(bad.offenders, 'text in a non-pixel font').toEqual([])
+  expect(bad.loaded, 'pixel fonts loaded').toBe(true)
+}

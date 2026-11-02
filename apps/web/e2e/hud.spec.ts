@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dismissLevelUp, openPanel, resetPlayer, setServerClock, signIn } from './helpers'
+import { dismissLevelUp, expectPixelFonts, openPanel, resetPlayer, setServerClock, signIn } from './helpers'
 
 /**
  * The HUD over the full-screen island, at a desktop and a phone size: resources, menus, dialogs, the placement
@@ -68,7 +68,9 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       const store = page.getByRole('dialog', { name: 'Shop' })
       await expect(store).toBeVisible()
       await expect(store.getByRole('tab', { name: 'Store' })).toHaveAttribute('aria-selected', 'true')
+      await expectPixelFonts(page)
       await store.getByRole('button', { name: 'Close' }).click()
+      await expectPixelFonts(page)
       await expect(store).toBeHidden()
       await openPanel(page, 'Dragon Book')
       await expect(page.getByRole('dialog', { name: 'Dragon Book' })).toContainText('found')
