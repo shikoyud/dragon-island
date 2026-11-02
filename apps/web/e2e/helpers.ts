@@ -117,7 +117,7 @@ export async function expectPixelFonts(page: Page) {
       const r = el.getBoundingClientRect()
       const cs = getComputedStyle(el)
       if (r.width === 0 || r.height === 0 || cs.visibility === 'hidden' || cs.display === 'none') continue
-      const first = cs.fontFamily.split(',')[0].trim().replace(/^["']|["']$/g, '')
+      const first = (cs.fontFamily.split(',')[0] ?? '').trim().replace(/^["']|["']$/g, '')
       if (first !== 'Silkscreen' && first !== 'Pixelify Sans') offenders.push(`${el.tagName.toLowerCase()}.${el.className}: ${first}`)
     }
     return { loaded, offenders: offenders.slice(0, 10) }

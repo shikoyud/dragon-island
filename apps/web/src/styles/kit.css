@@ -43,6 +43,7 @@
 
 /* ---- price ---- */
 .kit-price { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.kit-price .hud-icon { width: 20px; height: 20px; }
 .kit-price__n { font-family: var(--font-display); }
 .kit-price--short .kit-price__n { color: #ff6b5e; }
 :not(.kit-pill) > .kit-price--short .kit-price__n { color: var(--kit-short); }
@@ -125,6 +126,186 @@
 .kit-scroll::-webkit-scrollbar-button { display: none; height: 0; }
 .kit-scroll::-webkit-scrollbar-corner { background: transparent; }
 
+/* ---- round action button ---- */
+.kit-round {
+  position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 0; background: none; border: 0; cursor: pointer; color: #fff; --plate: 56px;
+}
+.kit-round__plate {
+  position: relative; display: grid; place-items: center; width: var(--plate); height: var(--plate);
+  background: #fbfaf6; border: 2px solid var(--kit-ink); border-radius: 16px;
+  box-shadow: inset 0 0 0 4px #e9962f, inset 0 0 0 6px #b86a1a, inset 0 -6px 0 6px #ddd8cc, 0 3px 0 var(--kit-ink);
+}
+.kit-round__plate > .hud-icon, .kit-round__plate > img, .kit-round__plate > svg { width: 60%; height: 60%; }
+.kit-round__label, .kit-round__timer {
+  font: 11px/1.1 var(--font-display); letter-spacing: 0.5px; white-space: nowrap;
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+}
+.kit-round__label { margin-top: -10px; position: relative; }
+.kit-round__badge {
+  position: absolute; left: -8px; top: 10px; transform: rotate(-14deg); padding: 2px 4px;
+  font: 9px/1 var(--font-display); color: #fff; background: #e8458b; border: 2px solid var(--kit-ink); border-radius: 4px;
+}
+.kit-round__lock {
+  position: absolute; left: -6px; top: -6px; width: 22px; height: 22px; padding: 4px; border-radius: 50%;
+  background: #4a4f5c; border: 2px solid var(--kit-ink);
+}
+.kit-round:active:not(:disabled) .kit-round__plate { transform: translateY(2px); }
+.kit-round:disabled { cursor: not-allowed; }
+.kit-round:disabled .kit-round__plate { filter: grayscale(1); opacity: 0.6; }
+@media (min-width: 1280px) and (min-height: 800px) { .kit-round { --plate: 84px; } .kit-round__label, .kit-round__timer { font-size: 15px; } }
+
+/* ---- ribbons and shields ---- */
+.kit-ribbon {
+  display: inline-block; width: 14px; height: 22px; background: var(--el, #888);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  box-shadow: inset 0 0 0 2px rgba(20, 22, 39, 0.75), inset 0 3px 0 rgba(255, 255, 255, 0.35);
+}
+.kit-shield {
+  --c: #8e9bb8; display: inline-grid; place-items: center; width: 22px; height: 26px;
+  font: 12px/1 var(--font-display); color: #fff; background: var(--c);
+  clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+  box-shadow: inset 0 0 0 2px rgba(20, 22, 39, 0.7);
+}
+.kit-shield--uncommon { --c: #4cb050; }
+.kit-shield--rare { --c: #3f8fe0; }
+.kit-shield--epic { --c: #9a5ad8; }
+.kit-shield--legendary { --c: #e0a020; }
+
+/* ---- card ---- */
+.kit-card {
+  display: flex; flex-direction: column; align-items: stretch; width: 168px; overflow: hidden;
+  background: #fbf3df; border: 2px solid var(--kit-ink); border-radius: 12px; box-shadow: inset 0 -4px 0 #e2d2ad, 0 3px 0 var(--kit-ink);
+}
+.kit-card__head {
+  padding: 8px 8px 6px; text-align: center;
+  background: radial-gradient(circle at 50% 100%, transparent 5px, rgba(255, 255, 255, 0.35) 6px 7px, transparent 8px) 0 0 / 12px 8px, #a9d98e;
+  border-bottom: 2px solid var(--kit-ink);
+}
+.kit-card__title {
+  margin: 0; font: 12px/1.15 var(--font-display); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+}
+.kit-card__marks { display: flex; justify-content: space-between; align-items: flex-start; padding: 0 8px; }
+.kit-card__ribbons { display: flex; gap: 2px; }
+.kit-card__art { display: grid; place-items: center; min-height: 72px; padding: 4px; image-rendering: pixelated; }
+.kit-card__foot { margin-top: auto; padding: 6px 8px 10px; display: grid; justify-items: center; }
+.kit-card--locked { filter: grayscale(1); background: #e4e4e4; }
+.kit-card--locked .kit-card__head { background-color: #b9bcc2; }
+.kit-card__locked { display: inline-flex; align-items: center; gap: 6px; font: 11px/1.2 var(--font-display); color: var(--kit-text); }
+.kit-card__lock { display: inline-block; width: 22px; height: 22px; padding: 4px; border-radius: 50%; background: #4a4f5c; border: 2px solid var(--kit-ink); }
+
+/* ---- resource pill ---- */
+.kit-resource { position: relative; display: inline-flex; align-items: center; height: 32px; padding-left: 18px; }
+.kit-resource__icon { position: absolute; left: 0; z-index: 1; display: grid; place-items: center; width: 32px; height: 32px; }
+.kit-resource__icon > * { width: 32px; height: 32px; }
+.kit-resource__value {
+  min-width: 72px; height: 26px; padding: 0 10px 0 20px; display: flex; align-items: center; justify-content: center;
+  font: 13px/1 var(--font-display); color: #fff; background: rgba(20, 22, 39, 0.82); border: 2px solid var(--kit-ink); border-radius: 6px 0 0 6px;
+}
+.kit-resource__plus {
+  width: 30px; height: 30px; margin-left: -2px; padding: 0; cursor: pointer; display: grid; place-items: center;
+  font: 18px/1 var(--font-display); color: #fff; background: #4cb050; border: 2px solid var(--kit-ink); border-radius: 6px;
+  box-shadow: inset 0 2px 0 #9de08f, inset 0 -3px 0 #276a2b;
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+}
+
+/* ---- progress bar ---- */
+.kit-bar {
+  position: relative; display: block; min-width: 64px; height: 16px; overflow: hidden;
+  background: #2a2f45; border: 2px solid var(--kit-ink); border-radius: 8px;
+}
+.kit-bar__fill { position: absolute; inset: 0 auto 0 0; background: #5cc04f; box-shadow: inset 0 2px 0 #a4ec8a, inset 0 -3px 0 #2f7d29; }
+.kit-bar__label {
+  position: relative; display: block; text-align: center; font: 10px/12px var(--font-display); color: #fff;
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+}
+
+/* ---- bubble ---- */
+.kit-bubble {
+  position: relative; display: inline-grid; place-items: center; width: 44px; height: 40px; padding: 4px; cursor: pointer;
+  background: #fbfaf6; border: 2px solid var(--kit-ink); border-radius: 8px; box-shadow: inset 0 -3px 0 #ddd8cc;
+}
+.kit-bubble::after {
+  content: ""; position: absolute; left: 50%; bottom: -9px; width: 12px; height: 8px; transform: translateX(-50%);
+  background: var(--kit-ink); clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.kit-bubble::before {
+  content: ""; position: absolute; left: 50%; bottom: -5px; width: 8px; height: 5px; transform: translateX(-50%); z-index: 1;
+  background: #ddd8cc; clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.kit-bubble > * { width: 28px; height: 28px; }
+
+/* ---- tooltip and toast: small rounded panels in the body font (review image-9) ---- */
+.kit-tip-host { position: relative; display: inline-flex; }
+.kit-tip {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); z-index: 40; pointer-events: none;
+  width: max-content; max-width: 220px; padding: 4px 8px; opacity: 0; transition: opacity 0.1s;
+  font: 12px/1.3 var(--font-body); color: var(--kit-text); background: var(--kit-cream); border: 2px solid var(--kit-ink); border-radius: 6px;
+}
+.kit-tip-host:hover .kit-tip, .kit-tip-host:focus-within .kit-tip { opacity: 1; }
+.kit-toast {
+  justify-self: center; max-width: 480px; padding: 8px 14px;
+  font: 14px/1.3 var(--font-body); color: var(--kit-text);
+  background: var(--kit-cream); border: 2px solid var(--kit-ink); border-radius: 10px;
+  box-shadow: inset 0 0 0 2px var(--kit-cream-hi), 0 3px 0 var(--kit-ink);
+}
+.kit-toast--error { box-shadow: inset 0 0 0 3px #e0433a, 0 3px 0 var(--kit-ink); }
+
+/* ---- #/kit gallery ---- */
+.kit-gallery { min-height: 100%; overflow: auto; padding: 24px 16px; display: grid; gap: 28px; align-content: start; background: #6aa7c9; }
+.kit-gallery__row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.kit-gallery__row--dark { padding: 16px 10px 10px; background: #3f7a3a; border-radius: 10px; }
+.kit-gallery__frames { align-items: flex-start; }
+.kit-gallery__frames .hud-dialog { width: min(420px, 100%); }
+.kit-gallery__short { height: 220px; }
+
+/* ---- ui.kit.* art (docs/art/ui-rework-p2-art-list.md), applied per piece when the manifest has it (hud/skin.ts).
+   9-slices are drawn at 2x (insets from the art list, doubled), single sprites at the element's size, which is a whole
+   multiple of the art. The drawn look above stays for any piece without art. ---- */
+.skin-kit-frame .kit-frame {
+  background: none; outline: 0; box-shadow: 0 4px 0 rgba(20, 22, 39, 0.6); border-radius: 0; border: 24px solid transparent;
+  border-image: var(--kit-frame) 12 fill / 24px stretch; padding: 10px 0 0;
+}
+.skin-kit-plank .kit-plank { background: none; border: 12px solid transparent; border-width: 12px 16px 14px; border-radius: 0; box-shadow: none; padding: 0 12px; border-image: var(--kit-plank) 6 8 7 8 fill / 12px 16px 14px stretch; }
+.skin-kit-badge .kit-badge { background: none; border: 10px solid transparent; border-radius: 0; padding: 0 2px; border-image: var(--kit-badge) 5 fill / 10px stretch; }
+.skin-kit-close .kit-square--close, .skin-kit-back .kit-square--back, .skin-kit-help .kit-square--help {
+  border: 0; border-radius: 0; box-shadow: none; image-rendering: pixelated; background: center / 100% 100% no-repeat;
+}
+.skin-kit-close .kit-square--close { background-image: var(--kit-close); }
+.skin-kit-back .kit-square--back { background-image: var(--kit-back); }
+.skin-kit-help .kit-square--help { background-image: var(--kit-help); }
+.skin-kit-close .kit-square--close .kit-square__glyph, .skin-kit-back .kit-square--back .kit-square__glyph, .skin-kit-help .kit-square--help .kit-square__glyph { display: none; }
+/* Pill art: one 32x16 face per colour, nine-sliced at 2x; old .btn call sites pick up the same faces. */
+.skin-kit-pill-blue .kit-pill--blue, .skin-kit-pill-blue .btn:not(.btn--primary):not(.btn--danger):not(.btn--ghost):not(:disabled) { --pill: var(--kit-pill-blue); }
+.skin-kit-pill-yellow .kit-pill--yellow, .skin-kit-pill-yellow .btn--primary:not(:disabled) { --pill: var(--kit-pill-yellow); }
+.skin-kit-pill-green .kit-pill--green { --pill: var(--kit-pill-green); }
+.skin-kit-pill-purple .kit-pill--purple { --pill: var(--kit-pill-purple); }
+.skin-kit-pill-grey .kit-pill--grey, .skin-kit-pill-grey .btn:disabled, .skin-kit-pill-grey .btn--ghost { --pill: var(--kit-pill-grey); }
+.skin-kit-pill-red .kit-pill--red, .skin-kit-pill-red .btn--danger:not(:disabled) { --pill: var(--kit-pill-red); }
+:is(.skin-kit-pill-blue .kit-pill--blue, .skin-kit-pill-blue .btn:not(.btn--primary):not(.btn--danger):not(.btn--ghost):not(:disabled), .skin-kit-pill-yellow .kit-pill--yellow, .skin-kit-pill-yellow .btn--primary:not(:disabled), .skin-kit-pill-green .kit-pill--green, .skin-kit-pill-purple .kit-pill--purple, .skin-kit-pill-grey .kit-pill--grey, .skin-kit-pill-grey .btn:disabled, .skin-kit-pill-grey .btn--ghost, .skin-kit-pill-red .kit-pill--red, .skin-kit-pill-red .btn--danger:not(:disabled)) {
+  background: none; box-shadow: none; border-radius: 0; border: solid transparent; border-width: 10px 12px 12px; padding: 0 6px;
+  border-image: var(--pill) 5 6 6 6 fill / 10px 12px 12px stretch; image-rendering: pixelated;
+}
+.skin-kit-round .kit-round__plate { background: var(--kit-round) center / 100% 100% no-repeat; border: 0; border-radius: 0; box-shadow: none; image-rendering: pixelated; }
+.skin-kit-lock .kit-round__lock, .skin-kit-lock .kit-card__lock { background: var(--kit-lock) center / 100% 100% no-repeat; border: 0; padding: 0; image-rendering: pixelated; }
+.skin-kit-lock .kit-round__lock svg, .skin-kit-lock .kit-card__lock svg { display: none; }
+.skin-kit-card .kit-card { background: none; border: 20px solid transparent; border-width: 32px 20px 20px; border-radius: 0; box-shadow: none; border-image: var(--kit-card) 16 10 10 10 fill / 32px 20px 20px stretch; }
+.skin-kit-card .kit-card__head { background: none; border: 0; margin-top: -28px; }
+.skin-kit-resource .kit-resource__value { background: none; border: 8px solid transparent; border-width: 8px 12px; border-radius: 0; border-image: var(--kit-resource) 4 6 fill / 8px 12px stretch; }
+.skin-kit-plus .kit-resource__plus { background: var(--kit-plus) center / 100% 100% no-repeat; border: 0; box-shadow: none; color: transparent; text-shadow: none; image-rendering: pixelated; width: 32px; height: 32px; }
+.skin-kit-scroll-track .kit-scroll::-webkit-scrollbar-track { background: var(--kit-scroll-track) 0 0 / 12px 16px repeat-y; border: 0; box-shadow: none; }
+.skin-kit-scroll-thumb .kit-scroll::-webkit-scrollbar-thumb { background: none; border: 6px solid transparent; border-width: 6px 0; box-shadow: none; border-image: var(--kit-scroll-thumb) 6 0 fill / 6px 0 stretch; }
+.skin-kit-bubble .kit-bubble { background: none; border: 16px solid transparent; border-radius: 0; box-shadow: none; padding: 0; border-image: var(--kit-bubble) 8 fill / 16px stretch; }
+.skin-kit-bubble-tail .kit-bubble::after { background: var(--kit-bubble-tail) center / 100% 100% no-repeat; clip-path: none; width: 24px; height: 16px; bottom: -28px; }
+.skin-kit-bubble-tail .kit-bubble::before { display: none; }
+.skin-kit-bar .kit-bar { background: none; border: 8px solid transparent; border-width: 8px 10px; border-radius: 0; overflow: visible; height: 24px; border-image: var(--kit-bar) 4 5 fill / 8px 10px stretch; }
+.skin-kit-bar .kit-bar__fill { inset: -4px auto -4px -6px; }
+.kit-ribbon--art, .kit-shield--art { background: center / 100% 100% no-repeat; clip-path: none; box-shadow: none; image-rendering: pixelated; }
+.kit-ribbon--art { width: 12px; height: 20px; }
+.kit-shield--art { width: 20px; height: 24px; padding-bottom: 4px; }
+
 /* A big screen gets the reference's proportions: a bigger plank, rim, pills and dialog (the 1920 shot read tiny). */
 @media (min-width: 1280px) and (min-height: 800px) {
   :root { --kit-square: 48px; --kit-rim: 8px; }
@@ -135,5 +316,11 @@
   .kit-pill, .btn { font-size: 15px; line-height: 1.1; min-height: 52px; padding: 6px 18px 9px; }
   .kit-frame .kit-frame__body { font-size: 16px; }
   .kit-why { font-size: 13px; }
+  .kit-price .hud-icon { width: 28px; height: 28px; }
+  .kit-resource { height: 44px; padding-left: 26px; }
+  .kit-resource__icon { width: 44px; height: 44px; }
+  .kit-resource__icon > * { width: 44px; height: 44px; }
+  .kit-resource__value { height: 36px; min-width: 110px; font-size: 18px; padding-left: 26px; }
+  .kit-resource__plus { width: 40px; height: 40px; font-size: 24px; }
   .hud-dialog:has(> .kit-frame) { width: min(760px, 100%); }
 }

@@ -14,6 +14,11 @@ const PIECES = [
   ['--ui-battle-turn', 'skin-battle-turn', 'ui.battle.turn'],
 ] as const
 
+/** UI kit art (docs/art/ui-rework-p2-art-list.md): key `ui.kit.<name>` → variable `--kit-<name>` and class `skin-kit-<name>`, dots as dashes. */
+const KIT = ['frame', 'plank', 'badge', 'close', 'back', 'help', 'pill.blue', 'pill.yellow', 'pill.green', 'pill.purple', 'pill.grey', 'pill.red',
+  'round', 'lock', 'card', 'resource', 'plus', 'scroll.track', 'scroll.thumb', 'bubble', 'bubble.tail', 'bar', 'new'] as const
+const KIT_PIECES = KIT.map(n => [`--kit-${n.replace('.', '-')}`, `skin-kit-${n.replace('.', '-')}`, `ui.kit.${n}`] as const)
+
 /**
  * CSS variables (image urls) and classes for the game root: hud.css styles a piece from its art only when its class
  * is present, and keeps the drawn CSS look otherwise.
@@ -21,7 +26,7 @@ const PIECES = [
 export function hudSkin(hud: Record<string, Sprite>): { className: string; style: Record<string, string> } {
   const style: Record<string, string> = {}
   const classes: string[] = []
-  for (const [cssVar, cls, key] of PIECES) {
+  for (const [cssVar, cls, key] of [...PIECES, ...KIT_PIECES]) {
     const src = hud[key]?.src
     if (!src) continue
     style[cssVar] = `url("${src}")`
