@@ -6,7 +6,7 @@ import {
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
 import { placementSubject, type Placing, type Target } from './bridge'
-import { anchor, cellCentre, cellTop, depthOrder, dragonSpot, habitatDragonScale, hatcheryEggScale, hatcheryNestSpot, ISO, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, SIGN_SCALE, signSpot, TAP_PX, UPGRADE_POST } from './layout'
+import { anchor, cellCentre, cellTop, depthOrder, dragonSpot, habitatDragonScale, hatcheryEggScale, hatcheryNestSpot, ISO, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, SIGN_SCALE, signSpot, TAP_PX, UPGRADE_POST, type Box, type Pos } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
 export interface IslandObject {
@@ -60,8 +60,8 @@ export interface IslandMarkers {
   decorations: string[]
   /** The placement ghost's footprint, drawn as a diamond outline tinted by legality. */
   ghost: { legal: boolean; col: number; row: number; size: number } | null
-  /** One per unowned plot touching owned land; `price` is null when the island's price list has run out. */
-  signs: { plot: number; price: number | null }[]
+  /** One per unowned plot touching owned land, with the cell its sign stands on; `price` is null when the island's price list has run out. */
+  signs: { plot: number; price: number | null; col: number; row: number }[]
 }
 
 export interface IslandModel {
@@ -295,6 +295,42 @@ export const SIGN_CAPTION = 'Tap to buy'
 export { SIGN_SCALE }
 
 /**
+ * The sprite boxes of an island's buildings and their residents, at their real placements: what a plot's sign keeps clear of.
+ * It reads the state alone, so a building being moved counts where it stands and the signs don't jump about during placement.
+ */
+export function buildingBoxes(state: PlayerState, art: GameArtSet, catalog: Catalog, view: IslandId): Box[] {
+  const out: Box[] = []
+  const add = (at: Pos, sprite: Sprite, scale = 1) => {
+    const h = (sprite.h - (sprite.top ?? 0)) * scale, w = sprite.w * scale
+    out.push({ x: at.x - w / 2, y: at.y - h, w, h })
+  }
+  for (const d of state.decorations) {
+    if (d.placement.island === view) add(anchor(d.placement.col, d.placement.row, DECORATIONS[d.kind].size), art.decoration[d.kind])
+  }
+  for (const h of state.habitats) {
+    if (h.placement.island !== view) continue
+    const a = anchor(h.placement.col, h.placement.row, FOOTPRINT.habitat)
+    const look = h.element === 'aerie' ? aerieLook(art) : habitatLook(art, h.element)
+    add(a, look.sprite, look.scale)
+    residents(state, h.id).forEach((d, slot) => {
+      const r = dragonLook(d.speciesId, d.level, art, catalog)
+      add(dragonSpot(a, slot), r.sprite, habitatDragonScale(r.sprite.w))
+    })
+  }
+  for (const b of state.breeders) {
+    if (b.placement.island === view) add(anchor(b.placement.col, b.placement.row, FOOTPRINT.breeder), breederLook(art, b.kind, b.level).sprite)
+  }
+  if (state.roostPlacement?.island === view) add(anchor(state.roostPlacement.col, state.roostPlacement.row, FOOTPRINT.roost), roostLook(art, state.roostTier).sprite)
+  if (state.hatcheryPlacement.island === view) add(anchor(state.hatcheryPlacement.col, state.hatcheryPlacement.row, FOOTPRINT.hatchery), hatcheryLook(art, state.hatcheryLevel).sprite)
+  for (const f of state.farms) {
+    if (f.placement.island !== view) continue
+    const look = farmLook(art)
+    add(anchor(f.placement.col, f.placement.row, FOOTPRINT.farm), look.sprite, look.scale)
+  }
+  return out
+}
+
+/**
  * Pure: everything the Island scene draws for a state at a moment, for one island view. No Phaser, so it is
  * unit-tested directly; the scene only turns objects into sprites. Objects are ordered by anchor y (back to
  * front); a building's dragons, eggs and crops travel with it. While it is being moved its own sprite gives way to the
@@ -492,14 +528,15 @@ export function buildIslandModel(
   // clear of the obstacles' art. On Home a sign says what it is; the other islands keep the plain sign.
   const price = plotPrice(view, plotsBought(state, view))
   const hereObstacles = state.islands.obstacles.filter(o => o.island === view)
+  const hereBuildings = buildingBoxes(state, art, catalog, view)
   for (const plot of offeredPlots(state, view)) {
-    const spot = signSpot(plot, hereObstacles, art)
+    const spot = signSpot(plot, hereObstacles, art, hereBuildings)
     objects.push({
       id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellCentre(spot.col, spot.row), target: { kind: 'plot', island: view, plot }, scale: SIGN_SCALE, minTap: TAP_PX, boxAlways: true,
       // No caption while placing: it would hide the Move arrow.
       ...(view === 'home' && !placing ? { caption: SIGN_CAPTION } : {}),
     })
-    markers.signs.push({ plot, price })
+    markers.signs.push({ plot, price, col: spot.col, row: spot.row })
   }
 
   if (placing) {

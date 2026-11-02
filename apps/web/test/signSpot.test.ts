@@ -3,9 +3,10 @@ import { resolve } from 'node:path'
 import { createRng, HOME_PLOT_ORDER, newPlayer, OBSTACLES, offeredPlots, plotOfTile, plotOrigin, spawnPlotObstacles, TILES_PER_PLOT, type Obstacle, type ObstacleKind } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { FALLBACK_ART } from '../src/art/slots'
-import { buildIslandModel } from '../src/game/islandModel'
+import { artSetFromManifest } from '../src/art/fromManifest'
+import { buildingBoxes, buildIslandModel } from '../src/game/islandModel'
 import { LAUNCH_CATALOG } from '@wyrmhaven/game-core'
-import { anchor, boxesOverlap, cellCentre, obstacleBox, SIGN_SCALE, signBox, signSpot, type SignArt } from '../src/game/layout'
+import { anchor, boxesOverlap, captionBox, cellCentre, obstacleBox, SIGN_SCALE, signBox, signSpot, type SignArt } from '../src/game/layout'
 
 /** The art's real sizes, from the manifest. */
 const manifest = JSON.parse(readFileSync(resolve(__dirname, '../public/art/v1/manifest.json'), 'utf8')) as { assets: Record<string, { w: number; h: number; top?: number }> }
@@ -54,6 +55,48 @@ describe('the start table at the art\'s real sizes', () => {
   })
 })
 
+describe('signs and buildings at the opening', () => {
+  const real = artSetFromManifest('v1', manifest as never, LAUNCH_CATALOG)
+  const s = newPlayer(0)
+  const boxes = buildingBoxes(s, real, LAUNCH_CATALOG, 'home')
+
+  it('counts every building and resident', () => {
+    // 2 habitats, 2 dragons, a Mountain, the Hatchery, a Farm.
+    expect(boxes).toHaveLength(7)
+  })
+
+  it('no sign or caption box overlaps a building\'s or resident\'s sprite box', () => {
+    const { markers } = buildIslandModel(s, real, LAUNCH_CATALOG, 0, 'home', null)
+    expect(markers.signs.map(x => x.plot)).toEqual([2, 7, 11])
+    for (const { plot, col, row } of markers.signs) {
+      for (const b of boxes) {
+        expect(boxesOverlap(signBox(col, row, real), b), `sign ${plot} on ${JSON.stringify(b)}`).toBe(false)
+        expect(boxesOverlap(captionBox(col, row), b), `caption ${plot} on ${JSON.stringify(b)}`).toBe(false)
+      }
+    }
+  })
+
+  it('signs don\'t move while a building is being moved', () => {
+    const at = (placing: Parameters<typeof buildIslandModel>[5]) => buildIslandModel(s, real, LAUNCH_CATALOG, 0, 'home', placing).markers.signs
+    expect(at({ what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 4, col: 14, row: 13, facing: 0 })).toEqual(at(null))
+    expect(at({ what: { kind: 'move', target: { type: 'farm', index: 0 } }, size: 3, col: 26, row: 12, facing: 0 })).toEqual(at(null))
+  })
+
+  it('a building counts where it stands: one on the sign\'s cell moves the sign', () => {
+    const spot = signSpot(7, s.islands.obstacles, real, boxes)
+    const onIt = { ...s, farms: [{ ...s.farms[0]!, placement: { island: 'home' as const, col: spot.col - 1, row: spot.row - 1, facing: 0 as const } }] }
+    expect(signSpot(7, s.islands.obstacles, real, buildingBoxes(onIt, real, LAUNCH_CATALOG, 'home'))).not.toEqual(spot)
+  })
+
+  it('with no clear cell, the least overlap counts buildings too', () => {
+    const o = plotOrigin(5)
+    const covered = { x: -1000, y: -1000, w: 2000, h: 2000 }
+    const spot = signSpot(5, [], art, [covered])
+    expect(plotOfTile(spot.col, spot.row)).toBe(5)
+    expect(Math.abs(spot.col + 0.5 - o.col - 4)).toBeLessThanOrEqual(0.5) // all equal: the plot's middle
+  })
+})
+
 describe('signSpot', () => {
   it('stands on the plot\'s middle when nothing is in the way, the same way each time', () => {
     const o = plotOrigin(7)
@@ -96,7 +139,7 @@ describe('signSpot', () => {
     const { objects } = buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, 'home', null)
     for (const plot of [2, 7, 11]) {
       const sign = objects.find(o => o.id === `sign:${plot}`)!
-      const c = signSpot(plot, s.islands.obstacles, FALLBACK_ART)
+      const c = signSpot(plot, s.islands.obstacles, FALLBACK_ART, buildingBoxes(s, FALLBACK_ART, LAUNCH_CATALOG, 'home'))
       expect({ x: sign.x, y: sign.y }).toEqual(cellCentre(c.col, c.row))
       expect(sign.scale).toBe(SIGN_SCALE)
       expect(sign.caption).toBe('Tap to buy')

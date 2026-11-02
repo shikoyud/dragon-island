@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { offeredPlots, ownedPlots, plotOfTile, type PlayerState } from '@wyrmhaven/game-core'
-import { captionPx, signSpot, type SignArt } from '../src/game/layout'
+import { captionPx } from '../src/game/layout'
 import { dismissLevelUp, resetPlayer, signIn, startingState } from './helpers'
 
 /**
@@ -23,17 +23,9 @@ async function cellPoint(page: Page, col: number, row: number) {
   return { x: box.x + p.x, y: box.y + p.y }
 }
 
-/** The cell a plot's sign stands on: `signSpot`, on the state and art sizes the page has. */
+/** The cell a plot's sign stands on, from the scene. */
 async function signCell(page: Page, plot: number) {
-  const { obstacles, art } = await page.evaluate(() => {
-    const b = window.__bridge as unknown as { view: string; art: SignArt; state: PlayerState }
-    const size = (s: { w: number; h: number; top?: number }) => ({ w: s.w, h: s.h, top: s.top })
-    return {
-      obstacles: b.state.islands.obstacles.filter(o => o.island === b.view),
-      art: { obstacle: Object.fromEntries(Object.entries(b.art.obstacle).map(([k, s]) => [k, size(s)])), island: { sign: size(b.art.island.sign) } } as SignArt,
-    }
-  })
-  return signSpot(plot, obstacles, art)
+  return (await page.evaluate(p => (window.__bridge as unknown as { signCell: (plot: number) => { col: number; row: number } | null }).signCell(p), plot))!
 }
 
 /** The middle of a plot's white label, on screen: it hangs 2 world px under the sign's foot, `captionPx` tall on screen. */

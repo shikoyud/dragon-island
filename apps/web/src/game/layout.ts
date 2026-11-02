@@ -164,17 +164,28 @@ export function signBox(col: number, row: number, art: SignArt): Box {
 }
 
 /**
- * The cell a plot's sign stands on: the one of its cells whose sign box overlaps no obstacle's art on any plot, nearest the
- * plot's middle, or, with no clear cell, the one with the least overlap. Ties go to the lower row, then the lower column.
+ * The world box of a sign's caption, at its widest at an opening zoom (a landscape phone's 2: 46 x 9): under the sign's foot.
+ * It is a constant size on screen, so it covers less at a closer zoom.
  */
-export function signSpot(plot: number, obstacles: readonly { kind: ObstacleKind; col: number; row: number }[], art: SignArt): { col: number; row: number } {
+export function captionBox(col: number, row: number): Box {
+  const c = cellCentre(col, row)
+  return { x: c.x - 23, y: c.y + 2, w: 46, h: 9 }
+}
+
+/**
+ * The cell a plot's sign stands on: the one of its cells whose sign box overlaps no obstacle's art on any plot, and whose sign
+ * and caption overlap no building in `buildings` (their sprite boxes), nearest the plot's middle, or, with no clear cell, the
+ * one with the least overlap. Ties go to the lower row, then the lower column.
+ */
+export function signSpot(plot: number, obstacles: readonly { kind: ObstacleKind; col: number; row: number }[], art: SignArt, buildings: readonly Box[] = []): { col: number; row: number } {
   const o = plotOrigin(plot)
   const boxes = obstacles.map(x => obstacleBox(x, art))
   const mid = TILES_PER_PLOT / 2
   let best = { col: o.col, row: o.row }, bestOver = Infinity, bestD = Infinity
   for (let row = o.row; row < o.row + TILES_PER_PLOT; row++) for (let col = o.col; col < o.col + TILES_PER_PLOT; col++) {
     const sign = signBox(col, row, art)
-    const over = boxes.reduce((n, b) => n + overlapArea(sign, b), 0)
+    const caption = captionBox(col, row)
+    const over = boxes.reduce((n, b) => n + overlapArea(sign, b), 0) + buildings.reduce((n, b) => n + overlapArea(sign, b) + overlapArea(caption, b), 0)
     const d = (col + 0.5 - o.col - mid) ** 2 + (row + 0.5 - o.row - mid) ** 2
     if (over < bestOver || (over === bestOver && d < bestD)) { best = { col, row }; bestOver = over; bestD = d }
   }

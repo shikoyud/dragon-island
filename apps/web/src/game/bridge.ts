@@ -94,6 +94,8 @@ export function createBridge() {
     cellToScreen: null as ((col: number, row: number) => { x: number; y: number }) | null,
     /** Set by the island scene: the cell at the centre of what the player is looking at (new buildings open near it). */
     focusCell: null as (() => { col: number; row: number }) | null,
+    /** The cell a plot's sign stands on, as last drawn. For specs, like `cellToScreen`. */
+    signCell: null as ((plot: number) => { col: number; row: number } | null) | null,
     /** Set by the Map scene: the canvas position of an island's plot diamond. Playwright clicks islands through it. */
     mapIslandToScreen: null as ((id: IslandId) => { x: number; y: number }) | null,
     on<T extends GameEvent['type']>(type: T, h: Handler<T>): () => void {

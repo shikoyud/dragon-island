@@ -155,6 +155,8 @@ export class IslandScene extends Phaser.Scene {
     }
     this.bridge.cellToScreen = cellToScreen
     this.bridge.focusCell = focusCell
+    const signCell = (plot: number) => this.current.signs.find(s => s.plot === plot) ?? null
+    this.bridge.signCell = signCell
     const zoomTo = (zoom: number) => this.zoomTo(zoom)
     this.bridge.zoomTo = zoomTo
     const onResize = () => { if (this.alive() && !this.sys.isSleeping()) this.frame() }
@@ -180,6 +182,7 @@ export class IslandScene extends Phaser.Scene {
       // hooks always belong to the live scene (and their presence means the island is ready for input).
       if (this.bridge.cellToScreen === cellToScreen) this.bridge.cellToScreen = null
       if (this.bridge.focusCell === focusCell) this.bridge.focusCell = null
+      if (this.bridge.signCell === signCell) this.bridge.signCell = null
       if (this.bridge.zoomTo === zoomTo) { this.bridge.zoomTo = null; this.bridge.zoom = null }
       this.scale.off(Phaser.Scale.Events.RESIZE, onResize)
       renderer?.off?.(Phaser.Renderer.Events.RESTORE_WEBGL, onRestore)
