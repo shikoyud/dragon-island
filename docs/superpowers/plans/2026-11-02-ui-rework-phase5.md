@@ -99,7 +99,7 @@
 
 ### Task 9: Goals
 
-- [ ] Goals dialog: tabs Recommended / All; rows with icon, title, hint, reward pills, Claim (`claimGoal`) or Go (opens the goal's place). `goalRows(s)` model test. Commit `feat(web): Goals tabs and rows`.
+- [x] Goals dialog: tabs Recommended / All; rows with icon, title, hint, reward pills, Claim (`claimGoal`) or Go (opens the goal's place). `goalRows(s)` model test. Commit `feat(web): Goals tabs and rows`.
 
 ### Task 10: Dragon detail
 

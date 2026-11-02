@@ -561,17 +561,19 @@ describe('QuestsPanel (§1.4)', () => {
   it('shows Claim when done, and sends claimGoal', async () => {
     const h = harness({ ...base, goalStats: { ...base.goalStats, collects: 1 } })
     h.wrap(<QuestsPanel />)
-    expect(screen.getByText('1 / 1')).toBeInTheDocument()
+    expect(screen.queryByText('1 / 1')).toBeNull() // a done Goal shows Claim! in place of its count
     await userEvent.click(screen.getByRole('button', { name: 'Claim' }))
     expect(h.action).toHaveBeenCalledWith({ type: 'claimGoal' }, expect.any(String))
   })
 
   it('shows XP after the preset multiplier: 300 under Flash-14, 200 under Flash-28', () => {
     harness(base, 0, 'flash14').wrap(<QuestsPanel />)
-    expect(screen.getByText('+300 XP · +200 gold')).toBeInTheDocument()
+    const first = () => screen.getByRole('listitem', { name: 'Collect Gold from a habitat' })
+    expect(within(first()).getByLabelText('+300 XP')).toBeInTheDocument()
+    expect(within(first()).getByLabelText('+200 gold')).toBeInTheDocument()
     cleanup()
     harness(base, 0, 'flash28').wrap(<QuestsPanel />)
-    expect(screen.getByText('+200 XP · +200 gold')).toBeInTheDocument()
+    expect(within(first()).getByLabelText('+200 XP')).toBeInTheDocument()
   })
 
   it('counts through the later Goals and ends with All goals done', () => {
