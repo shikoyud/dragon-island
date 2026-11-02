@@ -201,3 +201,75 @@
   .goal-row__hint { font-size: 11px; }
   .goal-row__go { min-width: 72px; }
 }
+
+/* Dragon detail (design, Phase 5: dragon-choosen). */
+.dragon-detail { position: relative; display: flex; flex-direction: column; gap: 8px; min-height: 100%; padding: 4px 12px 12px; }
+.dragon-detail__top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dragon-detail__marks { display: inline-flex; align-items: center; gap: 6px; }
+.dragon-detail__rarity { font: 12px/1 var(--font-display); color: #fff; text-transform: capitalize; text-shadow: 0 2px 0 var(--kit-ink); }
+.dragon-detail__where { margin: 0; padding: 6px 14px; min-width: 240px; font: 14px/1.2 var(--font-display); color: var(--kit-ink); background: #fbf3df; border: 2px solid var(--kit-ink); border-radius: 8px; }
+.dragon-detail__main { flex: 1; display: grid; grid-template-columns: 120px 1fr minmax(300px, 420px); gap: 12px; align-items: end; }
+.dragon-detail__level {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 8px; align-self: end;
+  background: rgba(40, 24, 10, 0.55); border: 2px solid var(--kit-ink); border-radius: 10px; color: #fff;
+}
+.dragon-detail__stage { font: 11px/1 var(--font-display); }
+.dragon-detail__level-word { font: 16px/1 var(--font-display); color: #ffd84a; text-shadow: 0 2px 0 var(--kit-ink); }
+.dragon-detail__level-num { font: 40px/1 var(--font-display); color: #ffd84a; text-shadow: 0 3px 0 var(--kit-ink); }
+.dragon-detail__stage-art {
+  display: flex; flex-direction: column; align-items: center; justify-content: end; gap: 8px; min-height: 280px; padding: 12px;
+  background: radial-gradient(ellipse at 50% 85%, rgba(255, 230, 160, 0.55), rgba(255, 230, 160, 0) 60%); border-radius: 16px;
+}
+.dragon-detail__feed .kit-pill { gap: 6px; }
+.dragon-pips { display: inline-flex; gap: 4px; padding: 4px 8px; background: rgba(0, 0, 0, 0.35); border-radius: 8px; }
+.dragon-pips__pip { width: 28px; height: 10px; border: 2px solid var(--kit-ink); background: #3b2a18; border-radius: 3px; }
+.dragon-pips__pip[data-pip="filled"] { background: #7ed957; }
+.dragon-detail__card { display: flex; align-items: stretch; gap: 0; }
+.dragon-card { flex: 1; padding: 10px 12px; background: #f3d9a8; border: 2px solid var(--kit-ink); border-radius: 12px 0 12px 12px; }
+.dragon-card__title { margin: 0 0 6px; text-align: center; font: 16px/1 var(--font-display); color: #7a3f12; }
+.dragon-card__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.dragon-stat { display: grid; grid-template-columns: 40px auto 1fr auto; grid-template-areas: "icon name value value" "icon bar bar max"; gap: 2px 8px; align-items: center; }
+.dragon-stat__icon { grid-area: icon; display: grid; place-items: center; }
+.dragon-stat__name { grid-area: name; font: 13px/1 var(--font-display); color: #7a3f12; }
+.dragon-stat__value { grid-area: value; font: 13px/1 var(--font-display); color: var(--kit-ink); }
+.dragon-stat__bar { grid-area: bar; }
+.dragon-stat__max { grid-area: max; font: 11px/1 var(--font-display); color: #9a6a35; }
+.dragon-stat--gold { grid-template-areas: "icon name value value"; }
+.dragon-move { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; padding: 6px 8px; font: 12px/1.1 var(--font-display); color: var(--kit-ink); background: #fbf3df; border-radius: 8px; }
+.dragon-move--locked { opacity: 0.6; }
+.dragon-tabs { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; }
+.dragon-tabs__tab { width: 48px; height: 48px; display: grid; place-items: center; background: #c9b79a; border: 2px solid var(--kit-ink); border-left: 0; border-radius: 0 10px 10px 0; cursor: pointer; }
+.dragon-tabs__tab[aria-selected="true"] { background: #f3d9a8; }
+.dragon-detail__bottom { display: flex; justify-content: flex-end; gap: 10px; }
+.dragon-detail__move { position: absolute; right: 12px; bottom: 64px; max-width: 420px; padding: 8px; background: #fbf3df; border: 2px solid var(--kit-ink); border-radius: 10px; }
+.dragon-detail__move-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.dragon-detail__note { margin: 0; color: #fff; }
+@media (max-height: 480px) {
+  .dragon-detail { gap: 4px; padding: 0 8px 6px; }
+  .dragon-detail__where { min-width: 0; padding: 3px 8px; font-size: 11px; }
+  .dragon-detail__main { grid-template-columns: 72px 1fr minmax(240px, 320px); gap: 6px; }
+  .dragon-detail__level-num { font-size: 26px; }
+  .dragon-detail__level-word { font-size: 12px; }
+  .dragon-detail__stage-art { min-height: 0; padding: 4px; gap: 4px; }
+  .dragon-detail__stage-art [data-testid="sprite-still"] { transform: scale(0.55); transform-origin: bottom center; margin-top: -90px; }
+  .dragon-card { padding: 6px 8px; }
+  .dragon-card__list { gap: 4px; }
+  .dragon-tabs__tab { width: 36px; height: 36px; }
+}
+@media (max-width: 640px) and (min-height: 481px) {
+  .dragon-detail__main { grid-template-columns: 1fr; }
+}
+/* The dragon stands on open ground under a warm sky: our own gradient backdrop, not a painted scene. */
+.kit-full:has(.dragon-detail) {
+  background: linear-gradient(180deg, #f7cf7a 0%, #f0b45a 48%, #c98a45 62%, #9c6a36 78%, #7d532a 100%);
+}
+.dragon-detail { max-width: 1360px; width: 100%; margin: 0 auto; min-height: calc(100dvh - 96px); }
+.dragon-detail__stage-art { background: radial-gradient(ellipse at 50% 92%, rgba(60, 36, 14, 0.45), rgba(60, 36, 14, 0) 38%); }
+@media (max-height: 480px) {
+  .dragon-detail { min-height: calc(100dvh - 64px); }
+}
+@media (min-height: 800px) {
+  .dragon-detail__main { align-items: center; }
+  .dragon-detail__stage-art [data-testid="sprite-still"] { transform: scale(1.8); transform-origin: bottom center; margin-top: 170px; }
+  .dragon-detail__level { align-self: end; }
+}

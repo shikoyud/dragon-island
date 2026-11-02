@@ -103,7 +103,7 @@
 
 ### Task 10: Dragon detail
 
-- [ ] `DragonPanel`: plank with type + rarity; name; dragon on a backdrop; level and stars left; Feed N; stats card with bars (`icon.health/damage/speed`); side tabs (Stats, Moves); Move (home finder). Ids `#feed-*`, `#sell-*` kept. Commit `feat(web): Dragon detail layout`.
+- [x] `DragonPanel`: plank with type + rarity; name; dragon on a backdrop; level and stars left; Feed N; stats card with bars (`icon.health/damage/speed`); side tabs (Stats, Moves); Move (home finder). Ids `#feed-*`, `#sell-*` kept. Commit `feat(web): Dragon detail layout`.
 
 ### Task 11: Breeding and Dragon Book
 

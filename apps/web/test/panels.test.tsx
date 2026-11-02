@@ -132,7 +132,7 @@ describe('DragonPanel', () => {
   it('shows feed cost and refuses to sell below two dragons', () => {
     const { wrap } = harness(base)
     wrap(<DragonPanel dragonId="d1" />)
-    expect(screen.getByRole('button', { name: /feed/i })).toHaveTextContent('5 food')
+    expect(screen.getByRole('button', { name: /feed/i })).toHaveAccessibleName('Feed · 5 food')
     const sell = screen.getByRole('button', { name: /sell/i })
     expect(sell).toBeDisabled()
     expect(sell).toHaveAccessibleDescription(/at least two dragons/i)
@@ -162,27 +162,28 @@ describe('DragonPanel (B11)', () => {
     const pips = screen.getByRole('img', { name: /2 of 4 feeds/i })
     expect(pips.querySelectorAll('[data-pip]')).toHaveLength(4)
     expect(pips.querySelectorAll('[data-pip="filled"]')).toHaveLength(2)
-    expect(screen.getByRole('button', { name: /^feed/i })).toHaveTextContent('Feed · 5 food')
+    expect(screen.getByRole('button', { name: 'Feed · 5 food' })).toHaveTextContent('Feed 5')
   })
 
   it('shows level, stage, rarity, Gold/min, HP and ATK', () => {
     const { wrap } = harness(withD1({ level: 5 }))
     wrap(<DragonPanel dragonId="d1" />)
-    expect(screen.getByText(/Level 5 · Juvenile/)).toBeInTheDocument()
-    expect(screen.getByText(/common/i)).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Level 5 · Juvenile' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /common/i })).toBeInTheDocument()
     expect(screen.getByText('660 gold/min')).toBeInTheDocument()
-    expect(screen.getByText(`HP ${hpAt('common', 5)} · ATK ${atkAt('common', 5)}`)).toBeInTheDocument()
+    expect(screen.getByRole('listitem', { name: `Health ${formatGold(hpAt('common', 5))}` })).toBeInTheDocument()
+    expect(screen.getByRole('listitem', { name: `Damage ${formatGold(atkAt('common', 5))}` })).toBeInTheDocument()
   })
 
   it('shows Baby and Adult stages and formats fractional Gold/min like the habitat panel', () => {
     const baby = harness(withD1({ level: 1 }))
     const { unmount } = baby.wrap(<DragonPanel dragonId="d1" />)
-    expect(screen.getByText(/Level 1 · Baby/)).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Level 1 · Baby' })).toBeInTheDocument()
     expect(screen.getByText(`${formatPerMinuteX20(goldPerMinuteX20('terra', 'common', 1, DEFAULT_PRESET))} gold/min`)).toBeInTheDocument()
     unmount()
     const adult = harness({ ...withD1({ level: 7 }), roostTier: 1 })
     adult.wrap(<DragonPanel dragonId="d1" />)
-    expect(screen.getByText(/Level 7 · Adult/)).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Level 7 · Adult' })).toBeInTheDocument()
   })
 
   it('names the element icons, primary first', () => {
@@ -241,6 +242,15 @@ describe('DragonPanel (B11)', () => {
         expect.stringContaining('Flame habitat'), expect.stringContaining('Sea habitat'),
       ])
     })
+  })
+
+  it('has side tabs: Stats, and Moves with the four moves, locked ones at their level (design Phase 5: dragon-choosen)', async () => {
+    harness(base).wrap(<DragonPanel dragonId="d1" />)
+    expect(screen.getByRole('region', { name: 'Stats' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: 'Moves' }))
+    const moves = within(screen.getByRole('region', { name: 'Moves' })).getAllByRole('listitem')
+    expect(moves).toHaveLength(4)
+    expect(moves[2]).toHaveTextContent('Level 10')
   })
 
   it('offers Sell · n gold for a non-Legendary', () => {
