@@ -53,4 +53,15 @@ void walletRoot().then(Root => {
       </QueryClientProvider>
     </StrictMode>,
   )
-})
+}).catch(showBootError)
+
+/** Anything failing before React mounts (a module that won't load, a bad env) would otherwise leave a blank page. */
+function showBootError(err: unknown): void {
+  console.error('Dragon Island failed to start', err)
+  const root = document.getElementById('root')
+  if (!root) return
+  const pre = document.createElement('pre')
+  pre.style.cssText = 'margin:24px;padding:16px;white-space:pre-wrap;font:14px monospace;color:#fff;background:#7a1f1f'
+  pre.textContent = `Dragon Island failed to start.\n\n${err instanceof Error ? `${err.message}\n\n${err.stack ?? ''}` : String(err)}`
+  root.replaceChildren(pre)
+}
