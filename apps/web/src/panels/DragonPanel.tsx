@@ -69,6 +69,7 @@ export function DragonPanel({ dragonId, onClose, onOpen, catalog = LAUNCH_CATALO
   const sellGold = SELL_GOLD[species.rarity]
   const home = s.habitats.find(x => x.id === d.habitatId)
   const inTeam = s.defenceTeam?.includes(d.id) ?? false
+  const inTrial = s.pve.active?.team.includes(d.id) ?? false
   const capLevel = Math.max(cap, d.level)
   // Hybrids live in any habitat of their elements; a full or unbuilt habitat, and the current one, are not offered.
   const destinations = s.habitats.filter(h =>
@@ -168,6 +169,16 @@ export function DragonPanel({ dragonId, onClose, onOpen, catalog = LAUNCH_CATALO
               onClick={() => void run({ type: 'sellDragon', dragonId: d.id })}
             >
               {`Sell · ${formatGold(sellGold)} gold`}
+            </ActionButton>
+          )}
+          {!d.stored && (
+            <ActionButton
+              id={`store-dragon-${d.id}`}
+              disabled={pending || inTeam || inTrial}
+              reason={inTeam ? 'It is in the defence team' : 'It is in the Trial in progress'}
+              onClick={() => void run({ type: 'putInStorage', target: { type: 'dragon', id: d.id } }).then(ok => { if (ok) onClose?.() })}
+            >
+              Store
             </ActionButton>
           )}
           <ActionButton id={`move-${d.id}`} onClick={() => setMoving(m => !m)}>

@@ -41,6 +41,9 @@ export function HatcheryPanel({ nowMs, onClose, onOpenDragon }: { nowMs: number;
               <ActionButton id={`hatch-${slot}`} primary disabled={pending || !isReady(egg.readyAtMs, nowMs)} reason="Still hatching" onClick={() => void hatch(slot)}>
                 Hatch
               </ActionButton>
+              <ActionButton id={`store-egg-${slot}`} disabled={pending} onClick={() => void run({ type: 'putInStorage', target: { type: 'egg', slot } })}>
+                Store
+              </ActionButton>
               <SpeedUpButton id={`speedup-hatch-${slot}`} target="hatchery" index={slot} readyAtMs={egg.readyAtMs} nowMs={nowMs} />
               {price !== null && (
                 <ActionButton id={`skip-hatch-${slot}`} disabled={pending} onClick={() => void run({ type: 'buy', item: { kind: 'skip', target: 'hatchery', index: slot } })}>

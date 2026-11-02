@@ -2,6 +2,8 @@ import { newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import { DragonPanel } from '../src/panels/DragonPanel'
+import { HatcheryPanel } from '../src/panels/HatcheryPanel'
 import { StoragePanel } from '../src/panels/StoragePanel'
 import { storageItems } from '../src/panels/storageModel'
 import { harness } from './harness'
@@ -62,5 +64,25 @@ describe('StoragePanel (design Phase 5: storage)', () => {
     expect(screen.getByText('Storage is empty')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Go to shop' }))
     expect(onShop).toHaveBeenCalled()
+  })
+})
+
+describe('Store for a dragon and an egg (shiko 2026-11-01, rules 1 and S4-S5)', () => {
+  it('the dragon detail stores the dragon, but not one in the defence team', async () => {
+    const { wrap, action } = harness(base)
+    const { unmount } = wrap(<DragonPanel dragonId="d1" />)
+    await userEvent.click(screen.getByRole('button', { name: 'Store' }))
+    expect(action).toHaveBeenCalledWith({ type: 'putInStorage', target: { type: 'dragon', id: 'd1' } }, expect.any(String))
+    unmount()
+    harness({ ...base, defenceTeam: ['d1', 'd2', 'd2'] as never }).wrap(<DragonPanel dragonId="d1" />)
+    expect(screen.getByRole('button', { name: 'Store' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Store' })).toHaveAccessibleDescription('It is in the defence team')
+  })
+
+  it('a Hatchery egg has Store', async () => {
+    const { wrap, action } = harness({ ...base, hatchery: [{ speciesId: 'sea', readyAtMs: 99_000 }] })
+    wrap(<HatcheryPanel nowMs={0} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Store' }))
+    expect(action).toHaveBeenCalledWith({ type: 'putInStorage', target: { type: 'egg', slot: 0 } }, expect.any(String))
   })
 })
