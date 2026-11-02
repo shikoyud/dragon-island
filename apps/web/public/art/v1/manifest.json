@@ -3831,6 +3831,526 @@
       "frames": 1,
       "fps": 0,
       "top": 2
+    },
+    "ui.kit.frame": {
+      "file": "ui-kit-frame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.plank": {
+      "file": "ui-kit-plank.png",
+      "w": 48,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.badge": {
+      "file": "ui-kit-badge.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.close": {
+      "file": "ui-kit-close.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.kit.back": {
+      "file": "ui-kit-back.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.kit.help": {
+      "file": "ui-kit-help.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.kit.plus": {
+      "file": "ui-kit-plus.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.kit.pill.blue": {
+      "file": "ui-kit-pill-blue.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.pill.yellow": {
+      "file": "ui-kit-pill-yellow.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.pill.green": {
+      "file": "ui-kit-pill-green.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.pill.purple": {
+      "file": "ui-kit-pill-purple.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.pill.grey": {
+      "file": "ui-kit-pill-grey.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.pill.red": {
+      "file": "ui-kit-pill-red.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.round": {
+      "file": "ui-kit-round.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.lock": {
+      "file": "ui-kit-lock.png",
+      "w": 12,
+      "h": 12,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.card": {
+      "file": "ui-kit-card.png",
+      "w": 48,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.resource": {
+      "file": "ui-kit-resource.png",
+      "w": 48,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.scroll.track": {
+      "file": "ui-kit-scroll-track.png",
+      "w": 12,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.scroll.thumb": {
+      "file": "ui-kit-scroll-thumb.png",
+      "w": 12,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.bubble": {
+      "file": "ui-kit-bubble.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.bubble.tail": {
+      "file": "ui-kit-bubble-tail.png",
+      "w": 12,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.kit.bar": {
+      "file": "ui-kit-bar.png",
+      "w": 32,
+      "h": 12,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.terra": {
+      "file": "ui-kit-ribbon-terra.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.flame": {
+      "file": "ui-kit-ribbon-flame.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.sea": {
+      "file": "ui-kit-ribbon-sea.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.nature": {
+      "file": "ui-kit-ribbon-nature.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.electric": {
+      "file": "ui-kit-ribbon-electric.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.ice": {
+      "file": "ui-kit-ribbon-ice.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.metal": {
+      "file": "ui-kit-ribbon-metal.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.dark": {
+      "file": "ui-kit-ribbon-dark.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.light": {
+      "file": "ui-kit-ribbon-light.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.war": {
+      "file": "ui-kit-ribbon-war.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.shield.common": {
+      "file": "ui-kit-shield-common.png",
+      "w": 20,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.shield.uncommon": {
+      "file": "ui-kit-shield-uncommon.png",
+      "w": 20,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.shield.rare": {
+      "file": "ui-kit-shield-rare.png",
+      "w": 20,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.shield.epic": {
+      "file": "ui-kit-shield-epic.png",
+      "w": 20,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.shield.legendary": {
+      "file": "ui-kit-shield-legendary.png",
+      "w": 20,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.new": {
+      "file": "ui-kit-new.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "ui.hud.levelStar": {
+      "file": "ui-hud-levelStar.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.hud.avatarFrame": {
+      "file": "ui-hud-avatarFrame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "icon.book.32": {
+      "file": "icon-book-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.search.32": {
+      "file": "icon-search-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
+    },
+    "icon.goals.32": {
+      "file": "icon-goals-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "icon.storage.32": {
+      "file": "icon-storage-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "map.chain": {
+      "file": "map-chain.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "map.island.home": {
+      "file": "map-island-home.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "map.island.isle2": {
+      "file": "map-island-isle2.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "map.island.isle3": {
+      "file": "map-island-isle3.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "map.island.isle4": {
+      "file": "map-island-isle4.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "map.island.isle5": {
+      "file": "map-island-isle5.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "map.island.isle6": {
+      "file": "map-island-isle6.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "icon.getEgg.32": {
+      "file": "icon-getEgg-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.collect.32": {
+      "file": "icon-collect-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.upgrade.32": {
+      "file": "icon-upgrade-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.info.32": {
+      "file": "icon-info-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.hatch.32": {
+      "file": "icon-hatch-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "icon.growFood.32": {
+      "file": "icon-growFood-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.speedUp.32": {
+      "file": "icon-speedUp-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "icon.rebreed.32": {
+      "file": "icon-rebreed-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
+    },
+    "icon.clear.32": {
+      "file": "icon-clear-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
+    },
+    "icon.move.32": {
+      "file": "icon-move-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.bubble.gold": {
+      "file": "icon-bubble-gold.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.bubble.food": {
+      "file": "icon-bubble-food.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "icon.bubble.xp": {
+      "file": "icon-bubble-xp.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "icon.shop.32": {
+      "file": "icon-store-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
     }
   }
 }
