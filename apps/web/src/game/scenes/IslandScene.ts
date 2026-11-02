@@ -70,6 +70,8 @@ export class IslandScene extends Phaser.Scene {
   private sky: Phaser.GameObjects.Image | null = null
   private clouds: Phaser.GameObjects.Image[] = []
   private hatchView: string | null = null
+  /** The placement footprint's fill, on the ground under every sprite; `outline` goes over them. */
+  private footFill!: Phaser.GameObjects.Graphics
   private outline!: Phaser.GameObjects.Graphics
   private layer!: Phaser.GameObjects.Container
   /** What is on the layer, in draw order. Kept across syncs: only what changed is made again (see `reconcile`). */
@@ -112,6 +114,8 @@ export class IslandScene extends Phaser.Scene {
     const land = groundBox()
     // A headless game (tests) has no renderer to hold a texture: it bakes nothing.
     if (this.game.config.renderType !== Phaser.HEADLESS) this.groundRt = this.add.renderTexture(land.x, land.y, land.w, land.h).setOrigin(0, 0)
+    // Between the ground and the sprites, so the ghost keeps its colours.
+    this.footFill = this.add.graphics()
     this.layer = this.add.container(0, 0)
     // Over the sprites: an illegal footprint must show even where it overlaps a building.
     this.outline = this.add.graphics()
@@ -691,14 +695,15 @@ export class IslandScene extends Phaser.Scene {
     rt.endDraw()
   }
 
-  /** The placement ghost's footprint: a translucent, outlined diamond coloured by legality, over everything. */
+  /** The placement ghost's footprint, coloured by legality: a translucent diamond on the ground, its outline over everything. */
   private drawOutline(ghost: IslandMarkers['ghost']): void {
-    const g = this.outline.clear()
+    const fill = this.footFill.clear()
+    const line = this.outline.clear()
     if (!ghost) return
     const color = ghost.legal ? TINT.ok : TINT.bad
     const pts = points(footprintDiamond(ghost.col, ghost.row, ghost.size))
-    g.fillStyle(color, 0.25).fillPoints(pts, true)
-    g.lineStyle(1, color, 1).strokePoints(pts, true, true)
+    fill.fillStyle(color, 0.25).fillPoints(pts, true)
+    line.lineStyle(2, color, 1).strokePoints(pts, true, true)
   }
 
   markers(): IslandMarkers {

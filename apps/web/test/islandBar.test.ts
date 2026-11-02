@@ -34,6 +34,36 @@ async function boot(state: ReturnType<typeof newPlayer>) {
   return { bridge, game, scene }
 }
 
+describe('the placement footprint', () => {
+  const games: Phaser.Game[] = []
+  afterEach(() => { games.splice(0).forEach(g => g.destroy(true)); vi.restoreAllMocks() })
+
+  it('its fill lies on the ground under every sprite; its 2 px outline goes over them; both go when placing ends', async () => {
+    const { bridge, game, scene } = await boot(newPlayer(0))
+    games.push(game)
+    const s = scene as unknown as Phaser.Scene & { footFill: Phaser.GameObjects.Graphics; outline: Phaser.GameObjects.Graphics; layer: Phaser.GameObjects.Container }
+    const lines = vi.spyOn(Phaser.GameObjects.Graphics.prototype, 'lineStyle')
+    const fills = vi.spyOn(Phaser.GameObjects.Graphics.prototype, 'fillStyle')
+    bridge.setPlacing({ what: { kind: 'farm' }, size: 3, col: 14, row: 13, facing: 0 })
+    s.children.depthSort()
+    const order = s.children.getChildren()
+    const at = (o: Phaser.GameObjects.GameObject) => order.indexOf(o)
+    expect(at(s.footFill)).toBeGreaterThanOrEqual(0)
+    expect(at(s.footFill)).toBeLessThan(at(s.layer))
+    expect(at(s.layer)).toBeLessThan(at(s.outline))
+    // Above the land and the falls.
+    for (const o of order) if (o.name === 'waterfall') expect(at(o)).toBeLessThan(at(s.footFill))
+    const cmds = (g: Phaser.GameObjects.Graphics) => (g as unknown as { commandBuffer: unknown[] }).commandBuffer
+    expect(cmds(s.footFill).length).toBeGreaterThan(0)
+    expect(lines.mock.contexts).toEqual([s.outline])
+    expect(lines.mock.calls[0]![0]).toBe(2)
+    expect(fills.mock.contexts).toEqual([s.footFill])
+    bridge.setPlacing(null)
+    expect(cmds(s.footFill)).toEqual([])
+    expect(cmds(s.outline)).toEqual([])
+  })
+})
+
 describe('the Tap to buy label', () => {
   const games: Phaser.Game[] = []
   afterEach(() => { games.splice(0).forEach(g => g.destroy(true)); vi.restoreAllMocks() })
