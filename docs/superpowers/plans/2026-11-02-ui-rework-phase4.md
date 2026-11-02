@@ -41,3 +41,12 @@
 ### Task 3: Island overlays — selection outline, bubbles (A3), progress bars under timers; remove the attention column. Commit `feat(web): bubbles, bars and selection outline on the island`.
 ### Task 4: Post-hatch placement highlight (A5). Commit `feat(web): outlined habitats after hatching`.
 ### Task 5: Verify and report — suites, playtest, screenshots next to each reference, report `docs/superpowers/reports/2026-11-02-ui-rework-phase4-report.md`.
+
+## Execution notes (2026-11-02)
+
+All five tasks done; see `docs/superpowers/reports/2026-11-02-ui-rework-phase4-report.md`.
+
+- Task 1: `actionRow(s, target, nowMs, preset, catalog?)` and `selectionOf(s, target)` in `apps/web/src/hud/actionRow.ts`; `RowIntent` is `run | open | move`.
+- Task 2: `useDialog` returns a third value, `{ selected, setSelected, finding, setFinding }`; `bridge.selection` and the `selection` event carry it to the scene. `ActionBar` in `apps/web/src/hud/ActionBar.tsx`. Specs reach panels through `openInfo` / `selectTarget` in `e2e/helpers.ts`.
+- Task 3: `selectionOutline` in `apps/web/src/game/overlayModel.ts` (the plan named the file; it holds the outline and `homesFor`, not a full overlay model). Collect bubbles for gold and ripe crops (tap harvests); a bar under growing crops. Construction and breeding timers keep their text only, as their start time isn't stored. The attention column is gone.
+- Task 4 (A5 changed): `hatch` in game-core already moves a new dragon into the first habitat with room, so there is nothing to choose right after hatching without a rules change. The home finder opens on a tap on a dragon that is waiting in the Hatchery, when a habitat now has room for it.

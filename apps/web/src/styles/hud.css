@@ -543,7 +543,7 @@
 }
 @media (max-height: 520px) {
   .action-bar { right: 76px; max-width: calc(100% - 160px); }
-  .action-bar__row { gap: 4px 14px; }
+  .action-bar__row { gap: 4px 20px; }
   .action-bar .kit-round { --plate: 46px; }
   .action-bar .kit-round__label, .action-bar .kit-round__timer { font-size: 9px; }
 }
