@@ -148,6 +148,19 @@ describe('the ghost agrees with the server on odd land (§5.5)', () => {
 })
 
 describe('PlotPanel', () => {
+  it('is Expand: plot for gold, premium Unavailable, and the next island gated with its reason (design Phase 5)', async () => {
+    const h = harness({ ...base, level: 2, gold: 200_000 })
+    h.wrap(<PlotPanel island="home" plot={2} />)
+    expect(screen.getByRole('region', { name: 'Expand' })).toBeInTheDocument()
+    expect(screen.getAllByRole('article').map(a => a.getAttribute('aria-label'))).toEqual(['More land', 'Premium land', 'Open Ember Reach'])
+    expect(document.getElementById('buy-plot-premium')).toHaveAccessibleDescription('Plots are sold for gold only')
+    expect(document.getElementById('expand-bridge')).toHaveAccessibleDescription(/Needs player level/)
+    cleanup()
+    const ready = harness({ ...base, level: 40, gold: 200_000 })
+    ready.wrap(<PlotPanel island="home" plot={2} />)
+    await userEvent.click(screen.getByRole('button', { name: /Bridge · 150,000 gold/ }))
+    expect(ready.action).toHaveBeenCalledWith({ type: 'buyBridge', island: 'isle2' }, expect.any(String))
+  })
   it('buys the plot at the count\'s price, and closes', async () => {
     const onClose = vi.fn()
     const h = harness({ ...base, level: 2 })

@@ -62,3 +62,13 @@
 @media (max-height: 480px), (max-width: 640px) {
   .farm-board { grid-template-columns: repeat(2, minmax(150px, 1fr)); padding: 8px; gap: 8px; }
 }
+
+/* ---- Expand: three cards and the resources ---- */
+.expand-where { margin: 0 0 6px; text-align: center; font: 12px/1.2 var(--font-display); color: var(--kit-text-muted); }
+.expand-cards { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 12px; }
+.expand-note { margin: 4px 8px; font-size: 12px; text-align: center; }
+.expand-foot { display: flex; justify-content: center; gap: 12px; margin-top: 12px; padding: 8px; border-radius: 10px; background: var(--kit-wood-lo); }
+@media (max-height: 480px), (max-width: 640px) {
+  .expand-cards { grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 6px; }
+  .expand-note { display: none; }
+}
