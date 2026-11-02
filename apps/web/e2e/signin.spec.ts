@@ -22,9 +22,9 @@ test('fits a 360px phone without horizontal scrolling', async ({ page, request }
   await expect(page.locator('canvas')).toBeVisible()
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
   expect(overflow).toBe(0)
-  // Battle and Shop, each a full tap target, all inside the screen.
+  // Battle, Storage and Shop, each a full tap target, all inside the screen.
   const bar = page.getByRole('navigation', { name: 'Main menu' }).getByRole('button')
-  await expect(bar).toHaveCount(2)
+  await expect(bar).toHaveCount(3)
   for (const b of await bar.all()) {
     const box = (await b.boundingBox())!
     expect(box.width).toBeGreaterThanOrEqual(44)
