@@ -1,16 +1,16 @@
-import { FOOTPRINT, ISLAND_TILES, LAUNCH_CATALOG, ownedPlots, plotOrigin, TILES_PER_PLOT, type Catalog, type PlayerState } from '@wyrmhaven/game-core'
+import { FOOTPRINT, LAUNCH_CATALOG, ownedPlots, type Catalog, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
 import { isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet, Sprite } from '../../art/types'
 import type { Bridge, Placing, Target } from '../bridge'
 import {
-  cameraBounds, clampView, groundCell, landPlots, lockedTiles, offeredPlotAt, openingView, panBy, revealPan, screenToWorld, shownSize, SKIRT, worldToScreen, zoomAt, zoomRange, type View,
+  cameraBounds, clampView, groundCell, landPlots, offeredPlotAt, openingView, panBy, revealPan, screenToWorld, worldToScreen, zoomAt, zoomRange, type View,
 } from '../camera'
 import { paintLandmass, type BakeArt, type BakeImage } from '../islandBake'
 import { ARROW_GAP, ARROW_SCALE, badgeY, buildIslandModel, groundTiles, groundVariant, objectSignature, type IslandMarkers, type IslandObject } from '../islandModel'
 import { driftCloud, landmass, nearestPlot } from '../islandShape'
-import { anchor, captionPx, cellCentre, cellTop, footprintContains, footprintDiamond, islandBox, pointerToCell, progressFill, PROGRESS_BAR, tapHit, type Box, type Pos } from '../layout'
+import { anchor, captionPx, cellCentre, cellTop, footprintContains, footprintDiamond, pointerToCell, progressFill, PROGRESS_BAR, tapHit, type Box, type Pos } from '../layout'
 import { createPanZoom, heldPointers } from '../panZoom'
 import { pickTarget, type Hit } from '../pickTarget'
 
@@ -20,10 +20,6 @@ const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
 const TINT = { ok: 0x9dffa8, bad: 0xff7a7a, building: 0xa8a8c0 } as const
 /** An egg's progress bar: a dark frame and a green fill. */
 const BAR = { frame: 0x141627, fill: 0x62d44a } as const
-/** Placeholder ground colours until the ground tiles in docs/art/hud-art-list.md exist. */
-const GROUND = {
-  grass: [0x5f9e3f, 0x579538], fog: [0xb9c4cf, 0xaab6c3], cliffLeft: 0x6b4a2b, cliffRight: 0x8b6136, lip: 0x3d6e2c, strata: 0x58391f,
-}
 const EMPTY: IslandMarkers = {
   habitats: [], dragons: [], waiting: [], breeders: [], hatchery: [], farms: [],
   obstacles: [], decorations: [], ghost: null, signs: [],
@@ -32,7 +28,7 @@ const EMPTY: IslandMarkers = {
 const BADGE_PX = 14
 /** Local (unscaled) size of a tappable badge's hit box: 28 local px x BADGE_PX / 8 = 49 CSS px, over the 44 px minimum. */
 const BADGE_HIT_LOCAL = 28
-/** Home's baked landmass, in Phaser's texture manager. */
+/** The viewed island's baked landmass, in Phaser's texture manager. */
 const BAKE_KEY = 'island:home-bake'
 /** The sky's plain colour, when its art is absent. */
 const SKY_FALLBACK = '#8fd0ee'
@@ -42,11 +38,6 @@ const FALL_LIP = 6
 const ARROW_BOB = { y: 2, ms: 450 } as const
 /** Where the clouds start, as shares of the camera bounds. */
 const CLOUD_AT = [{ x: 0.08, y: 0.16 }, { x: 0.62, y: 0.06 }, { x: 0.88, y: 0.62 }] as const
-/** World box of the baked landmass on islands other than Home: the island's diamond and the cliff skirt under it. */
-const groundBox = (): Box => {
-  const b = islandBox(ISLAND_TILES, ISLAND_TILES)
-  return { x: b.x, y: b.y, w: b.w, h: b.h + SKIRT }
-}
 
 /** What stands for one object id on the layer. */
 type LiveObject = Phaser.GameObjects.Sprite | Phaser.GameObjects.Text | Phaser.GameObjects.Graphics
@@ -60,11 +51,7 @@ const points = (pts: Pos[]) => pts.map(p => new Phaser.Math.Vector2(p.x, p.y))
  * shows it sleeps: no drawing and no clock, its camera and bake kept, and it catches up when it wakes.
  */
 export class IslandScene extends Phaser.Scene {
-  /** Placeholder diamonds and the cliff skirt are drawn here, then baked into `groundRt`. */
-  private ground!: Phaser.GameObjects.Graphics
-  /** The whole landmass (ground, fog, cliff) baked into one texture per island and holding, instead of ~1,100 images. */
-  private groundRt: Phaser.GameObjects.RenderTexture | null = null
-  /** Home's landmass, shown from the canvas texture `BAKE_KEY`. */
+  /** The viewed island's landmass, shown from the canvas texture `BAKE_KEY`. */
   private bakeImage: Phaser.GameObjects.Image | null = null
   private falls: (Phaser.GameObjects.Sprite | Phaser.GameObjects.Graphics)[] = []
   private sky: Phaser.GameObjects.Image | null = null
@@ -110,10 +97,6 @@ export class IslandScene extends Phaser.Scene {
   create(): void {
     this.cameras.main.setBackgroundColor(SKY_FALLBACK)
     this.makeSky()
-    this.ground = this.add.graphics().setVisible(false)
-    const land = groundBox()
-    // A headless game (tests) has no renderer to hold a texture: it bakes nothing.
-    if (this.game.config.renderType !== Phaser.HEADLESS) this.groundRt = this.add.renderTexture(land.x, land.y, land.w, land.h).setOrigin(0, 0)
     // Between the ground and the sprites, so the ghost keeps its colours.
     this.footFill = this.add.graphics()
     this.layer = this.add.container(0, 0)
@@ -553,9 +536,7 @@ export class IslandScene extends Phaser.Scene {
 
   /**
    * The landmass, drawn again only when the view or its plots change (buying a plot, a Bridge, a switch of island) or after
-   * the WebGL context comes back. Home is the floating island (`bakeHome`); every other island keeps grass diamonds for
-   * owned plots, fog for the rest and a cliff skirt, from the `ground.*` tiles when the manifest has them and drawn
-   * diamonds otherwise, baked into one render texture.
+   * the WebGL context comes back. Every island is a floating island (`bakeIsland`).
    */
   private drawGround(): void {
     const { state, view } = this.bridge
@@ -563,12 +544,9 @@ export class IslandScene extends Phaser.Scene {
     const key = `${view}:${state ? ownedPlots(state, view).join(',') : '-'}:${state ? landPlots(state, view).join(',') : '-'}`
     if (key === this.groundKey) return
     this.groundKey = key
-    const rt = this.groundRt?.clear().setVisible(view !== 'home') ?? null
     this.clearHomeBake()
     if (!state) return
-    if (view === 'home') return this.bakeHome(state)
-    this.ground.clear()
-    if (rt) this.bakeTiles(rt, state)
+    this.bakeIsland(state, view)
   }
 
   /** The bake to throw away when the land changes: the image, its texture and the waterfalls standing on it. */
@@ -587,17 +565,18 @@ export class IslandScene extends Phaser.Scene {
   }
 
   /**
-   * Home's floating island: one canvas the size of its landmass, shown as an image, with a waterfall sprite per fall.
-   * A headless game (tests) has no renderer to hold the texture: it paints nothing, the waterfalls still stand.
+   * The viewed island floating (Home's look, on every island since UI rework Phase 3): one canvas the size of its landmass,
+   * shown as an image, with a waterfall sprite per fall. A headless game (tests) has no renderer to hold the texture: it
+   * paints nothing, the waterfalls still stand. A locked island has no land and shows only sky.
    */
-  private bakeHome(state: PlayerState): void {
-    const land = landmass(landPlots(state, 'home'))
-    const owned = ownedPlots(state, 'home')
-    const shown = landPlots(state, 'home')
-    if (this.game.config.renderType !== Phaser.HEADLESS) {
+  private bakeIsland(state: PlayerState, view: IslandId): void {
+    const shown = landPlots(state, view)
+    const land = landmass(shown)
+    const owned = ownedPlots(state, view)
+    if (shown.length > 0 && this.game.config.renderType !== Phaser.HEADLESS) {
       const tex = this.textures.createCanvas(BAKE_KEY, land.box.w, land.box.h)
       if (tex) {
-        paintLandmass(tex.context, land, this.bakeArt(), (col, row) => !owned.includes(nearestPlot(shown, col, row)))
+        paintLandmass(tex.context, land, this.bakeArt(view), (col, row) => !owned.includes(nearestPlot(shown, col, row)))
         tex.refresh()
         this.bakeImage = this.add.image(land.box.x, land.box.y, BAKE_KEY).setOrigin(0, 0).setDepth(-1)
       }
@@ -618,84 +597,24 @@ export class IslandScene extends Phaser.Scene {
   }
 
   /** The bitmaps the painter samples, the ones whose textures really exist: a PNG that failed leaves none, and it paints its own look. */
-  private bakeArt(): BakeArt {
+  private bakeArt(view: IslandId): BakeArt {
     const ground = this.art().ground
+    // Each island's own grass when the art set has it (Ember Reach's ash, Frostspire's snow), else Home's.
+    const own = ground.island[view]
+    const grassSprites = own && own.grass.length > 0 ? own.grass : ground.grass
+    const grassKeys = groundTiles(this.art(), view).grass
     const img = (path: string, s: Sprite | null | undefined): BakeImage | null => {
       const key = textureKey(path)
       if (!s || !this.textures.exists(key)) return null
       return { source: this.textures.get(key).getSourceImage() as CanvasImageSource, w: s.w, h: s.h }
     }
     return {
-      grass: ground.grass.map((s, i) => img(`ground.grass.${i}`, s)).filter((b): b is BakeImage => b !== null),
+      grass: grassKeys.map((k, i) => img(k, grassSprites[i])).filter((b): b is BakeImage => b !== null),
       variant: groundVariant,
       rock: img('ground.rock', ground.rock),
       rim: ground.rim.map((s, i) => img(`ground.rim.${i}`, s)).filter((b): b is BakeImage => b !== null),
       water: img('ground.water', ground.water),
     }
-  }
-
-  /** Every other island: tiles baked into the render texture. */
-  private bakeTiles(rt: Phaser.GameObjects.RenderTexture, state: PlayerState): void {
-    const { view } = this.bridge
-    const g = this.ground
-    const tiles = this.art().ground
-    const land = groundBox()
-    // Tiles are drawn at their world position less the texture's own corner.
-    const shown = shownSize()
-    const at = (k: string, x: number, y: number) => rt.batchDrawFrame(textureKey(k), undefined, x - land.x, y - land.y)
-    const left = cellTop(0, shown.h)
-    const bottom = cellTop(shown.w, shown.h)
-    const right = cellTop(shown.w, 0)
-    const down = (p: Pos, d: number): Pos => ({ x: p.x, y: p.y + d })
-    // The drawn skirt always goes first: it backs the cliff tiles, whose stepped bottoms would otherwise show the sky between them.
-    {
-      g.fillStyle(GROUND.cliffLeft, 1).fillPoints(points([left, bottom, down(bottom, SKIRT), down(left, SKIRT)]), true)
-      g.fillStyle(GROUND.cliffRight, 1).fillPoints(points([bottom, right, down(right, SKIRT), down(bottom, SKIRT)]), true)
-      g.lineStyle(1, GROUND.strata, 0.6)
-      g.lineBetween(left.x, left.y + SKIRT / 2 + 1, bottom.x, bottom.y + SKIRT / 2 + 1)
-      g.lineBetween(bottom.x, bottom.y + SKIRT / 2 + 1, right.x, right.y + SKIRT / 2 + 1)
-      g.fillStyle(GROUND.lip, 1)
-      g.fillPoints(points([left, bottom, down(bottom, 2), down(left, 2)]), true)
-      g.fillPoints(points([bottom, right, down(right, 2), down(bottom, 2)]), true)
-    }
-    // Placeholder diamonds, for any tile the manifest has no art for.
-    const diamond = (palette: readonly number[], col: number, row: number) => g.fillStyle(palette[(col + row) % 2]!, 1).fillPoints(points(footprintDiamond(col, row, 1)), true)
-    rt.beginDraw()
-    // The skirt first (it is the backing), then everything else over it in the order the sprites used to go.
-    rt.batchDraw(g, -land.x, -land.y)
-    g.clear()
-    // This island's own tiles when the manifest has them, else today's (groundTiles); read here, in the bake, so a stale tile can't be picked.
-    const pick = groundTiles(this.art(), view)
-    if (pick.cliffSw && pick.cliffSe) {
-      // A 16x16 piece per front edge cell, drawn over the cell's bounding box; its face hangs below the cell's edge.
-      for (let col = 0; col < shown.w; col++) { const t = cellTop(col, shown.h - 1); at(pick.cliffSw, t.x - 8, t.y) }
-      for (let row = 0; row < shown.h; row++) { const t = cellTop(shown.w - 1, row); at(pick.cliffSe, t.x - 8, t.y) }
-    }
-    // A diamond's 16x8 tile has its top-left corner 8 px left of the cell's top vertex.
-    for (const plot of ownedPlots(state, view)) {
-      const o = plotOrigin(plot)
-      for (let row = o.row; row < o.row + TILES_PER_PLOT; row++) for (let col = o.col; col < o.col + TILES_PER_PLOT; col++) {
-        if (pick.grass.length > 0) {
-          const t = cellTop(col, row)
-          at(pick.grass[groundVariant(col, row, pick.grass.length)]!, t.x - 8, t.y)
-        } else {
-          diamond(GROUND.grass, col, row)
-        }
-        // The optional plot-border mark on the plot's back edges (its top-left row and column of cells).
-        if (tiles.plotEdge && (row === o.row || col === o.col)) { const t = cellTop(col, row); at('ground.plotEdge', t.x - 8, t.y) }
-      }
-    }
-    for (const c of lockedTiles(state, view)) {
-      if (tiles.fog) {
-        const t = cellTop(c.col, c.row)
-        at('ground.fog', t.x - 8, t.y)
-      } else {
-        diamond(GROUND.fog, c.col, c.row)
-      }
-    }
-    rt.batchDraw(g, -land.x, -land.y)
-    g.clear()
-    rt.endDraw()
   }
 
   /** The placement ghost's footprint, coloured by legality: a translucent diamond on the ground, its outline over everything. */

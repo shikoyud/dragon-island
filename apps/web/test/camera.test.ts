@@ -1,4 +1,4 @@
-import { LAUNCH_CATALOG, newPlayer } from '@wyrmhaven/game-core'
+import { LAUNCH_CATALOG, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { FALLBACK_ART } from '../src/art/slots'
 import { buildIslandModel } from '../src/game/islandModel'
@@ -39,11 +39,16 @@ describe('revealPan', () => {
   })
 })
 
+/** The state after the Bridge to Ember Reach: its 4 centre plots owned. */
+function opened(s: PlayerState): PlayerState {
+  return { ...s, islands: { ...s.islands, unlocked: [...s.islands.unlocked, 'isle2'], plots: { ...s.islands.plots, isle2: [5, 6, 9, 10] } } }
+}
+
 describe('island camera logic', () => {
-  it('bounds the whole 32x32 diamond of an island other than Home plus the cliff skirt and a margin', () => {
-    // The 32x32 island's diamond is 512 wide and 256 tall; the skirt adds 12 below and the margin 24 on every side.
+  it('every island floats like Home: its bounds are the full landmass and a margin', () => {
     expect(SKIRT).toBe(12)
-    expect(cameraBounds('isle2')).toEqual({ x: -280, y: -24, w: 560, h: 316 })
+    expect(cameraBounds('isle2')).toEqual(cameraBounds('home'))
+    expect(cameraBounds('isle6')).toEqual(cameraBounds('home'))
   })
 
   it('Home\'s bounds are the full landmass and a margin, whatever land is owned', () => {
@@ -79,9 +84,12 @@ describe('island camera logic', () => {
     expect(groundCell(s, 'home', c.x, c.y)).toEqual({ col: 10, row: 12 })
     const out = cellCentre(32, 0)
     expect(groundCell(s, 'home', out.x, out.y)).toBeNull()
-    // Other islands show all 16 plots, fog included, so the corner is a cell there.
+    // Other islands show owned and offered land only, as Home does: a locked one shows none.
     const corner = cellCentre(31, 31)
-    expect(groundCell(s, 'isle2', corner.x, corner.y)).toEqual({ col: 31, row: 31 })
+    expect(groundCell(s, 'isle2', corner.x, corner.y)).toBeNull()
+    const centre = cellCentre(12, 12)
+    expect(groundCell(opened(s), 'isle2', centre.x, centre.y)).toEqual({ col: 12, row: 12 })
+    expect(groundCell(opened(s), 'isle2', corner.x, corner.y)).toBeNull()
     expect(groundCell(s, 'home', 0, -2)).toBeNull()
     expect(groundCell(null, 'home', 5, 5)).toBeNull()
   })
@@ -153,7 +161,7 @@ describe('island camera logic', () => {
     expect(stepZoom(1, 1, r)).toBe(1)
   })
 
-  it('locked tiles are the 3 offered plots on Home, every tile not owned elsewhere, and none once it all is', () => {
+  it('locked tiles are the offered plots, on Home and every other island, and none once it all is', () => {
     const s = newPlayer(0)
     const tiles = lockedTiles(s, 'home')
     expect(tiles.length).toBe(3 * 64)
@@ -161,7 +169,9 @@ describe('island camera logic', () => {
     expect(tiles).not.toContainEqual({ col: 0, row: 0 }) // not offered: not land at all
     expect(tiles).not.toContainEqual({ col: 8, row: 8 })
     expect(lockedTiles({ ...s, islands: { ...s.islands, plots: { home: Array.from({ length: 16 }, (_, i) => i) } } }, 'home')).toEqual([])
-    expect(lockedTiles(s, 'isle2').length).toBe(32 * 32)
+    expect(lockedTiles(s, 'isle2')).toEqual([])
+    // An opened island owns its 4 centre plots; the 8 round them are offered.
+    expect(lockedTiles(opened(s), 'isle2').length).toBe(8 * 64)
   })
 
 })
@@ -181,14 +191,15 @@ describe('the opening view (R58)', () => {
     expect(landBox(withPlots(fresh, Array.from({ length: 16 }, (_, i) => i)), 'home')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
   })
 
-  it('landPlots: Home is owned plus offered, every other island all 16', () => {
+  it('landPlots: owned plus offered on every island', () => {
     expect(landPlots(fresh, 'home').sort((a, b) => a - b)).toEqual([2, 5, 6, 7, 9, 10, 11])
-    expect(landPlots(fresh, 'isle2')).toEqual(Array.from({ length: 16 }, (_, i) => i))
+    expect(landPlots(fresh, 'isle2')).toEqual([])
+    expect(landPlots(opened(fresh), 'isle2').sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].filter(p => ![0, 3, 12, 15].includes(p)))
     expect(landPlots(withPlots(fresh, Array.from({ length: 16 }, (_, i) => i)), 'home')).toHaveLength(16)
   })
 
   it('an island with no owned land, or no state, boxes the whole island', () => {
-    expect(landBox(fresh, 'isle2')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
+    expect(landBox(fresh, 'isle2')).toEqual({ x: -256, y: 0, w: 512, h: 256 }) // locked: nothing shown
     expect(landBox(null, 'home')).toEqual({ x: -256, y: 0, w: 512, h: 256 })
   })
 

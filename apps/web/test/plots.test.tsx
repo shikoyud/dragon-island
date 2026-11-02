@@ -1,4 +1,4 @@
-import { ISLAND_TILES, LAUNCH_CATALOG, newPlayer, plotOfTile, plotOrigin, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { LAUNCH_CATALOG, newPlayer, plotOfTile, plotOrigin, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
 import { act, cleanup, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -29,10 +29,11 @@ describe('fog and ground on 32x32 (R43, R58)', () => {
     expect(lockedTiles(null, 'home')).toEqual([])
     expect(lockedTiles(withPlots(base, Array.from({ length: 16 }, (_, i) => i)), 'home')).toEqual([])
   })
-  it('on another island lockedTiles is every tile not owned (the fog stays)', () => {
+  it('on another island lockedTiles is the offered land round the owned plots; the far corners are sky', () => {
     const s = withPlots({ ...base, islands: { ...base.islands, unlocked: ['home', 'isle2'] } }, [5, 6, 9, 10], 'isle2')
     const tiles = lockedTiles(s, 'isle2')
-    expect(tiles).toHaveLength(ISLAND_TILES * ISLAND_TILES - 4 * 64)
+    expect(tiles).toHaveLength(8 * 64)
+    expect(tiles).not.toContainEqual({ col: 0, row: 0 })
     for (const t of tiles) expect([5, 6, 9, 10]).not.toContain(plotOfTile(t.col, t.row))
   })
   it('groundCell is a cell on owned and offered Home land, a red ghost can go over a locked plot, and nothing else', () => {
@@ -40,8 +41,8 @@ describe('fog and ground on 32x32 (R43, R58)', () => {
     expect(at(0, 0)).toBeNull()
     expect(at(31, 31)).toBeNull()
     expect(at(24, 8)).toEqual({ col: 24, row: 8 }) // plot 7, offered
-    expect(at(0, 0, 'isle2')).toEqual({ col: 0, row: 0 })
-    expect(at(31, 31, 'isle2')).toEqual({ col: 31, row: 31 })
+    expect(at(0, 0, 'isle2')).toBeNull() // a locked island shows no land
+    expect(at(31, 31, 'isle2')).toBeNull()
     expect(at(32, 0)).toBeNull()
     expect(groundCell(null, 'home', 0, 4)).toBeNull()
   })

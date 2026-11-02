@@ -16,29 +16,23 @@ export function shownSize(): { w: number; h: number } {
 }
 
 const ALL_PLOTS = Array.from({ length: PLOTS_PER_SIDE * PLOTS_PER_SIDE }, (_, i) => i)
-/** Home with all 16 plots: the widest it can ever be, whichever land is bought, worked out with nothing rasterised. */
-const FULL_HOME = landmassBox(ALL_PLOTS)
+/** An island with all 16 plots: the widest it can ever be, whichever land is bought, worked out with nothing rasterised. */
+const FULL_ISLAND = landmassBox(ALL_PLOTS)
 
 /**
- * World box the camera may show. Home: the box of the full landmass of all 16 plots and a margin, so it doesn't change as land grows.
- * Other islands: the 32x32 diamond, its cliff skirt and a margin.
+ * World box the camera may show: the box of the full landmass of all 16 plots and a margin, so it doesn't change as land
+ * grows. Every island floats as Home does (UI rework Phase 3), so they share it.
  */
-export function cameraBounds(view: IslandId): Box {
-  if (view === 'home') {
-    const b = FULL_HOME
-    return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + 2 * MARGIN }
-  }
-  const { w, h } = shownSize()
-  const b = islandBox(w, h)
-  return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + SKIRT + 2 * MARGIN }
+export function cameraBounds(_view: IslandId): Box {
+  const b = FULL_ISLAND
+  return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + 2 * MARGIN }
 }
 
 /**
- * The plots drawn as land on an island: Home shows what the player owns plus the plots offered for sale (U3), every other
- * island all 16 (owned ones as grass, the rest as fog).
+ * The plots drawn as land on an island: what the player owns plus the plots offered for sale (U3), on every island. A
+ * locked island has none.
  */
 export function landPlots(state: PlayerState, view: IslandId): number[] {
-  if (view !== 'home') return [...ALL_PLOTS]
   return [...ownedPlots(state, view), ...offeredPlots(state, view)]
 }
 
@@ -162,7 +156,7 @@ export function stepZoom(zoom: number, dir: -1 | 1, range: { min: number; max: n
   return Math.min(range.max, Math.max(range.min, zoom - dir))
 }
 
-/** Every tile on land shown but not owned: the offered plots on Home, the fog on other islands. */
+/** Every tile on land shown but not owned: the offered plots. */
 export function lockedTiles(state: PlayerState | null, view: IslandId): { col: number; row: number }[] {
   if (!state) return []
   const owned = new Set(ownedPlots(state, view))

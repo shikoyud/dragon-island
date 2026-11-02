@@ -5,7 +5,7 @@ import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
 import { lockedTiles } from '../src/game/camera'
-import { ARROW_SCALE, badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, groundVariant, objectSignature, timerLabel, upgradeReady } from '../src/game/islandModel'
+import { ARROW_SCALE, badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, groundVariant, objectSignature, SIGN_CAPTION, timerLabel, upgradeReady } from '../src/game/islandModel'
 import { anchor, cellTop, dragonSpot, footprintContains, habitatDragonScale, hatcheryNestSpot, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, TAP_PX } from '../src/game/layout'
 import { nearestLegalCell } from '../src/state/placing'
 import { FREE, FREE_2, withIsland, withPlots } from './land'
@@ -322,12 +322,12 @@ describe('island model', () => {
       expect(signs.some(s => s.caption !== undefined)).toBe(false)
     })
 
-    it('isle2 keeps its 8 signs, uncaptioned, and its fog', () => {
+    it('isle2 floats as Home does: its 8 offered plots are its only locked land, each sign captioned', () => {
       const s = withIsland(newPlayer(0), 'isle2')
       const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'isle2', null)
       expect(m.markers.signs).toHaveLength(8)
-      expect(m.objects.filter(o => o.id.startsWith('sign:')).some(o => o.caption !== undefined)).toBe(false)
-      expect(lockedTiles(s, 'isle2')).toHaveLength(32 * 32 - 4 * 64)
+      expect(m.objects.filter(o => o.id.startsWith('sign:')).every(o => o.caption === SIGN_CAPTION)).toBe(true)
+      expect(lockedTiles(s, 'isle2')).toHaveLength(8 * 64)
     })
 
     it('the caption is part of the sprite signature', () => {

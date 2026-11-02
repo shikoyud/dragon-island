@@ -77,7 +77,7 @@ describe('the edge between owned and offered land', () => {
   })
 })
 
-describe('the Home bake', () => {
+describe('the island bake', () => {
   const games: Phaser.Game[] = []
   beforeEach(() => { vi.spyOn(console, 'warn').mockImplementation(() => {}) })
   afterEach(() => { games.splice(0).forEach(g => g.destroy(true)); vi.restoreAllMocks() })
@@ -112,14 +112,29 @@ describe('the Home bake', () => {
     for (const f of second) expect(f.active).toBe(false)
   })
 
-  it('other islands have no waterfalls; coming home brings them back', async () => {
+  it('every island floats: an opened island bakes its own landmass and waterfalls; coming home brings Home\'s back', async () => {
     const { bridge, game, scene } = await boot()
     games.push(game)
     const home = fallsOf(scene).length
+    const s = bridge.state!
+    bridge.setState({ ...s, islands: { ...s.islands, unlocked: [...s.islands.unlocked, 'isle2'], plots: { ...s.islands.plots, isle2: [5, 6, 9, 10] } } } as PlayerState)
     bridge.setView('isle2')
-    expect(fallsOf(scene)).toHaveLength(0)
+    const isle = landmass(landPlots(bridge.state!, 'isle2'))
+    expect(isle.falls.length).toBeGreaterThan(0)
+    expect(fallsOf(scene)).toHaveLength(isle.falls.length)
+    // No fog diamonds: the old tile render texture stays hidden.
+    expect(scene.children.list.some(o => o instanceof Phaser.GameObjects.RenderTexture && o.visible)).toBe(false)
+    scene.rebake()
+    expect(fallsOf(scene)).toHaveLength(isle.falls.length)
     bridge.setView('home')
     expect(fallsOf(scene)).toHaveLength(home)
+  })
+
+  it('a locked island shows no land and no waterfalls', async () => {
+    const { bridge, game, scene } = await boot()
+    games.push(game)
+    bridge.setView('isle3')
+    expect(fallsOf(scene)).toHaveLength(0)
   })
 
   it('shows the plain sky colour behind everything when the sky art is absent', async () => {

@@ -46,8 +46,8 @@
 
 **Interfaces — Produces:** `bookCount(s): { found: number; total: number }`; `newBookEntries(s, seen: readonly string[]): number`; `goalsBubble(s): 'Claim!' | 'Start!' | null` (Claim! when claimable, Start! when the current goal has no progress, else null); HUD regions with accessible names "Player", "Resources", "Goals", "Main menu" (Battle, Shop), "Island menu" (Settings, Map).
 
-- [ ] Step 1: failing unit tests for the three functions and for the HUD: pills in order DRIS, Gold, Food; Book button named "Dragon Book" showing "found/total"; no Breed, Wings, Inbox, Storage or search button; no "Finals" text.
-- [ ] Step 2: run, FAIL. Step 3: implement. Step 4: update `openPanel` and old specs to the new buttons (Quests → Goals; Breed → select the breeder). Step 5: e2e at 1920×1080 and 844×390 checks non-overlap of HUD controls and an empty bottom centre band. Commit `feat(web): main HUD in the reference layout`.
+- [x] Step 1: failing unit tests for the three functions and for the HUD: pills in order DRIS, Gold, Food; Book button named "Dragon Book" showing "found/total"; no Breed, Wings, Inbox, Storage or search button; no "Finals" text.
+- [x] Step 2: run, FAIL. Step 3: implement. Step 4: update `openPanel` and old specs to the new buttons (Quests → Goals; Breed → select the breeder). Step 5: e2e at 1920×1080 and 844×390 checks non-overlap of HUD controls and an empty bottom centre band. Commit `feat(web): main HUD in the reference layout`.
 
 ### Task 2: Settings tabs
 
@@ -55,7 +55,7 @@
 
 **Interfaces — Produces:** `SettingsPanel({ onClose, nowMs })` with tabs Account (address, sign out, Finals countdown, speed-ups) and Wallet (the existing WalletPanel's deposit/withdraw).
 
-- [ ] Steps: failing test (tabs, wallet content under Wallet, sign-out under Account, countdown under Account); implement; deposit e2e still green; commit `feat(web): settings tabs hold wallet and account`.
+- [x] Steps: failing test (tabs, wallet content under Wallet, sign-out under Account, countdown under Account); implement; deposit e2e still green; commit `feat(web): settings tabs hold wallet and account`.
 
 ### Task 3: Floating Map
 
@@ -63,7 +63,7 @@
 
 **Interfaces — Produces:** map model island gains `look: { key: 'map.island.<id>'; locked: boolean; chained: boolean }`; MapScene draws the art or a drawn floating island (grass top in the island's colour, rock underside, a drip of waterfall on Home), sky backdrop instead of the sea, locked islands desaturated with `map.chain` (drawn lock fallback).
 
-- [ ] Steps: failing model tests; implement; map e2e still opens each island's panel; commit `feat(web): the Map shows floating islands, locked ones chained`.
+- [x] Steps: failing model tests; implement; map e2e still opens each island's panel; commit `feat(web): the Map shows floating islands, locked ones chained`.
 
 ### Task 4: Every island floats
 
@@ -71,7 +71,7 @@
 
 **Interfaces — Produces:** `bakeIsland(state, island)` replacing `bakeHome`; `landPlots(state, island)` for non-Home islands = owned plus offered (M4's offer rule), so their outline grows the same way; signs on offered plots only.
 
-- [ ] Steps: failing tests (non-Home view bakes a landmass, no fog diamonds; waterfalls count stable across rebake); implement; commit `feat(web): every island is a floating island`.
+- [x] Steps: failing tests (non-Home view bakes a landmass, no fog diamonds; waterfalls count stable across rebake); implement; commit `feat(web): every island is a floating island`.
 
 ### Task 5: Verify and report
 

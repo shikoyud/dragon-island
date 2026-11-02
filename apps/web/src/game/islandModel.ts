@@ -287,7 +287,7 @@ export function groundTiles(art: GameArtSet, island: IslandId): { grass: string[
 export const ARROW_SCALE = 0.5
 export const ARROW_GAP = 2
 
-/** What the sign on a plot for sale says on Home. */
+/** What the sign on a plot for sale says. */
 export const SIGN_CAPTION = 'Tap to buy'
 export { SIGN_SCALE }
 
@@ -522,7 +522,7 @@ export function buildIslandModel(
   }
 
   // Signs go on top of everything (a building next to them), just under the ghost. Each stands on the cell `signSpot` picks,
-  // clear of the obstacles' art. On Home a sign says what it is; the other islands keep the plain sign.
+  // clear of the obstacles' art. Each says what it is.
   const price = plotPrice(view, plotsBought(state, view))
   const hereObstacles = state.islands.obstacles.filter(o => o.island === view)
   const hereBuildings = buildingBoxes(state, art, catalog, view)
@@ -531,7 +531,7 @@ export function buildIslandModel(
     objects.push({
       id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellCentre(spot.col, spot.row), target: { kind: 'plot', island: view, plot }, scale: SIGN_SCALE, minTap: TAP_PX, boxAlways: true,
       // No caption while placing: it would hide the Move arrow.
-      ...(view === 'home' && !placing ? { caption: SIGN_CAPTION } : {}),
+      ...(!placing ? { caption: SIGN_CAPTION } : {}),
     })
     markers.signs.push({ plot, price, col: spot.col, row: spot.row })
   }
