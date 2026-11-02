@@ -44,7 +44,7 @@ export interface GameArtSet {
   }
   elementIcon: Record<Element, Sprite>
   ui: { panel: Sprite; button: Sprite; cursor: Sprite }
-  island: { base: Sprite; layers: Sprite[]; /** One locked ground cell. */ locked: Sprite; /** The sign on a plot for sale. */ sign: Sprite; /** `ui.island.arrow`: points at a building being placed. */ arrow: Sprite }
+  island: { base: Sprite; layers: Sprite[]; /** One locked ground cell. */ locked: Sprite; /** The sign on a plot for sale. */ sign: Sprite; /** `ui.island.arrow`: points at a building being placed. */ arrow: Sprite; /** `ui.island.upgradePost`: stands on a habitat with an upgrade open. */ upgradePost: Sprite }
   /** Base-building art; missing files draw footprint-sized boxes (16 px per cell). */
   obstacle: Record<ObstacleKind, Sprite>
   decoration: Record<DecorationId, Sprite>
@@ -92,10 +92,10 @@ export const SLOT_SIZES = {
   egg: { w: 32, h: 32 },
   hatchling: { w: 32, h: 32 },
   dragon: { w: 48, h: 48 },
-  habitat: { w: 80, h: 64 },
+  habitat: { w: 64, h: 64 },
   nexus: { w: 80, h: 64 },
   nest: { w: 32, h: 32 },
-  hatchery: { w: 64, h: 64 },
+  hatchery: { w: 80, h: 96 },
   farmPlot: { w: 32, h: 32 },
   crop: { w: 16, h: 16 },
   icon: { w: 16, h: 16 },
@@ -106,6 +106,7 @@ export const SLOT_SIZES = {
   locked: { w: 16, h: 16 },
   sign: { w: 48, h: 48 },
   arrow: { w: 32, h: 40 },
+  upgradePost: { w: 24, h: 32 },
   map: { w: 32, h: 32 },
   fxConstruction: { w: 32, h: 32 },
   fxHatch: { w: 48, h: 48 },

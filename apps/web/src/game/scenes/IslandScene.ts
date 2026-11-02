@@ -10,7 +10,7 @@ import {
 import { paintLandmass, type BakeArt, type BakeImage } from '../islandBake'
 import { ARROW_GAP, ARROW_SCALE, badgeY, buildIslandModel, groundTiles, groundVariant, objectSignature, type IslandMarkers, type IslandObject } from '../islandModel'
 import { driftCloud, landmass, nearestPlot } from '../islandShape'
-import { anchor, cellCentre, cellTop, footprintContains, footprintDiamond, islandBox, pointerToCell, tapHit, type Box, type Pos } from '../layout'
+import { anchor, cellCentre, cellTop, footprintContains, footprintDiamond, islandBox, pointerToCell, progressFill, PROGRESS_BAR, tapHit, type Box, type Pos } from '../layout'
 import { createPanZoom, heldPointers } from '../panZoom'
 import { pickTarget, type Hit } from '../pickTarget'
 
@@ -18,6 +18,8 @@ const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontFamily: 'Silkscreen, monospace', fontSize: '8px', color: '#f2f1ea', stroke: '#0f1324', strokeThickness: 2,
 }
 const TINT = { ok: 0x9dffa8, bad: 0xff7a7a, building: 0xa8a8c0 } as const
+/** An egg's progress bar: a dark frame and a green fill. */
+const BAR = { frame: 0x141627, fill: 0x62d44a } as const
 /** Placeholder ground colours until the ground tiles in docs/art/hud-art-list.md exist. */
 const GROUND = {
   grass: [0x5f9e3f, 0x579538], fog: [0xb9c4cf, 0xaab6c3], cliffLeft: 0x6b4a2b, cliffRight: 0x8b6136, lip: 0x3d6e2c, strata: 0x58391f,
@@ -46,6 +48,9 @@ const groundBox = (): Box => {
   return { x: b.x, y: b.y, w: b.w, h: b.h + SKIRT }
 }
 
+/** What stands for one object id on the layer. */
+type LiveObject = Phaser.GameObjects.Sprite | Phaser.GameObjects.Text | Phaser.GameObjects.Graphics
+
 const points = (pts: Pos[]) => pts.map(p => new Phaser.Math.Vector2(p.x, p.y))
 
 /**
@@ -71,7 +76,7 @@ export class IslandScene extends Phaser.Scene {
   private drawn: Phaser.GameObjects.GameObject[] = []
   private badges: Phaser.GameObjects.Text[] = []
   /** The sprite or badge text standing for each object id (`badge:` + id for a badge) and the look it was made with. */
-  private live = new Map<string, { obj: Phaser.GameObjects.Sprite | Phaser.GameObjects.Text; sig: string }>()
+  private live = new Map<string, { obj: LiveObject; sig: string }>()
   /** Sprites that must be at least `minTap` CSS px to tap: their hit box follows the zoom (see `fitTapTargets`). */
   private tapTargets: { spr: Phaser.GameObjects.Sprite; minTap: number; always: boolean; pixel: Phaser.Types.Input.HitAreaCallback; area: unknown }[] = []
   private current: IslandMarkers = EMPTY
@@ -434,10 +439,10 @@ export class IslandScene extends Phaser.Scene {
    */
   private reconcile(objects: IslandObject[]): void {
     const motion = this.bridge.reducedMotion
-    const next = new Map<string, { obj: Phaser.GameObjects.Sprite | Phaser.GameObjects.Text; sig: string }>()
+    const next = new Map<string, { obj: LiveObject; sig: string }>()
     const sprites: Phaser.GameObjects.GameObject[] = []
     const badges: Phaser.GameObjects.Text[] = []
-    const keep = (id: string, sig: string, make: () => Phaser.GameObjects.Sprite | Phaser.GameObjects.Text) => {
+    const keep = (id: string, sig: string, make: () => LiveObject) => {
       const had = this.live.get(id)
       if (had) this.live.delete(id)
       const entry = had && had.sig === sig ? had : { obj: (had?.obj.destroy(), make()), sig }
@@ -445,6 +450,13 @@ export class IslandScene extends Phaser.Scene {
       return entry.obj
     }
     for (const o of objects) sprites.push(keep(o.id, objectSignature(o, motion), () => this.draw(o)))
+    // Bars go over every sprite and under the badges. Made again only when the fill changes.
+    const bars: Phaser.GameObjects.GameObject[] = []
+    for (const o of objects) {
+      if (o.progress === undefined) continue
+      const fill = progressFill(o.progress)
+      bars.push(keep(`bar:${o.id}`, JSON.stringify([o.x, o.y, fill]), () => this.drawBar(o, fill)))
+    }
     for (const o of objects) {
       if (!o.badge) continue
       badges.push(keep(`badge:${o.id}`, JSON.stringify([o.badge, o.x, badgeY(o), o.target]), () => this.drawBadge(o, o.badge!)) as Phaser.GameObjects.Text)
@@ -456,7 +468,7 @@ export class IslandScene extends Phaser.Scene {
     }
     for (const { obj } of this.live.values()) obj.destroy()
     this.live = next
-    this.drawn = [...sprites, ...badges]
+    this.drawn = [...sprites, ...bars, ...badges]
     this.badges = badges
     this.tapTargets = this.tapTargets.filter(t => t.spr.active)
     // The order is the model's, whatever was made when. Same members, so the list can simply be replaced.
@@ -677,6 +689,17 @@ export class IslandScene extends Phaser.Scene {
     }
     this.layer.add(spr)
     return spr
+  }
+
+  /** The bar under a sprite: a dark frame centred on its anchor, just below it, and `fill` px of green. */
+  private drawBar(o: IslandObject, fill: number): Phaser.GameObjects.Graphics {
+    const x = o.x - PROGRESS_BAR.w / 2
+    const y = o.y + 1
+    const g = this.add.graphics()
+    g.fillStyle(BAR.frame, 1).fillRect(x, y, PROGRESS_BAR.w, PROGRESS_BAR.h)
+    g.fillStyle(BAR.fill, 1).fillRect(x + 1, y + 1, fill, PROGRESS_BAR.h - 2)
+    this.layer.add(g)
+    return g
   }
 
   /** Badges keep one on-screen size (BADGE_PX tall) at every zoom instead of growing with the art. */

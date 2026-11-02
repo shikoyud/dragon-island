@@ -17,13 +17,16 @@ const OUTLINE = '#141627'
 const WOOD = '#6b4a2b'
 const SOIL = '#4a3522'
 const STONE = '#4d5566'
+export const FALLBACK_STONE = '#8e95a3'
+export const FALLBACK_STRAW = '#d9b04a'
+export const FALLBACK_ARROW_GREEN = '#46c24a'
 const PANEL = '#1b2140'
 const PANEL_EDGE = '#3b4680'
 
 export type FallbackSlot =
   | 'egg' | 'hatchling' | 'dragon' | 'habitat' | 'nest' | 'hatchery' | 'farmPlot' | 'crop'
   | 'icon' | 'panel' | 'button' | 'cursor' | 'island'
-  | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'arrow' | 'map' | 'fx' | 'fxCoins'
+  | 'nexus' | 'decoration' | 'obstacle' | 'locked' | 'sign' | 'arrow' | 'upgradePost' | 'map' | 'fx' | 'fxCoins'
 
 export const fallbackKey = (slot: FallbackSlot, element?: Element): string =>
   element ? `fallback:${slot}:${element}` : `fallback:${slot}`
@@ -53,6 +56,14 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
       px(cx - half, y, 2 * half, 1, fill)
     }
   }
+  /** A 2:1 diamond by scanlines, `dw` wide with its bottom vertex at (cx, bottom). */
+  const diamond = (cx: number, bottom: number, dw: number, fill: string) => {
+    const dh = dw / 2
+    for (let i = 0; i < dh; i++) {
+      const half = Math.max(1, Math.round((dw / 2) * (1 - Math.abs(2 * i + 1 - dh) / dh)))
+      px(cx - half, bottom - dh + i, 2 * half, 1, fill)
+    }
+  }
   ctx.clearRect(0, 0, w, h)
   switch (slot) {
     case 'egg': {
@@ -75,11 +86,11 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
       return
     }
     case 'habitat': {
-      ellipse(w / 2, h * 0.7, w * 0.46, h * 0.22, STONE) // platform
-      px(w * 0.1, h * 0.7, w * 0.8, h * 0.12, SOIL)
-      px(w * 0.08, h * 0.46, w * 0.84, h * 0.08, p.base) // element band
-      px(w * 0.2, h * 0.3, w * 0.1, h * 0.2, p.dark) // totem
-      px(w * 0.7, h * 0.3, w * 0.1, h * 0.2, p.dark)
+      // The platform fills the footprint's whole diamond (U11); a totem stands at its back corner.
+      diamond(w / 2, h, w, p.dark)
+      diamond(w / 2, h - 1, w - 4, p.base)
+      px(w / 2 - w * 0.05, h - w * 0.5 - h * 0.25 + 4, w * 0.1, h * 0.25, p.dark)
+      px(w / 2 - w * 0.03, h - w * 0.5 - h * 0.25 + 6, w * 0.06, h * 0.08, p.light)
       return
     }
     case 'nest': {
@@ -88,10 +99,21 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
       return
     }
     case 'hatchery': {
-      px(w * 0.1, h * 0.35, w * 0.8, h * 0.5, STONE)
-      px(w * 0.1, h * 0.35, w * 0.8, 2, OUTLINE)
-      px(w * 0.05, h * 0.2, w * 0.9, h * 0.18, p.dark) // roof
-      for (let i = 0; i < 3; i++) px(w * (0.18 + i * 0.25), h * 0.5, w * 0.14, h * 0.25, PANEL) // three slots
+      // A stone castle: keep at the back, ring wall with a tower each side, an open courtyard at the front with a straw nest.
+      const tower = (x: number, tw: number, top: number, bottom: number) => {
+        px(x, top, tw, bottom - top, FALLBACK_STONE)
+        px(x, bottom - 1, tw, 1, STONE)
+        for (let i = 0; i < 3; i++) px(x + (tw / 3) * i, top - 2, tw / 5, 2, FALLBACK_STONE) // merlons
+      }
+      tower(w * 0.36, w * 0.28, h * 0.12, h * 0.6)
+      px(w * 0.1, h * 0.46, w * 0.8, h * 0.18, FALLBACK_STONE) // ring wall
+      px(w * 0.1, h * 0.46, w * 0.8, 1, STONE)
+      tower(w * 0.06, w * 0.16, h * 0.4, h * 0.74)
+      tower(w * 0.78, w * 0.16, h * 0.4, h * 0.74)
+      diamond(w / 2, h, w * 0.8, STONE)
+      diamond(w / 2, h - 1, w * 0.8 - 4, '#a8acb5')
+      ellipse(w / 2, h * 0.854, w * 0.175, h * 0.073, FALLBACK_STRAW)
+      ellipse(w / 2, h * 0.854, w * 0.09, h * 0.035, '#a07d2e')
       return
     }
     case 'farmPlot': {
@@ -174,6 +196,19 @@ export function drawFallback(ctx: Ctx, slot: FallbackSlot, element: Element, w: 
       orange(0, OUTLINE)
       orange(2, '#f08a24')
       px(w * 0.3 + 2, 2, 3, h * 0.5, '#ffc56b') // the lit side of the shaft
+      return
+    }
+    case 'upgradePost': {
+      // A wooden plate on a post, with a green up-arrow.
+      px(w * 0.42, h * 0.5, w * 0.16, h * 0.5, WOOD)
+      px(w * 0.04, h * 0.06, w * 0.92, h * 0.56, OUTLINE)
+      px(w * 0.1, h * 0.1, w * 0.8, h * 0.48, '#a07a4a')
+      const top = h * 0.14, mid = h * 0.34
+      for (let y = Math.round(top); y < mid; y++) {
+        const half = Math.max(1, (w * 0.3 * (y - top)) / (mid - top))
+        px(w / 2 - half, y, half * 2, 1, FALLBACK_ARROW_GREEN)
+      }
+      px(w * 0.38, mid, w * 0.24, h * 0.18, FALLBACK_ARROW_GREEN)
       return
     }
     case 'map': {

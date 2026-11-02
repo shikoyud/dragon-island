@@ -1,12 +1,12 @@
-import { cropGrowMs, DEFAULT_PRESET, getSpecies, goldPerMinuteX20, habitatCap, hatcherySlots, LAUNCH_CATALOG, newPlayer, plotOfTile, residents, storedGold, type Dragon } from '@wyrmhaven/game-core'
+import { breedTimerMs, cropGrowMs, DEFAULT_PRESET, getSpecies, goldPerMinuteX20, habitatCap, hatcherySlots, LAUNCH_CATALOG, newPlayer, plotOfTile, residents, storedGold, type Dragon } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
 import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
 import { lockedTiles } from '../src/game/camera'
-import { ARROW_SCALE, badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, groundVariant, objectSignature, timerLabel } from '../src/game/islandModel'
-import { anchor, cellTop, dragonSpot, footprintContains, NEST_EGG_SCALE } from '../src/game/layout'
+import { ARROW_SCALE, badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, groundVariant, objectSignature, timerLabel, upgradeReady } from '../src/game/islandModel'
+import { anchor, cellTop, dragonSpot, footprintContains, HABITAT_DRAGON_SCALE, hatcheryNestSpot, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, TAP_PX } from '../src/game/layout'
 import { nearestLegalCell } from '../src/state/placing'
 import { FREE, FREE_2, withIsland, withPlots } from './land'
 
@@ -129,7 +129,7 @@ describe('island model', () => {
     const wait = dragons.find(o => o.id === 'dragon:d9')!
     const hatch = objects.find(o => o.id === 'hatchery')!
     expect(Math.abs(wait.x - hatch.x)).toBeLessThanOrEqual(32)
-    expect(wait.scale).toBe(0.25)
+    expect(wait.scale).toBe(NEST_EGG_HATCHERY_SCALE)
     expect(wait.y).toBeLessThan(hatch.y)
     expect(wait.badge).toBeUndefined()
     expect(hatch.badge).toBe('no room')
@@ -155,7 +155,7 @@ describe('island model', () => {
     expect(markers.hatchery).toEqual([{ slot: 0 }])
     expect(objects.find(o => o.id === 'hatchery:0')!.badge).toBeUndefined()
     expect(objects.find(o => o.id === 'hatchery')!.badge).toBe('ready')
-    expect(objects.find(o => o.id === 'hatchery:0')!.scale).toBe(0.25) // sits in a niche of the hatchery
+    expect(objects.find(o => o.id === 'hatchery:0')!.scale).toBe(NEST_EGG_HATCHERY_SCALE) // sits in the castle's nest
     const crop = objects.find(o => o.id === 'crop:0')!
     expect(crop.scale).toBeCloseTo(0.75, 5) // half grown
     expect(crop.badge).toBe('8s') // 7.5 s left of the 15 s Flash-14 grow time
@@ -322,6 +322,98 @@ describe('island model', () => {
     expect(good.objects.at(-2)!.id).toBe('ghost')
   })
 
+  describe('habitat residents and the upgrade post', () => {
+    const s = newPlayer(0)
+    const h1 = s.habitats.find(h => h.id === 'h1')!
+    const a = anchor(h1.placement.col, h1.placement.row, 4)
+    const atLevel = (level: number) => ({ ...s, habitats: s.habitats.map(h => (h.id === 'h1' ? { ...h, level } : h)) })
+
+    it('residents draw at the habitat scale', () => {
+      expect(HABITAT_DRAGON_SCALE).toBe(0.75)
+      expect(model(s).objects.find(o => o.id === 'dragon:d1')!.scale).toBe(HABITAT_DRAGON_SCALE)
+    })
+
+    it('a resident carried on a moved habitat keeps the habitat scale', () => {
+      const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 4, col: 14, row: 13, facing: 0 })
+      expect(m.objects.find(o => o.id === 'dragon:d1')!.scale).toBe(HABITAT_DRAGON_SCALE)
+    })
+
+    it('a habitat with a next level open shows the post; at max level or under the gate it does not', () => {
+      expect(upgradeReady(s, h1, DEFAULT_PRESET)).toBe(true)
+      const post = model(s).objects.find(o => o.id === 'post:h1')!
+      expect(post).toMatchObject({ key: textureKey('ui.island.upgradePost'), x: a.x - 26, y: a.y - 12, minTap: TAP_PX })
+      const max = atLevel(4)
+      expect(upgradeReady(max, max.habitats.find(h => h.id === 'h1')!, DEFAULT_PRESET)).toBe(false)
+      expect(model(max).objects.some(o => o.id === 'post:h1')).toBe(false)
+      const under = { ...s, level: 0 }
+      expect(upgradeReady(under, h1, DEFAULT_PRESET)).toBe(false)
+      expect(model(under).objects.some(o => o.id === 'post:h1')).toBe(false)
+    })
+
+    it('shows the post whether or not the Gold covers it (U12), and not on a habitat already being upgraded', () => {
+      expect(upgradeReady({ ...s, gold: 0 }, h1, DEFAULT_PRESET)).toBe(true)
+      const busy = { ...s, constructions: [{ kind: 'upgrade', building: { type: 'habitat', id: 'h1' }, readyAtMs: 1000 }] } as never
+      expect(upgradeReady(busy, h1, DEFAULT_PRESET)).toBe(false)
+    })
+
+    it('tapping the post opens the habitat', () => {
+      expect(model(s).objects.find(o => o.id === 'post:h1')!.target).toEqual({ kind: 'habitat', id: 'h1' })
+    })
+
+    it('hides every post while placing', () => {
+      const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'farm' }, size: 3, col: FREE.col, row: FREE.row, facing: 0 })
+      expect(m.objects.some(o => o.id.startsWith('post:'))).toBe(false)
+    })
+  })
+
+  describe('eggs in the Hatchery nest', () => {
+    const base = newPlayer(0)
+    const T = breedTimerMs(getSpecies(C, 'flame').rarity, ['flame'], DEFAULT_PRESET)
+    const a = anchor(base.hatcheryPlacement.col, base.hatcheryPlacement.row, 4)
+    const egg = (readyAtMs: number) => ({ speciesId: 'flame', readyAtMs })
+
+    it('an egg sits in the nest at half size with its progress', () => {
+      expect(NEST_EGG_HATCHERY_SCALE).toBe(0.5)
+      const m = model({ ...base, hatchery: [egg(T / 2)] }, 0)
+      const o = m.objects.find(x => x.id === 'hatchery:0')!
+      expect(o).toMatchObject({ ...hatcheryNestSpot(a, 0), scale: NEST_EGG_HATCHERY_SCALE, progress: 0.5, target: { kind: 'hatchery', slot: 0 } })
+      // The hatchery object's own badge still reads the soonest timer.
+      expect(m.objects.find(x => x.id === 'hatchery')!.badge).toBe(timerLabel(T / 2, 0))
+    })
+
+    it('a ready egg shows no bar, and a long timer never reads below 0', () => {
+      expect(model({ ...base, hatchery: [egg(0)] }, 0).objects.find(x => x.id === 'hatchery:0')!.progress).toBeUndefined()
+      expect(model({ ...base, hatchery: [egg(T * 2)] }, 0).objects.find(x => x.id === 'hatchery:0')!.progress).toBe(0)
+    })
+
+    it('progress is not part of the sprite\'s look: a moving bar does not remake the egg', () => {
+      const o = model({ ...base, hatchery: [egg(T / 2)] }, 0).objects.find(x => x.id === 'hatchery:0')!
+      expect(objectSignature({ ...o, progress: 0.9 }, false)).toBe(objectSignature(o, false))
+    })
+
+    it('only the egg due soonest has a bar: one bar, like the one badge', () => {
+      const m = model({ ...base, hatchery: [egg(0), egg(T), egg(T / 2), egg(T)] }, 0)
+      const bars = m.objects.filter(o => o.progress !== undefined)
+      expect(bars.map(o => o.id)).toEqual(['hatchery:2'])
+      expect(bars[0]!.progress).toBe(0.5)
+    })
+
+    it('five eggs draw in the nest, back to front', () => {
+      const eggs = [0, 1, 2, 3, 4].map(() => egg(T))
+      const m = model({ ...base, hatchery: eggs, hatcheryLevel: 4, hatcheryFifthSlot: true }, 0)
+      const drawn = m.objects.filter(o => o.id.startsWith('hatchery:'))
+      expect(drawn).toHaveLength(5)
+      for (let i = 1; i < 5; i++) expect(drawn[i]!.y).toBeGreaterThanOrEqual(drawn[i - 1]!.y)
+      for (let i = 0; i < 5; i++) expect(m.objects.find(o => o.id === `hatchery:${i}`)).toMatchObject(hatcheryNestSpot(a, i))
+    })
+
+    it('a waiting hatchling stands in the nest too', () => {
+      const waiting = { id: 'w1', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }
+      const o = model({ ...base, dragons: [...base.dragons, waiting] } as never).objects.find(x => x.id === 'dragon:w1')!
+      expect(o).toMatchObject({ ...hatcheryNestSpot(a, 0), scale: NEST_EGG_HATCHERY_SCALE })
+    })
+  })
+
   describe('while placing', () => {
     const h1Move = { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 4, col: 14, row: 13, facing: 0 } as const
     const resident = { id: 'd1', speciesId: 'flame', level: 1, feeds: 0, habitatId: 'h1' }
@@ -339,7 +431,7 @@ describe('island model', () => {
 
     it('the ghost, its residents and the arrow go last, in that order', () => {
       const ids = buildIslandModel(withResident, FALLBACK_ART, C, 0, 'home', h1Move).objects.map(o => o.id)
-      expect(ids.slice(-4)).toEqual(['ghost', 'dragon:d2', 'dragon:d1', 'arrow'])
+      expect(ids.slice(-4)).toEqual(['ghost', 'dragon:d1', 'dragon:d2', 'arrow'])
     })
 
     it('leaves other buildings and their residents alone', () => {

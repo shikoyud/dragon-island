@@ -1,12 +1,12 @@
 import {
-  constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, offeredPlots, ownedPlots, plotOfTile, plotOrigin, plotPrice, plotsBought, TILES_PER_PLOT,
-  DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, sameRef, stageOf, storedGold,
+  breedTimerMs, constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, offeredPlots, ownedPlots, plotOfTile, plotOrigin, plotPrice, plotsBought, TILES_PER_PLOT,
+  DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, sameRef, stageOf, storedGold, upgradeInfo,
   type BreederKind, type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
 import { placementSubject, type Placing, type Target } from './bridge'
-import { anchor, cellTop, depthOrder, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, ISO, NEST_EGG_SCALE, TAP_PX } from './layout'
+import { anchor, cellTop, depthOrder, dragonSpot, HABITAT_DRAGON_SCALE, hatcheryNestSpot, ISO, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, TAP_PX, UPGRADE_POST } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
 export interface IslandObject {
@@ -37,6 +37,8 @@ export interface IslandObject {
   boxAlways?: boolean
   /** A white label drawn under the sprite (the 'Tap to buy' of a plot sign); a constant size on screen, like a badge. */
   caption?: string
+  /** 0..1: a small bar the scene draws under the sprite (an egg hatching). Absent = no bar. */
+  progress?: number
 }
 
 /**
@@ -101,6 +103,32 @@ export function goldBadgeThreshold(h: Habitat, live: readonly Dragon[], cap: num
     return n + dragonRateX20(sp, d.level, h, preset)
   }, 0)
   return Math.min(Math.floor(perMinuteX20 / 20), Math.floor(cap * GOLD_BADGE_CAP_PERCENT / 100))
+}
+
+/**
+ * U12: a habitat's upgrade post shows when its next level exists and its level gate is met, whether or not the Gold covers
+ * it. Not while it is being built or upgraded: there is nothing to start.
+ */
+export function upgradeReady(s: PlayerState, h: Habitat, preset: Preset): boolean {
+  const ref: BuildingRef = { type: 'habitat', id: h.id }
+  const next = upgradeInfo(s, ref, preset)
+  return next !== null && s.level >= next.minLevel && !constructionFor(s, ref)
+}
+
+/**
+ * How far an egg in the Hatchery has come, 0..1, or undefined once it is ready (no bar then). Its stored timer has no start
+ * time, so this reads against its species' full timer.
+ */
+function hatchProgress(readyAtMs: number, speciesId: string, nowMs: number, catalog: Catalog, preset: Preset): number | undefined {
+  const left = readyAtMs - nowMs
+  if (left <= 0) return undefined
+  const sp = getSpecies(catalog, speciesId)
+  return Math.max(0, 1 - left / breedTimerMs(sp.rarity, sp.elements, preset))
+}
+
+/** Index of the egg still hatching that is due soonest, or -1. */
+function soonestHatching(eggs: readonly { readyAtMs: number }[], nowMs: number): number {
+  return eggs.reduce((best, e, i) => (e.readyAtMs > nowMs && (best < 0 || e.readyAtMs < eggs[best]!.readyAtMs) ? i : best), -1)
 }
 
 /** World y of a badge's bottom edge: 2 px above the sprite's visible top (canvas top when unknown), scaled. */
@@ -349,10 +377,16 @@ export function buildIslandModel(
     }]
     markers.habitats.push(h.id)
     live.forEach((d, slot) => {
-      group.push({ id: `dragon:${d.id}`, ...dragonLook(d.speciesId, d.level, art, catalog), ...dragonSpot(a, slot), target: { kind: 'dragon', id: d.id } })
+      group.push({ id: `dragon:${d.id}`, ...dragonLook(d.speciesId, d.level, art, catalog), ...dragonSpot(a, slot), scale: HABITAT_DRAGON_SCALE, target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
     })
-    // Residents back to front on the platform, after the platform itself.
+    if (!placing && upgradeReady(state, h, preset)) {
+      group.push({
+        id: `post:${h.id}`, key: textureKey('ui.island.upgradePost'), sprite: art.island.upgradePost, x: a.x + UPGRADE_POST.x, y: a.y + UPGRADE_POST.y,
+        scale: UPGRADE_POST.scale, target: { kind: 'habitat', id: h.id }, minTap: TAP_PX,
+      })
+    }
+    // Residents and the post back to front on the platform, after the platform itself.
     group.splice(1, group.length - 1, ...group.slice(1).sort((p, q) => p.y - q.y))
     add(at, FOOTPRINT.habitat, group, ref)
   }
@@ -389,17 +423,22 @@ export function buildIslandModel(
       target: { kind: 'hatcheryBuilding' }, ...look({ type: 'hatchery' }, state.hatcheryPlacement),
     }]
     let spot = 0
+    // One bar, on the egg due soonest, like the one badge below: 16 px bars over eggs 9 px apart bury the nest. The panel lists each egg.
+    const barred = soonestHatching(state.hatchery, nowMs)
     state.hatchery.forEach((egg, slot) => {
-      group.push({ id: `hatchery:${slot}`, ...eggLook(egg.speciesId, art, catalog), ...hatcherySpot(a, spot++), scale: HATCHERY_ITEM_SCALE, target: { kind: 'hatchery', slot } })
+      const progress = slot === barred ? hatchProgress(egg.readyAtMs, egg.speciesId, nowMs, catalog, preset) : undefined
+      group.push({ id: `hatchery:${slot}`, ...eggLook(egg.speciesId, art, catalog), ...hatcheryNestSpot(a, spot++), scale: NEST_EGG_HATCHERY_SCALE, target: { kind: 'hatchery', slot }, ...(progress === undefined ? {} : { progress }) })
       markers.hatchery.push({ slot })
     })
     for (const d of state.dragons.filter(x => x.habitatId === null)) {
-      const at = hatcherySpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel, state.hatcheryFifthSlot) - 1))
-      group.push({ id: `dragon:${d.id}`, ...hatchlingLook(d.speciesId, art, catalog), ...at, scale: HATCHERY_ITEM_SCALE, target: { kind: 'dragon', id: d.id } })
+      const at = hatcheryNestSpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel, state.hatcheryFifthSlot) - 1))
+      group.push({ id: `dragon:${d.id}`, ...hatchlingLook(d.speciesId, art, catalog), ...at, scale: NEST_EGG_HATCHERY_SCALE, target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
       markers.waiting.push({ id: d.id, noRoom: true })
     }
-    // One badge for the whole hatchery (per-egg badges pile up over its small niches); the panel lists each egg.
+    // What is in the nest, back to front, after the castle.
+    group.splice(1, group.length - 1, ...group.slice(1).sort((p, q) => p.y - q.y))
+    // One badge for the whole hatchery (per-egg badges pile up over its small nest); the panel lists each egg.
     // A construction timer wins, then waiting hatchlings, then the soonest egg.
     if (!group[0]!.badge) {
       const soonest = Math.min(...state.hatchery.map(e => e.readyAtMs))

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  anchor, BATTLE, BATTLE_CONTROLS_H, BATTLE_DRAGON_SCALE, BATTLE_SPOT, battleCamera, battleStage, cellCentre, cellTop, depthOrder, dragonSpot, footprintDiamond, HATCHERY_ITEM_SCALE, hatcherySpot, integerZoom,
+  anchor, BATTLE, BATTLE_CONTROLS_H, BATTLE_DRAGON_SCALE, BATTLE_SPOT, battleCamera, battleStage, cellCentre, cellTop, depthOrder, dragonSpot, footprintDiamond, hatcheryNestSpot, integerZoom,
   islandBox, ISO, pointerToCell,
 } from '../src/game/layout'
 
@@ -64,23 +64,29 @@ describe('isometric layout', () => {
       expect(inside(p)).toBeLessThanOrEqual(0.9)
     }
     expect(spots[0]).toEqual({ x: a.x, y: a.y - 16 }) // the first dragon stands in the middle
-    // The art list's habitat silhouette (docs/art/gdd-m4-art-list.md): a 52x26 top face centred 16 px above the anchor; every spot is on it.
-    for (const p of spots) expect(Math.abs(p.x - a.x) / 26 + Math.abs(p.y - (a.y - 16)) / 13).toBeLessThanOrEqual(1)
     expect(dragonSpot(a, 12)).toEqual(spots[6]) // past the last, they share it
   })
 
-  it('puts hatchery eggs in the niches along the front of the 64x64 hatchery', () => {
+  it('feet of the first 4 residents stay on the 64x32 face, at least 16 px apart', () => {
+    const a = anchor(8, 8, 4)
+    const spots = [0, 1, 2, 3].map(i => dragonSpot(a, i))
+    expect(spots.map(p => ({ x: p.x - a.x, y: p.y - a.y }))).toEqual([{ x: 0, y: -16 }, { x: -18, y: -15 }, { x: 18, y: -15 }, { x: 0, y: -25 }])
+    for (const p of spots) expect(Math.abs(p.x - a.x) / 32 + Math.abs(p.y - (a.y - 16)) / 16).toBeLessThan(1)
+    // Apart on the ground: a world y px is two ground px on the 2:1 face.
+    for (const p of spots) for (const q of spots) if (p !== q) expect(Math.hypot(p.x - q.x, 2 * (p.y - q.y))).toBeGreaterThanOrEqual(16)
+  })
+
+  it('five eggs stay inside the nest box', () => {
     const a = anchor(0, 8, 4)
-    const spots = [0, 1, 2, 3, 4].map(i => hatcherySpot(a, i))
+    const spots = [0, 1, 2, 3, 4].map(i => hatcheryNestSpot(a, i))
     expect(new Set(spots.map(p => `${p.x},${p.y}`)).size).toBe(5)
     for (const p of spots) {
       expect(Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true)
-      expect(p.x - 16 * HATCHERY_ITEM_SCALE).toBeGreaterThanOrEqual(a.x - 32)
-      expect(p.x + 16 * HATCHERY_ITEM_SCALE).toBeLessThanOrEqual(a.x + 32)
-      expect(p.y).toBeGreaterThanOrEqual(a.y - 26)
-      expect(p.y).toBeLessThanOrEqual(a.y - 18)
+      expect(Math.abs(p.x - a.x)).toBeLessThanOrEqual(14) // the nest is about 28x14, centred 14 px above the anchor
+      expect(p.y).toBeGreaterThanOrEqual(a.y - 21)
+      expect(p.y).toBeLessThanOrEqual(a.y - 7)
     }
-    for (let i = 1; i < 5; i++) expect(spots[i]!.x).toBeGreaterThan(spots[i - 1]!.x)
+    expect(hatcheryNestSpot(a, 9)).toEqual(spots[4]) // past the last, they share it
   })
 
   it('fits the 360x420 portrait battle stage by whole-number zoom, never below 1', () => {

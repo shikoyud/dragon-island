@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { DECORATIONS, ELEMENTS, FOOTPRINT, ISLAND_ORDER, LAUNCH_CATALOG, newPlayer, OBSTACLES, type DecorationId, type IslandId, type ObstacleKind } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
-import { drawFallback, fallbackKey, FALLBACK_PALETTE } from '../src/art/fallback'
+import { drawFallback, FALLBACK_ARROW_GREEN, FALLBACK_STONE, FALLBACK_STRAW, fallbackKey, FALLBACK_PALETTE } from '../src/art/fallback'
 import { artSetFromManifest, type Manifest } from '../src/art/fromManifest'
 import { ART_VERSION, FALLBACK_ART } from '../src/art/slots'
 import { artEntries } from '../src/art/phaserLoader'
@@ -140,7 +140,9 @@ describe('artSetFromManifest', () => {
 
   it('falls back to footprint-sized blank sprites for every base-building slot', () => {
     const blank = (w: number, h: number) => ({ src: '', w, h, frames: 1, fps: 0 })
-    expect(SLOT_SIZES.habitat).toEqual({ w: 80, h: 64 })
+    expect(SLOT_SIZES.habitat).toEqual({ w: 64, h: 64 })
+    expect(SLOT_SIZES.hatchery).toEqual({ w: 80, h: 96 })
+    expect(SLOT_SIZES.upgradePost).toEqual({ w: 24, h: 32 })
     expect(art.building.nexus).toEqual(blank(80, 64))
     for (const id of Object.keys(DECORATIONS) as DecorationId[]) {
       const n = DECORATIONS[id].size * 16
@@ -234,7 +236,7 @@ describe('M4 art keys (docs/art/gdd-m4-art-list.md)', () => {
     const final = artSetFromManifest('m4', { assets: { 'habitat.terra': e('h.png', 64, 56, 4, 4), 'building.farmPlot': e('f.png', 48, 40) } }, C)
     expect(hab(final).scale ?? 1).toBe(1)
     expect(farm(final).scale ?? 1).toBe(1)
-    // A manifest with none of the new sheets: the slot sizes (80 wide, 32 wide) scale to 64 and 48 and every object still draws.
+    // A manifest with none of the new sheets: the slot sizes (64 wide, 32 wide) draw at 64 and 48 and every object still draws.
     expect(hab(FALLBACK_ART).scale).toBeCloseTo((FOOTPRINT.habitat * 16) / SLOT_SIZES.habitat.w, 5)
     expect(farm(FALLBACK_ART).scale).toBeCloseTo((FOOTPRINT.farm * 16) / SLOT_SIZES.farmPlot.w, 5)
     const aerie = artSetFromManifest('m4', { assets: { 'building.goldenAerie': e('a.png', 64, 56, 4, 4) } }, C)
@@ -313,11 +315,43 @@ describe('drawFallback', () => {
   })
 
   it('draws every slot without touching pixels outside the canvas', () => {
-    for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'nest', 'hatchery', 'farmPlot', 'crop', 'icon', 'panel', 'button', 'island', 'nexus', 'decoration', 'obstacle', 'locked', 'sign', 'map', 'fx', 'fxCoins'] as const) {
+    for (const slot of ['egg', 'hatchling', 'dragon', 'habitat', 'nest', 'hatchery', 'farmPlot', 'crop', 'icon', 'panel', 'button', 'island', 'nexus', 'decoration', 'obstacle', 'locked', 'sign', 'arrow', 'upgradePost', 'map', 'fx', 'fxCoins'] as const) {
       const g = gridContext(48, 48)
       expect(() => drawFallback(g.ctx, slot, 'sea', 48, 48)).not.toThrow()
       expect(g.px.some(p => p !== null)).toBe(true)
     }
+  })
+
+  it('a drawn habitat fills the whole 64x32 diamond of its 64x64 canvas', () => {
+    const g = gridContext(64, 64)
+    drawFallback(g.ctx, 'habitat', 'flame', 64, 64)
+    const row = (y: number) => g.px.slice(y * 64, (y + 1) * 64)
+    expect(row(47).filter(p => p !== null).length).toBeGreaterThanOrEqual(62) // the waist reaches both corners
+    expect(row(63).filter(p => p !== null).length).toBeGreaterThan(0) // the bottom vertex
+    expect(row(63).filter(p => p !== null).length).toBeLessThanOrEqual(4)
+    expect(row(47)).toContain(FALLBACK_PALETTE.flame.base)
+  })
+
+  it('a drawn Hatchery is a stone castle with a straw nest at the front of its 80x96 canvas', () => {
+    const g = gridContext(80, 96)
+    drawFallback(g.ctx, 'hatchery', 'flame', 80, 96)
+    expect(g.px).toContain(FALLBACK_STRAW)
+    expect(g.px.slice(76 * 80).includes(FALLBACK_STRAW)).toBe(true) // at the front
+    expect(g.px.filter(p => p === FALLBACK_STONE).length).toBeGreaterThan(600) // towers and ring wall
+  })
+
+  it('a drawn upgrade post has its green arrow', () => {
+    const g = gridContext(24, 32)
+    drawFallback(g.ctx, 'upgradePost', 'flame', 24, 32)
+    expect(g.px).toContain(FALLBACK_ARROW_GREEN)
+  })
+
+  it('reads the upgrade post from the manifest and always registers it with the loader', () => {
+    const a = artSetFromManifest('m', { assets: { 'ui.island.upgradePost': { file: 'p.png', w: 24, h: 32, frames: 1, fps: 0 } } }, LAUNCH_CATALOG)
+    expect(a.island.upgradePost).toMatchObject({ src: '/art/m/p.png', w: 24, h: 32 })
+    const none = artSetFromManifest('m', { assets: {} }, LAUNCH_CATALOG)
+    expect(none.island.upgradePost).toEqual({ src: '', w: 24, h: 32, frames: 1, fps: 0 })
+    expect(artEntries(none).find(r => r.key === 'art:ui.island.upgradePost')).toMatchObject({ slot: 'upgradePost' })
   })
 
   it('has a palette for all ten elements, with War dark red', () => {

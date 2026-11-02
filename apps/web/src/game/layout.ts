@@ -72,36 +72,48 @@ export function depthOrder(p: { col: number; row: number; size: number }, q: { c
 
 /**
  * Dragon spots on a 4x4 habitat's top face, from its anchor (the diamond's bottom vertex): the diamond is 64 wide and 32
- * tall, so its centre is (0, -16) and every spot's feet stay inside it. The first dragon stands in the middle, the rest
- * around it. Callers draw residents back to front by y.
+ * tall, so its centre is (0, -16) and every spot's feet stay inside it. The first four stand at the middle, left, right
+ * and back. Callers draw residents back to front by y.
  */
 const DRAGON_SPOTS: readonly Pos[] = [
-  { x: 0, y: -16 }, { x: -14, y: -20 }, { x: 14, y: -20 }, { x: 0, y: -26 }, { x: -12, y: -11 }, { x: 12, y: -11 }, { x: -22, y: -16 },
+  { x: 0, y: -16 }, { x: -18, y: -15 }, { x: 18, y: -15 }, { x: 0, y: -25 }, { x: -10, y: -8 }, { x: 10, y: -8 }, { x: -26, y: -16 },
 ]
+
+/** Residents on a habitat draw at this scale (U11): at 1 a 48 px adult takes 75 % of the platform's width. Battles and panels keep their own. */
+export const HABITAT_DRAGON_SCALE = 0.75
 
 export function dragonSpot(a: Pos, slot: number): Pos {
   const s = DRAGON_SPOTS[Math.min(slot, DRAGON_SPOTS.length - 1)]!
   return { x: a.x + s.x, y: a.y + s.y }
 }
 
-/** Eggs and waiting hatchlings in the hatchery are drawn at this scale so they fit its egg niches. */
-export const HATCHERY_ITEM_SCALE = 0.25
-/** An egg in a nest is drawn at half size so it sits inside the 32x32 nest art. */
+/** An egg in a breeder's nest is drawn at half size so it sits inside the 32x32 nest art. */
 export const NEST_EGG_SCALE = 0.5
+/** Eggs and waiting hatchlings in the Hatchery's courtyard nest. */
+export const NEST_EGG_HATCHERY_SCALE = 0.5
 
 /**
- * Bottom-centre of each egg niche on the 64x64 hatchery art, from its anchor, left to right along the front
- * arc. The art has four niches; the fifth slot (level 3) stands on the stone just right of them.
+ * Where each egg stands in the castle's nest, from its anchor. The nest is about 28x14, centred 14 px above the anchor and
+ * pixel-identical on all four levels. The first egg sits in the hollow's middle; the rest gather round it, an egg (about
+ * 11 px wide at half size) staying over the straw.
  */
-const HATCHERY_NICHES: readonly Pos[] = [
-  { x: -15, y: -24 }, { x: -10, y: -20 }, { x: -4, y: -19 }, { x: 3, y: -19 }, { x: 10, y: -20 },
+const HATCHERY_NEST: readonly Pos[] = [
+  { x: 0, y: -10 }, { x: -9, y: -12 }, { x: 9, y: -12 }, { x: -5, y: -16 }, { x: 5, y: -16 },
 ]
 
-/** Egg and hatchling spot for a hatchery slot; slots past the last niche share it. */
-export function hatcherySpot(a: Pos, slot: number): Pos {
-  const n = HATCHERY_NICHES[Math.min(slot, HATCHERY_NICHES.length - 1)]!
+/** Egg and hatchling spot for a Hatchery slot; slots past the last share it. */
+export function hatcheryNestSpot(a: Pos, slot: number): Pos {
+  const n = HATCHERY_NEST[Math.min(slot, HATCHERY_NEST.length - 1)]!
   return { x: a.x + n.x, y: a.y + n.y }
 }
+
+/** The bar under an egg, in world px: a dark frame and one row of fill. */
+export const PROGRESS_BAR = { w: 16, h: 3 } as const
+/** Whole px of fill inside the bar's frame at a progress of 0..1. */
+export const progressFill = (progress: number): number => Math.round((PROGRESS_BAR.w - 2) * progress)
+
+/** The post on a habitat with an upgrade open: from its anchor, at the left corner, drawn at this scale. */
+export const UPGRADE_POST = { x: -26, y: -12, scale: 0.5 } as const
 
 /** The least a finger can be asked to hit: 44 CSS px square. */
 export const TAP_PX = 44
