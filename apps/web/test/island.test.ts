@@ -347,7 +347,7 @@ describe('island model', () => {
   })
 
   describe('habitat residents and the upgrade post', () => {
-    const s = newPlayer(0)
+    const s = { ...newPlayer(0), gold: 50_000 }
     const h1 = s.habitats.find(h => h.id === 'h1')!
     const a = anchor(h1.placement.col, h1.placement.row, 4)
     const atLevel = (level: number) => ({ ...s, habitats: s.habitats.map(h => (h.id === 'h1' ? { ...h, level } : h)) })
@@ -393,8 +393,11 @@ describe('island model', () => {
       expect(model(under).objects.some(o => o.id === 'post:h1')).toBe(false)
     })
 
-    it('shows the post whether or not the Gold covers it (U12), and not on a habitat already being upgraded', () => {
-      expect(upgradeReady({ ...s, gold: 0 }, h1, DEFAULT_PRESET)).toBe(true)
+    it('shows the post only when the Gold covers it (Phase 1 question 2), and not on a habitat already being upgraded', () => {
+      expect(upgradeReady({ ...s, gold: 0 }, h1, DEFAULT_PRESET)).toBe(false)
+      expect(model({ ...s, gold: 0 }).objects.some(o => o.id === 'post:h1')).toBe(false)
+      expect(upgradeReady({ ...s, gold: 10_000 }, h1, DEFAULT_PRESET)).toBe(true)
+      expect(upgradeReady({ ...s, gold: 9_999 }, h1, DEFAULT_PRESET)).toBe(false)
       const busy = { ...s, constructions: [{ kind: 'upgrade', building: { type: 'habitat', id: 'h1' }, readyAtMs: 1000 }] } as never
       expect(upgradeReady(busy, h1, DEFAULT_PRESET)).toBe(false)
     })

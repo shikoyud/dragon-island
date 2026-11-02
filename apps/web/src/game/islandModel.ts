@@ -105,14 +105,11 @@ export function goldBadgeThreshold(h: Habitat, live: readonly Dragon[], cap: num
   return Math.min(Math.floor(perMinuteX20 / 20), Math.floor(cap * GOLD_BADGE_CAP_PERCENT / 100))
 }
 
-/**
- * U12: a habitat's upgrade post shows when its next level exists and its level gate is met, whether or not the Gold covers
- * it. Not while it is being built or upgraded: there is nothing to start.
- */
+/** The green-arrow post: a next level exists, its level gate is met, the Gold covers it (Phase 1 question 2) and none is running. */
 export function upgradeReady(s: PlayerState, h: Habitat, preset: Preset): boolean {
   const ref: BuildingRef = { type: 'habitat', id: h.id }
   const next = upgradeInfo(s, ref, preset)
-  return next !== null && s.level >= next.minLevel && !constructionFor(s, ref)
+  return next !== null && s.level >= next.minLevel && s.gold >= next.cost && !constructionFor(s, ref)
 }
 
 /**
