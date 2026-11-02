@@ -7,7 +7,6 @@ const PIECES = [
   ['--ui-avatar', 'skin-avatar', 'ui.avatarFrame'],
   ['--ui-pill', 'skin-pill', 'ui.pill'],
   ['--ui-xp', 'skin-xp', 'ui.xpBar'],
-  ['--ui-close', 'skin-close', 'ui.close'],
   ['--ui-tab', 'skin-tab', 'ui.tab'],
   ['--ui-battle-hp', 'skin-battle-hp', 'ui.battle.hpFrame'],
   ['--ui-battle-move', 'skin-battle-move', 'ui.battle.moveButton'],

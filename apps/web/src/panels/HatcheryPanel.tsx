@@ -32,7 +32,7 @@ export function HatcheryPanel({ nowMs, onClose, onOpenDragon }: { nowMs: number;
   }
 
   return (
-    <Panel title={`Hatchery · ${used}/${slots}`} onClose={onClose}>
+    <Panel title="Hatchery" badge={`${used}/${slots}`} onClose={onClose}>
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {s.hatchery.map((egg, slot) => {
           const price = skipPrice(slot)
