@@ -160,7 +160,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = (
   if (!dialog) return null
   if (dialog.kind === 'panel') {
     switch (dialog.id) {
-      case 'shop': return <ShopPanel key={dialog.tab ?? 'build'} tab={dialog.tab === 'store' ? 'store' : 'build'} nowMs={nowMs} view={bridge.view} onPlace={(what, size) => { onOpen(null); startPlacing(what, size) }} onClose={close} />
+      case 'shop': return <ShopPanel key={`${dialog.tab ?? ''}${dialog.category ?? ''}`} start={dialog.category ?? (dialog.tab === 'store' ? 'store' : 'home')} nowMs={nowMs} view={bridge.view} onPlace={(what, size) => { onOpen(null); startPlacing(what, size) }} onClose={close} />
       case 'map': return null // the Map is a scene (R60), not a dialog; its islands open panels
       case 'breed': return <BreedPanel nowMs={nowMs} onClose={close} />
       case 'book': return <DragonBookPanel art={bridge.art} onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />

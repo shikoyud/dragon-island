@@ -88,7 +88,7 @@ export function actionRow(s: PlayerState, target: Target, nowMs: number, preset:
         name: h.element === 'aerie' ? 'Golden Aerie' : `${cap(h.element)} Habitat`,
         buttons: [
           ...portraits,
-          { icon: 'getEgg', label: 'Get Egg', intent: open({ kind: 'panel', id: 'shop', tab: 'build' }) },
+          { icon: 'getEgg', label: 'Get Egg', intent: open({ kind: 'panel', id: 'shop', category: 'dragons' }) },
           { icon: 'collect', label: 'Collect', intent: { kind: 'run', action: { type: 'collectGold', habitatId: h.id } }, ...(gold > 0 ? { above: formatGold(gold) } : { disabled: 'Nothing to collect yet' }) },
           ...tail(s, { type: 'habitat', id: h.id }, nowMs, preset),
         ],
@@ -99,7 +99,7 @@ export function actionRow(s: PlayerState, target: Target, nowMs: number, preset:
       const building: Target = { kind: 'hatcheryBuilding' }
       const ready = s.hatchery.findIndex(e => e.readyAtMs <= nowMs)
       const first: RowButton = s.hatchery.length === 0
-        ? { icon: 'getEgg', label: 'Get Egg', intent: open({ kind: 'panel', id: 'shop', tab: 'build' }) }
+        ? { icon: 'getEgg', label: 'Get Egg', intent: open({ kind: 'panel', id: 'shop', category: 'dragons' }) }
         : ready >= 0
           ? { icon: 'hatch', label: 'Hatch', intent: { kind: 'run', action: { type: 'hatch', slot: ready } } }
           : { icon: 'hatch', label: 'Hatch', badge: 'new', above: timerLabel(Math.min(...s.hatchery.map(e => e.readyAtMs)), nowMs), intent: info(building) }

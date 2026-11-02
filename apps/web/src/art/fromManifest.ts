@@ -6,7 +6,7 @@ export interface ManifestEntry { file: string; w: number; h: number; frames: num
 export interface Manifest { assets: Record<string, ManifestEntry> }
 
 /** Manifest keys the HUD reads (docs/art/hud-art-list.md). */
-const HUD_KEY = /^(icon\.[a-zA-Z]+\.(16|32)|ui\..+|map\.backdrop|map\.bridge|map\.chain|battle\.boss\.marker|trial\.chapter\.[a-z]+|trial\.node(\.boss|\.locked)?)$/
+const HUD_KEY = /^(icon\.[a-zA-Z]+\.(16|32)|icon\.(health|damage|speed|sell)|shop\.category\.[a-z]+|bg\.[a-z]+|fx\.(glow|newBurst)|ui\..+|map\.backdrop|map\.bridge|map\.chain|battle\.boss\.marker|trial\.chapter\.[a-z]+|trial\.node(\.boss|\.locked)?)$/
 
 /** Manifest keys tried in turn for each obstacle until its own art lands: the nearest old sprite by footprint. */
 const OBSTACLE_ART: Record<ObstacleKind, readonly string[]> = {

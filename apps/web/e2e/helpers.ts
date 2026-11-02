@@ -77,6 +77,12 @@ export async function openInfo(page: Page, target: unknown) {
   await row.getByRole('button', { name: 'Info', exact: true }).click()
 }
 
+/** Opens the Shop and one of its category cards (UI rework Phase 5). */
+export async function openShop(page: Page, category: 'Dragons' | 'Habitats' | 'Buildings' | 'Farms' | 'Decorations' | 'Store') {
+  await openPanel(page, 'Shop')
+  await page.getByRole('list', { name: 'Shop categories' }).getByRole('button', { name: category, exact: true }).click()
+}
+
 /** Selects `target` and opens its Upgrade dialog from the action row (UI rework Phase 5). */
 export async function openUpgrade(page: Page, target: unknown) {
   const row = await selectTarget(page, target)

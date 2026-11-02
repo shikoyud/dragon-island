@@ -12,10 +12,11 @@ import { formatGold, formatWei } from '../ui/Money'
 import { bookCount, goalClaimable, goalsBubble, newBookEntries, XP_LIMIT_SHORT, xpBarText, xpFraction } from './hudModel'
 import { Icon, type IconName } from './Icon'
 import { ZoomSlider } from './ZoomSlider'
+import type { ShopCategory } from '../panels/ShopPanel'
 
 export type PanelId = 'shop' | 'breed' | 'book' | 'battle' | 'wings' | 'quests' | 'inbox' | 'map' | 'settings'
 /** What the one dialog shows: a named panel (the Shop can open on its Store tab, Battle on a chapter's nodes), or the panel of something clicked on the island. */
-export type DialogKey = { kind: 'panel'; id: PanelId; tab?: 'build' | 'store' | 'account' | 'wallet'; chapter?: number } | { kind: 'target'; target: Target }
+export type DialogKey = { kind: 'panel'; id: PanelId; tab?: 'build' | 'store' | 'account' | 'wallet'; chapter?: number; /** The Shop category to open on. */ category?: ShopCategory } | { kind: 'target'; target: Target }
   /** The Info and Upgrade dialogs of a building (UI rework Phase 5). */
   | { kind: 'info'; target: MovableRef } | { kind: 'upgrade'; target: BuildingRef }
 

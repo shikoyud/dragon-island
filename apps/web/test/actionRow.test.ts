@@ -13,7 +13,7 @@ describe('actionRow: the buttons for each selected thing (design Phase 4 table)'
     expect(r!.name).toBe('Terra Habitat')
     expect(icons(r)).toEqual(['dragon', 'getEgg', 'collect', 'upgrade', 'info', 'move'])
     expect(button(r, 'dragon')).toMatchObject({ label: 'Terra Basic', portrait: { speciesId: 'terra', level: 1 }, intent: { kind: 'open', dialog: { kind: 'target', target: { kind: 'dragon', id: 'd1' } } } })
-    expect(button(r, 'getEgg').intent).toEqual({ kind: 'open', dialog: { kind: 'panel', id: 'shop', tab: 'build' } })
+    expect(button(r, 'getEgg').intent).toEqual({ kind: 'open', dialog: { kind: 'panel', id: 'shop', category: 'dragons' } })
     expect(button(r, 'info').intent).toEqual({ kind: 'open', dialog: { kind: 'info', target: { type: 'habitat', id: 'h1' } } })
     expect(button(r, 'move').intent).toMatchObject({ kind: 'move', target: { type: 'habitat', id: 'h1' } })
   })

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openInfo, openPanel, openUpgrade, resetPlayer, selectTarget, signIn } from './helpers'
+import { openInfo, openPanel, openShop, openUpgrade, resetPlayer, selectTarget, signIn } from './helpers'
 
 /**
  * The Phaser canvas is not pixel-clicked: with the test wallet the app exposes its bridge as `window.__bridge`,
@@ -22,7 +22,7 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows Emb
   await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: { state: unknown } }).__bridge?.state))
 
   // Shop (Build tab) -> Farm plot -> ghost on the free cell (20,16) -> OK.
-  await openPanel(page, 'Shop')
+  await openShop(page, 'Farms')
   await page.locator('#shop-farm').click()
   await bridge(page, b => b.emit({ type: 'cell', col: 20, row: 16 }))
   const placement = page.getByRole('toolbar', { name: /placement/i })

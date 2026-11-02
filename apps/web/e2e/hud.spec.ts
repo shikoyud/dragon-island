@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dismissLevelUp, expectPixelFonts, openPanel, resetPlayer, selectTarget, setServerClock, signIn } from './helpers'
+import { dismissLevelUp, expectPixelFonts, openPanel, openShop, resetPlayer, selectTarget, setServerClock, signIn } from './helpers'
 
 /**
  * The HUD over the full-screen island, at a desktop and a phone size: resources, menus, dialogs, the placement
@@ -81,7 +81,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await page.getByRole('button', { name: 'Buy food' }).click()
       const store = page.getByRole('dialog', { name: 'Shop' })
       await expect(store).toBeVisible()
-      await expect(store.getByRole('tab', { name: 'Store' })).toHaveAttribute('aria-selected', 'true')
+      await expect(store.getByRole('region', { name: 'Store' })).toBeVisible()
       await expectPixelFonts(page)
       await store.getByRole('button', { name: 'Close' }).click()
       await expectPixelFonts(page)
@@ -132,9 +132,6 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
           expect(await contrast(tab), name).toBeGreaterThanOrEqual(4.5)
         }
       }
-      await openPanel(page, 'Shop')
-      await checkTabs(['Build', 'Store'])
-      await page.keyboard.press('Escape')
       await openPanel(page, 'Trials')
       await checkTabs(['Trials', 'Arena'])
       await page.keyboard.press('Escape')
@@ -150,7 +147,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await resetPlayer(request, { gold: 5_000, level: 3 })
       await page.reload()
       await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: B }).__bridge?.cellToScreen))
-      await openPanel(page, 'Shop')
+      await openShop(page, 'Farms')
       await page.locator('#shop-farm').click()
       const strip = page.getByRole('toolbar', { name: 'Placement' })
       await expect(strip).toBeVisible()

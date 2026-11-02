@@ -20,6 +20,7 @@ test('builds the Roost, skips the build, reads its tier, then Ascends through th
   await ready(page)
 
   await page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name: 'Shop', exact: true }).click()
+  await page.getByRole('list', { name: 'Shop categories' }).getByRole('button', { name: 'Buildings', exact: true }).click()
   await page.locator('#shop-roost').click()
   await bridge(page, b => b.emit({ type: 'cell', col: 20, row: 16 }))
   const placement = page.getByRole('toolbar', { name: /placement/i })
