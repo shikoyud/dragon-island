@@ -8,6 +8,7 @@ import type { Rng } from '../rng'
 import type { BuildingRef, CropId, DecorationId, IslandId, Placement, PlayerState } from '../state'
 import type { SkipTarget, StoreItem } from '../store'
 import type { SpeedUpToken } from '../data/speedups'
+import type { StorageRef } from '../storage'
 
 export type TeamIds = [string, string, string]
 
@@ -49,6 +50,9 @@ export type Action =
   /** `index` is the `active.index` the caller believes it settles; another is NO_ACTIVE_TRIAL, so a stale tab can't forfeit the next Trial. */
   | { type: 'finishTrial'; moves: PlayerMove[]; index?: number }
   | { type: 'abandonTrial'; index?: number }
+  /** Storage (shiko, 2026-11-01): `moveBuilding` and `moveDragon` take things out again (S3, S4). */
+  | { type: 'putInStorage'; target: StorageRef }
+  | { type: 'takeEgg'; index: number }
 
 export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'INSUFFICIENT_GOLD' | 'INSUFFICIENT_FOOD' | 'MAX_LEVEL' | 'LEVEL_CAP'
   | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'OPPOSITE_BASICS' | 'NO_FREE_BREEDER' | 'BREEDER_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'

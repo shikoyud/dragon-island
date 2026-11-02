@@ -15,7 +15,12 @@ export interface Egg { speciesId: string; readyAtMs: number; xpFree?: boolean }
  * `habitatId: null` = hatched and waiting in the hatchery.
  * `fatigue`: HP left when it was last written, regen counted from `atMs` (§6.3, R68). Absent = full.
  */
-export interface Dragon { id: string; speciesId: string; level: number; /** Feeds toward the next level, 0..3 (§4.1). */ feeds: number; habitatId: string | null; fatigue?: { hp: number; atMs: number } }
+export interface Dragon { id: string; speciesId: string; level: number; /** Feeds toward the next level, 0..3 (§4.1). */ feeds: number; habitatId: string | null; fatigue?: { hp: number; atMs: number }; /** In Storage (S4): `habitatId` is null and it is not waiting in the Hatchery. */ stored?: true }
+
+/** When a building went into Storage (S1); its timers are shifted by the time it spent there when it comes out (S2). */
+export interface StoredMark { atMs: number }
+/** An egg in Storage with the hatch time it had left (S5). */
+export interface StoredEgg { speciesId: string; remainingMs: number; xpFree?: boolean }
 
 /** A Trial as it stood when it started (R69): the battle runs from this, whatever the dragons do later. `index` names its seed. */
 export interface ActiveTrial { chapter: number; node: number; team: TeamIds; specs: BattleDragonSpec[]; index: number; startedAtMs: number; replay: boolean }
@@ -24,14 +29,14 @@ export type IslandId = 'home' | 'isle2' | 'isle3' | 'isle4' | 'isle5' | 'isle6'
 export type Facing = 0 | 1 | 2 | 3
 export interface Placement { island: IslandId; col: number; row: number; facing: Facing }
 export type HabitatElement = Element | 'aerie' // 'aerie' = the Golden Aerie (any element, §5.2)
-export interface Habitat { id: string; element: HabitatElement; level: number; lastCollectedMs: number; placement: Placement }
+export interface Habitat { id: string; element: HabitatElement; level: number; lastCollectedMs: number; placement: Placement; stored?: StoredMark }
 export type BreederKind = 'mountain' | 'grove'
 /** `hatchMs` is the unreduced time the egg takes once it reaches the Hatchery (§5.4). `xpFree`: see Egg. */
 export interface BreederEgg { speciesId: string; readyAtMs: number; hatchMs: number; xpFree: boolean }
-export interface Breeder { kind: BreederKind; egg: BreederEgg | null; level: number; placement: Placement }
-export interface FarmPlot { crop: CropId | null; readyAtMs: number; level: number; placement: Placement }
+export interface Breeder { kind: BreederKind; egg: BreederEgg | null; level: number; placement: Placement; stored?: StoredMark }
+export interface FarmPlot { crop: CropId | null; readyAtMs: number; level: number; placement: Placement; stored?: StoredMark }
 export type DecorationId = 'stonePath' | 'picketFence' | 'flowerPatch' | 'emberLantern' | 'driftwoodBench' | 'hayCart' | 'shellFountain' | 'crystalCluster' | 'eggTotem' | 'moonwell' | 'boneArch' | 'skyShrine' | 'dawnObelisk' | 'starPool' | 'dragonColossus'
-export interface Decoration { id: string; kind: DecorationId; placement: Placement }
+export interface Decoration { id: string; kind: DecorationId; placement: Placement; stored?: StoredMark }
 export type ObstacleKind = 'ancientTree' | 'boulder' | 'largeRock' | 'tree' | 'smallRock' | 'bush'
 export interface Obstacle { id: string; kind: ObstacleKind; island: IslandId; col: number; row: number }
 export type BuildingRef = { type: 'habitat'; id: string } | { type: 'farm'; index: number } | { type: 'breeder'; index: number } | { type: 'hatchery' } | { type: 'roost' }
@@ -55,6 +60,10 @@ export interface PlayerState {
   roostTier: number
   /** Where the Dragon Roost stands; null until it is built (§4.2). Its tier rises when the build finishes (R33). */
   roostPlacement: Placement | null
+  /** The Roost is in Storage; `roostPlacement` keeps its last spot (S1). */
+  roostStored?: StoredMark
+  /** Eggs in Storage (S5). Absent = none. */
+  storedEggs?: StoredEgg[]
   dragons: Dragon[]
   habitats: Habitat[]
   breeders: Breeder[]

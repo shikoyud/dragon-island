@@ -16,6 +16,7 @@ import { clearReward, rollDrop } from '../obstacles'
 import type { Rng } from '../rng'
 import { addXp, payBuildXp } from '../progression'
 import { collectHabitat } from './island-actions'
+import { takeOut } from '../storage'
 import { failure, success, type Handler } from './types'
 
 export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
@@ -78,10 +79,12 @@ export const placeBuilding: Handler<'placeBuilding'> = (s, a, ctx) => {
   return success(payBuildXp(built, cost, s, ctx.preset, ctx.day))
 }
 
-export const moveBuilding: Handler<'moveBuilding'> = (s, a) => {
+export const moveBuilding: Handler<'moveBuilding'> = (st, a, ctx) => {
   const t = a.target
-  const bad = placementRuleError(s, { kind: 'move', target: t }, a.placement)
+  const bad = placementRuleError(st, { kind: 'move', target: t }, a.placement)
   if (bad) return failure(bad)
+  // Placing from Storage is this same Move, free (S3).
+  const s = takeOut(st, t, ctx.nowMs)
   const p = a.placement
   switch (t.type) {
     case 'habitat': return success({ ...s, habitats: s.habitats.map(h => h.id === t.id ? { ...h, placement: p } : h) })

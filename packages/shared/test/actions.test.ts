@@ -10,6 +10,14 @@ const bot = { playerId: null, trophies: 0, level: 8, team: [1, 2, 3].map(() => (
 // Same accepted set as game-core's isValidAction for every shape except pvpBattle.
 const payloads: unknown[] = [
   { type: 'collectGold', habitatId: 'h1' },
+  { type: 'putInStorage', target: { type: 'habitat', id: 'h1' } },
+  { type: 'putInStorage', target: { type: 'hatchery' } },
+  { type: 'putInStorage', target: { type: 'egg', slot: 0 } },
+  { type: 'putInStorage', target: { type: 'egg', slot: -1 } },
+  { type: 'putInStorage', target: { type: 'dragon', id: 'd1' } },
+  { type: 'putInStorage', target: { type: 'dragon', id: '' } },
+  { type: 'takeEgg', index: 0 },
+  { type: 'takeEgg', index: 1.5 },
   { type: 'collectGold', habitatId: '' },
   { type: 'claimGoal' },
   { type: 'claimGoal', goal: 3 },

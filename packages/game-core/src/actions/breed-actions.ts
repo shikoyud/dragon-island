@@ -27,7 +27,7 @@ export const startBreed: Handler<'startBreed'> = (s, a, ctx) => {
   const invalid = breedValidity(sa, sb)
   if (invalid) return failure(invalid)
   // A finished egg waiting for a Hatchery slot keeps its building blocked (§5.4); a new building does nothing yet.
-  const index = s.breeders.findIndex((b, i) => b.egg === null && !isUnfinished(s, { type: 'breeder', index: i }))
+  const index = s.breeders.findIndex((b, i) => b.egg === null && !b.stored && !isUnfinished(s, { type: 'breeder', index: i }))
   if (index < 0) return failure('NO_FREE_BREEDER')
 
   const bctx = { activeLegendaries: activeLegendaries(ctx.day, ctx.preset), firstHybridPending: !s.firstHybridDone }
@@ -52,8 +52,8 @@ export function discover(discovered: readonly string[], speciesId: string): stri
 }
 
 /** Hatchery slots hold eggs and hatched dragons that found no habitat. */
-export function hatcheryUsed(s: { hatchery: readonly unknown[]; dragons: readonly { habitatId: string | null }[] }): number {
-  return s.hatchery.length + s.dragons.filter(d => d.habitatId === null).length
+export function hatcheryUsed(s: { hatchery: readonly unknown[]; dragons: readonly { habitatId: string | null; stored?: true }[] }): number {
+  return s.hatchery.length + s.dragons.filter(d => d.habitatId === null && !d.stored).length
 }
 
 export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
@@ -73,7 +73,7 @@ export const collectEgg: Handler<'collectEgg'> = (s, a, ctx) => {
 /** The first finished habitat a new `element` Basic can live in with room (R26), or undefined. */
 export function basicHome(s: PlayerState, catalog: Catalog, element: Element): Habitat | undefined {
   const species = getSpecies(catalog, element)
-  return s.habitats.find(h => canLiveIn(species, h) && !isUnfinished(s, { type: 'habitat', id: h.id }) && residents(s, h.id).length < habitatSlots(h))
+  return s.habitats.find(h => !h.stored && canLiveIn(species, h) && !isUnfinished(s, { type: 'habitat', id: h.id }) && residents(s, h.id).length < habitatSlots(h))
 }
 
 /** M2 Q3, R26: buy a Basic with Gold; it moves into the first finished habitat it can live in with room, at Lv 1. */
@@ -97,7 +97,7 @@ export const hatch: Handler<'hatch'> = (s, a, ctx) => {
   if (!egg) return failure('NOT_FOUND')
   if (ctx.nowMs < egg.readyAtMs) return failure('NOT_READY')
   const species = getSpecies(ctx.catalog, egg.speciesId)
-  const home = s.habitats.find(h => canLiveIn(species, h) && !isUnfinished(s, { type: 'habitat', id: h.id }) && residents(s, h.id).length < habitatSlots(h))
+  const home = s.habitats.find(h => !h.stored && canLiveIn(species, h) && !isUnfinished(s, { type: 'habitat', id: h.id }) && residents(s, h.id).length < habitatSlots(h))
   const dragon = { id: `d${s.nextId}`, speciesId: egg.speciesId, level: 1, feeds: 0, habitatId: home ? home.id : null }
   const collected = home ? collectHabitat(s, home.id, ctx.catalog, ctx.nowMs, ctx.preset) : s
   const next = {
