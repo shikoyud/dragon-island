@@ -18,6 +18,30 @@ describe('PlacementBar', () => {
     expect(f.onConfirm).toHaveBeenCalledOnce()
   })
 
+  it('Escape cancels, as Cancel does; not while pending, and no longer once it is gone', () => {
+    const f = { onTurn: vi.fn(), onConfirm: vi.fn(), onCancel: vi.fn() }
+    const { rerender, unmount } = render(<PlacementBar legal {...f} pending />)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(f.onCancel).not.toHaveBeenCalled()
+    rerender(<PlacementBar legal {...f} />)
+    fireEvent.keyDown(window, { key: 'a' })
+    expect(f.onCancel).not.toHaveBeenCalled()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(f.onCancel).toHaveBeenCalledOnce()
+    unmount()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(f.onCancel).toHaveBeenCalledOnce()
+  })
+
+  it('a shut OK is a solid grey plate, not see-through, and the refusal is in the pixel font', () => {
+    const css = readFileSync(resolve(__dirname, '../src/styles/hud.css'), 'utf8')
+    const shut = /\.placement-go:disabled \.placement-go__plate\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
+    expect(shut).not.toMatch(/opacity/)
+    expect(shut).not.toMatch(/filter/)
+    expect(css).toMatch(/\.placement-go:disabled\s*\{[^}]*--face: #[0-9a-f]{6}/)
+    expect(css).toMatch(/\.placement-bar__why\s*\{[^}]*font: [^;]*var\(--font-display\)/)
+  })
+
   it('shows an Island button per choice, marks the viewed one, and disables one with no room', () => {
     const f = { onTurn: vi.fn(), onConfirm: vi.fn(), onCancel: vi.fn(), onIsland: vi.fn() }
     const islands = [

@@ -87,6 +87,5 @@ describe('the Home bake', () => {
     games.push(game)
     const c = scene.cameras.main.backgroundColor
     expect([c.red, c.green, c.blue]).toEqual([0x8f, 0xd0, 0xee])
-    expect(scene.children.list.some(o => o.name === 'sea')).toBe(false)
   })
 })

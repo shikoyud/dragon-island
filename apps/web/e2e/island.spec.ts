@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
-import { offeredPlots, ownedPlots, plotOfTile, plotOrigin, TILES_PER_PLOT, type PlayerState } from '@wyrmhaven/game-core'
+import { offeredPlots, ownedPlots, plotOfTile, type PlayerState } from '@wyrmhaven/game-core'
+import { captionPx, signSpot, type SignArt } from '../src/game/layout'
 import { dismissLevelUp, resetPlayer, signIn, startingState } from './helpers'
 
 /**
@@ -22,6 +23,27 @@ async function cellPoint(page: Page, col: number, row: number) {
   return { x: box.x + p.x, y: box.y + p.y }
 }
 
+/** The cell a plot's sign stands on: `signSpot`, on the state and art sizes the page has. */
+async function signCell(page: Page, plot: number) {
+  const { obstacles, art } = await page.evaluate(() => {
+    const b = window.__bridge as unknown as { view: string; art: SignArt; state: PlayerState }
+    const size = (s: { w: number; h: number; top?: number }) => ({ w: s.w, h: s.h, top: s.top })
+    return {
+      obstacles: b.state.islands.obstacles.filter(o => o.island === b.view),
+      art: { obstacle: Object.fromEntries(Object.entries(b.art.obstacle).map(([k, s]) => [k, size(s)])), island: { sign: size(b.art.island.sign) } } as SignArt,
+    }
+  })
+  return signSpot(plot, obstacles, art)
+}
+
+/** The middle of a plot's white label, on screen: it hangs 2 world px under the sign's foot, `captionPx` tall on screen. */
+async function labelPoint(page: Page, plot: number) {
+  const c = await signCell(page, plot)
+  const p = await cellPoint(page, c.col, c.row)
+  const zoom = await page.evaluate(() => (window.__bridge as unknown as { zoom: { zoom: number } }).zoom.zoom)
+  return { x: p.x, y: p.y + 2 * zoom + captionPx(zoom) * 0.6 }
+}
+
 test.beforeEach(async ({ page, request }) => {
   await signIn(page)
   await resetPlayer(request, { gold: 50_000, level: 6 })
@@ -35,8 +57,8 @@ test.beforeEach(async ({ page, request }) => {
 })
 
 test('a click on a cell centre is that cell, and on a building selects it', async ({ page }) => {
-  // Free cells of the starting island, clear of its obstacles (U6), then one on a plot for sale (plot 2), clear of its sign, its obstacles and the crown of plot 7's Ancient Tree (a sign's box takes the tap): a ghost may go there, red (R58). (3, 3) is on a plot not offered, so it is no cell any more.
-  for (const [col, row] of [[14, 13], [22, 13], [18, 13], [15, 14], [21, 6]] as const) {
+  // Free cells of the starting island, clear of its obstacles (U6).
+  for (const [col, row] of [[14, 13], [22, 13], [18, 13], [15, 14]] as const) {
     const p = await cellPoint(page, col, row)
     await page.evaluate(() => { window.__seen!.length = 0 })
     await page.mouse.click(p.x, p.y)
@@ -46,6 +68,53 @@ test('a click on a cell centre is that cell, and on a building selects it', asyn
   await page.mouse.click(h1.x, h1.y)
   await expect.poll(() => page.evaluate(() => window.__seen!)).toContainEqual({ type: 'select', target: { kind: 'habitat', id: 'h1' } })
 })
+
+test('bare dark ground on a plot for sale opens that plot; while placing it is a cell', async ({ page }) => {
+  const p = await cellPoint(page, 21, 6) // plot 2, clear of its sign and its obstacles
+  await page.mouse.click(p.x, p.y)
+  await expect.poll(() => page.evaluate(() => window.__seen!)).toContainEqual({ type: 'select', target: { kind: 'plot', island: 'home', plot: 2 } })
+  await expect(page.getByRole('dialog', { name: 'plot' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await moveH1(page)
+  await page.evaluate(() => { window.__seen!.length = 0 })
+  const q = await cellPoint(page, 21, 6)
+  await page.mouse.click(q.x, q.y)
+  await expect.poll(() => placing(page)).toEqual({ col: 20, row: 5 })
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
+for (const [w, h] of [[1920, 1080], [844, 390]] as const) {
+  test(`a click on the white Tap to buy label itself opens that plot, at every zoom (${w}x${h})`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: h })
+    await page.waitForTimeout(300)
+    const free = () => page.evaluate(() => { const b = window.__bridge as unknown as { insets: { top: number; bottom: number } }; return b.insets })
+    const opening = await page.evaluate(() => (window.__bridge as unknown as { zoom: { zoom: number } }).zoom.zoom)
+    if (w === 1920) expect(opening).toBe(4)
+    else expect(opening).toBeGreaterThanOrEqual(2)
+    for (const zoom of [opening, 1, 3]) {
+      await page.evaluate(z => (window.__bridge as unknown as { zoomTo: (z: number) => void }).zoomTo(z), zoom)
+      await page.waitForTimeout(200)
+      const { top, bottom } = await free()
+      // A label the HUD leaves in the open: at a close zoom the others may be under the HUD or off screen.
+      const plots = [2, 7, 11]
+      let done = false
+      for (const plot of plots) {
+        const at = await labelPoint(page, plot)
+        if (at.x < 60 || at.x > w - 60 || at.y < top + 8 || at.y > h - bottom - 8) continue
+        await page.evaluate(() => { window.__seen!.length = 0 })
+        await page.mouse.click(at.x, at.y)
+        await expect.poll(() => page.evaluate(() => window.__seen!)).toContainEqual({ type: 'select', target: { kind: 'plot', island: 'home', plot } })
+        await expect(page.getByRole('dialog', { name: 'plot' })).toBeVisible()
+        await page.keyboard.press('Escape')
+        await expect(page.getByRole('dialog')).toHaveCount(0)
+        done = true
+        break
+      }
+      expect(done, `a label in the open at zoom ${zoom}`).toBe(true)
+    }
+  })
+}
 
 test('a real click on the starting Farm opens the Farm, not a Bush whose tap box covers it (390x844)', async ({ page, request }) => {
   // The start no longer keeps Bushes in front of the Farm (U6): lay two there, on the row just below it, so their 44 px boxes cover its middle.
@@ -188,9 +257,9 @@ test('Move: a tap on a sign or an obstacle while placing is a cell, not a dialog
   const state = await page.evaluate(() => window.__bridge!.state as unknown) as PlayerState
   const land = [...ownedPlots(state, 'home'), ...offeredPlots(state, 'home')]
   const obstacle = state.islands.obstacles.find(o => o.island === 'home' && land.includes(plotOfTile(o.col, o.row)!))!
-  const plot = plotOrigin(offeredPlots(state, 'home')[0]!)
+  const spot = await signCell(page, offeredPlots(state, 'home')[0]!)
   const onSign = async () => {
-    const p = await cellPoint(page, plot.col + TILES_PER_PLOT / 2, plot.row + TILES_PER_PLOT / 2)
+    const p = await cellPoint(page, spot.col, spot.row)
     return { x: p.x, y: p.y - 6 } // inside the sign's box, which stands on that point
   }
   // First, with nothing being placed, each of those taps opens something: so the tap below really lands on it.

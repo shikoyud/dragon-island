@@ -5,7 +5,7 @@ import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet, Sprite } from '../../art/types'
 import type { Bridge, Placing, Target } from '../bridge'
 import {
-  cameraBounds, clampView, groundCell, landPlots, lockedTiles, openingView, panBy, revealPan, screenToWorld, shownSize, SKIRT, worldToScreen, zoomAt, zoomRange, type View,
+  cameraBounds, clampView, groundCell, landPlots, lockedTiles, offeredPlotAt, openingView, panBy, revealPan, screenToWorld, shownSize, SKIRT, worldToScreen, zoomAt, zoomRange, type View,
 } from '../camera'
 import { paintLandmass, type BakeArt, type BakeImage } from '../islandBake'
 import { ARROW_GAP, ARROW_SCALE, badgeY, buildIslandModel, groundTiles, groundVariant, objectSignature, type IslandMarkers, type IslandObject } from '../islandModel'
@@ -407,9 +407,16 @@ export class IslandScene extends Phaser.Scene {
     const badge = this.bridge.placing ? undefined : over.find(o => o.getData('collect'))
     if (badge) return this.collect(badge as Phaser.GameObjects.Text)
     // While placing, every click is a cell; otherwise a sprite under the pointer wins over the ground.
-    const hit = this.bridge.placing ? null : this.targetAt(p, over)
+    const hit = this.bridge.placing ? null : (this.targetAt(p, over) ?? this.plotUnder(p))
     if (hit) this.bridge.emit({ type: 'select', target: hit })
     else this.emitCell(p)
+  }
+
+  /** Bare ground on a plot for sale opens that plot, as its sign does. */
+  private plotUnder(p: { x: number; y: number }): Target | null {
+    const w = this.toWorld(p)
+    const plot = offeredPlotAt(this.bridge.state, this.bridge.view, w.x, w.y)
+    return plot === null ? null : { kind: 'plot', island: this.bridge.view, plot }
   }
 
   /**
@@ -417,6 +424,9 @@ export class IslandScene extends Phaser.Scene {
    * only when the pointer is on its own opaque pixels; `pickTarget` lets those beat the boxes.
    */
   private targetAt(p: { x: number; y: number }, over: Phaser.GameObjects.GameObject[]): Target | null {
+    // A label is drawn over everything, so it takes the tap whatever stands under it.
+    const label = over.find(o => o.getData('caption'))
+    if (label) return label.getData('target') as Target
     const w = this.toWorld(p)
     const hits: Hit<Target>[] = []
     for (const o of over) {
@@ -490,7 +500,7 @@ export class IslandScene extends Phaser.Scene {
     // Captions (a sign's 'Tap to buy') sit with the badges, on top, and scale like them.
     for (const o of objects) {
       if (!o.caption) continue
-      badges.push(keep(`caption:${o.id}`, JSON.stringify([o.caption, o.x, o.y]), () => this.drawCaption(o, o.caption!)) as Phaser.GameObjects.Text)
+      badges.push(keep(`caption:${o.id}`, JSON.stringify([o.caption, o.x, o.y, o.target]), () => this.drawCaption(o, o.caption!)) as Phaser.GameObjects.Text)
     }
     for (const { obj } of this.live.values()) obj.destroy()
     this.live = next
@@ -630,7 +640,7 @@ export class IslandScene extends Phaser.Scene {
     const bottom = cellTop(shown.w, shown.h)
     const right = cellTop(shown.w, 0)
     const down = (p: Pos, d: number): Pos => ({ x: p.x, y: p.y + d })
-    // The drawn skirt always goes first: it backs the cliff tiles, whose stepped bottoms would otherwise show sea between them.
+    // The drawn skirt always goes first: it backs the cliff tiles, whose stepped bottoms would otherwise show the sky between them.
     {
       g.fillStyle(GROUND.cliffLeft, 1).fillPoints(points([left, bottom, down(bottom, SKIRT), down(left, SKIRT)]), true)
       g.fillStyle(GROUND.cliffRight, 1).fillPoints(points([bottom, right, down(right, SKIRT), down(bottom, SKIRT)]), true)
@@ -739,10 +749,11 @@ export class IslandScene extends Phaser.Scene {
     return captionPx(zoom) / 8 / zoom
   }
 
-  /** A label under a sprite's anchor: dark text on white, `captionPx` tall on screen. */
+  /** A label under a sprite's anchor: dark text on white, `captionPx` tall on screen. Its own box is a tap target, as what it labels. */
   private drawCaption(o: IslandObject, caption: string): Phaser.GameObjects.Text {
     const style: Phaser.Types.GameObjects.Text.TextStyle = { ...TEXT_STYLE, color: '#0f1324', stroke: undefined, strokeThickness: 0, backgroundColor: '#ffffff', padding: { x: 3, y: 1 } }
-    const t = this.add.text(o.x, o.y + 2, caption, style).setOrigin(0.5, 0).setResolution(4).setScale(this.captionScale()).setData('caption', true)
+    const t = this.add.text(o.x, o.y + 2, caption, style).setOrigin(0.5, 0).setResolution(4).setScale(this.captionScale()).setData('caption', true).setData('target', o.target)
+    t.setInteractive({ useHandCursor: true })
     this.layer.add(t)
     return t
   }

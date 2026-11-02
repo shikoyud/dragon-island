@@ -151,7 +151,7 @@
 /* Above the bar, out of its layout: the camera frames round the bar, and must not shift when this comes and goes. */
 .placement-bar__why {
   position: absolute; bottom: 100%; margin-bottom: 4px; white-space: nowrap; padding: 2px 8px; border-radius: 8px;
-  color: #ffb4a6; background: var(--glass); border: 2px solid var(--ink);
+  color: #ffb4a6; background: var(--glass); border: 2px solid var(--ink); font: 12px var(--font-display);
 }
 .placement-go {
   --plate: 56px; --face: #4caf50; --edge: #276a2b;
@@ -163,8 +163,7 @@
   background: var(--face); border: 3px solid var(--ink); box-shadow: inset 0 -5px 0 var(--edge), inset 0 3px 0 rgba(255, 255, 255, 0.35), 0 3px 0 var(--ink);
 }
 .placement-go:active:not(:disabled) .placement-go__plate { transform: translateY(2px); }
-.placement-go:disabled { cursor: not-allowed; }
-.placement-go:disabled .placement-go__plate { opacity: 0.55; filter: grayscale(1); }
+.placement-go:disabled { cursor: not-allowed; --face: #8a8e96; --edge: #5c6068; }
 .placement-go__label { font: 12px var(--font-display); letter-spacing: 0.5px; line-height: 1.1; }
 /* Block glyphs until the art: an X of two bars, a tick of a box's two sides. */
 .placement-go__glyph { position: relative; display: block; width: 40%; height: 40%; }

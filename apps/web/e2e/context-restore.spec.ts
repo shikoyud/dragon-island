@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { dismissLevelUp, resetPlayer, signIn } from './helpers'
 
 /**
- * The island's ground is baked into one render texture. A lost WebGL context empties it, and only a re-bake on Phaser's
+ * Home's ground is baked into one canvas texture. A lost WebGL context empties it, and only a re-bake on Phaser's
  * restore event brings the land back (without the hook the sky shows alone).
  */
 

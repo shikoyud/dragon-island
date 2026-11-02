@@ -49,6 +49,14 @@ export function groundCell(state: PlayerState | null, view: IslandId, worldX: nu
   return plot === null || !landPlots(state, view).includes(plot) ? null : c
 }
 
+/** The plot for sale under a world position, or null: a tap on its bare ground opens it (design: "Locked plot | any | opens Expand"). */
+export function offeredPlotAt(state: PlayerState | null, view: IslandId, worldX: number, worldY: number): number | null {
+  if (!state) return null
+  const c = pointerToCell(worldX, worldY)
+  const plot = plotOfTile(c.col, c.row)
+  return plot !== null && offeredPlots(state, view).includes(plot) ? plot : null
+}
+
 /** World position of a screen pixel (screen = the game canvas, in CSS pixels). */
 export function screenToWorld(v: View, viewportW: number, viewportH: number, sx: number, sy: number): { x: number; y: number } {
   return { x: v.cx + (sx - viewportW / 2) / v.zoom, y: v.cy + (sy - viewportH / 2) / v.zoom }
@@ -87,12 +95,13 @@ export function clampView(v: View, viewportW: number, viewportH: number, b: Box)
 }
 
 /**
- * Opening zoom, a whole number never below 1. Landscape: nearest to fitting the box, leaning up from x.4. Portrait
- * (a phone): rounded up, since the wide island is width-limited with height to spare; edges are a drag away.
+ * Opening zoom, a whole number. Landscape: nearest to fitting the box, leaning up from x.4, and never below 2: zoom 1 is
+ * unreadable, and a short screen has the rest a drag or a zoom away. Portrait (a phone): rounded up, never below 1, since
+ * the wide island is width-limited with height to spare; edges are a drag away.
  */
 export function fitZoom(viewportW: number, viewportH: number, b: Box): number {
   const f = Math.min(viewportW / b.w, viewportH / b.h)
-  return Math.max(1, viewportH > viewportW ? Math.ceil(f) : Math.round(f + 0.1))
+  return viewportH > viewportW ? Math.max(1, Math.ceil(f)) : Math.max(2, Math.round(f + 0.1))
 }
 
 /**
@@ -129,7 +138,7 @@ export function landBox(state: PlayerState | null, view: IslandId): Box {
 
 /**
  * Where the camera opens (R58): the middle of the owned land, at the whole-number zoom that fits it with a margin
- * (`fitZoom`, never below 1). `viewportH` is the height the HUD leaves free. Drag or zoom reaches the rest of the island.
+ * (`fitZoom`). `viewportH` is the height the HUD leaves free. Drag or zoom reaches the rest of the island.
  */
 export function openingView(state: PlayerState | null, view: IslandId, viewportW: number, viewportH: number): View {
   const b = landBox(state, view)

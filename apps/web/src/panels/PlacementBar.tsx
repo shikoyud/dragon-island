@@ -1,4 +1,5 @@
 import type { IslandId } from '@wyrmhaven/game-core'
+import { useEffect } from 'react'
 import type { IslandChoice } from '../state/placing'
 
 /** A round button with its label beneath; its glyph is made of CSS blocks. */
@@ -14,11 +15,18 @@ function GoButton({ name, label, kind, disabled, onClick }: { name: string; labe
 /**
  * While a building is placed or moved: an Island button per island a mover may go to (R57) and Turn in a small row, over
  * Cancel and OK. It stands at the bottom centre, and only its buttons take pointer events: the rest of it is still island.
+ * Escape cancels, as Cancel does, unless a dialog over it (a level-up) has Escape for itself.
  */
 export function PlacementBar({ legal, pending, islands = [], onIsland, onTurn, onConfirm, onCancel }: {
   legal: boolean; pending?: boolean; islands?: readonly IslandChoice[]; onIsland?: (island: IslandId) => void
   onTurn: () => void; onConfirm: () => void; onCancel: () => void
 }) {
+  useEffect(() => {
+    if (pending) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('[role="dialog"]')) onCancel() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [pending, onCancel])
   return (
     <div className="placement-bar" role="toolbar" aria-label="Placement">
       {!legal && <small className="placement-bar__why">Can't build here</small>}

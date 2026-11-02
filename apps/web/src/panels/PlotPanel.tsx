@@ -9,6 +9,7 @@ function refusal(s: PlayerState, island: IslandId, plot: number, price: number |
   switch (plotError(s, island, plot)) {
     case 'ISLAND_LOCKED': return 'Open this island first'
     case 'PLOT_NOT_ADJACENT': return 'It must touch land you own'
+    case 'PLOT_NOT_OFFERED': return 'Not for sale yet'
     case 'MAX_PLOTS': return 'Every plot is bought'
     case 'LEVEL_TOO_LOW': return `Needs player level ${unlockPl(`home:${plotsBought(s, island)}`)}`
     default: return price !== null && s.gold < price ? 'Not enough gold' : ''

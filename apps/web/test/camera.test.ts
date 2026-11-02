@@ -4,7 +4,7 @@ import { FALLBACK_ART } from '../src/art/slots'
 import { buildIslandModel } from '../src/game/islandModel'
 import { withPlots } from './land'
 import {
-  cameraBounds, clampView, fitZoom, groundCell, isClick, landBox, landPlots, lockedTiles, openingView, panBy, screenToWorld, SKIRT, stepZoom, worldToScreen, zoomAt, zoomRange,
+  cameraBounds, clampView, fitZoom, groundCell, isClick, landBox, landPlots, lockedTiles, offeredPlotAt, openingView, panBy, screenToWorld, SKIRT, stepZoom, worldToScreen, zoomAt, zoomRange,
   type View,
   revealPan,
 } from '../src/game/camera'
@@ -128,7 +128,9 @@ describe('island camera logic', () => {
     const box = { x: -120, y: 0, w: 240, h: 140 }
     expect(fitZoom(1280, 720, box)).toBe(5) // 720/140 = 5.1
     expect(fitZoom(390, 844, box)).toBe(2) // 1.6 rounds up: a little of the edge is cropped
-    expect(fitZoom(844, 390, { x: 0, y: 0, w: 160, h: 300 })).toBe(1) // landscape 1.3 rounds down
+    expect(fitZoom(844, 390, { x: 0, y: 0, w: 160, h: 300 })).toBe(2) // landscape 1.3 would round down: a landscape screen never opens below 2
+    expect(fitZoom(844, 300, { x: 0, y: 0, w: 800, h: 600 })).toBe(2)
+    expect(fitZoom(400, 844, { x: 0, y: 0, w: 800, h: 600 })).toBe(1) // portrait keeps its rule
     expect(fitZoom(390, 844, { x: 0, y: 0, w: 400, h: 160 })).toBe(1)
     // A phone showing a box 272 wide opens at 2: buildings readable, edges a drag away.
     expect(fitZoom(390, 680, { x: 0, y: 0, w: 272, h: 172 })).toBe(2)
@@ -207,7 +209,28 @@ describe('the opening view (R58)', () => {
     const all = withPlots(fresh, Array.from({ length: 16 }, (_, i) => i))
     expect(openingView(all, 'home', PHONE.w, PHONE.h)).toEqual({ cx: 0, cy: 128, zoom: 1 })
     expect(zoomRange(openingView(all, 'home', PHONE.w, PHONE.h).zoom).min).toBe(1)
-    expect(openingView(all, 'home', 200, 200).zoom).toBe(1)
+    expect(openingView(all, 'home', 200, 300).zoom).toBe(1)
+  })
+
+  it('bare ground on a plot for sale answers with the plot; owned land, plots not offered and the sky do not', () => {
+    const at = (col: number, row: number) => { const c = cellCentre(col, row); return offeredPlotAt(fresh, 'home', c.x, c.y) }
+    expect(at(21, 6)).toBe(2)
+    expect(at(28, 12)).toBe(7)
+    expect(at(14, 14)).toBeNull() // owned
+    expect(at(3, 3)).toBeNull() // plot 0, not offered
+    expect(at(40, 40)).toBeNull()
+    expect(offeredPlotAt(null, 'home', 0, 100)).toBeNull()
+  })
+
+  it('a landscape phone opens at 2 at least, on the land\'s middle, with zoom 1 still there to go to', () => {
+    const all = withPlots(fresh, Array.from({ length: 16 }, (_, i) => i))
+    for (const s of [fresh, all]) {
+      const v = openingView(s, 'home', 844, 300)
+      expect(v.zoom).toBe(2)
+      expect(zoomRange(v.zoom).min).toBe(1)
+      const b = landBox(s, 'home')
+      expect({ cx: v.cx, cy: v.cy }).toEqual({ cx: b.x + b.w / 2, cy: b.y + b.h / 2 })
+    }
   })
 
   it('a plot sign is at least 44 CSS px to tap at the opening view on a 390x844 phone', () => {

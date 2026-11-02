@@ -82,7 +82,7 @@ test('open the Map, drag, zoom, click Ember Reach, buy its Bridge, Go, and stand
   await expect(panel).toBeHidden()
   await expect.poll(() => page.evaluate(() => { const br = (window as unknown as { __bridge: TestBridge }).__bridge; return [br.mapOpen, br.view] })).toEqual([false, 'isle2'])
   await page.waitForTimeout(300)
-  // Plot 4 touches the centre 2x2 on its left: its sign stands on the plot's centre (R58).
+  // Plot 4 touches the centre 2x2 on its left: its sign stands on the cell by the plot's centre (R58, `signSpot`), or a tap there opens it as bare ground for sale.
   const sign = await cellPoint(page, 3, 11)
   await page.mouse.click(sign.x, sign.y)
   await expect(page.getByRole('dialog', { name: 'plot' })).toContainText(/Buy plot · 100,000 gold/)
