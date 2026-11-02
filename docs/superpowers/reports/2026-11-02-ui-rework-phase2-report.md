@@ -23,11 +23,11 @@ Every dialog now uses the kit. The kit's pieces are all in a gallery at `#/kit`.
 
 | Check | Result |
 | --- | --- |
-| `pnpm -r typecheck` | see the final line of this table |
-| web unit | 950 passed before the art merge (18 new kit tests among them) |
+| `pnpm -r typecheck` | clean |
+| web unit | 950 passed (kit tests among them) |
 | Web e2e | 52 passed, 1 skipped (on-chain deposit, needs anvil), 0 failed, before the art merge |
 | Kit e2e after the art merge | 2 of 2 passed (1920×1080 and 844×390) |
-| All unit suites and typecheck on the final commit | recorded below once the run finishes |
+| All unit suites, after the art merge and the upgrade-post change | game-core 1,039, shared 9, waitlist 161, web 950, server 171: 2,330 passed, 0 failed |
 
 E2E ran on this cloud machine's preinstalled Chromium through a local config that isn't committed (the repo pins a newer Playwright build than the one installed).
 
