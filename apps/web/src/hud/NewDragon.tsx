@@ -8,7 +8,7 @@ import { PillButton } from '../ui/kit/buttons'
 import { ElementRibbon, RarityShield } from '../ui/kit/pieces'
 import { formatGold, formatPerMinuteX20 } from '../ui/Money'
 import { ArtMark } from './ArtMark'
-import { newDragonCard } from './newDragon'
+import { newDragonCard } from './newDragonCard'
 
 /**
  * The New dragon screen after a hatch (design, Phase 5: new-dragon): a glow over the island, the dragon bottom left with

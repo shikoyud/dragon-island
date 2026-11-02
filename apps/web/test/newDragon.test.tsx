@@ -2,7 +2,7 @@ import { DEFAULT_PRESET, newPlayer, type PlayerState } from '@wyrmhaven/game-cor
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { hatchedDragon, newDragonCard } from '../src/hud/newDragon'
+import { hatchedDragon, newDragonCard } from '../src/hud/newDragonCard'
 import { NewDragon } from '../src/hud/NewDragon'
 import { harness } from './harness'
 
