@@ -14,9 +14,10 @@
   --kit-text: #2a2233;
   --kit-text-muted: #6a5f55;
   --kit-short: #d8312a;
+  /* Square buttons are 16 px art at 2x, or 3x on big screens. */
   --kit-square: 32px;
+  --kit-rim: 5px;
 }
-@media (min-width: 700px) and (min-height: 600px) { :root { --kit-square: 40px; } }
 
 /* ---- pills ---- */
 .kit-pill {
@@ -73,9 +74,10 @@
 .kit-frame {
   position: relative; display: flex; flex-direction: column; min-height: 0; max-height: 100%;
   margin-top: 18px; padding: 26px 6px 8px;
-  background: var(--kit-cream); border: 3px solid var(--kit-steel); border-radius: 12px;
+  background: var(--kit-cream); border: var(--kit-rim) solid var(--kit-steel); border-radius: 14px;
   outline: 2px solid var(--kit-ink);
-  box-shadow: inset 2px 2px 0 var(--kit-cream-hi), inset -2px -3px 0 var(--kit-cream-lo), 0 4px 0 2px var(--kit-ink);
+  /* Grey bevel: a light row along the rim's top and left, a dark one along its bottom and right, then the cream's own bevel. */
+  box-shadow: inset 2px 2px 0 #b9bdc6, inset -2px -2px 0 #464a55, inset 4px 4px 0 var(--kit-cream-hi), inset -4px -5px 0 var(--kit-cream-lo), 0 4px 0 2px var(--kit-ink);
 }
 .kit-frame__body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 8px 4px; }
 .kit-frame__close { position: absolute; top: calc(var(--kit-square) / -2); right: calc(var(--kit-square) / -3); z-index: 2; }
@@ -122,3 +124,16 @@
 .kit-scroll::-webkit-scrollbar-thumb { background: #7a4a22; border: 2px solid var(--kit-ink); box-shadow: inset 2px 2px 0 #b7793f; }
 .kit-scroll::-webkit-scrollbar-button { display: none; height: 0; }
 .kit-scroll::-webkit-scrollbar-corner { background: transparent; }
+
+/* A big screen gets the reference's proportions: a bigger plank, rim, pills and dialog (the 1920 shot read tiny). */
+@media (min-width: 1280px) and (min-height: 800px) {
+  :root { --kit-square: 48px; --kit-rim: 8px; }
+  .kit-plank { font-size: 22px; padding: 8px 28px 11px; }
+  .kit-badge { font-size: 14px; }
+  .kit-frame { padding-top: 34px; }
+  .kit-plank-row { top: -24px; }
+  .kit-pill, .btn { font-size: 15px; line-height: 1.1; min-height: 52px; padding: 6px 18px 9px; }
+  .kit-frame .kit-frame__body { font-size: 16px; }
+  .kit-why { font-size: 13px; }
+  .hud-dialog:has(> .kit-frame) { width: min(760px, 100%); }
+}

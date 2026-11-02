@@ -1,0 +1,53 @@
+# UI rework art list (Phases 2 to 4)
+
+For `docs/superpowers/plans/2026-11-02-ui-rework-phase2.md` and the design's Art list items 2 to 4. Every piece already has a drawn CSS fallback; art replaces it when the key is in `apps/web/public/art/v1/manifest.json`. Files go in `apps/web/public/art/v1/`, prompts and seeds in `apps/web/art/prompts.md` under a "UI rework Phase 2 set" heading, as in Phase 1.
+
+Rules for every piece:
+- Wyrmhaven pixel style: 1 px dark outline (`#141627`), flat fills, no anti-aliasing, transparent background outside the shape.
+- Exact sizes below. The game draws them at integer scale only (2× on phones, 3× on big screens for 16 px pieces), so a pixel must stay a pixel.
+- **9-slice** pieces: the corners (the inset in px from each edge) are drawn as-is, the edges and centre stretch. Keep edges and centre a plain repeating pattern within the inset rules, and keep corners within the inset.
+- No text in any image. Titles, numbers and letters are drawn by the game.
+- Layout references are for composition only: no copying their art.
+
+## Phase 2: UI kit (needed first)
+
+| Key | Size | 9-slice inset (t r b l) | What |
+| --- | --- | --- | --- |
+| `ui.kit.frame` | 48×48 | 12 12 12 12 | Dialog frame: thick light-grey stone/steel rim (about 5 px) with a bevel (light top-left, dark bottom-right), cream `#f3ead2` inside. Rounded corners. |
+| `ui.kit.plank` | 48×20 | 6 8 7 8 | Wooden board for titles: warm brown with 2 grain lines, lighter top row, darker bottom edge. |
+| `ui.kit.badge` | 16×16 | 5 5 5 5 | Dark slate rounded rectangle for counts ("2/4"). |
+| `ui.kit.close` | 16×16 | — | Round red button, orange rim, white X. |
+| `ui.kit.back` | 16×16 | — | Orange rounded square, white left arrow. |
+| `ui.kit.help` | 16×16 | — | Round blue button, white "?" is allowed here (a glyph, not text). |
+| `ui.kit.pill.blue`, `.yellow`, `.green`, `.purple`, `.grey`, `.red` | 32×16 | 5 6 6 6 | Pill button face per colour: 2 px lighter row on top, 3 px darker edge at the bottom, rounded ends. Same shape for all six. |
+| `ui.kit.round` | 32×32 | — | Round action button: white rounded square, thick orange ring. Icon goes on top. |
+| `ui.kit.lock` | 12×12 | — | Small dark grey circle with a white padlock (lock badge). |
+| `ui.kit.card` | 48×64 | 16 10 10 10 | Shop/storage card: rounded light card, top 16 rows a soft green scale pattern header. |
+| `ui.kit.resource` | 48×16 | 4 6 4 6 | Resource pill: dark field. |
+| `ui.kit.plus` | 16×16 | — | Green square button with white plus. |
+| `ui.kit.scroll.track` | 12×16 | 4 0 4 0 | Wooden scrollbar track (vertical, tiles top to bottom). |
+| `ui.kit.scroll.thumb` | 12×24 | 6 0 6 0 | Chunky darker wood thumb. |
+| `ui.kit.bubble` | 24×24 | 8 8 8 8 | White speech bubble body, dark outline. |
+| `ui.kit.bubble.tail` | 12×8 | — | Its tail pointing down. |
+| `ui.kit.bar` | 32×12 | 4 5 4 5 | Progress bar trough, dark rounded. Fill is drawn by the game. |
+| `ui.kit.ribbon.<element>` (×10: terra, flame, sea, nature, electric, ice, metal, dark, light, war) | 12×20 | — | Hanging banner with a notched bottom in the element colour (see `apps/web/src/styles/tokens.css` `--el-*`) and a tiny element symbol. |
+| `ui.kit.shield.<rarity>` (×5: common, uncommon, rare, epic, legendary) | 20×24 | — | Heraldic shield, blank centre (the game draws the letter). Grey-blue, green, blue, purple, gold. |
+| `ui.kit.new` | 24×24 | — | Pink eight-point burst for "New" (no lettering). |
+
+## Phase 3: main HUD
+
+| Key | Size | What |
+| --- | --- | --- |
+| `ui.hud.levelStar` | 32×32 | Blue star badge for the level number. |
+| `ui.hud.avatarFrame` | 48×48 | Square avatar frame, rounded, steel rim. |
+| `icon.book.32`, `icon.search.32`, `icon.goals.32`, `icon.storage.32`, `icon.shop.32` | 32×32 | HUD icons (settings, battle and currency icons already exist). Style image: an existing `icon.*.32`. |
+| `map.island.home`, `.isle2` … `.isle6` | 128×96 | Each island as a small floating island in the sky (rocky underside, its own colour theme: home green; the others follow `packages/game-core/src/island.ts` names). |
+| `map.chain` | 32×32 | Chain and padlock over a locked island. |
+
+## Phase 4: action and bubble icons
+
+All 32×32, drawn inside `ui.kit.round` (leave 4 px clear at the edges): `icon.getEgg`, `icon.collect`, `icon.upgrade` (green up arrow), `icon.info` (speech bubble with "?"), `icon.move` (four yellow arrows), `icon.hatch`, `icon.growFood`, `icon.speedUp`, `icon.rebreed`, `icon.clear` (shovel), plus `.32` suffix as for the other icons. Bubble icons 24×24: `icon.bubble.gold`, `icon.bubble.food`, `icon.bubble.xp`.
+
+## Manifest entries
+
+One entry per key, as the existing ones: `{ "file": "ui-kit-frame.png", "w": 48, "h": 48, "frames": 1, "fps": 0 }`. File names are the key with dots turned into dashes.
