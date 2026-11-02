@@ -101,6 +101,29 @@ export type AttentionTarget = { panel: Target; open?: undefined } | { open: Dial
 export type AttentionItem = AttentionBase & AttentionTarget
 
 /** The current Goal is done and waiting for Claim (§1.4). */
+/** The Dragon Book's counter on the HUD: species found over every species in the catalog. */
+export function bookCount(s: PlayerState): { found: number; total: number } {
+  return { found: s.discovered.length, total: LAUNCH_CATALOG.species.size }
+}
+
+/**
+ * Species found since the Book was last opened (Phase 3 ruling Q4), from the list the device remembers. A device that has
+ * never opened the Book (`seen` null) counts the starting pair as seen, so a new player starts with no badge.
+ */
+export function newBookEntries(s: PlayerState, seen: readonly string[] | null): number {
+  const known = new Set(seen ?? ['terra', 'flame'])
+  return s.discovered.filter(id => !known.has(id)).length
+}
+
+/** The bubble beside the Goals button: Claim! when the current Goal is done, Start! before any progress on it, else none. */
+export function goalsBubble(s: PlayerState): 'Claim!' | 'Start!' | null {
+  const g = currentGoal(s)
+  if (!g) return null
+  const p = goalProgress(s, g, LAUNCH_CATALOG)
+  if (p.have >= p.need) return 'Claim!'
+  return p.have === 0 ? 'Start!' : null
+}
+
 export function goalClaimable(s: PlayerState): boolean {
   const g = currentGoal(s)
   if (!g) return false

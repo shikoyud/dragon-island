@@ -254,11 +254,6 @@
 .skin-round .hud-round--small .hud-round__plate { width: 44px; height: 44px; }
 .skin-round .hud-round:active .hud-round__plate { box-shadow: none; }
 .skin-round-active .hud-round--active .hud-round__plate { background-image: var(--ui-round-active); box-shadow: none; }
-.skin-avatar .hud-avatar__badge {
-  width: 52px; height: 52px; border: 0; box-shadow: none; color: var(--text); image-rendering: pixelated;
-  background: var(--ui-avatar) center / 100% 100% no-repeat; padding-bottom: 6px;
-  text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink);
-}
 /* Pill, XP bar and tab art have empty rows above (and below) the frame: each is nine-sliced at 2x with the slice
    taking the empty rows plus the outline row, and border-image-outset pushing the empty rows outside the box, so
    the outline sits on the box edge at the same 2 px everywhere. */
@@ -420,3 +415,111 @@
 .battle__crown, .battle__tier, .trials__mark { vertical-align: -3px; margin-right: 3px; image-rendering: pixelated; }
 .trials__card-art { flex: none; image-rendering: pixelated; }
 .hud-star { image-rendering: pixelated; }
+
+/* ==== UI rework Phase 3: the main HUD in the reference layout (docs/superpowers/plans/2026-11-02-ui-rework-phase3.md).
+   Top left player (level star over the avatar, Dragon Book counter, XP), top centre $DRIS / Gold / Food, top right
+   Settings and Map, left edge Goals, right edge zoom, bottom left Battle, bottom right Shop, bottom centre free. ==== */
+.hud .sr-only, .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.hud-top { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); padding-right: 64px; }
+.hud-top__spacer { min-width: 0; }
+.hud-player { display: flex; align-items: flex-start; gap: 6px; min-width: 0; pointer-events: none; }
+.hud-player button, .hud-player .hud-xp { pointer-events: auto; }
+.hud-avatar { position: relative; flex: none; width: 60px; height: 60px; }
+.hud-avatar__frame {
+  position: absolute; inset: 0; display: grid; place-items: center; image-rendering: pixelated;
+  background: #3a4a7a; border: 3px solid #9aa5b1; border-radius: 10px; box-shadow: 0 0 0 2px var(--ink), 0 3px 0 2px var(--ink);
+}
+.hud-avatar__frame > * { width: 40px; height: 40px; }
+.hud .hud-avatar__badge {
+  position: absolute; left: -8px; top: -8px; width: 34px; height: 34px; border: 0; border-radius: 0; box-shadow: none;
+  display: grid; place-items: center; padding-top: 3px; font: 13px var(--font-display); color: #fff;
+  background: #2f8fe0; clip-path: polygon(50% 0, 62% 34%, 100% 36%, 70% 58%, 80% 100%, 50% 78%, 20% 100%, 30% 58%, 0 36%, 38% 34%);
+  text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink);
+}
+.hud-player__side { display: grid; gap: 4px; min-width: 0; padding-top: 4px; }
+.hud .hud-xp { margin-left: 0; width: 150px; height: 16px; border-left: 2px solid var(--ink); border-radius: 8px; }
+.hud .hud-xp__text { padding-left: 8px; font-size: 8px; line-height: 12px; }
+.hud-book {
+  position: relative; display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 10px 0 2px; cursor: pointer; justify-self: start;
+  background: rgba(20, 22, 39, 0.82); border: 2px solid var(--ink); border-radius: 8px; color: #fff; font: 12px var(--font-display);
+}
+.hud-book .hud-icon { width: 28px; height: 28px; }
+.hud-book__new {
+  position: absolute; left: -6px; bottom: -6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px;
+  display: grid; place-items: center; font: 10px var(--font-display); background: #d8312a; border: 2px solid var(--ink);
+}
+.hud-book:focus-visible, .hud-round:focus-visible .hud-round__plate { outline: 3px solid #1f6feb; outline-offset: 2px; }
+.hud-pills { gap: 14px; flex-wrap: nowrap; }
+.hud-right { top: max(8px, env(safe-area-inset-top)); right: 10px; gap: 8px; }
+
+/* Round buttons in the kit's look: white plate, orange ring (ui.kit.round when the art exists). */
+.hud .hud-round__plate {
+  border-radius: 14px; background: #fbfaf6; border: 2px solid var(--ink);
+  box-shadow: inset 0 0 0 3px #e9962f, inset 0 0 0 5px #b86a1a, inset 0 -5px 0 5px #ddd8cc, 0 3px 0 var(--ink);
+}
+.hud .hud-round--active .hud-round__plate { background: #fff3b0; }
+.skin-kit-round .hud .hud-round__plate { background: var(--kit-round) center / 100% 100% no-repeat; border: 0; box-shadow: none; image-rendering: pixelated; }
+.skin-kit-round .hud .hud-round--active .hud-round__plate { filter: brightness(1.1) saturate(1.2); }
+.hud .hud-round__label { margin-top: -8px; position: relative; font-size: 11px; color: #fff; }
+
+/* Goals on the left edge with its Claim!/Start! bubble; the attention list stays under it until Phase 4's bubbles. */
+.hud-goals { position: absolute; left: 10px; top: 32%; display: flex; align-items: center; gap: 6px; }
+.hud-goals__bubble {
+  position: relative; padding: 6px 10px; font: 13px var(--font-display); color: #b8860b; pointer-events: none;
+  background: #fbfaf6; border: 2px solid var(--ink); border-radius: 10px; box-shadow: 0 3px 0 var(--ink);
+}
+.hud-goals__bubble::before {
+  content: ""; position: absolute; left: -9px; top: 50%; width: 8px; height: 12px; transform: translateY(-50%);
+  background: var(--ink); clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+.hud-goals__bubble--claim { color: #2f7d29; }
+.hud .hud-left { top: calc(32% + 92px); width: 210px; }
+
+/* Bottom corners: Battle left, Shop right. The centre band is the bottom slot (placement and, from Phase 4, the action row). */
+.hud-corners { position: absolute; inset: auto 0 0 0; height: 0; pointer-events: none; }
+.hud-corner { position: absolute; bottom: max(10px, env(safe-area-inset-bottom)); pointer-events: auto; }
+.hud-corner--left { left: 12px; }
+.hud-corner--right { right: 12px; }
+.hud-corners .hud-round__plate { width: 64px; height: 64px; }
+
+@media (min-width: 1280px) and (min-height: 800px) {
+  .hud-avatar { width: 84px; height: 84px; }
+  .hud-avatar__frame > * { width: 56px; height: 56px; }
+  .hud .hud-avatar__badge { width: 46px; height: 46px; font-size: 17px; left: -12px; top: -12px; }
+  .hud-book { height: 40px; font-size: 15px; }
+  .hud-book .hud-icon { width: 36px; height: 36px; }
+  .hud .hud-xp { width: 200px; height: 18px; }
+  .hud .hud-round__plate { width: 72px; height: 72px; }
+  .hud .hud-round--small .hud-round__plate { width: 56px; height: 56px; }
+  .hud-corners .hud-round__plate { width: 92px; height: 92px; }
+  .hud .hud-round__label { font-size: 15px; }
+  .hud-goals__bubble { font-size: 17px; padding: 8px 14px; }
+}
+/* A short screen (landscape phone): everything a step smaller, Goals higher so the attention list fits. */
+@media (max-height: 520px) {
+  .hud-avatar { width: 46px; height: 46px; }
+  .hud-avatar__frame > * { width: 32px; height: 32px; }
+  .hud .hud-avatar__badge { width: 28px; height: 28px; font-size: 11px; }
+  .hud .hud-xp { width: 110px; }
+  .hud-book { height: 26px; font-size: 10px; }
+  .hud-book .hud-icon { width: 22px; height: 22px; }
+  .hud-goals { top: 76px; }
+  .hud .hud-left { top: 136px; }
+  .hud .hud-round__plate { width: 46px; height: 46px; }
+  .hud .hud-round--small .hud-round__plate { width: 38px; height: 38px; }
+  .hud-corners .hud-round__plate { width: 52px; height: 52px; }
+  .hud .hud-round__label { font-size: 9px; }
+  .hud-pills { gap: 6px; }
+  .hud-pills .kit-resource__value { min-width: 56px; font-size: 11px; }
+}
+/* Portrait phones (until the rotate screen): pills drop to a second row. */
+@media (max-width: 699px) {
+  .hud-top { grid-template-columns: minmax(0, 1fr) auto; padding-right: 64px; }
+  .hud-pills { grid-column: 1 / -1; grid-row: 2; gap: 2px; justify-content: flex-start; }
+  .hud-pills .kit-resource__value { min-width: 40px; padding-right: 4px; font-size: 11px; }
+  .hud-pills .kit-resource__plus { width: 26px; height: 26px; }
+  .hud-goals { top: 132px; left: 6px; }
+  .hud .hud-left { top: 196px; }
+}
+.skin-level-star .hud .hud-avatar__badge { clip-path: none; background: var(--ui-level-star) center / 100% 100% no-repeat; image-rendering: pixelated; }
+.skin-avatar-frame .hud-avatar__frame { background: var(--ui-avatar-frame) center / 100% 100% no-repeat; border: 0; box-shadow: none; }

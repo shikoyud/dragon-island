@@ -8,17 +8,19 @@ import { dismissLevelUp, expectPixelFonts, openPanel, resetPlayer, setServerCloc
 type B = { state: { constructions: unknown[]; farms: unknown[] } | null; placing: { col: number; row: number; size: number } | null; cellToScreen: ((c: number, r: number) => { x: number; y: number }) | null }
 const bridge = <T>(page: Page, fn: (b: B) => T) => page.evaluate(`(${fn.toString()})(window.__bridge)`) as Promise<T>
 
-test('the countdown follows the server clock, not the device', async ({ page, request }) => {
+test('the countdown in Settings follows the server clock, not the device', async ({ page, request }) => {
   const days = async () => Number(/(\d+)d /.exec(await page.getByRole('timer', { name: 'Terminal countdown' }).innerText())![1])
   await signIn(page)
   await resetPlayer(request)
   await setServerClock(request, 0)
   await page.reload()
+  await openPanel(page, 'Settings')
   await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toBeVisible()
   const before = await days()
   try {
     await setServerClock(request, 86_400_000)
     await page.reload()
+    await openPanel(page, 'Settings')
     await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toBeVisible()
     expect(await days()).toBe(before - 1)
   } finally {
@@ -45,14 +47,26 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       const res = page.getByRole('status', { name: 'Resources' })
       await expect(res.getByLabel('Gold', { exact: true })).toHaveText('5,000')
       await expect(res.getByLabel('Food', { exact: true })).toHaveText('50')
-      const bar = page.getByRole('navigation', { name: 'Main menu' })
-      for (const b of ['Shop', 'Breed', 'Dragon Book', 'Battle', 'Wings', 'Quests', 'Inbox']) {
-        await expect(bar.getByRole('button', { name: b, exact: true })).toBeVisible()
-        expect((await bar.getByRole('button', { name: b, exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(44)
+      // Phase 3 layout: Battle bottom left, Shop bottom right, Goals on the left edge, Book counter top left, no Finals clock.
+      const boxOf = async (name: string) => (await page.getByRole('button', { name, exact: true }).boundingBox())!
+      for (const b of ['Battle', 'Shop', 'Goals', 'Dragon Book', 'Settings', 'Map']) {
+        await expect(page.getByRole('button', { name: b, exact: true })).toBeVisible()
+        expect((await boxOf(b)).height, b).toBeGreaterThanOrEqual(26)
       }
-      for (const b of ['Wings', 'Inbox']) await expect(bar.getByRole('button', { name: b, exact: true })).toBeDisabled()
-      await expect(bar.getByRole('button', { name: 'Quests', exact: true })).toBeEnabled()
-      await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toContainText(/^(Launch in|Finals lock in) \d+d \d\d:\d\d:\d\d$/)
+      const battle = await boxOf('Battle'), shop = await boxOf('Shop')
+      expect(battle.x).toBeLessThan(size.width / 4)
+      expect(shop.x + shop.width).toBeGreaterThan(size.width * 3 / 4)
+      expect(battle.y + battle.height).toBeGreaterThan(size.height - 120)
+      expect((await boxOf('Goals')).x).toBeLessThan(80)
+      for (const b of ['Breed', 'Wings', 'Inbox', 'Quests']) await expect(page.getByRole('button', { name: b, exact: true })).toHaveCount(0)
+      await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toHaveCount(0)
+      // No two HUD controls overlap.
+      const controls = await page.locator('.hud button:visible, .hud .kit-resource:visible').evaluateAll(els => els.filter(e => !e.closest('.kit-resource') || e.classList.contains('kit-resource')).map(e => { const r = e.getBoundingClientRect(); return { n: e.getAttribute('aria-label') ?? e.className, x: r.x, y: r.y, w: r.width, h: r.height } }))
+      for (const a of controls) for (const b of controls) {
+        if (a === b) continue
+        const hit = a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1 && a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1
+        expect(hit, `${a.n} overlaps ${b.n}`).toBe(false)
+      }
       await expect(page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name: 'Map', exact: true })).toBeVisible()
       for (const b of ['Hoard', 'Season', 'Ranks', 'Referral']) await expect(page.getByRole('button', { name: b, exact: true })).toHaveCount(0)
       await expect(page.getByRole('complementary', { name: 'Needs attention' }).getByRole('button', { name: /daily quests/i })).toHaveCount(0)
@@ -125,9 +139,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await checkTabs(['Trials', 'Arena'])
       await page.keyboard.press('Escape')
 
-      const clock = page.getByRole('timer', { name: 'Terminal countdown' })
-      expect(Number.parseFloat(await clock.evaluate(el => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(12)
-      for (const name of ['Wings', 'Quests', 'Inbox']) {
+      for (const name of ['Battle', 'Shop']) {
         const button = page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true })
         expect(await button.evaluate(el => getComputedStyle(el).opacity)).toBe('1')
       }
@@ -182,9 +194,9 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await signIn(page)
       await resetPlayer(request)
       await page.reload()
-      const nav = (await page.getByRole('navigation', { name: 'Main menu' }).boundingBox())!
+      const shop = (await page.getByRole('button', { name: 'Shop', exact: true }).boundingBox())!
       const toasts = (await page.locator('.toasts').boundingBox())!
-      expect(toasts.y + toasts.height).toBeLessThanOrEqual(nav.y)
+      expect(toasts.y + toasts.height).toBeLessThanOrEqual(shop.y)
     })
 
     test('a build whose timer has run out finishes by itself', async ({ page, request }) => {
@@ -222,8 +234,10 @@ test.describe('zoom slider on a landscape phone', () => {
     }
     const map = (await page.getByRole('navigation', { name: 'Island menu' }).boundingBox())!
     expect(overlaps(box, map)).toBe(false)
-    const menu = (await page.getByRole('navigation', { name: 'Main menu' }).boundingBox())!
-    expect(overlaps(box, menu)).toBe(false)
+    for (const name of ['Battle', 'Shop']) {
+      const b = (await page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).boundingBox())!
+      expect(overlaps(box, b), name).toBe(false)
+    }
 
     const before = (await cam(page))!
     expect(before.max).toBeGreaterThan(before.zoom)

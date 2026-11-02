@@ -4,7 +4,8 @@ import type { Sprite } from '../art/types'
 const PIECES = [
   ['--ui-round', 'skin-round', 'ui.button.round'],
   ['--ui-round-active', 'skin-round-active', 'ui.button.round.active'],
-  ['--ui-avatar', 'skin-avatar', 'ui.avatarFrame'],
+  ['--ui-level-star', 'skin-level-star', 'ui.hud.levelStar'],
+  ['--ui-avatar-frame', 'skin-avatar-frame', 'ui.hud.avatarFrame'],
   ['--ui-pill', 'skin-pill', 'ui.pill'],
   ['--ui-xp', 'skin-xp', 'ui.xpBar'],
   ['--ui-tab', 'skin-tab', 'ui.tab'],

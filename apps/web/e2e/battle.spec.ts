@@ -155,7 +155,7 @@ test.describe('on a desktop', () => {
     await expect(result(page)).toContainText(/Victory|Defeat/)
     await expect(result(page)).toContainText(/Trophies \d+/)
     await page.getByRole('button', { name: 'Continue' }).click()
-    await expect(page.getByRole('navigation', { name: 'Main menu' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name: 'Shop', exact: true })).toBeVisible()
 
     await arena()
     await page.getByRole('button', { name: 'Exit battle' }).click()

@@ -47,16 +47,17 @@ describe('the Quests button and the Goal shortcut (final fix 5)', () => {
     const h = harness(s)
     h.wrap(<Hud bridge={createBridge()} nowMs={10_000} open={null} onOpen={() => {}} placing={false} />)
   }
-  it('keeps the name Quests while a Goal is claimable, with the state as its description and the dot hidden', () => {
+  it('keeps the name Goals while a Goal is claimable, with the state as its description and the Claim! bubble hidden from readers', () => {
     renderHud(claimable)
-    const button = screen.getByRole('button', { name: 'Quests' })
+    const button = screen.getByRole('button', { name: 'Goals' })
     expect(button).toHaveAccessibleDescription('Goal ready')
-    expect(button.querySelector('.hud-dot')).toHaveAttribute('aria-hidden', 'true')
+    expect(document.querySelector('.hud-goals__bubble')).toHaveAttribute('aria-hidden', 'true')
+    expect(document.querySelector('.hud-goals__bubble')).toHaveTextContent('Claim!')
   })
   it('has no description when nothing is claimable', () => {
     renderHud(base)
-    expect(screen.getByRole('button', { name: 'Quests' })).toHaveAccessibleDescription('')
-    expect(document.querySelector('.hud-dot')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Goals' })).toHaveAccessibleDescription('')
+    expect(document.querySelector('.hud-goals__bubble--claim')).toBeNull()
   })
   it('Goal ready is not cut by MAX_ATTENTION when other ready items already fill the list', () => {
     const ready = { kind: 'clear' as const, obstacleId: 'x', readyAtMs: 0 }

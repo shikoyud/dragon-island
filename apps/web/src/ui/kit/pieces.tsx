@@ -84,11 +84,11 @@ export function KitCard({
 }
 
 /** Resource pill: icon, dark number field, green plus. */
-export function ResourcePill({ icon, value, onPlus, plusLabel = 'Get more' }: { icon: ReactNode; value: string; onPlus?: () => void; plusLabel?: string }) {
+export function ResourcePill({ icon, value, label, onPlus, plusLabel = 'Get more' }: { icon: ReactNode; value: string; label?: string; onPlus?: () => void; plusLabel?: string }) {
   return (
-    <span className="kit-resource">
+    <span className="kit-resource" title={label}>
       <span className="kit-resource__icon">{icon}</span>
-      <span className="kit-resource__value">{value}</span>
+      <span className="kit-resource__value" aria-label={label}>{value}</span>
       {onPlus && <button type="button" className="kit-resource__plus" aria-label={plusLabel} onClick={onPlus}><span aria-hidden="true">+</span></button>}
     </span>
   )

@@ -63,6 +63,7 @@ export async function openPanel(page: Page, label: string) {
   await dismissLevelUp(page)
   if (await page.getByTestId('dialog-scrim').isVisible().catch(() => false)) await page.keyboard.press('Escape')
   const main = (name: string) => page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).click()
+  const settings = () => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name: 'Settings', exact: true }).click()
   const side = (name: string) => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name, exact: true }).click()
   const select = async (target: unknown) => {
     await page.waitForFunction(() => '__bridge' in window)
@@ -75,8 +76,19 @@ export async function openPanel(page: Page, label: string) {
       return page.getByRole('tab', { name: label }).click()
     case 'Map':
       return side(label)
+    case 'Settings':
+      return settings()
     case 'Wallet':
-      return page.getByRole('button', { name: 'Settings' }).click()
+      await settings()
+      return page.getByRole('tab', { name: 'Wallet' }).click()
+    case 'Quests':
+    case 'Goals':
+      return page.getByRole('navigation', { name: 'Goals' }).getByRole('button', { name: 'Goals', exact: true }).click()
+    case 'Dragon Book':
+      return page.getByRole('group', { name: 'Player' }).getByRole('button', { name: 'Dragon Book', exact: true }).click()
+    case 'Breed':
+      // The Breed button left the HUD (Phase 3 ruling Q3): the breeding building opens it.
+      return select({ kind: 'breeder', index: 0 })
     case 'Hatchery':
       return select({ kind: 'hatcheryBuilding' })
     case 'Farm':
