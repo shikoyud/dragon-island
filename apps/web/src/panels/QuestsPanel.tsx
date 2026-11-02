@@ -37,11 +37,11 @@ export function QuestsPanel({ onClose, onOpen }: { onClose?: () => void; onOpen?
   const s = me.data?.state
   if (!s) return null
   const g = currentGoal(s)
-  if (!g) return <Panel title="Quests" onClose={onClose}><p>All goals done</p></Panel>
+  if (!g) return <Panel title="Goals" onClose={onClose}><p>All goals done</p></Panel>
   const p = goalProgress(s, g, LAUNCH_CATALOG)
   const route = goalRoute(g, s)
   return (
-    <Panel title="Quests" onClose={onClose}>
+    <Panel title="Goals" onClose={onClose}>
       <p style={{ margin: '0 0 4px' }}>{`Goal ${s.goalIndex + 1} of ${GOALS.length}`}</p>
       <p style={{ margin: '0 0 4px' }}>{g.text}</p>
       <p style={{ margin: '0 0 4px' }}>{`${p.have} / ${p.need}`}</p>

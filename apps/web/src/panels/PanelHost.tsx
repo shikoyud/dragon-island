@@ -111,6 +111,6 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = (
 
 /** Accessible name of the dialog around a panel. */
 export function dialogLabel(dialog: DialogKey): string {
-  if (dialog.kind === 'panel') return dialog.id === 'book' ? 'Dragon Book' : dialog.id.charAt(0).toUpperCase() + dialog.id.slice(1)
+  if (dialog.kind === 'panel') return dialog.id === 'book' ? 'Dragon Book' : dialog.id === 'quests' ? 'Goals' : dialog.id.charAt(0).toUpperCase() + dialog.id.slice(1)
   return dialog.target.kind === 'mapIsland' ? ISLANDS[dialog.target.id].name : dialog.target.kind
 }
