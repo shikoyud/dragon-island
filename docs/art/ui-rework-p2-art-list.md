@@ -84,3 +84,7 @@ All 65 keys delivered; contact sheet `docs/art/ui-rework-p2-art-preview.png`. 60
 | `ui.xpStar` | 24×24 | — | Blue star badge for XP rewards (game writes "XP" next to it, not on it). |
 | `icon.health.32`, `icon.damage.32`, `icon.speed.32` | 32×32 | — | Stat icons: red cross, orange burst, blue wing. |
 | `icon.storage.32` already exists from Phase 3; `icon.sell.32`, `icon.store.32` is the market stall (keep). Add `icon.sell.32` | 32×32 | — | Sell: a gold coin with a small arrow. |
+
+### How made (Phase 5, delivered 2026-11-02)
+
+All 23 keys delivered; contact sheet `docs/art/ui-rework-p5-art-preview.png`. 25 PixelLab generations (886 → 861); prompts and seeds in `apps/web/art/prompts.md` under "UI rework Phase 5 set". All are `create_image_pixen` at the exact size, except: `ui.book.ribbon` cut from 48x48; `bg.parchment` remapped to its 16 px 9-slice with a flat centre; `bg.wood` mirrored so it tiles in x; `fx.glow` drawn in code (dithered rays).
