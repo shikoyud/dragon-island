@@ -8,3 +8,5 @@ deploy/.env.server
 deploy/backup.env
 !deploy/.env.example
 !deploy/.env.server.example
+!apps/server/.env.example
+!apps/web/.env.example
