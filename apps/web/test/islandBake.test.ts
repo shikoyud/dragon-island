@@ -167,3 +167,23 @@ describe('the selection outline (UI rework Phase 4)', () => {
     expect(scene.selectionShown()).toBeNull()
   })
 })
+
+describe('the home finder outlines (ruling A5)', () => {
+  const games: Phaser.Game[] = []
+  beforeEach(() => { vi.spyOn(console, 'warn').mockImplementation(() => {}) })
+  afterEach(() => { games.splice(0).forEach(g => g.destroy(true)); vi.restoreAllMocks() })
+
+  it('outlines each habitat the dragon fits on the island shown, keeps them over a clock sync, and clears them on close', async () => {
+    const { bridge, game, scene } = await boot()
+    games.push(game)
+    bridge.setHomeFinder({ dragonId: 'd3', homes: ['h1'] })
+    expect(scene.homesShown()).toEqual(['h1'])
+    bridge.setState({ ...bridge.state!, gold: bridge.state!.gold + 1 })
+    expect(scene.homesShown()).toEqual(['h1'])
+    bridge.setView('isle2')
+    expect(scene.homesShown()).toEqual([])
+    bridge.setView('home')
+    bridge.setHomeFinder(null)
+    expect(scene.homesShown()).toEqual([])
+  })
+})

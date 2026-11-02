@@ -1,7 +1,9 @@
 import { DEFAULT_PRESET, ISLANDS, ownedPlots, type PlayerState, type TeamIds } from '@wyrmhaven/game-core'
 import type { GameInfo, Offer } from '@wyrmhaven/shared'
 import { useEffect, useRef, useState, type ReactElement } from 'react'
-import type { Bridge, Target } from '../game/bridge'
+import type { Bridge, HomeFinder, Target } from '../game/bridge'
+import { homesFor } from '../game/overlayModel'
+import { useAction } from '../state/actions'
 import { actionRow, sameTarget, selectionOf } from '../hud/actionRow'
 import type { DialogKey } from '../hud/Hud'
 import { useMe } from '../state/me'
@@ -49,8 +51,14 @@ export function dialogHasSubject(s: PlayerState, dialog: DialogKey, game: Pick<G
   }
 }
 
-/** The selected thing on the island and its setter; see `useDialog`. */
-export interface Selection { selected: Target | null; setSelected: (t: Target | null) => void }
+/** The selected thing on the island, the open home finder, and their setters; see `useDialog`. */
+export interface Selection {
+  selected: Target | null
+  setSelected: (t: Target | null) => void
+  /** The waiting dragon whose home is being chosen (ruling A5), with the habitats it fits; null when none is. */
+  finding: HomeFinder | null
+  setFinding: (dragonId: string | null) => void
+}
 
 /**
  * The one open dialog, and the one selected thing. A tap on a building, habitat, farm, Hatchery, breeder or obstacle
@@ -62,11 +70,39 @@ export interface Selection { selected: Target | null; setSelected: (t: Target | 
 export function useDialog(bridge: Bridge, initial: DialogKey | null = null): [DialogKey | null, (k: DialogKey | null) => void, Selection] {
   const [dialog, setDialog] = useState<DialogKey | null>(initial)
   const [selected, setSelected] = useState<Target | null>(null)
+  const [findingId, setFinding] = useState<string | null>(null)
   const me = useMe().data
+  const { run } = useAction()
   const state = useRef<PlayerState | undefined>(undefined)
   state.current = me?.state
+  // The habitats are worked out from the live state, so a slot filling or a habitat sold updates the outlines.
+  const homes = findingId && me ? homesFor(me.state, findingId) : []
+  const finding = findingId && homes.length > 0 ? { dragonId: findingId, homes } : null
+  const findingRef = useRef(finding)
+  findingRef.current = finding
+  const runRef = useRef(run)
+  runRef.current = run
+  useEffect(() => { if (findingId && !finding) setFinding(null) }, [findingId, finding])
+  useEffect(() => { bridge.setHomeFinder(finding) }, [bridge, finding])
   useEffect(() => bridge.on('select', e => {
     const t = e.target
+    // Choosing a home: a tap on an outlined habitat (or a dragon in it) moves the dragon there; every other tap does nothing.
+    const f = findingRef.current
+    if (f) {
+      const home = t.kind === 'habitat' ? t.id : t.kind === 'dragon' ? state.current?.dragons.find(d => d.id === t.id)?.habitatId ?? null : null
+      if (home && f.homes.includes(home)) {
+        setFinding(null)
+        void runRef.current({ type: 'moveDragon', dragonId: f.dragonId, habitatId: home })
+      }
+      return
+    }
+    // A dragon waiting in the Hatchery with somewhere to go opens the home finder; with nowhere, its panel as before.
+    if (t.kind === 'dragon' && state.current && homesFor(state.current, t.id).length > 0) {
+      setDialog(null)
+      setSelected(null)
+      setFinding(t.id)
+      return
+    }
     if (t.kind === 'empty' || t.kind === 'cell') {
       setDialog(null)
       setSelected(null)
@@ -86,8 +122,8 @@ export function useDialog(bridge: Bridge, initial: DialogKey | null = null): [Di
   const selectedGone = selected !== null && me !== undefined && actionRow(me.state, selected, 0, DEFAULT_PRESET) === null
   useEffect(() => { if (selectedGone) setSelected(null) }, [selectedGone])
   const shown = selectedGone ? null : selected
-  useEffect(() => { bridge.setSelection(shown) }, [bridge, shown])
-  return [gone ? null : dialog, setDialog, { selected: shown, setSelected }]
+  useEffect(() => { bridge.setSelection(finding ? null : shown) }, [bridge, shown, finding])
+  return [gone ? null : dialog, setDialog, { selected: finding ? null : shown, setSelected, finding, setFinding }]
 }
 
 export interface PanelHostProps {

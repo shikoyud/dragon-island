@@ -19,6 +19,9 @@ export type Target =
   | { kind: 'cell'; col: number; row: number }
   | { kind: 'empty' }
 
+/** A dragon waiting for a home, and the habitats it can move into. */
+export interface HomeFinder { dragonId: string; homes: string[] }
+
 /** The Golden Aerie: a Store purchase (§5.2) placed like a habitat; the charge is sent with its placement on OK. */
 export interface AerieOffer { kind: 'goldenAerie' }
 
@@ -60,6 +63,8 @@ export type GameEvent =
   /** The level-up screen closed: a play still waiting for the island to wake is dropped. */
   | { type: 'levelUpClosed' }
   | { type: 'ready' }
+  /** A waiting dragon's home finder opened, changed or closed (ruling A5): the scene outlines the habitats. */
+  | { type: 'homeFinder' }
   /** What is selected on the island changed (UI rework Phase 4): the scene outlines it. */
   | { type: 'selection'; target: Target | null }
 
@@ -86,6 +91,8 @@ export function createBridge() {
     selected: { kind: 'empty' } as Target,
     /** The thing selected on the island, whose action row shows (UI rework Phase 4); null when nothing is. */
     selection: null as Target | null,
+    /** A dragon waiting in the Hatchery and the habitats it can move into, while the player picks one (ruling A5). */
+    homeFinder: null as HomeFinder | null,
     view: 'home' as IslandId,
     placing: null as Placing | null,
     /** True while the Map shows in place of the island (never during placement or a battle). */
@@ -125,6 +132,11 @@ export function createBridge() {
       if (JSON.stringify(target) === JSON.stringify(bridge.selection)) return
       bridge.selection = target
       bridge.emit({ type: 'selection', target })
+    },
+    setHomeFinder(f: HomeFinder | null): void {
+      if (JSON.stringify(f) === JSON.stringify(bridge.homeFinder)) return
+      bridge.homeFinder = f
+      bridge.emit({ type: 'homeFinder' })
     },
     setArt(art: GameArtSet): void { bridge.art = art },
     setClock(nowMs: number): void { bridge.nowMs = nowMs },

@@ -1,4 +1,4 @@
-import { OBSTACLES, type IslandId, type MovableRef, type PlayerState } from '@wyrmhaven/game-core'
+import { canLiveIn, getSpecies, habitatSlots, isUnfinished, LAUNCH_CATALOG, OBSTACLES, residents, type Catalog, type IslandId, type MovableRef, type PlayerState } from '@wyrmhaven/game-core'
 import type { Target } from './bridge'
 import { footprintOfMovable, placementOf } from './buildingInfo'
 
@@ -25,4 +25,17 @@ export function selectionOutline(s: PlayerState, t: Target | null): Outline | nu
   if (!ref) return null
   const p = placementOf(s, ref)
   return p ? { island: p.island, col: p.col, row: p.row, size: footprintOfMovable(s, ref) } : null
+}
+
+/**
+ * The habitats a dragon waiting in the Hatchery can move into (ruling A5): its element fits, there is a free slot and the
+ * habitat is built, the rules `hatch` and `moveDragon` use. Empty for a dragon that already has a home.
+ */
+export function homesFor(s: PlayerState, dragonId: string, catalog: Catalog = LAUNCH_CATALOG): string[] {
+  const d = s.dragons.find(x => x.id === dragonId)
+  if (!d || d.habitatId !== null) return []
+  const species = getSpecies(catalog, d.speciesId)
+  return s.habitats
+    .filter(h => canLiveIn(species, h) && !isUnfinished(s, { type: 'habitat', id: h.id }) && residents(s, h.id).length < habitatSlots(h))
+    .map(h => h.id)
 }

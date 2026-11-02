@@ -552,3 +552,5 @@
   .action-bar { right: 6px; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 80px); max-width: calc(100% - 12px); }
   .action-bar .kit-round { --plate: 48px; }
 }
+.home-finder { display: flex; align-items: center; gap: 10px; }
+.home-finder .home-finder__text { position: static; white-space: normal; max-width: 260px; margin: 0; }

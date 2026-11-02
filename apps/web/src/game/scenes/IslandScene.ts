@@ -22,6 +22,8 @@ const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
 const BUBBLE_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontFamily: 'Silkscreen, monospace', fontSize: '8px', color: '#a8740a', backgroundColor: '#fbfaf6', padding: { x: 3, y: 2 },
 }
+/** The home finder's outline and arrows. */
+const HOME_GLOW = 0x9dffa8
 /** The selection outline's yellow. */
 const SELECTED = 0xffd23f
 const TINT = { ok: 0x9dffa8, bad: 0xff7a7a, building: 0xa8a8c0 } as const
@@ -68,6 +70,10 @@ export class IslandScene extends Phaser.Scene {
   private footFill!: Phaser.GameObjects.Graphics
   private outline!: Phaser.GameObjects.Graphics
   private selectionLine!: Phaser.GameObjects.Graphics
+  private homesLine!: Phaser.GameObjects.Graphics
+  private homeArrows: Phaser.GameObjects.Graphics | null = null
+  private shownHomes: string[] = []
+  private homesKey = ''
   /** The outline drawn now, for specs and tests; null when none is. */
   private shownSelection: Outline | null = null
   private layer!: Phaser.GameObjects.Container
@@ -111,6 +117,7 @@ export class IslandScene extends Phaser.Scene {
     this.footFill = this.add.graphics()
     // The selection's outline (UI rework Phase 4) also lies on the ground, under what stands on it.
     this.selectionLine = this.add.graphics().setName('selection')
+    this.homesLine = this.add.graphics().setName('homes')
     this.layer = this.add.container(0, 0)
     // Over the sprites: an illegal footprint must show even where it overlaps a building.
     this.outline = this.add.graphics()
@@ -142,6 +149,7 @@ export class IslandScene extends Phaser.Scene {
       }),
       this.bridge.on('levelUpClosed', () => { this.levelUpOnWake = false }),
       this.bridge.on('selection', () => { if (this.alive()) this.drawSelection() }),
+      this.bridge.on('homeFinder', () => { if (this.alive()) this.drawSelection() }),
     ]
     const cellToScreen = (col: number, row: number) => this.toScreen(cellCentre(col, row))
     const focusCell = () => {
@@ -650,6 +658,7 @@ export class IslandScene extends Phaser.Scene {
    */
   private drawSelection(): void {
     const g = this.selectionLine.clear()
+    this.drawHomes()
     const { state, view, placing, selection } = this.bridge
     const o = state && !placing ? selectionOutline(state, selection) : null
     this.shownSelection = o && o.island === view ? o : null
@@ -658,6 +667,45 @@ export class IslandScene extends Phaser.Scene {
     g.fillStyle(SELECTED, 0.18).fillPoints(pts, true)
     g.lineStyle(3, 0x141627, 1).strokePoints(pts, true, true)
     g.lineStyle(2, SELECTED, 1).strokePoints(pts, true, true)
+  }
+
+  /**
+   * The home finder (ruling A5): every habitat the waiting dragon fits is outlined, with an arrow bobbing over it (still
+   * under reduced motion). Redrawn whole when the finder or the state changes.
+   */
+  private drawHomes(): void {
+    const { state, view, placing, homeFinder } = this.bridge
+    const spots = state && homeFinder ? homeFinder.homes.map(id => selectionOutline(state, { kind: 'habitat', id })) : []
+    // The clock syncs the scene every second: the same finder in the same places keeps its arrows and their bob.
+    const key = JSON.stringify([view, Boolean(placing), homeFinder, spots])
+    if (key === this.homesKey) return
+    this.homesKey = key
+    this.homeArrows?.destroy()
+    this.homeArrows = null
+    const g = this.homesLine.clear()
+    this.shownHomes = []
+    if (!state || placing || !homeFinder) return
+    const arrows = this.add.graphics().setDepth(5)
+    for (const id of homeFinder.homes) {
+      const o = selectionOutline(state, { kind: 'habitat', id })
+      if (!o || o.island !== view) continue
+      this.shownHomes.push(id)
+      const pts = points(footprintDiamond(o.col, o.row, o.size))
+      g.fillStyle(HOME_GLOW, 0.22).fillPoints(pts, true)
+      g.lineStyle(3, 0x141627, 1).strokePoints(pts, true, true)
+      g.lineStyle(2, HOME_GLOW, 1).strokePoints(pts, true, true)
+      const top = cellTop(o.col, o.row)
+      const tip = { x: top.x, y: top.y - 40 }
+      arrows.fillStyle(0x141627, 1).fillTriangle(tip.x - 9, tip.y - 12, tip.x + 9, tip.y - 12, tip.x, tip.y + 1)
+      arrows.fillStyle(HOME_GLOW, 1).fillTriangle(tip.x - 6, tip.y - 10, tip.x + 6, tip.y - 10, tip.x, tip.y - 2)
+    }
+    this.homeArrows = arrows
+    if (!this.bridge.reducedMotion) this.tweens.add({ targets: arrows, y: -ARROW_BOB.y * 2, duration: ARROW_BOB.ms, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
+  }
+
+  /** The habitats the home finder outlines now, for tests. */
+  homesShown(): string[] {
+    return this.shownHomes
   }
 
   /** The selection outline drawn now; null when none is. */

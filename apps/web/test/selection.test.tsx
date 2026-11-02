@@ -66,3 +66,30 @@ describe('a tap selects (UI rework ruling A1)', () => {
     expect(bridge.selection).toBeNull()
   })
 })
+
+describe('choosing a home for a waiting dragon (ruling A5)', () => {
+  const waiting = { ...base, dragons: [...base.dragons, { id: 'd3', speciesId: 'terra', level: 1, feeds: 0, habitatId: null }] }
+
+  it('a tap on the waiting dragon outlines where it fits; a tap on one moves it there', async () => {
+    const bridge = createBridge()
+    const h = harness(waiting)
+    h.wrap(<TestHost bridge={bridge} />)
+    act(() => bridge.emit({ type: 'select', target: { kind: 'dragon', id: 'd3' } }))
+    expect(bridge.homeFinder).toEqual({ dragonId: 'd3', homes: ['h1'] })
+    expect(row()).toBeNull()
+    // A habitat it doesn't fit does nothing; the outlined one moves it.
+    act(() => bridge.emit({ type: 'select', target: { kind: 'habitat', id: 'h2' } }))
+    expect(h.action).not.toHaveBeenCalled()
+    act(() => bridge.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
+    await waitFor(() => expect(h.action).toHaveBeenCalledWith({ type: 'moveDragon', dragonId: 'd3', habitatId: 'h1' }, expect.any(String)))
+    expect(bridge.homeFinder).toBeNull()
+  })
+
+  it('with nowhere to go, the dragon\'s panel opens as before', () => {
+    const bridge = createBridge()
+    const nowhere = { ...waiting, dragons: waiting.dragons.map(d => (d.id === 'd3' ? { ...d, speciesId: 'sea' } : d)) }
+    harness(nowhere).wrap(<TestHost bridge={bridge} />)
+    act(() => bridge.emit({ type: 'select', target: { kind: 'dragon', id: 'd3' } }))
+    expect(bridge.homeFinder).toBeNull()
+  })
+})
