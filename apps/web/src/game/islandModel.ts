@@ -6,7 +6,7 @@ import {
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
 import { placementSubject, type Placing, type Target } from './bridge'
-import { anchor, cellTop, depthOrder, dragonSpot, HABITAT_DRAGON_SCALE, hatcheryNestSpot, ISO, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, TAP_PX, UPGRADE_POST } from './layout'
+import { anchor, cellTop, depthOrder, dragonSpot, habitatDragonScale, hatcheryNestSpot, ISO, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, TAP_PX, UPGRADE_POST } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
 export interface IslandObject {
@@ -377,7 +377,8 @@ export function buildIslandModel(
     }]
     markers.habitats.push(h.id)
     live.forEach((d, slot) => {
-      group.push({ id: `dragon:${d.id}`, ...dragonLook(d.speciesId, d.level, art, catalog), ...dragonSpot(a, slot), scale: HABITAT_DRAGON_SCALE, target: { kind: 'dragon', id: d.id } })
+      const look = dragonLook(d.speciesId, d.level, art, catalog)
+      group.push({ id: `dragon:${d.id}`, ...look, ...dragonSpot(a, slot), scale: habitatDragonScale(look.sprite.w), target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
     })
     if (!placing && upgradeReady(state, h, preset)) {

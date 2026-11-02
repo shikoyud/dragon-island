@@ -6,7 +6,7 @@ import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
 import { lockedTiles } from '../src/game/camera'
 import { ARROW_SCALE, badgeY, buildIslandModel, dragonKey, goldBadgeThreshold, groundVariant, objectSignature, timerLabel, upgradeReady } from '../src/game/islandModel'
-import { anchor, cellTop, dragonSpot, footprintContains, HABITAT_DRAGON_SCALE, hatcheryNestSpot, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, TAP_PX } from '../src/game/layout'
+import { anchor, cellTop, dragonSpot, footprintContains, habitatDragonScale, hatcheryNestSpot, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, TAP_PX } from '../src/game/layout'
 import { nearestLegalCell } from '../src/state/placing'
 import { FREE, FREE_2, withIsland, withPlots } from './land'
 
@@ -329,13 +329,32 @@ describe('island model', () => {
     const atLevel = (level: number) => ({ ...s, habitats: s.habitats.map(h => (h.id === 'h1' ? { ...h, level } : h)) })
 
     it('residents draw at the habitat scale', () => {
-      expect(HABITAT_DRAGON_SCALE).toBe(0.75)
-      expect(model(s).objects.find(o => o.id === 'dragon:d1')!.scale).toBe(HABITAT_DRAGON_SCALE)
+      const babies = model(s).objects.find(o => o.id === 'dragon:d1')!
+      expect(babies.sprite.w).toBe(32)
+      expect(babies.scale).toBe(habitatDragonScale(32))
+      const adults = { ...s, dragons: s.dragons.map(d => ({ ...d, level: 8 })) }
+      const adult = model(adults).objects.find(o => o.id === 'dragon:d1')!
+      expect(adult.sprite.w).toBe(48)
+      expect(adult.scale).toBe(habitatDragonScale(48))
+    })
+
+    it('a scale by sheet width keeps every stage about the same size: 48 px adult, 40 px juvenile, 32 px baby', () => {
+      expect(habitatDragonScale(48)).toBe(0.5)
+      expect(habitatDragonScale(32)).toBe(0.75)
+      expect(habitatDragonScale(40)).toBe(0.625)
+      for (const w of [32, 40, 48]) expect(Math.abs(w * habitatDragonScale(w) - 24)).toBeLessThanOrEqual(1)
+    })
+
+    it('a resident on a habitat is at most about a third of the platform\'s width, whatever its stage', () => {
+      for (const level of [1, 5, 8]) {
+        const o = model({ ...s, dragons: s.dragons.map(d => ({ ...d, level })) }).objects.find(x => x.id === 'dragon:d1')!
+        expect(o.sprite.w * o.scale! / 64).toBeLessThanOrEqual(0.4)
+      }
     })
 
     it('a resident carried on a moved habitat keeps the habitat scale', () => {
       const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'home', { what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 4, col: 14, row: 13, facing: 0 })
-      expect(m.objects.find(o => o.id === 'dragon:d1')!.scale).toBe(HABITAT_DRAGON_SCALE)
+      expect(m.objects.find(o => o.id === 'dragon:d1')!.scale).toBe(habitatDragonScale(32))
     })
 
     it('a habitat with a next level open shows the post; at max level or under the gate it does not', () => {

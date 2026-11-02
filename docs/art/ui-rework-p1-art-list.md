@@ -24,7 +24,7 @@ The set for `docs/superpowers/plans/2026-11-01-ui-rework-phase1.md` (Task 7). Ev
 
 ## Where the art meets the code
 
-- **Habitats and Aerie (U11):** the face is exactly the footprint diamond, rows 32 to 63 with the bottom vertex at x 31/32, y 63. `fitFootprint` draws them at scale 1. Residents draw at `HABITAT_DRAGON_SCALE` (0.75).
+- **Habitats and Aerie (U11):** the face is exactly the footprint diamond, rows 32 to 63 with the bottom vertex at x 31/32, y 63. `fitFootprint` draws them at scale 1. Residents draw at `habitatDragonScale(sheet width)`, about 24 px at every stage: a 48 px adult at 0.5, a 40 px juvenile at 0.625, a 32 px baby at 0.75.
 - **Castle (U14):** drawn at scale 1, its bottom centre on the footprint's bottom vertex, so the walls overhang the 64-wide footprint by up to 8 px a side. The nest is about 28x14, centred at (40, 82): 14 px above the anchor. `HATCHERY_NEST` in `apps/web/src/game/layout.ts` places eggs in it at `NEST_EGG_HATCHERY_SCALE` (0.5).
 - **Upgrade post:** drawn at `UPGRADE_POST.scale` (0.5), 12x16 in the world. At 1 it hid its neighbour's residents.
 - **Arrow:** drawn at `ARROW_SCALE` (0.5).

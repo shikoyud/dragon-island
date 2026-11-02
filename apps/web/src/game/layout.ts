@@ -79,8 +79,14 @@ const DRAGON_SPOTS: readonly Pos[] = [
   { x: 0, y: -16 }, { x: -18, y: -15 }, { x: 18, y: -15 }, { x: 0, y: -25 }, { x: -10, y: -8 }, { x: 10, y: -8 }, { x: -26, y: -16 },
 ]
 
-/** Residents on a habitat draw at this scale (U11): at 1 a 48 px adult takes 75 % of the platform's width. Battles and panels keep their own. */
-export const HABITAT_DRAGON_SCALE = 0.75
+/**
+ * The scale a resident draws at on a habitat, by its sheet's width, so every stage stands about 24 px: a 48 px adult at 0.5,
+ * a 40 px juvenile at 0.625, a 32 px baby at 0.75. Battles and panels keep their own.
+ */
+export function habitatDragonScale(sheetW: number): number {
+  if (sheetW <= 32) return 0.75
+  return sheetW <= 40 ? 0.625 : 0.5
+}
 
 export function dragonSpot(a: Pos, slot: number): Pos {
   const s = DRAGON_SPOTS[Math.min(slot, DRAGON_SPOTS.length - 1)]!
