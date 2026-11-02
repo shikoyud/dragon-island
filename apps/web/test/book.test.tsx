@@ -77,4 +77,17 @@ describe('DragonBookPanel (R22)', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'My dragons' }))
     expect(screen.getAllByText('Terra Basic').length).toBeGreaterThan(0)
   })
+
+  it('numbers the cards in book order; search matches found names only; the element filter narrows (design Phase 5: dragonbook)', async () => {
+    open()
+    const tiles = () => screen.getAllByTestId('book-tile')
+    expect(tiles()[0]).toHaveTextContent(/^1\. Terra Basic/)
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search found dragons' }), 'sea')
+    expect(screen.queryAllByTestId('book-tile')).toHaveLength(0)
+    await userEvent.clear(screen.getByRole('searchbox', { name: 'Search found dragons' }))
+    await userEvent.click(within(screen.getByRole('group', { name: 'Elements' })).getByRole('button', { name: 'Flame' }))
+    expect(tiles().length).toBeGreaterThan(0)
+    for (const tile of tiles()) expect(['Flame Basic', '???']).toContain(tile.getAttribute('aria-label'))
+  })
 })
+

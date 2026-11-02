@@ -107,7 +107,7 @@
 
 ### Task 11: Breeding and Dragon Book
 
-- [ ] `BreedPanel` full screen on `bg.breeding`: Parent 1 / Parent 2 lists each side with search and element filter, heart in the middle. `DragonBookPanel` in `ui.book.frame` with `ui.book.ribbon` tabs left (element), search and sort, numbered card grid, silhouettes for undiscovered. Commit `feat(web): Breeding screen and Dragon Book`.
+- [x] `BreedPanel` full screen on `bg.breeding`: Parent 1 / Parent 2 lists each side with search and element filter, heart in the middle. `DragonBookPanel` in `ui.book.frame` with `ui.book.ribbon` tabs left (element), search and sort, numbered card grid, silhouettes for undiscovered. Commit `feat(web): Breeding screen and Dragon Book`.
 
 ### Task 12: Quests, lineup and battle
 

@@ -526,7 +526,7 @@ describe('Hatchery and breeder upgrades', () => {
     expect(hup.textContent).toContain('2,000 gold · 10m')
     expect(hup).toBeEnabled()
     hatchery.unmount()
-    harness({ ...base, level: 12, gold: 200_000 }, 0, undefined, { launchAtMs: 0 }).wrap(<BreedPanel nowMs={0} />)
+    harness({ ...base, level: 12, gold: 200_000 }, 0, undefined, { launchAtMs: 0 }).wrap(<UpgradeDialog building={{ type: 'breeder', index: 0 }} nowMs={0} />)
     const bup = screen.getByRole('button', { name: /Upgrade to 2/ })
     expect(bup.textContent).toContain('150,000 gold · 10m')
     expect(bup).toBeEnabled()

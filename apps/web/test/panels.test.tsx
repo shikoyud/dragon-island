@@ -263,8 +263,8 @@ describe('DragonPanel (B11)', () => {
 const GAME = { launchAtMs: 0 }
 const pl2 = (s: PlayerState): PlayerState => ({ ...level(level(s, 'd1', 4), 'd2', 4), level: 2 })
 const pick = async (a: string, b: string) => {
-  await userEvent.selectOptions(screen.getByLabelText(/first parent/i), a)
-  await userEvent.selectOptions(screen.getByLabelText(/second parent/i), b)
+  await userEvent.click(document.getElementById(`parent-a-${a}`)!)
+  await userEvent.click(document.getElementById(`parent-b-${b}`)!)
 }
 const outcomes = () => within(screen.getByRole('list', { name: /breeding outcomes/i })).getAllByRole('listitem').map(li => li.textContent)
 const DAY_MS = 86_400_000
@@ -384,6 +384,30 @@ describe('BreedPanel', () => {
     const row = screen.getByTestId('breeder-0')
     expect(within(row).getByRole('button', { name: 'Move to Hatchery' })).toBeDisabled()
     expect(within(row).getByText('Hatchery is full')).toBeInTheDocument()
+  })
+})
+
+describe('Breeding screen columns (design Phase 5: breeding-screen)', () => {
+  const four = (): PlayerState => pl2({ ...base, dragons: [...base.dragons,
+    { id: 'd3', speciesId: 'sea', level: 4, feeds: 0, habitatId: 'h1' },
+    { id: 'd4', speciesId: 'terra', level: 4, feeds: 0, habitatId: null, stored: true }] })
+  const names = (label: string) => within(screen.getByRole('radiogroup', { name: label })).getAllByRole('radio').map(r => r.getAttribute('aria-label'))
+
+  it('lists the dragons down each side, not the stored ones; search and the element filter narrow one side', async () => {
+    harness(four(), QUIET, undefined, GAME).wrap(<BreedPanel nowMs={QUIET} />)
+    expect(names('First parent')).toEqual(['Terra Basic · level 4', 'Flame Basic · level 4', 'Sea Basic · level 4'])
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search Parent 1' }), 'fla')
+    expect(names('First parent')).toEqual(['Flame Basic · level 4'])
+    expect(names('Second parent')).toHaveLength(3)
+    await userEvent.click(within(screen.getByRole('group', { name: 'Parent 2 element' })).getByRole('button', { name: 'Sea' }))
+    expect(names('Second parent')).toEqual(['Sea Basic · level 4'])
+  })
+
+  it("can't pick the same dragon on both sides", async () => {
+    harness(four(), QUIET, undefined, GAME).wrap(<BreedPanel nowMs={QUIET} />)
+    await userEvent.click(document.getElementById('parent-a-d1')!)
+    expect(document.getElementById('parent-a-d1')).toHaveAttribute('aria-checked', 'true')
+    expect(document.getElementById('parent-b-d1')).toBeDisabled()
   })
 })
 

@@ -24,8 +24,8 @@ const breeding = (over: Partial<PlayerState> = {}): PlayerState => ({
   ...base, level: 2, firstHybridDone: true, dragons: base.dragons.map(d => ({ ...d, level: 4 })), ...over,
 })
 const pick = async (a: string, b: string) => {
-  await userEvent.selectOptions(screen.getByLabelText(/first parent/i), a)
-  await userEvent.selectOptions(screen.getByLabelText(/second parent/i), b)
+  await userEvent.click(document.getElementById(`parent-a-${a}`)!)
+  await userEvent.click(document.getElementById(`parent-b-${b}`)!)
 }
 const outcomes = () => within(screen.getByRole('list', { name: /breeding outcomes/i })).getAllByRole('listitem').map(li => li.textContent)
 const breedButton = () => screen.getByRole('button', { name: /^breed$/i })
@@ -173,7 +173,7 @@ describe('the Breed button sits right under the pickers (item 20)', () => {
     await pick('d1', 'd2')
     const list = screen.getByRole('list', { name: /breeding outcomes/i })
     expect(breedButton().compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(screen.getByLabelText(/second parent/i).compareDocumentPosition(breedButton()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('radiogroup', { name: 'Second parent' }).compareDocumentPosition(breedButton()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 })
 
@@ -181,8 +181,8 @@ describe('Book tiles have one width (item 21)', () => {
   it('found and silhouette tiles share it', () => {
     harness(newPlayer(0)).wrap(<DragonBookPanel onSelect={() => {}} />)
     const tiles = screen.getAllByTestId('book-tile')
-    expect(tiles.some(t => t.textContent === '???')).toBe(true)
-    expect(tiles.some(t => t.textContent !== '???')).toBe(true)
+    expect(tiles.some(t => t.getAttribute('aria-label') === '???')).toBe(true)
+    expect(tiles.some(t => t.getAttribute('aria-label') !== '???')).toBe(true)
     const widths = new Set(tiles.map(t => t.style.width))
     expect(widths.size).toBe(1)
     expect([...widths][0]).toMatch(/^\d+px$/)
