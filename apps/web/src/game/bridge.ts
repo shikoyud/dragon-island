@@ -49,6 +49,8 @@ export type GameEvent =
   | { type: 'view'; view: IslandId }
   | { type: 'placing'; placing: Placing | null }
   | { type: 'insets' }
+  /** The island camera's zoom or range changed (`bridge.zoom` has the new values). */
+  | { type: 'zoom' }
   /** The Map opened or closed; config.ts runs the scene switch. */
   | { type: 'map'; open: boolean }
   /** The level-up screen opened: the island plays `fx.levelUp` once if the art has it. */
@@ -84,6 +86,10 @@ export function createBridge() {
     mapOpen: false,
     /** Screen pixels the HUD covers at the top and bottom; the island camera frames the island between them. */
     insets: { top: 0, bottom: 0 },
+    /** The island camera's zoom and whole-number range, kept by the island scene; null until it has framed a view. */
+    zoom: null as { zoom: number; min: number; max: number } | null,
+    /** Set by the island scene: zooms the camera around the screen centre to a whole zoom (the zoom slider's way in). */
+    zoomTo: null as ((zoom: number) => void) | null,
     /** Set by the island scene: the canvas position of a cell's centre. Playwright clicks cells through it. */
     cellToScreen: null as ((col: number, row: number) => { x: number; y: number }) | null,
     /** Set by the island scene: the cell at the centre of what the player is looking at (new buildings open near it). */
@@ -123,6 +129,8 @@ export function createBridge() {
       bridge.insets = insets
       bridge.emit({ type: 'insets' })
     },
+    /** Asks the island scene to zoom to `z` about the screen centre; nothing if no island is up. */
+    setZoom(z: number): void { bridge.zoomTo?.(z) },
     setMapOpen(open: boolean): void {
       if (open === bridge.mapOpen) return
       bridge.mapOpen = open

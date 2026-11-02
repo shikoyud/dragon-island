@@ -5,12 +5,12 @@ import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet, Sprite } from '../../art/types'
 import type { Bridge, Placing, Target } from '../bridge'
 import {
-  cameraBounds, clampView, groundCell, landPlots, lockedTiles, openingView, panBy, revealPan, screenToWorld, shownSize, SKIRT, worldToScreen, zoomRange, type View,
+  cameraBounds, clampView, groundCell, landPlots, lockedTiles, openingView, panBy, revealPan, screenToWorld, shownSize, SKIRT, worldToScreen, zoomAt, zoomRange, type View,
 } from '../camera'
 import { paintLandmass, type BakeArt, type BakeImage } from '../islandBake'
 import { ARROW_GAP, ARROW_SCALE, badgeY, buildIslandModel, groundTiles, groundVariant, objectSignature, type IslandMarkers, type IslandObject } from '../islandModel'
 import { driftCloud, landmass, nearestPlot } from '../islandShape'
-import { anchor, cellCentre, cellTop, footprintContains, footprintDiamond, islandBox, pointerToCell, progressFill, PROGRESS_BAR, tapHit, type Box, type Pos } from '../layout'
+import { anchor, captionPx, cellCentre, cellTop, footprintContains, footprintDiamond, islandBox, pointerToCell, progressFill, PROGRESS_BAR, tapHit, type Box, type Pos } from '../layout'
 import { createPanZoom, heldPointers } from '../panZoom'
 import { pickTarget, type Hit } from '../pickTarget'
 
@@ -151,6 +151,8 @@ export class IslandScene extends Phaser.Scene {
     }
     this.bridge.cellToScreen = cellToScreen
     this.bridge.focusCell = focusCell
+    const zoomTo = (zoom: number) => this.zoomTo(zoom)
+    this.bridge.zoomTo = zoomTo
     const onResize = () => { if (this.alive() && !this.sys.isSleeping()) this.frame() }
     this.scale.on(Phaser.Scale.Events.RESIZE, onResize)
     // Back from the Map or a battle: the camera is where it was (or opens on a new island), and the bake catches up.
@@ -174,6 +176,7 @@ export class IslandScene extends Phaser.Scene {
       // hooks always belong to the live scene (and their presence means the island is ready for input).
       if (this.bridge.cellToScreen === cellToScreen) this.bridge.cellToScreen = null
       if (this.bridge.focusCell === focusCell) this.bridge.focusCell = null
+      if (this.bridge.zoomTo === zoomTo) { this.bridge.zoomTo = null; this.bridge.zoom = null }
       this.scale.off(Phaser.Scale.Events.RESIZE, onResize)
       renderer?.off?.(Phaser.Renderer.Events.RESTORE_WEBGL, onRestore)
     })
@@ -260,8 +263,31 @@ export class IslandScene extends Phaser.Scene {
       this.sky.setPosition(this.view.cx, this.view.cy).setScale(cover / this.view.zoom)
     }
     const scale = this.badgeScale()
-    for (const t of this.badges) if (t.active) t.setScale(scale)
+    const captionScale = this.captionScale()
+    for (const t of this.badges) if (t.active) t.setScale(t.getData('caption') ? captionScale : scale)
     this.fitTapTargets()
+    this.publishZoom()
+  }
+
+  /** Tells the HUD's zoom slider where the camera is, when that or its range changed. */
+  private publishZoom(): void {
+    if (!this.view) return
+    const { min, max } = this.range()
+    const had = this.bridge.zoom
+    if (had && had.zoom === this.view.zoom && had.min === min && had.max === max) return
+    this.bridge.zoom = { zoom: this.view.zoom, min, max }
+    this.bridge.emit({ type: 'zoom' })
+  }
+
+  /** The slider's zoom: about the screen centre, to a whole number in range. Like a gesture, it ends the opening fit. */
+  private zoomTo(zoom: number): void {
+    if (!this.view || !this.alive() || this.sys.isSleeping()) return
+    const { min, max } = this.range()
+    const z = Math.min(max, Math.max(min, Math.round(zoom)))
+    if (z === this.view.zoom) return
+    const { width: w, height: h } = this.scale
+    this.fitting = false
+    this.apply(zoomAt(this.view, w, h, w / 2, h / 2, z))
   }
 
   /**
@@ -707,10 +733,16 @@ export class IslandScene extends Phaser.Scene {
     return BADGE_PX / 8 / (this.view?.zoom ?? 1)
   }
 
-  /** A label under a sprite's anchor: dark text on white, the badge's size on screen at every zoom. */
+  /** Captions have their own on-screen size by zoom (`captionPx`): smaller than a badge when the whole island shows. */
+  private captionScale(): number {
+    const zoom = this.view?.zoom ?? 1
+    return captionPx(zoom) / 8 / zoom
+  }
+
+  /** A label under a sprite's anchor: dark text on white, `captionPx` tall on screen. */
   private drawCaption(o: IslandObject, caption: string): Phaser.GameObjects.Text {
     const style: Phaser.Types.GameObjects.Text.TextStyle = { ...TEXT_STYLE, color: '#0f1324', stroke: undefined, strokeThickness: 0, backgroundColor: '#ffffff', padding: { x: 3, y: 1 } }
-    const t = this.add.text(o.x, o.y + 2, caption, style).setOrigin(0.5, 0).setResolution(4).setScale(this.badgeScale())
+    const t = this.add.text(o.x, o.y + 2, caption, style).setOrigin(0.5, 0).setResolution(4).setScale(this.captionScale()).setData('caption', true)
     this.layer.add(t)
     return t
   }

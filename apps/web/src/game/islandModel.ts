@@ -494,7 +494,8 @@ export function buildIslandModel(
     const mid = TILES_PER_PLOT / 2
     objects.push({
       id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot }, scale: SIGN_SCALE, minTap: TAP_PX, boxAlways: true,
-      ...(view === 'home' ? { caption: SIGN_CAPTION } : {}),
+      // No caption while placing: it would hide the Move arrow.
+      ...(view === 'home' && !placing ? { caption: SIGN_CAPTION } : {}),
     })
     markers.signs.push({ plot, price })
   }

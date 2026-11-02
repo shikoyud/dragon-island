@@ -298,6 +298,14 @@ describe('island model', () => {
       expect(home(bought).objects.find(x => x.id === `obstacle:${o.id}`)!.target).toEqual({ kind: 'obstacle', id: o.id })
     })
 
+    it('no sign is captioned while placing (the caption would hide the Move arrow); the signs stay', () => {
+      const placing = { what: { kind: 'farm' as const }, size: 2 as const, col: 1, row: 2, facing: 0 as const }
+      const m = buildIslandModel(newPlayer(0), FALLBACK_ART, C, 0, 'home', placing)
+      const signs = m.objects.filter(o => o.id.startsWith('sign:'))
+      expect(signs).toHaveLength(3)
+      expect(signs.some(s => s.caption !== undefined)).toBe(false)
+    })
+
     it('isle2 keeps its 8 signs, uncaptioned, and its fog', () => {
       const s = withIsland(newPlayer(0), 'isle2')
       const m = buildIslandModel(s, FALLBACK_ART, C, 0, 'isle2', null)

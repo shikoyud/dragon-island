@@ -195,3 +195,53 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
     })
   })
 }
+
+test.describe('zoom slider on a landscape phone', () => {
+  test.use({ viewport: { width: 844, height: 390 } })
+  const cam = (page: Page) => page.evaluate(() => (window as unknown as { __bridge: { zoom: { zoom: number; min: number; max: number } | null } }).__bridge.zoom)
+  type Rect = { x: number; y: number; width: number; height: number }
+  const inside = (b: Rect) => b.x >= 0 && b.y >= 0 && b.x + b.width <= 844 && b.y + b.height <= 390
+  const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+
+  test('stays on screen, clear of the Map button, the menu and the Move bar; plus zooms the camera', async ({ page, request }) => {
+    await signIn(page)
+    await resetPlayer(request, { gold: 50_000, level: 6 })
+    await page.reload()
+    await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: B }).__bridge?.cellToScreen))
+    await dismissLevelUp(page)
+    const group = page.getByRole('group', { name: 'Zoom controls' })
+    await expect(group).toBeVisible()
+    const box = (await group.boundingBox())!
+    expect(inside(box)).toBe(true)
+    for (const name of ['Zoom in', 'Zoom out']) {
+      const b = (await page.getByRole('button', { name, exact: true }).boundingBox())!
+      expect(b.width).toBeGreaterThanOrEqual(44)
+      expect(b.height).toBeGreaterThanOrEqual(44)
+    }
+    const map = (await page.getByRole('navigation', { name: 'Island menu' }).boundingBox())!
+    expect(overlaps(box, map)).toBe(false)
+    const menu = (await page.getByRole('navigation', { name: 'Main menu' }).boundingBox())!
+    expect(overlaps(box, menu)).toBe(false)
+
+    const before = (await cam(page))!
+    expect(before.max).toBeGreaterThan(before.zoom)
+    await page.getByRole('button', { name: 'Zoom in', exact: true }).click()
+    await expect.poll(async () => (await cam(page))!.zoom).toBe(before.zoom + 1)
+    await expect(page.getByRole('slider', { name: 'Zoom' })).toHaveValue(String(before.zoom + 1))
+    await page.getByRole('button', { name: 'Zoom out', exact: true }).click()
+    await expect.poll(async () => (await cam(page))!.zoom).toBe(before.zoom)
+
+    // Mid-Move: Cancel and OK are on screen and don't touch the slider.
+    await page.evaluate(() => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
+    await page.getByRole('button', { name: /^move$/i }).click()
+    const bar = page.getByRole('toolbar', { name: 'Placement' })
+    await expect(bar).toBeVisible()
+    const slider = (await group.boundingBox())!
+    expect(inside(slider)).toBe(true)
+    for (const name of ['Cancel', 'OK']) {
+      const b = (await bar.getByRole('button', { name, exact: true }).boundingBox())!
+      expect(inside(b)).toBe(true)
+      expect(overlaps(b, slider)).toBe(false)
+    }
+  })
+})

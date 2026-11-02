@@ -14,6 +14,7 @@ import { formatGold, formatWei } from '../ui/Money'
 import { attentionItems, goalClaimable, XP_LIMIT_SHORT, xpBarText, xpFraction, type AttentionItem } from './hudModel'
 import { Icon, type IconName } from './Icon'
 import { TerminalClock } from './TerminalClock'
+import { ZoomSlider } from './ZoomSlider'
 
 export type PanelId = 'shop' | 'breed' | 'book' | 'battle' | 'wings' | 'quests' | 'inbox' | 'map' | 'settings'
 /** What the one dialog shows: a named panel (the Shop can open on its Store tab, Battle on a chapter's nodes), or the panel of something clicked on the island. */
@@ -198,6 +199,8 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom }: {
       </header>
 
       {islandMenu}
+      {/* Memoised on the bridge and fed by its zoom event: the clock tick doesn't render it. */}
+      <ZoomSlider bridge={bridge} />
 
       {/* R60: the Map's canvas is invisible to the keyboard and to screen readers. These stay out of sight until focused. */}
       {mapOpen && (

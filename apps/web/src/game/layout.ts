@@ -121,6 +121,14 @@ export const progressFill = (progress: number): number => Math.round((PROGRESS_B
 /** The post on a habitat with an upgrade open: from its anchor, at the left corner, drawn at this scale. */
 export const UPGRADE_POST = { x: -26, y: -12, scale: 0.5 } as const
 
+/**
+ * On-screen height in CSS px of a plot sign's 'Tap to buy' caption at a zoom: small when the whole island shows (there it
+ * would outweigh the signs and cover the dragons), the badge's 14 px from zoom 3.
+ */
+export function captionPx(zoom: number): number {
+  return zoom >= 3 ? 14 : zoom >= 2 ? 12 : 9
+}
+
 /** The least a finger can be asked to hit: 44 CSS px square. */
 export const TAP_PX = 44
 

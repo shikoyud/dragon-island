@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   anchor, BATTLE, BATTLE_CONTROLS_H, BATTLE_DRAGON_SCALE, BATTLE_SPOT, battleCamera, battleStage, cellCentre, cellTop, depthOrder, dragonSpot, footprintDiamond, hatcheryNestSpot, integerZoom,
-  islandBox, ISO, pointerToCell,
+  captionPx, islandBox, ISO, pointerToCell,
 } from '../src/game/layout'
+
+describe('captionPx', () => {
+  it('is 9 CSS px at zoom 1, 12 at zoom 2 and 14 from zoom 3', () => {
+    expect([1, 2, 3, 4, 6].map(captionPx)).toEqual([9, 12, 14, 14, 14])
+  })
+})
 
 describe('isometric layout', () => {
   it('uses 16x8 diamonds: cell (col,row) has its top vertex at ((col-row)*8, (col+row)*4)', () => {
