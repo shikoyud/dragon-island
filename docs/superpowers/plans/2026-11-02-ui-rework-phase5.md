@@ -115,4 +115,14 @@
 
 ### Task 13: Verify and report
 
-- [ ] `pnpm -r typecheck`, web + game-core + server unit tests, full e2e, playtest (store a habitat and place it back, every dialog), screenshots 1920×1080 and 844×390 next to each reference, font check; report `docs/superpowers/reports/2026-11-02-ui-rework-phase5-report.md`.
+- [x] `pnpm -r typecheck`, web + game-core + server unit tests, full e2e, playtest (store a habitat and place it back, every dialog), screenshots 1920×1080 and 844×390 next to each reference, font check; report `docs/superpowers/reports/2026-11-02-ui-rework-phase5-report.md`.
+
+## Execution notes (2026-11-02)
+
+- All 13 tasks done, in order, one commit each, plus `feat(web): Store a dragon from its detail and an egg from the Hatchery`. The plan had no Store entry point for dragons and eggs, and the playtest found the gap.
+- The breeding parents are radio cards (`#parent-a-<id>`, `#parent-b-<id>`), not selects. The specs and the e2e pick by those ids.
+- The Dragon Book keeps one rarity open at a time, so only that rarity's sprites are drawn, as before. Search matches found names only (R22).
+- The `ui.book.frame` and `ui.book.ribbon` art could not be used as backgrounds because the text on them was unreadable; that part is drawn in CSS.
+- The battle stage and camera are unchanged (R80). Only the plates, VS and controls moved.
+- Review Focus 4 was checked by screenshots and the playtest, not by an overflow assertion in a spec.
+- Report: `docs/superpowers/reports/2026-11-02-ui-rework-phase5-report.md`.
