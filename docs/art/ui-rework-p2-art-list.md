@@ -51,3 +51,22 @@ All 32×32, drawn inside `ui.kit.round` (leave 4 px clear at the edges): `icon.g
 ## Manifest entries
 
 One entry per key, as the existing ones: `{ "file": "ui-kit-frame.png", "w": 48, "h": 48, "frames": 1, "fps": 0 }`. File names are the key with dots turned into dashes.
+
+## Phase 5: dialogs and screens
+
+| Key | Size | 9-slice inset (t r b l) | What |
+| --- | --- | --- | --- |
+| `shop.category.dragons`, `.habitats`, `.buildings`, `.farms`, `.store`, `.decorations` | 96×64 | — | Shop home card art, one scene each: a dragon egg pile, a habitat platform, a small building, a field of crops, a treasure chest with speed-up hourglasses, a garden statue. |
+| `ui.expand.gold`, `ui.expand.dris`, `ui.expand.island` | 64×64 | — | Expand cards: a plot marker with outward green arrows on sand plus gold bars; the same with a purple $DRIS crystal; a small floating island. |
+| `bg.parchment` | 64×64 | 16 16 16 16 | Parchment board with torn edges (Farm crop board, Quests). |
+| `bg.wood` | 64×32 | — | Seamless horizontal wood planks (Shop/Storage footers, filter panel); tiles in x. |
+| `bg.breeding` | 480×272 | — | Breeding scene backdrop: a mountain meadow with a heart-shaped rock arch in the middle, empty left and right for the two parent lists. |
+| `fx.newBurst` | 48×48 | — | Pink eight-point burst, larger than `ui.kit.new`, for the new-dragon screen (no lettering). |
+| `fx.glow` | 96×96 | — | Soft radial light rays, pale gold, transparent edges (behind a new dragon). |
+| `ui.book.frame` | 64×48 | 16 16 16 16 | Open book frame: leather cover edge, two cream pages with a spine in the centre column. |
+| `ui.book.ribbon` | 24×48 | — | Bookmark ribbon tab hanging left of the book (tinted per tab by the game, so draw it white/grey). |
+| `ui.quest.card` | 64×112 | 20 12 16 12 | Tall quest card: stone frame, dark arch window for the boss art, a ribbon band across the top 20 rows. |
+| `ui.battle.vs` | 48×48 | — | Our own VS emblem: crossed swords on a round shield, no letters. |
+| `ui.xpStar` | 24×24 | — | Blue star badge for XP rewards (game writes "XP" next to it, not on it). |
+| `icon.health.32`, `icon.damage.32`, `icon.speed.32` | 32×32 | — | Stat icons: red cross, orange burst, blue wing. |
+| `icon.storage.32` already exists from Phase 3; `icon.sell.32`, `icon.store.32` is the market stall (keep). Add `icon.sell.32` | 32×32 | — | Sell: a gold coin with a small arrow. |
