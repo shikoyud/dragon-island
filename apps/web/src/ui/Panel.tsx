@@ -9,11 +9,11 @@ export function Panel({ title, children, onClose, badge }: { title: string; chil
 
 /** The old action button API, drawn as a kit pill: primary is yellow (go/place), danger red, the rest blue. */
 export function ActionButton({
-  id, children, onClick, disabled, reason, primary, danger,
-}: { id: string; children: ReactNode; onClick?: () => void; disabled?: boolean; reason?: string; primary?: boolean; danger?: boolean }) {
+  id, children, onClick, disabled, reason, primary, danger, ariaLabel,
+}: { id: string; children: ReactNode; onClick?: () => void; disabled?: boolean; reason?: string; primary?: boolean; danger?: boolean; ariaLabel?: string }) {
   return (
     <span className="action-button">
-      <PillButton id={id} color={danger ? 'red' : primary ? 'yellow' : 'blue'} disabled={disabled} reason={reason} onClick={onClick}>
+      <PillButton id={id} color={danger ? 'red' : primary ? 'yellow' : 'blue'} disabled={disabled} reason={reason} onClick={onClick} ariaLabel={ariaLabel}>
         {children}
       </PillButton>
     </span>

@@ -438,7 +438,7 @@ describe('HatcheryPanel and FarmPanel', () => {
     const { wrap } = harness(base)
     wrap(<FarmPanel index={0} nowMs={0} />)
     const rows = within(screen.getByRole('list', { name: /crops/i })).getAllByRole('button')
-    expect(rows.map(b => b.textContent?.split(' · ').slice(0, 3).join(' · '))).toEqual([
+    expect(rows.map(b => b.getAttribute('aria-label'))).toEqual([
       'Dragon Bush · 15s · 50 gold → 60 food',
       'Ember Wheat · 2m 30s · 250 gold → 360 food',
       'Sea Melon · 15m · 1,000 gold → 1,440 food',

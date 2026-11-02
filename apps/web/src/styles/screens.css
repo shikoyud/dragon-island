@@ -41,3 +41,24 @@
   .upgrade-grid__levels { gap: 8px; padding-top: 36px; }
 }
 .upgrade-go .upgrade-section > span:first-child { display: none; }
+
+/* ---- Farm board: crop cards in two columns on parchment ---- */
+.farm-board {
+  list-style: none; margin: 0; padding: 14px; display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 12px;
+  background: #e8d3a2 center / 100% 100% no-repeat; border-radius: 10px; image-rendering: pixelated;
+}
+.farm-card { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 0 8px 8px; background: #fbf3dc; border: 2px solid var(--kit-ink); border-radius: 10px; box-shadow: 0 3px 0 var(--kit-ink); }
+.farm-card--locked { filter: grayscale(0.7); }
+.farm-card__name {
+  margin: -2px auto 0; padding: 4px 14px 6px; border-radius: 0 0 8px 8px; background: var(--kit-wood); color: #fff;
+  font: 12px/1.1 var(--font-display); text-shadow: 1px 1px 0 var(--kit-ink); border: 2px solid var(--kit-ink); border-top: 0;
+}
+.farm-card__body { display: flex; align-items: center; gap: 10px; justify-content: center; }
+.farm-card__facts { margin: 0; display: grid; gap: 2px; font-size: 12px; }
+.farm-card__facts div { display: flex; gap: 6px; }
+.farm-card__facts dt { color: var(--kit-text-muted); min-width: 56px; }
+.farm-card__facts dd { margin: 0; font-weight: 700; }
+.farm-card .action-button, .farm-card .kit-pill-wrap { align-self: center; }
+@media (max-height: 480px), (max-width: 640px) {
+  .farm-board { grid-template-columns: repeat(2, minmax(150px, 1fr)); padding: 8px; gap: 8px; }
+}
