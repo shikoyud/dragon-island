@@ -13,6 +13,9 @@ import { actionRow, type RowIntent } from './hud/actionRow'
 import { Dialog } from './hud/Dialog'
 import { Hud, isMapDialog, type DialogKey } from './hud/Hud'
 import { LevelUp, useLevelUp } from './hud/LevelUp'
+import { NewDragon } from './hud/NewDragon'
+import { useNewDragon } from './hud/newDragon'
+import { homesFor } from './game/overlayModel'
 import { HudArtContext, hudArtOf } from './hud/Icon'
 import { GameArtContext } from './ui/GameArt'
 import { hudSkin } from './hud/skin'
@@ -68,6 +71,7 @@ function Game() {
   useAutoFinish(nowMs)
   useRefreshOnNewDay(me.data?.game, nowMs)
   // Waits out placement and battles; a rise from any source (/me, an action reply) counts, and a returning player's stored level decides the first load.
+  const fresh = useNewDragon(me.data?.state)
   const levelUp = useLevelUp(me.data?.state.level, placing !== null || Boolean(battle.setup), me.data?.playerId)
 
   useEffect(() => { void loadActiveArt().then(setArt) }, [])
@@ -189,6 +193,14 @@ function Game() {
             <HomeFinderBar name={getSpecies(LAUNCH_CATALOG, state.dragons.find(d => d.id === finding.dragonId)!.speciesId).name} onCancel={() => setFinding(null)} />
           )}
           {content && <Dialog label={content.label} onClose={content.onClose}>{content.node}</Dialog>}
+          {fresh.dragonId && !battle.setup && !levelUp && (
+            <NewDragon
+              dragonId={fresh.dragonId}
+              canPlace={state.dragons.find(d => d.id === fresh.dragonId)?.habitatId === null && homesFor(state, fresh.dragonId).length > 0}
+              onPlace={() => { setFinding(fresh.dragonId); fresh.dismiss() }}
+              onClose={fresh.dismiss}
+            />
+          )}
           {levelUp && <LevelUp from={levelUp.from} to={levelUp.to} onClose={levelUp.dismiss} />}
           {me.data.termsRequired && <Dialog label="Updated terms" onClose={() => {}}><TermsPrompt version={me.data.termsRequired} /></Dialog>}
         </div>

@@ -176,6 +176,8 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = (
     switch (r.type) {
       case 'habitat': return <HabitatPanel habitatId={r.id} nowMs={nowMs} onClose={close} />
       case 'decoration': return <DecorationPanel decorationId={r.id} onClose={close} />
+      // The Hatchery's Info is its nest: the eggs and their timers.
+      case 'hatchery': return <HatcheryPanel nowMs={nowMs} onClose={close} onOpenDragon={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} />
       default: return <InfoDialog target={r} nowMs={nowMs} onClose={close} />
     }
   }

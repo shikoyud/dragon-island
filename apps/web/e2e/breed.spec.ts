@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { openPanel, resetPlayer, setServerClock, signIn } from './helpers'
+import { dismissLevelUp, openPanel, resetPlayer, selectTarget, setServerClock, signIn } from './helpers'
 
 test('lists the scripted first hybrids, breeds, moves the egg to the Hatchery and hatches a third dragon', async ({ page, request }) => {
   await signIn(page)
@@ -24,11 +24,11 @@ test('lists the scripted first hybrids, breeds, moves the egg to the Hatchery an
 
     await setServerClock(request, 61_000)
     await page.reload()
-    await openPanel(page, 'Breed')
-    const row = page.getByRole('region', { name: 'Breed' }).getByTestId('breeder-0')
-    await expect(row).toContainText('Egg ready')
-    await row.getByRole('button', { name: 'Move to Hatchery' }).click()
-    await expect(row).toContainText('idle')
+    await dismissLevelUp(page)
+    // A ready egg: the breeding building's row collects it into the Hatchery (UI rework Phase 4).
+    const row = await selectTarget(page, { kind: 'breeder', index: 0 })
+    await row.getByRole('button', { name: 'Collect Egg' }).click()
+    await expect(row.getByRole('button', { name: 'Breed', exact: true })).toBeVisible()
 
     await setServerClock(request, 130_000)
     await page.reload()
@@ -40,6 +40,11 @@ test('lists the scripted first hybrids, breeds, moves the egg to the Hatchery an
     await expect(page.getByRole('region', { name: 'Hatchery · 0/1' })).toBeVisible()
     await expect(page.getByText('Empty')).toBeVisible()
     await expect(page.getByRole('status').filter({ hasText: /^Hatched / })).toBeVisible()
+    // The New dragon screen (UI rework Phase 5) shows it after any level-up; it already has a home, so Done closes it.
+    await dismissLevelUp(page)
+    const fresh = page.getByRole('dialog', { name: 'New dragon' })
+    await expect(fresh).toBeVisible()
+    await fresh.getByRole('button', { name: 'Done' }).click()
 
     // The new dragon is now part of the state: the Arena team picker lists all three, named by species and level.
     await openPanel(page, 'Arena')

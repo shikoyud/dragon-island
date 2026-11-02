@@ -72,3 +72,29 @@
   .expand-cards { grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 6px; }
   .expand-note { display: none; }
 }
+
+/* ---- New dragon: glow over the island, the dragon bottom left with its burst, the card right ---- */
+.new-dragon { position: fixed; inset: 0; z-index: 40; display: flex; align-items: flex-end; justify-content: center; gap: 24px; padding: 24px; background: rgba(20, 22, 39, 0.45); }
+.new-dragon__glow { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); opacity: 0.8; pointer-events: none; }
+.new-dragon__glow img { width: min(640px, 90vmin); height: auto; }
+.new-dragon__hero { position: relative; align-self: flex-end; }
+.new-dragon__burst { position: absolute; left: -36px; top: -48px; display: grid; place-items: center; }
+.new-dragon__burst > * { grid-area: 1 / 1; }
+.new-dragon__burst b { font: 18px/1 var(--font-display); color: #fff; text-shadow: 2px 2px 0 var(--kit-ink); transform: rotate(-12deg); }
+.new-dragon__card {
+  position: relative; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 30px 18px 16px; min-width: 260px;
+  background: var(--kit-cream); border: var(--kit-rim) solid var(--kit-steel); outline: 2px solid var(--kit-ink); border-radius: 14px; color: var(--kit-text);
+}
+.new-dragon__card .kit-plank { position: absolute; top: -18px; margin: 0; }
+.new-dragon__xp { margin: 0; display: inline-flex; gap: 6px; align-items: center; font: 14px/1 var(--font-display); color: #2a7fd0; }
+.new-dragon__marks { display: flex; gap: 6px; align-items: center; }
+.new-dragon__facts { margin: 0; display: grid; gap: 4px; font-size: 13px; }
+.new-dragon__facts div { display: flex; gap: 8px; }
+.new-dragon__facts dt { color: var(--kit-text-muted); min-width: 56px; }
+.new-dragon__facts dd { margin: 0; font-weight: 700; }
+.new-dragon__buttons { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+@media (max-height: 480px) {
+  .new-dragon { padding: 10px; gap: 12px; }
+  .new-dragon__hero .pixel, .new-dragon__hero [data-testid="sprite-still"] { transform: scale(0.6); transform-origin: bottom left; }
+  .new-dragon__card { padding: 26px 12px 10px; }
+}

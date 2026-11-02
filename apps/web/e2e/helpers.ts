@@ -87,6 +87,7 @@ export async function openPanel(page: Page, label: string) {
   // A level-up screen (R38) sits over everything until the player continues. It opens after /me lands, so wait for the HUD first.
   await dismissLevelUp(page)
   if (await page.getByTestId('dialog-scrim').isVisible().catch(() => false)) await page.keyboard.press('Escape')
+  if (await page.getByRole('dialog', { name: 'New dragon' }).isVisible().catch(() => false)) await page.keyboard.press('Escape')
   const main = (name: string) => page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).click()
   const settings = () => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name: 'Settings', exact: true }).click()
   const side = (name: string) => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name, exact: true }).click()
@@ -110,11 +111,12 @@ export async function openPanel(page: Page, label: string) {
       return page.getByRole('group', { name: 'Player' }).getByRole('button', { name: 'Dragon Book', exact: true }).click()
     case 'Breed':
       // The Breed button left the HUD (Phase 3 ruling Q3): the breeding building opens it.
-      return select({ kind: 'breeder', index: 0 })
+      return (await selectTarget(page, { kind: 'breeder', index: 0 })).getByRole('button', { name: 'Breed', exact: true }).first().click()
     case 'Hatchery':
       return select({ kind: 'hatcheryBuilding' })
     case 'Farm':
-      return select({ kind: 'farm', plot: 0 })
+      // The farm's first row button opens its board (Grow Food) or its timer (Speed Up).
+      return (await selectTarget(page, { kind: 'farm', plot: 0 })).getByRole('button').first().click()
     default:
       return main(label)
   }
