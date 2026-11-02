@@ -135,3 +135,20 @@ shiko also said the token use and reward system will be discussed again after th
 | R78 | **Heal-all is a store item at 50,000 micro-USD; unavailable when nobody's hurt or for a team in a Trial.** | §6.3, §7.4; the snapshot must not go stale. |
 | R79 | **`BOT_RARITIES` stays until M6.** R24's PvE half ends here. | M6 owns matchmaking and Ghost teams. |
 | R80 | **Battle screen:** portrait column with enemy upper right and yours lower left, 2×2 moves and Swap below, the same on desktop. | The GDD has no UI section despite the roadmap's "UI direction"; this is the genre's standard shape. |
+| R81 | **PvP opens by game day from preset `ladderDays` (Flash-14 3–12, Flash-28 4–25); the PL 8 gate goes.** | §4.4: "by day, not by Player Level"; §6.5's table. |
+| R82 | **Trophy changes round halves up in magnitude, in integers; the defender's 50 % does too.** | §6.4 says `round` only; integers keep it the same everywhere. |
+| R83 | **`leaguePeak` holds the floor: trophies can't fall below that league's minimum, attacking or defending.** Finals Points have no floor but 0. | §6.4: "a league's minimum is a permanent floor". |
+| R84 | **Energy is lazy: a stored value and timestamp; a refill sets it to 3 and is refused at full; refills count per game day.** | §6.4 says "all 3"; a refill at full would only waste money. |
+| R85 | **A round's first offers are free; one free refresh per battle; then 500 Gold × league tier (Bronze 1 … Champion 6).** | §6.4's "one refresh is free per energy point" is read as per point spent. |
+| R86 | **Team Power is integer: each √(HP × ATK) floored, summed, ÷ 10 floored, without Bastion. A seeker's is its best three owned, a defender's its saved team.** | Keeps matchmaking deterministic; a weak saved team mustn't buy easy opponents (Phase 2 rule). |
+| R87 | **Offers live for 1 h or until used or refreshed, and show elements and levels only, with no seed.** | §6.4's cards; a seed before team choice is a reroll. |
+| R88 | **Ghosts are generated to within 15 % Team Power, rarity no higher than the seeker's best, no Legendary. They pay and move trophies as players do, and have Bastion. R79 ends.** | §6.4: "an AI Ghost team fills any gap". |
+| R89 | **A battle is frozen at `startPvp`; energy is spent there, and only then can the seed be read.** | R69's reason, applied to PvP; A8. |
+| R90 | **A battle has a 10-minute deadline. Past it, or on abandon or a short list, it's a loss with trophies and defender credit; energy isn't refunded.** A job settles absent players. | Otherwise a player can dodge a loss by leaving. |
+| R91 | **Snapshots stand: a defender's later changes don't affect a started battle, and trophies use the snapshot's numbers. A deleted defender only skips its credit.** | The result must be reproducible. |
+| R92 | **First-5-wins chest pays on the 5th win of a game day: one extra league win's Gold and Food, and 10 % for +1 energy, which may exceed 3.** | §6.4 gives no chest size; simplest honest size. |
+| R93 | **A day's gain is net trophies from attack and defence; only the first 3 battles against one opponent in a day count for the Daily Ladder.** | §10.5 names win-trading; it can't be seen otherwise before M9. |
+| R94 | **A14's weights are 10, 9 … 1 of 55. Ties: earlier first gain, then id. Payouts are ledger rows of 0 until M7.** | A14 fixes order only; A16 sets P at zero. |
+| R95 | **Bronze's 5 tokens are 1 h each. Ladder Lock runs at the end of the last Ladder day and delivers once.** | §6.5 gives no size; R75's middle size. |
+| R96 | **Finals brackets use the ladder's windows over Finals Points; Ghosts fill; only entrants' points change; Finals pay rows of 0 until M7.** | §6.5: "using the trophy formula". |
+| R97 | **Arena screen: tabs for Ladder, Daily, Leagues, Finals and Champions in one dialog, in M5's panel style; battles reuse the portrait screen.** | The GDD has no UI section (R80). |
