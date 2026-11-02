@@ -18,7 +18,7 @@ export const HOME_START = {
  */
 const HOME_OBSTACLE_CELLS: readonly (readonly [ObstacleKind, readonly (readonly [number, number])[]])[] = [
   // Starting land
-  ['largeRock', [[20, 20]]], ['tree', [[16, 22], [9, 18]]], ['smallRock', [[12, 22], [8, 22]]], ['bush', [[21, 13], [19, 16], [16, 17]]],
+  ['largeRock', [[16, 17]]], ['tree', [[16, 22], [9, 18]]], ['smallRock', [[8, 22], [12, 22]]], ['bush', [[21, 13], [20, 23], [23, 23]]],
   // Plot 2
   ['boulder', [[16, 0]]], ['tree', [[22, 0]]], ['bush', [[18, 7]]],
   // Plot 7
