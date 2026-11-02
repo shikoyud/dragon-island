@@ -12,6 +12,7 @@ import { LevelUp, useLevelUp } from './hud/LevelUp'
 import { HudArtContext, hudArtOf } from './hud/Icon'
 import { hudSkin } from './hud/skin'
 import { Admin } from './pages/Admin'
+import { KitGallery } from './pages/KitGallery'
 import { BattlePanel } from './panels/BattlePanel'
 import { dialogLabel, PanelHost, useDialog } from './panels/PanelHost'
 import { PlacementBar } from './panels/PlacementBar'
@@ -31,6 +32,8 @@ import { SignIn } from './wallet/SignIn'
 export function App() {
   // The operator console is the only hash route; everything else is the game.
   if (typeof location !== 'undefined' && location.hash === '#/admin') return <ErrorBoundary><Admin /></ErrorBoundary>
+  // The UI kit gallery (UI rework ruling P5): every kit piece in every state, for screenshots and review.
+  if (typeof location !== 'undefined' && location.hash === '#/kit') return <ErrorBoundary><KitGallery /></ErrorBoundary>
   return (
     <ErrorBoundary>
       <ToastProvider>

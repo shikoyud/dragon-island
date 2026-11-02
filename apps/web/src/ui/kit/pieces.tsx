@@ -1,4 +1,5 @@
 import type { Element, Rarity } from '@wyrmhaven/game-core'
+import { useHudSprite } from '../../hud/ArtMark'
 import { cloneElement, useId, type ReactElement, type ReactNode } from 'react'
 
 /**
@@ -36,12 +37,20 @@ const RARITY_NAME: Record<Rarity, string> = { common: 'Common', uncommon: 'Uncom
 
 /** A hanging element banner in the element's colour. */
 export function ElementRibbon({ element }: { element: Element }) {
-  return <span className={`kit-ribbon kit-ribbon--${element}`} role="img" aria-label={ELEMENT_NAME(element)} style={{ ['--el' as string]: `var(--el-${element})` }} />
+  const art = useHudSprite(`ui.kit.ribbon.${element}`)
+  const style = art ? { backgroundImage: `url(${art.src})` } : { ['--el' as string]: `var(--el-${element})` }
+  return <span className={`kit-ribbon kit-ribbon--${element}${art ? ' kit-ribbon--art' : ''}`} role="img" aria-label={ELEMENT_NAME(element)} style={style} />
 }
 
 /** A rarity shield with its letter (ruling P6: C, U, R, E, L). */
 export function RarityShield({ rarity }: { rarity: Rarity }) {
-  return <span className={`kit-shield kit-shield--${rarity}`} role="img" aria-label={RARITY_NAME[rarity]}>{RARITY_LETTER[rarity]}</span>
+  const art = useHudSprite(`ui.kit.shield.${rarity}`)
+  return (
+    <span className={`kit-shield kit-shield--${rarity}${art ? ' kit-shield--art' : ''}`} role="img" aria-label={RARITY_NAME[rarity]}
+      style={art ? { backgroundImage: `url(${art.src})` } : undefined}>
+      {RARITY_LETTER[rarity]}
+    </span>
+  )
 }
 
 /**
