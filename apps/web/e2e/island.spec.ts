@@ -35,8 +35,8 @@ test.beforeEach(async ({ page, request }) => {
 })
 
 test('a click on a cell centre is that cell, and on a building selects it', async ({ page }) => {
-  // Free cells of the starting island, clear of its obstacles (U6), then one on a plot for sale (plot 2), clear of its sign and obstacles (a sign's box takes the tap): a ghost may go there, red (R58). (3, 3) is on a plot not offered, so it is no cell any more.
-  for (const [col, row] of [[14, 13], [22, 13], [18, 13], [15, 14], [22, 6]] as const) {
+  // Free cells of the starting island, clear of its obstacles (U6), then one on a plot for sale (plot 2), clear of its sign, its obstacles and the crown of plot 7's Ancient Tree (a sign's box takes the tap): a ghost may go there, red (R58). (3, 3) is on a plot not offered, so it is no cell any more.
+  for (const [col, row] of [[14, 13], [22, 13], [18, 13], [15, 14], [21, 6]] as const) {
     const p = await cellPoint(page, col, row)
     await page.evaluate(() => { window.__seen!.length = 0 })
     await page.mouse.click(p.x, p.y)

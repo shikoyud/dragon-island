@@ -50,9 +50,15 @@ describe('art v1 manifest', () => {
       expect(s.src, key).not.toBe('')
       expect([s.w, s.h], key).toEqual([w, h])
     }
-    for (const e of ELEMENTS_WITH_ART) fit(`habitat.${e}`, art.habitat[e], 64, 56)
+    for (const e of ELEMENTS_WITH_ART) fit(`habitat.${e}`, art.habitat[e], 64, 64)
     fit('building.nexus', art.building.nexus, 80, 64)
-    fit('building.hatchery', art.building.hatchery, 64, 64)
+    fit('building.hatchery', art.building.hatchery, 80, 96)
+    for (const l of [2, 3, 4]) fit(`building.hatchery.${l}`, art.building.hatcheryLevel[l]!, 80, 96)
+    fit('building.goldenAerie', art.building.goldenAerie!, 64, 64)
+    fit('obstacle.ancientTree', art.obstacle.ancientTree, 64, 72)
+    fit('ui.island.upgradePost', art.island.upgradePost, 24, 32)
+    fit('ui.island.arrow', art.island.arrow, 32, 40)
+    for (const k of ['minus', 'plus', 'thumb']) fit(`ui.zoom.${k}`, art.hud[`ui.zoom.${k}`]!, 32, 32)
     fit('building.farmPlot', art.building.farmPlot, 48, 40)
     fit('building.nest', art.building.nest, 32, 32)
     for (const id of Object.keys(DECORATIONS) as DecorationId[]) fit(id, art.decoration[id], DECORATIONS[id].size * 16, DECORATIONS[id].size * 16)
@@ -87,7 +93,7 @@ describe('art v1 manifest', () => {
       expect(a.top!, key).toBeGreaterThanOrEqual(0)
       expect(a.top!, key).toBeLessThan(a.h)
     }
-    expect(v1.assets['building.hatchery']!.top).toBe(17)
+    expect(v1.assets['building.hatchery']!.top).toBe(13)
     expect(v1.assets['island.locked']!.top).toBe(0)
   })
 

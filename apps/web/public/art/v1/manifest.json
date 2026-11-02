@@ -11,18 +11,18 @@
     "building.goldenAerie": {
       "file": "golden-aerie.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 7
+      "top": 8
     },
     "building.hatchery": {
       "file": "hatchery.png",
-      "w": 64,
-      "h": 64,
+      "w": 80,
+      "h": 96,
       "frames": 1,
       "fps": 0,
-      "top": 17
+      "top": 13
     },
     "building.hoard": {
       "file": "hoard.png",
@@ -571,82 +571,82 @@
     "habitat.dark": {
       "file": "habitat-dark.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 7
     },
     "habitat.electric": {
       "file": "habitat-electric.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 7
     },
     "habitat.flame": {
       "file": "habitat-flame.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 7
     },
     "habitat.ice": {
       "file": "habitat-ice.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 6
+      "top": 12
     },
     "habitat.light": {
       "file": "habitat-light.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 4
+      "top": 7
     },
     "habitat.metal": {
       "file": "habitat-metal.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 7
     },
     "habitat.nature": {
       "file": "habitat-nature.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 1
+      "top": 7
     },
     "habitat.sea": {
       "file": "habitat-sea.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 17
+      "top": 20
     },
     "habitat.terra": {
       "file": "habitat-terra.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 4
+      "top": 7
     },
     "habitat.war": {
       "file": "habitat-war.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 14
+      "top": 17
     },
     "hatchling.dark": {
       "file": "hatchling-dark.png",
@@ -2954,27 +2954,27 @@
     },
     "building.hatchery.2": {
       "file": "hatchery-2.png",
-      "w": 64,
-      "h": 64,
+      "w": 80,
+      "h": 96,
       "frames": 1,
       "fps": 0,
-      "top": 11
+      "top": 13
     },
     "building.hatchery.3": {
       "file": "hatchery-3.png",
-      "w": 64,
-      "h": 64,
+      "w": 80,
+      "h": 96,
       "frames": 1,
       "fps": 0,
-      "top": 11
+      "top": 3
     },
     "building.hatchery.4": {
       "file": "hatchery-4.png",
-      "w": 64,
-      "h": 64,
+      "w": 80,
+      "h": 96,
       "frames": 1,
       "fps": 0,
-      "top": 4
+      "top": 1
     },
     "book.unknown": {
       "file": "book-unknown.png",
@@ -3043,7 +3043,7 @@
     "obstacle.ancientTree": {
       "file": "obstacle-ancientTree.png",
       "w": 64,
-      "h": 64,
+      "h": 72,
       "frames": 1,
       "fps": 0,
       "top": 0
@@ -3791,6 +3791,46 @@
       "frames": 4,
       "fps": 8,
       "top": 0
+    },
+    "ui.island.upgradePost": {
+      "file": "ui-island-upgradePost.png",
+      "w": 24,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.island.arrow": {
+      "file": "ui-island-arrow.png",
+      "w": 32,
+      "h": 40,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.zoom.minus": {
+      "file": "ui-zoom-minus.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.zoom.plus": {
+      "file": "ui-zoom-plus.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.zoom.thumb": {
+      "file": "ui-zoom-thumb.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
     }
   }
 }
