@@ -386,3 +386,79 @@
   .book { grid-template-columns: 1fr; }
   .book__ribbons { flex-direction: row; flex-wrap: wrap; }
 }
+
+/* Quests (design, Phase 5: trial): the chapters as tall cards side by side. The dialog widens for them. */
+.hud-dialog:has(.quest-cards), .hud-dialog:has(.lineup) { width: min(1280px, 100%); }
+.quest-cards { list-style: none; margin: 0; padding: 4px 4px 10px; display: flex; gap: 14px; overflow-x: auto; overscroll-behavior-x: contain; }
+.quest-cards > li { flex: none; }
+.quest-card {
+  position: relative; width: 220px; height: 100%; min-height: 340px; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 0 12px; cursor: pointer;
+  color: #fff; background: #3a2a5a center / 100% 100% no-repeat; border: 3px solid var(--kit-ink); border-radius: 14px; overflow: hidden; image-rendering: pixelated;
+}
+.quest-card--locked { filter: grayscale(0.75) brightness(0.85); }
+.quest-card__ribbon { width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 8px; background: #6a3fb0; border-bottom: 3px solid var(--kit-ink); }
+.quest-card__name { font: 15px/1.1 var(--font-display); text-shadow: 0 2px 0 var(--kit-ink); }
+.quest-card__art { flex: 1; display: grid; place-items: center; }
+.quest-card__xp { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px 2px 4px; font: 12px/1 var(--font-display); color: var(--kit-ink); background: #fff; border: 2px solid var(--kit-ink); border-radius: 999px; }
+.quest-card__progress { width: calc(100% - 20px); display: flex; flex-direction: column; gap: 3px; }
+.quest-card__bar { height: 12px; background: #3b3150; border: 2px solid var(--kit-ink); border-radius: 6px; overflow: hidden; }
+.quest-card__fill { display: block; height: 100%; background: #ffd84a; }
+.quest-card__done { font: 12px/1 var(--font-display); color: #ffd84a; text-shadow: 0 1px 0 var(--kit-ink); }
+.quest-card .trials__sub { font: 11px/1 var(--font-display); color: #fff; }
+.quest-card__go { min-width: 140px; padding: 10px 16px; font: 16px/1 var(--font-display); color: var(--kit-ink); background: #ffd84a; border: 2px solid var(--kit-ink); border-radius: 12px; box-shadow: 0 4px 0 #b58a12; }
+.quest-card__lock { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0 8px; text-align: center; }
+.quest-card__lock .trials__why { font: 11px/1.2 var(--font-display); color: #fff; }
+
+/* Lineup (design, Phase 5: combat-lineup): three tall slots, Go to Battle!, the opponents along the bottom. */
+.lineup { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.lineup__slot { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.lineup__card { width: 100%; min-height: 180px !important; display: flex; flex-direction: column; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.55); border: 2px solid var(--kit-ink); border-radius: 12px; }
+.lineup__art { flex: 1; display: grid; place-items: center; min-height: 100px; }
+.lineup__name { font: 13px/1.1 var(--font-display); }
+.lineup__select { padding: 6px 14px; font: 12px/1 var(--font-display); color: #fff; background: #2fb3d6; border: 2px solid var(--kit-ink); border-radius: 10px; text-shadow: 0 1px 0 var(--kit-ink); }
+.lineup__opponents { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 8px; padding: 8px 12px; color: #fff; background: #3b3a4e; border: 2px solid var(--kit-ink); border-radius: 10px; }
+.lineup__opponents-label { font: 14px/1 var(--font-display); }
+.lineup__opponent { display: inline-flex; align-items: center; gap: 8px; }
+.lineup__portrait { display: grid; place-items: center; width: 48px; height: 48px; background: #fff; border: 2px solid var(--kit-ink); border-radius: 8px; overflow: hidden; }
+.lineup__portrait--hidden [data-testid="sprite-still"] { filter: brightness(0) opacity(0.4); }
+.lineup__opponent-text { display: flex; flex-direction: column; gap: 2px; }
+.lineup__opponent-name { font: 12px/1 var(--font-display); }
+.lineup__opponent-level { display: inline-flex; align-items: center; gap: 4px; font: 11px/1 var(--font-display); }
+@media (max-height: 480px) {
+  .quest-cards { zoom: 0.8; }
+  .quest-card { width: 170px; min-height: 0; gap: 4px; padding-bottom: 6px; }
+  .quest-card__ribbon { padding: 4px 6px; }
+  .quest-card__name { font-size: 12px; }
+  .quest-card__art img { width: 64px; height: 64px; }
+  .quest-card__go { min-width: 100px; padding: 6px 10px; font-size: 13px; }
+  .lineup__card { min-height: 0 !important; gap: 2px; }
+  .lineup__art { min-height: 0; }
+  .lineup__art [data-testid="sprite-still"] { zoom: 0.5; }
+  .lineup { gap: 8px; }
+  .lineup__opponents { gap: 8px; padding: 4px 8px; }
+}
+
+/* Battle (design, Phase 5: combat): your plate top left, the enemy's top right, VS and the turn between; the four moves in one
+   row along the bottom on a wide screen. The stage itself (and the camera that shares its box) is unchanged. */
+.battle__plate--attacker { left: 8px; right: auto; top: 52px; bottom: auto; }
+.battle__plate--defender { right: 8px; left: auto; top: 52px; }
+.battle__vs { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0; pointer-events: none; }
+.battle__vs-turn { padding: 2px 10px; font: 11px/1.2 var(--font-display); color: var(--kit-ink); background: #ffd84a; border: 2px solid var(--kit-ink); border-radius: 6px; }
+@media (min-width: 900px) {
+  .battle__moves { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .battle__controls:has(.battle__moves) { display: grid; grid-template-columns: 140px 1fr; grid-template-areas: "turn turn" "swap moves"; align-content: start; }
+  .battle__controls:has(.battle__moves) > .battle__turn { grid-area: turn; }
+  .battle__controls:has(.battle__moves) > .battle__moves { grid-area: moves; }
+  .battle__controls:has(.battle__moves) > .battle__swap { grid-area: swap; height: 100%; }
+}
+@media (max-width: 420px) {
+  .battle__vs { display: none; }
+}
+@media (min-width: 900px) {
+  .battle__controls:has(.battle__moves) { height: auto !important; }
+}
+/* A short screen draws a small stage: the two plates share the top half and half, and VS steps aside. */
+@media (max-height: 600px) {
+  .battle__plate { width: calc(50% - 12px); }
+  .battle__vs { display: none; }
+}

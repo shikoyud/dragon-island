@@ -111,7 +111,7 @@
 
 ### Task 12: Quests, lineup and battle
 
-- [ ] `TrialsPanel` quests: sideways tall cards (`ui.quest.card`) with XP badge, title ribbon, boss art, "Completed n/m", Battle or lock. Lineup: plank with cup badge, three slots with Select Dragon, Go to Battle, opponents strip. `BattlePanel`: portraits, stars, HP bars top corners, `ui.battle.vs` with round number, bench down each side, Swap, move buttons along the bottom. Commit `feat(web): Quests, lineup and battle layouts`.
+- [x] `TrialsPanel` quests: sideways tall cards (`ui.quest.card`) with XP badge, title ribbon, boss art, "Completed n/m", Battle or lock. Lineup: plank with cup badge, three slots with Select Dragon, Go to Battle, opponents strip. `BattlePanel`: portraits, stars, HP bars top corners, `ui.battle.vs` with round number, bench down each side, Swap, move buttons along the bottom. Commit `feat(web): Quests, lineup and battle layouts`.
 
 ### Task 13: Verify and report
 

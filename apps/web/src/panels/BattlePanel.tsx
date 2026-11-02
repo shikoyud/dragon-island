@@ -26,6 +26,9 @@ function useStageBox() {
 /** A send with no answer after this long offers Leave as well: a fetch can hang for minutes on a bad network. */
 export const SEND_PATIENCE_MS = 5_000
 
+/** The controls span the stage up to this width, so the four moves sit in one row along the bottom (design, Phase 5: combat). */
+const WIDE_CONTROLS = 960
+
 const hpText = (hp: number, max: number): string => `${formatGold(hp)} / ${formatGold(max)}`
 
 function Plate({ label, state, side, view, boss }: { label: 'Enemy' | 'Yours'; state: BattleState; side: Side; view: BattleView; boss: boolean }) {
@@ -215,12 +218,14 @@ export const BattlePanel = memo(function BattlePanel({ battle, bridge, onClose }
             {canExit && <button type="button" className="btn btn--ghost battle__tap battle__exit" aria-label="Exit battle" onClick={() => setConfirm(true)}>Exit</button>}
           </span>
         </header>
-        <Plate label="Enemy" state={state} side="defender" view={view} boss={bossUp} />
         <Plate label="Yours" state={state} side="attacker" view={view} boss={false} />
+        {/* VS between the two plates (design, Phase 5: combat). */}
+        <span className="battle__vs" aria-hidden="true"><ArtMark name="ui.battle.vs" size={48} /><span className="battle__vs-turn">{turnLabel(view.turn, over && !busy).split(' / ')[0]}</span></span>
+        <Plate label="Enemy" state={state} side="defender" view={view} boss={bossUp} />
         <p className="battle__line" role="status" aria-label="Last move">{line}</p>
       </div>
 
-      <div className={`battle__controls${result ? ' battle__controls--result' : ''}`} style={{ ...controlsStyle, width: `min(100%, ${Math.min(box.w, 480)}px)` }}>
+      <div className={`battle__controls${result ? ' battle__controls--result' : ''}`} style={{ ...controlsStyle, width: `min(100%, ${Math.min(box.w, WIDE_CONTROLS)}px)` }}>
         <p className="battle__turn">
           <span>{turnLabel(view.turn, over && !busy)}</span>
           {trial && <span className="battle__goal">3★: {THREE_STAR_TURNS} turns, no KOs</span>}
