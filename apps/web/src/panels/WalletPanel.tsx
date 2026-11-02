@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useApi } from '../api/ApiProvider'
 import { ApiError } from '../api/client'
 import { messageFor } from '../api/errors'
@@ -16,7 +16,7 @@ const EXPLORER = 'https://explorer.testnet.chain.robinhood.com/tx/'
 type Step = 'enter' | 'approve' | 'deposit' | 'claim'
 
 /** Enter (one-time fee), deposit (approve → deposit), withdraw (voucher → claim). */
-export function WalletPanel({ onClose }: { onClose?: () => void }) {
+export function WalletPanel({ onClose, framed = true }: { onClose?: () => void; framed?: boolean }) {
   const api = useApi()
   const qc = useQueryClient()
   const me = useMe()
@@ -75,7 +75,7 @@ export function WalletPanel({ onClose }: { onClose?: () => void }) {
   })
 
   return (
-    <Panel title="Wallet" onClose={onClose}>
+    <MaybePanel framed={framed} onClose={onClose}>
       {chainReason && <p role="alert">{chainReason}.</p>}
       <p>Wallet: {vault.walletBalanceWei !== null ? <Tokens wei={vault.walletBalanceWei} /> : '—'} · Game balance: <Tokens wei={gameBalance} /></p>
 
@@ -135,6 +135,11 @@ export function WalletPanel({ onClose }: { onClose?: () => void }) {
 
       {tx && <p><small>Transaction sent: <a href={`${EXPLORER}${tx}`} target="_blank" rel="noreferrer">{tx.slice(0, 10)}…</a>{busy ? ' · waiting for confirmation' : ''}</small></p>}
       {err && <p role="alert" style={{ color: 'var(--danger)' }}>{err}</p>}
-    </Panel>
+    </MaybePanel>
   )
+}
+
+/** Its own dialog, or bare inside Settings' Wallet tab. */
+function MaybePanel({ framed, onClose, children }: { framed: boolean; onClose?: () => void; children: ReactNode }) {
+  return framed ? <Panel title="Wallet" onClose={onClose}>{children}</Panel> : <div className="settings-tab__body">{children}</div>
 }

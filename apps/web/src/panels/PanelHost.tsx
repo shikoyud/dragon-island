@@ -5,7 +5,6 @@ import type { Bridge } from '../game/bridge'
 import type { DialogKey } from '../hud/Hud'
 import { useMe } from '../state/me'
 import { useStartPlacing } from '../state/startPlacing'
-import { SignIn } from '../wallet/SignIn'
 import { BattleHub } from './BattleHub'
 import { BreedPanel } from './BreedPanel'
 import { DecorationPanel } from './DecorationPanel'
@@ -19,9 +18,8 @@ import { ObstaclePanel } from './ObstaclePanel'
 import { PlotPanel } from './PlotPanel'
 import { QuestsPanel } from './QuestsPanel'
 import { RoostPanel } from './RoostPanel'
+import { SettingsPanel } from './SettingsPanel'
 import { ShopPanel } from './ShopPanel'
-import { SpeedUpsRow } from './SpeedUpsRow'
-import { WalletPanel } from './WalletPanel'
 
 /**
  * True while the dialog's panel has something to show: what it is about still exists (an obstacle not yet cleared, a dragon
@@ -78,11 +76,12 @@ export interface PanelHostProps {
 /** The panel for the open dialog (a named HUD panel or a clicked island object), or null. */
 export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = () => {}, onResumeTrial = () => {}, onPvp = () => {} }: PanelHostProps): ReactElement | null {
   const startPlacing = useStartPlacing()
+  const game = useMe().data?.game
   const close = () => onOpen(null)
   if (!dialog) return null
   if (dialog.kind === 'panel') {
     switch (dialog.id) {
-      case 'shop': return <ShopPanel key={dialog.tab ?? 'build'} tab={dialog.tab} nowMs={nowMs} view={bridge.view} onPlace={(what, size) => { onOpen(null); startPlacing(what, size) }} onClose={close} />
+      case 'shop': return <ShopPanel key={dialog.tab ?? 'build'} tab={dialog.tab === 'store' ? 'store' : 'build'} nowMs={nowMs} view={bridge.view} onPlace={(what, size) => { onOpen(null); startPlacing(what, size) }} onClose={close} />
       case 'map': return null // the Map is a scene (R60), not a dialog; its islands open panels
       case 'breed': return <BreedPanel nowMs={nowMs} onClose={close} />
       case 'book': return <DragonBookPanel art={bridge.art} onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
@@ -90,7 +89,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = (
       case 'quests': return <QuestsPanel onClose={close} onOpen={onOpen} />
       case 'wings':
       case 'inbox': return null // not built until a later milestone; the bar buttons are disabled
-      case 'settings': return <div className="settings-dialog"><WalletPanel onClose={close} /><SpeedUpsRow /><div className="settings-dialog__account"><SignIn /></div></div>
+      case 'settings': return <SettingsPanel onClose={close} nowMs={nowMs} game={game} tab={dialog.tab === 'wallet' ? 'wallet' : 'account'} />
     }
   }
   const t = dialog.target
