@@ -28,7 +28,9 @@ const FALL_BACK = 16
 /** The river keeps this far off the plots, in cells, so its 2 px bank does too. */
 const RIVER_CLEAR = 0.5
 /** The widest gap in a column that fills as a notch, in world px. */
-const NOTCH_MAX = 40
+const NOTCH_MAX = 24
+/** The most the land's edge may step between two 2 px columns, in world px: 2.5 down for 1 across. */
+const EDGE_STEP = 5
 /** A river under this many world px of front is a pond: dropped. */
 const RIVER_MIN = 40
 /** The lip stepping more than this between two columns is another lobe's edge, so the water stops there. */
@@ -234,6 +236,16 @@ export function landmass(plots: readonly number[]): Landmass {
     }
     back[i] = top
     front[i] = runEnd
+  }
+  // No sheer step in the outline: where a column's land jumps from its neighbour's, the edge slants instead.
+  const slant = (i: number, from: number) => {
+    if (back[i] === -1 || back[from] === -1) return
+    back[i] = Math.min(back[i]!, back[from]! + EDGE_STEP)
+    front[i] = Math.min(surfaceRows - 1, Math.max(front[i]!, front[from]! - EDGE_STEP))
+  }
+  for (let i = 2; i < box.w; i += 2) slant(i, i - 2)
+  for (let i = box.w - 4; i >= 0; i -= 2) slant(i, i + 2)
+  for (let i = 0; i < box.w; i += 2) {
     if (back[i] === -1) continue
     // Whole from back to front: nothing but grass between two stretches of land in a column.
     for (let j = back[i]!; j <= front[i]!; j++) { mask[j * box.w + i] = MASK_LAND; mask[j * box.w + i + 1] = MASK_LAND }
