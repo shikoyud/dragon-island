@@ -59,8 +59,8 @@ describe('Home\'s start (R50)', () => {
     expect(at('ancientTree')).toEqual([[28, 8]])
     expect(at('boulder')).toEqual([[16, 0]])
     expect(at('largeRock')).toEqual([[20, 20], [29, 18]])
-    expect(at('tree')).toEqual([[12, 18], [8, 18], [22, 0], [24, 18]])
-    expect(at('smallRock')).toEqual([[16, 21], [8, 22], [24, 14]])
+    expect(at('tree')).toEqual([[16, 22], [9, 18], [22, 0], [24, 18]])
+    expect(at('smallRock')).toEqual([[12, 22], [8, 22], [24, 14]])
     expect(at('bush')).toEqual([[21, 13], [19, 16], [16, 17], [18, 7], [30, 15], [26, 23]])
   })
   it('covers 28 tiles of the starting plots, clear of the buildings and of itself (U6)', () => {

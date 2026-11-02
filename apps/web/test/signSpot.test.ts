@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { FALLBACK_ART } from '../src/art/slots'
 import { buildIslandModel } from '../src/game/islandModel'
 import { LAUNCH_CATALOG } from '@wyrmhaven/game-core'
-import { boxesOverlap, cellCentre, obstacleBox, SIGN_SCALE, signBox, signSpot, type SignArt } from '../src/game/layout'
+import { anchor, boxesOverlap, cellCentre, obstacleBox, SIGN_SCALE, signBox, signSpot, type SignArt } from '../src/game/layout'
 
 /** The art's real sizes, from the manifest. */
 const manifest = JSON.parse(readFileSync(resolve(__dirname, '../public/art/v1/manifest.json'), 'utf8')) as { assets: Record<string, { w: number; h: number; top?: number }> }
@@ -34,6 +34,13 @@ describe('the start table at the art\'s real sizes', () => {
     start.forEach((a, i) => start.slice(i + 1).forEach(b => {
       expect(boxesOverlap(obstacleBox(a, art), obstacleBox(b, art)), `${a.kind} (${a.col},${a.row}) / ${b.kind} (${b.col},${b.row})`).toBe(false)
     }))
+  })
+
+  it('keeps the castle\'s nest in sight: no obstacle\'s art over it', () => {
+    // The Hatchery at (8, 13): the nest is about 28x14, centred 14 px above its anchor (docs/art/ui-rework-p1-art-list.md).
+    const { x, y } = anchor(8, 13, 4)
+    const nest = { x: x - 14, y: y - 21, w: 28, h: 14 }
+    for (const o of start) expect(boxesOverlap(nest, obstacleBox(o, art)), `${o.kind} (${o.col},${o.row})`).toBe(false)
   })
 
   it('leaves a clear sign cell on each of the 3 first offered plots', () => {
