@@ -200,7 +200,7 @@ Keys follow `docs/art/gdd-m3-art-list.md`. Each Roost tier is an edit of the tie
 
 | Run | Tool | Cost | Used for |
 | --- | --- | --- | --- |
-| Roost Tier 1 | `create_image_pro_flash` 64×64, style image `hatchery.png`, seed 301 | 5 | `building.roost.1` |
+| Roost Tier 1 | `create_image_pro_flash` 64ï¿½64, style image `hatchery.png`, seed 301 | 5 | `building.roost.1` |
 | Roost Tiers 2 to 5 | `edit_image_pixen`, seeds 302, 307, 309, 310 (candidates 303, 304, 305, 306, 308, 311 discarded) | 10 | `building.roost.2` to `.5` |
 | Goal mark | `edit_image_pixen` on `ui-close.png`, seed 322 (two `create_image_pixen` tries, seeds 320 and 321, discarded: tick off the plate) | 3 | `ui.goal` |
 | Level-up | drawn in code: two rising 2:1 rings in gold-white with dithered fade, ground glow, four-point stars (no generation; the `level_up` part of `vfx_workbench` was tried for free and dropped, it is a pillar with arrows, not a ring) | 0 | `fx.levelUp` |
@@ -275,7 +275,7 @@ Keys follow `docs/superpowers/plans/2026-11-01-ui-rework-phase1.md` Task 7. Cost
 | Clouds | `create_image_pixen` 96x40, no background, seeds 703, 724, 722 (704, 705, 723 discarded: sparkles, peach balls, a tray of puffs) | 6 | `ground.cloud.0..2` |
 | Rock | `create_image_pixen` 64x64, seed 719 (seed 706 discarded: no facets) | 2 | `ground.rock` |
 | Rim | `create_image_pixen`, 48x32 seeds 716, 717; 40x32 seed 718; 32x32 seed 710 (707 a saucer, 708 a tank, 709 a floating islet, discarded) | 7 | `ground.rim.0..3` |
-| Waterfall | `create_image_pixen` 32x96, seeds 711 and 720, both discarded; drawn in code | 2 | `ground.waterfall` |
+| Waterfall | `create_image_pixen` 32x96, seeds 711 and 720, both discarded; drawn in code (Pillow, seed 20261102: a foam dome of sine lumps, column streaks of one blue ramp looping over 48 rows, 12 rows a frame; sides from two looping sine waves; a 4x4 ordered dither on `m ** 1.4` from row 64 to the bottom, ending per column) | 2 | `ground.waterfall` |
 | Sign | `create_image_pixen` 48x48, seed 712, blank board; letters in code | 1 | `island.sign` |
 | Tree | `edit_image_pixen` on a code start, 64x72, seed 742 (741 thin spider roots, 743 stray pixels in the roots, discarded) | 3 | `obstacle.ancientTree` |
 | Castle Level 1 | `edit_image_pixen` on a code block-out, 80x96, seed 731, then on that result seed 733 (`create_image_pixen` seed 701 and edit seed 732 discarded: nest on a wall top; gate wall closing the front) | 4 | `building.hatchery` |

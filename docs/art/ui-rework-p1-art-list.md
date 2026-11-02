@@ -9,10 +9,10 @@ The set for `docs/superpowers/plans/2026-11-01-ui-rework-phase1.md` (Task 7). Ev
 | `ground.sky` | 480x272 | 1 | PixelLab (`create_image_pixen`). Landed in Task 3. |
 | `ground.cloud.0..2` | 96x40 | 1 | PixelLab, then alpha, specks and colour ramp in code. Landed in Task 3. |
 | `ground.rock` | 64x64 | 1 | PixelLab, then made seamless in code. Landed in Task 3. |
-| `ground.rim.0`, `.1` | 48x32 | 1 | PixelLab, then cooled to the rock's grey in code. Landed in Task 3. |
+| `ground.rim.0`, `.1` | 48x32 | 1 | PixelLab, then cooled to the rock's grey in code. Landed in Task 3. Drawn at `RIM_ROCK_SCALE` (0.7), whole px. |
 | `ground.rim.2` | 40x32 | 1 | Same. Landed in Task 3. |
 | `ground.rim.3` | 32x32 | 1 | Same. Landed in Task 3. |
-| `ground.waterfall` | 32x96 | 4 @ 8 fps | **Code-drawn, not PixelLab:** both generated frames were unusable. Landed in Task 3. |
+| `ground.waterfall` | 32x96 | 4 @ 8 fps | **Code-drawn, not PixelLab:** both generated frames were unusable. Redrawn in the fix wave: rounded lumpy foam top, sides wandering 1-3 px between frames, mist dithered to nothing over the last third. Opaque or empty pixels only, so no pale box. |
 | `island.sign` | 48x48 | 1 | PixelLab blank board; "FOR SALE" lettered in code. Landed in Task 3. |
 | `obstacle.ancientTree` | 64x72 | 1 | PixelLab edit on a code start: the same tree, roots flaring onto the tile, shadow in code. |
 | `building.hatchery`, `.2`, `.3`, `.4` | 80x96 | 1 | PixelLab edits on a code block-out, chained level to level. Level 1's courtyard is pasted back on 2 to 4, so the nest is pixel-identical on all four. |
