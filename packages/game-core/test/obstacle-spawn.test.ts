@@ -56,12 +56,12 @@ describe('Home\'s start (R50)', () => {
     const count = (k: ObstacleKind) => base.islands.obstacles.filter(o => o.kind === k).length
     expect(KINDS.map(count)).toEqual([1, 1, 2, 4, 3, 6])
     const at = (k: ObstacleKind) => base.islands.obstacles.filter(o => o.kind === k).map(o => [o.col, o.row])
-    expect(at('ancientTree')).toEqual([[27, 8]])
+    expect(at('ancientTree')).toEqual([[28, 8]])
     expect(at('boulder')).toEqual([[16, 0]])
     expect(at('largeRock')).toEqual([[20, 20], [29, 18]])
-    expect(at('tree')).toEqual([[12, 21], [8, 18], [22, 1], [25, 18]])
+    expect(at('tree')).toEqual([[12, 18], [8, 18], [22, 0], [24, 18]])
     expect(at('smallRock')).toEqual([[16, 21], [8, 22], [24, 14]])
-    expect(at('bush')).toEqual([[21, 14], [18, 17], [14, 17], [18, 6], [31, 14], [26, 23]])
+    expect(at('bush')).toEqual([[21, 13], [19, 16], [16, 17], [18, 7], [30, 15], [26, 23]])
   })
   it('covers 28 tiles of the starting plots, clear of the buildings and of itself (U6)', () => {
     const owned = (o: Obstacle) => {

@@ -1,3 +1,5 @@
+import { OBSTACLES, plotOrigin, TILES_PER_PLOT, type ObstacleKind } from '@wyrmhaven/game-core'
+
 /**
  * Isometric (2:1) projection of an island's logical grid. game-core keeps square cells and footprints; only the
  * picture is angled. Each cell is a 16x8 diamond whose top vertex for (col, row) sits at
@@ -72,11 +74,11 @@ export function depthOrder(p: { col: number; row: number; size: number }, q: { c
 
 /**
  * Dragon spots on a 4x4 habitat's top face, from its anchor (the diamond's bottom vertex): the diamond is 64 wide and 32
- * tall, so its centre is (0, -16) and every spot's feet stay inside it. The first four stand at the middle, left, right
- * and back. Callers draw residents back to front by y.
+ * tall, so its centre is (0, -16) and every spot's feet stay inside it. The first four stand at the front middle, left, right
+ * and back, on the face rather than behind it (their art rises 24 px from the feet). Callers draw residents back to front by y.
  */
 const DRAGON_SPOTS: readonly Pos[] = [
-  { x: 0, y: -16 }, { x: -18, y: -15 }, { x: 18, y: -15 }, { x: 0, y: -25 }, { x: -10, y: -8 }, { x: 10, y: -8 }, { x: -26, y: -16 },
+  { x: 0, y: -11 }, { x: -17, y: -13 }, { x: 17, y: -13 }, { x: 0, y: -22 }, { x: -9, y: -6 }, { x: 9, y: -6 }, { x: -26, y: -16 },
 ]
 
 /**
@@ -97,6 +99,9 @@ export function dragonSpot(a: Pos, slot: number): Pos {
 export const NEST_EGG_SCALE = 0.5
 /** Eggs and waiting hatchlings in the Hatchery's courtyard nest. */
 export const NEST_EGG_HATCHERY_SCALE = 0.5
+/** A crowd stays on the nest: from this many eggs they draw at three quarters of `NEST_EGG_HATCHERY_SCALE`. */
+const NEST_CROWD = 4
+export const hatcheryEggScale = (eggs: number): number => (eggs >= NEST_CROWD ? NEST_EGG_HATCHERY_SCALE * 0.75 : NEST_EGG_HATCHERY_SCALE)
 
 /**
  * Where each egg stands in the castle's nest, from its anchor. The nest is about 28x14, centred 14 px above the anchor and
@@ -127,6 +132,53 @@ export const UPGRADE_POST = { x: -26, y: -12, scale: 0.5 } as const
  */
 export function captionPx(zoom: number): number {
   return zoom >= 3 ? 14 : zoom >= 2 ? 12 : 9
+}
+
+/**
+ * The 48 px sign art draws at half size: its 33 px board is then 66 px wide at the desktop's zoom 4, the reference's size.
+ * At full size it stands over the owned land beside its plot, its box taking taps meant for the starting Farm.
+ */
+export const SIGN_SCALE = 0.5
+
+/** A sprite's size, as much of it as a box needs: `top` empty rows above its art. */
+export interface SpriteBox { w: number; h: number; top?: number }
+/** The sizes `signSpot` reads. A `GameArtSet` is one. */
+export interface SignArt { obstacle: Record<ObstacleKind, SpriteBox>; island: { sign: SpriteBox } }
+
+export const boxesOverlap = (a: Box, b: Box): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+const overlapArea = (a: Box, b: Box): number => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y))
+
+/** The world box of an obstacle's art, standing on its footprint's bottom vertex. */
+export function obstacleBox(o: { kind: ObstacleKind; col: number; row: number }, art: SignArt): Box {
+  const s = art.obstacle[o.kind]
+  const a = anchor(o.col, o.row, OBSTACLES[o.kind].size)
+  const h = s.h - (s.top ?? 0)
+  return { x: a.x - s.w / 2, y: a.y - h, w: s.w, h }
+}
+
+/** The world box of a plot's sign at its drawn size, standing on a cell's centre. */
+export function signBox(col: number, row: number, art: SignArt): Box {
+  const w = art.island.sign.w * SIGN_SCALE, h = art.island.sign.h * SIGN_SCALE
+  const c = cellCentre(col, row)
+  return { x: c.x - w / 2, y: c.y - h, w, h }
+}
+
+/**
+ * The cell a plot's sign stands on: the one of its cells whose sign box overlaps no obstacle's art on any plot, nearest the
+ * plot's middle, or, with no clear cell, the one with the least overlap. Ties go to the lower row, then the lower column.
+ */
+export function signSpot(plot: number, obstacles: readonly { kind: ObstacleKind; col: number; row: number }[], art: SignArt): { col: number; row: number } {
+  const o = plotOrigin(plot)
+  const boxes = obstacles.map(x => obstacleBox(x, art))
+  const mid = TILES_PER_PLOT / 2
+  let best = { col: o.col, row: o.row }, bestOver = Infinity, bestD = Infinity
+  for (let row = o.row; row < o.row + TILES_PER_PLOT; row++) for (let col = o.col; col < o.col + TILES_PER_PLOT; col++) {
+    const sign = signBox(col, row, art)
+    const over = boxes.reduce((n, b) => n + overlapArea(sign, b), 0)
+    const d = (col + 0.5 - o.col - mid) ** 2 + (row + 0.5 - o.row - mid) ** 2
+    if (over < bestOver || (over === bestOver && d < bestD)) { best = { col, row }; bestOver = over; bestD = d }
+  }
+  return best
 }
 
 /** The least a finger can be asked to hit: 44 CSS px square. */

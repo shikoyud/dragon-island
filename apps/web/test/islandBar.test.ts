@@ -34,6 +34,21 @@ async function boot(state: ReturnType<typeof newPlayer>) {
   return { bridge, game, scene }
 }
 
+describe('the Tap to buy label', () => {
+  const games: Phaser.Game[] = []
+  afterEach(() => { games.splice(0).forEach(g => g.destroy(true)); vi.restoreAllMocks() })
+
+  it('is a tap target for its plot; while placing there are no labels', async () => {
+    const { bridge, game, scene } = await boot(newPlayer(0))
+    games.push(game)
+    const label = scene.live.get('caption:sign:7')!.obj
+    expect(label.getData('target')).toEqual({ kind: 'plot', island: 'home', plot: 7 })
+    expect(label.input?.enabled).toBe(true)
+    bridge.setPlacing({ what: { kind: 'farm' }, size: 3, col: 14, row: 13, facing: 0 })
+    expect(scene.live.has('caption:sign:7')).toBe(false)
+  })
+})
+
 describe('the progress bar under an egg', () => {
   const games: Phaser.Game[] = []
   afterEach(() => { games.splice(0).forEach(g => g.destroy(true)); vi.restoreAllMocks() })
@@ -47,7 +62,7 @@ describe('the progress bar under an egg', () => {
     // Over the sprites, under the badges.
     const at = scene.drawn.indexOf(bar!.obj)
     expect(at).toBeGreaterThan(scene.drawn.indexOf(scene.live.get('hatchery:0')!.obj))
-    expect(at).toBeLessThan(scene.drawn.indexOf(scene.live.get('badge:hatchery')!.obj))
+    expect(at).toBeLessThan(scene.drawn.indexOf(scene.live.get('badge:hatchery:0')!.obj))
     scene.sync()
     expect(scene.live.get('bar:hatchery:0')!.obj).toBe(bar!.obj)
     bridge.setState({ ...egged, hatchery: [{ speciesId: 'flame', readyAtMs: T }] }) // back to 0 %: another fill

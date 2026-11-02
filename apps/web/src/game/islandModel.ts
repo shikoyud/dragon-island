@@ -1,12 +1,12 @@
 import {
-  breedTimerMs, constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, offeredPlots, ownedPlots, plotOfTile, plotOrigin, plotPrice, plotsBought, TILES_PER_PLOT,
+  breedTimerMs, constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, offeredPlots, ownedPlots, plotOfTile, plotPrice, plotsBought,
   DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, sameRef, stageOf, storedGold, upgradeInfo,
   type BreederKind, type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
 import { placementSubject, type Placing, type Target } from './bridge'
-import { anchor, cellTop, depthOrder, dragonSpot, habitatDragonScale, hatcheryNestSpot, ISO, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, TAP_PX, UPGRADE_POST } from './layout'
+import { anchor, cellCentre, cellTop, depthOrder, dragonSpot, habitatDragonScale, hatcheryEggScale, hatcheryNestSpot, ISO, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, SIGN_SCALE, signSpot, TAP_PX, UPGRADE_POST } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
 export interface IslandObject {
@@ -292,11 +292,7 @@ export const ARROW_GAP = 2
 
 /** What the sign on a plot for sale says on Home. */
 export const SIGN_CAPTION = 'Tap to buy'
-/**
- * The 48 px sign art draws at half size: its 33 px board is then 66 px wide at the desktop's zoom 4, the reference's size.
- * At full size it stands over the owned land beside its plot, its box taking taps meant for the starting Farm.
- */
-export const SIGN_SCALE = 0.5
+export { SIGN_SCALE }
 
 /**
  * Pure: everything the Island scene draws for a state at a moment, for one island view. No Phaser, so it is
@@ -426,9 +422,13 @@ export function buildIslandModel(
     let spot = 0
     // One bar, on the egg due soonest, like the one badge below: 16 px bars over eggs 9 px apart bury the nest. The panel lists each egg.
     const barred = soonestHatching(state.hatchery, nowMs)
+    const eggScale = hatcheryEggScale(state.hatchery.length)
+    const eggs: IslandObject[] = []
     state.hatchery.forEach((egg, slot) => {
       const progress = slot === barred ? hatchProgress(egg.readyAtMs, egg.speciesId, nowMs, catalog, preset) : undefined
-      group.push({ id: `hatchery:${slot}`, ...eggLook(egg.speciesId, art, catalog), ...hatcheryNestSpot(a, spot++), scale: NEST_EGG_HATCHERY_SCALE, target: { kind: 'hatchery', slot }, ...(progress === undefined ? {} : { progress }) })
+      const o: IslandObject = { id: `hatchery:${slot}`, ...eggLook(egg.speciesId, art, catalog), ...hatcheryNestSpot(a, spot++), scale: eggScale, target: { kind: 'hatchery', slot }, ...(progress === undefined ? {} : { progress }) }
+      eggs.push(o)
+      group.push(o)
       markers.hatchery.push({ slot })
     })
     for (const d of state.dragons.filter(x => x.habitatId === null)) {
@@ -440,11 +440,13 @@ export function buildIslandModel(
     // What is in the nest, back to front, after the castle.
     group.splice(1, group.length - 1, ...group.slice(1).sort((p, q) => p.y - q.y))
     // One badge for the whole hatchery (per-egg badges pile up over its small nest); the panel lists each egg.
-    // A construction timer wins, then waiting hatchlings, then the soonest egg.
+    // A construction timer wins and stays on the castle, as does 'no room'; otherwise the timer sits over the soonest egg.
     if (!group[0]!.badge) {
-      const soonest = Math.min(...state.hatchery.map(e => e.readyAtMs))
-      const badge = markers.waiting.length > 0 ? 'no room' : state.hatchery.length > 0 ? timerLabel(soonest, nowMs) : undefined
-      if (badge) group[0]!.badge = badge
+      if (markers.waiting.length > 0) group[0]!.badge = 'no room'
+      else if (eggs.length > 0) {
+        const soonest = state.hatchery.reduce((best, e, i) => (e.readyAtMs < state.hatchery[best]!.readyAtMs ? i : best), 0)
+        eggs[soonest]!.badge = timerLabel(state.hatchery[soonest]!.readyAtMs, nowMs)
+      }
     }
     add(hatcheryAt, FOOTPRINT.hatchery, group, { type: 'hatchery' })
   }
@@ -486,14 +488,14 @@ export function buildIslandModel(
     }
   }
 
-  // Signs go on top of everything (a plot's own obstacles, a building next to it), just under the ghost. Each stands on its
-  // plot's centre. On Home a sign says what it is; the other islands keep the plain sign.
+  // Signs go on top of everything (a building next to them), just under the ghost. Each stands on the cell `signSpot` picks,
+  // clear of the obstacles' art. On Home a sign says what it is; the other islands keep the plain sign.
   const price = plotPrice(view, plotsBought(state, view))
+  const hereObstacles = state.islands.obstacles.filter(o => o.island === view)
   for (const plot of offeredPlots(state, view)) {
-    const o = plotOrigin(plot)
-    const mid = TILES_PER_PLOT / 2
+    const spot = signSpot(plot, hereObstacles, art)
     objects.push({
-      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot }, scale: SIGN_SCALE, minTap: TAP_PX, boxAlways: true,
+      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellCentre(spot.col, spot.row), target: { kind: 'plot', island: view, plot }, scale: SIGN_SCALE, minTap: TAP_PX, boxAlways: true,
       // No caption while placing: it would hide the Move arrow.
       ...(view === 'home' && !placing ? { caption: SIGN_CAPTION } : {}),
     })

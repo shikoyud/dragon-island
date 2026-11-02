@@ -8,7 +8,7 @@ import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge, type Placing } from '../src/game/bridge'
 import { cameraBounds, groundCell, lockedTiles, shownSize } from '../src/game/camera'
 import { buildIslandModel, SIGN_SCALE } from '../src/game/islandModel'
-import { cellCentre, cellTop, islandBox } from '../src/game/layout'
+import { cellCentre, cellTop, islandBox, pointerToCell } from '../src/game/layout'
 import { isMapDialog, type DialogKey } from '../src/hud/Hud'
 import { levelUnlockLines } from '../src/hud/hudModel'
 import { MapIslandPanel } from '../src/panels/MapIslandPanel'
@@ -61,7 +61,10 @@ describe('plot signs', () => {
     const seven = objects.find(o => o.id === 'sign:7')!
     const o = plotOrigin(7)
     expect(seven.target).toEqual({ kind: 'plot', island: 'home', plot: 7 })
-    expect({ x: seven.x, y: seven.y }).toEqual(cellTop(o.col + 4, o.row + 4))
+    // On plot 7, within 3 cells of its middle: the spot itself is signSpot's (test/signSpot.test.ts).
+    const c = pointerToCell(seven.x, seven.y)
+    expect(plotOfTile(c.col, c.row)).toBe(7)
+    expect(Math.hypot(c.col + 0.5 - o.col - 4, c.row + 0.5 - o.row - 4)).toBeLessThanOrEqual(3)
   })
   it('a sign shown at the 48 px art\'s half scale stays on its own plot and off the starting Farm', () => {
     const { objects } = model(base)
@@ -147,9 +150,9 @@ describe('PlotPanel', () => {
   it('buys the plot at the count\'s price, and closes', async () => {
     const onClose = vi.fn()
     const h = harness({ ...base, level: 2 })
-    h.wrap(<PlotPanel island="home" plot={4} onClose={onClose} />)
+    h.wrap(<PlotPanel island="home" plot={2} onClose={onClose} />)
     await userEvent.click(screen.getByRole('button', { name: /Buy plot · 100 gold/ }))
-    expect(h.action).toHaveBeenCalledWith({ type: 'buyPlot', island: 'home', plot: 4 }, expect.any(String))
+    expect(h.action).toHaveBeenCalledWith({ type: 'buyPlot', island: 'home', plot: 2 }, expect.any(String))
     expect(onClose).toHaveBeenCalled()
   })
   it('reads the level first, then the gold, in the handler\'s order', async () => {
@@ -161,6 +164,11 @@ describe('PlotPanel', () => {
     setState({ ...third, level: 3 })
     expect(await screen.findByText('Not enough gold')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Buy plot · 1,500 gold/ })).toBeDisabled()
+  })
+  it('says a plot that touches owned land but isn\'t on offer is not for sale yet', () => {
+    harness(newPlayer(0)).wrap(<PlotPanel island="home" plot={1} />)
+    expect(screen.getByText('Not for sale yet')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Buy plot/ })).toBeDisabled()
   })
   it('has no level gate on an outer island (R47)', () => {
     const s = withPlots({ ...base, level: 12, gold: 100_000, islands: { ...base.islands, unlocked: ['home', 'isle2'] } }, [5, 6, 9, 10], 'isle2')

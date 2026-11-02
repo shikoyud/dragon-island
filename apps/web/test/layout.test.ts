@@ -67,16 +67,16 @@ describe('isometric layout', () => {
     expect(new Set(spots.map(p => `${p.x},${p.y}`)).size).toBe(7)
     for (const p of spots) {
       expect(Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true)
-      expect(inside(p)).toBeLessThanOrEqual(0.9)
+      expect(inside(p)).toBeLessThanOrEqual(0.95)
     }
-    expect(spots[0]).toEqual({ x: a.x, y: a.y - 16 }) // the first dragon stands in the middle
+    expect(spots[0]).toEqual({ x: a.x, y: a.y - 11 }) // the first dragon stands at the front middle
     expect(dragonSpot(a, 12)).toEqual(spots[6]) // past the last, they share it
   })
 
   it('feet of the first 4 residents stay on the 64x32 face, at least 16 px apart', () => {
     const a = anchor(8, 8, 4)
     const spots = [0, 1, 2, 3].map(i => dragonSpot(a, i))
-    expect(spots.map(p => ({ x: p.x - a.x, y: p.y - a.y }))).toEqual([{ x: 0, y: -16 }, { x: -18, y: -15 }, { x: 18, y: -15 }, { x: 0, y: -25 }])
+    expect(spots.map(p => ({ x: p.x - a.x, y: p.y - a.y }))).toEqual([{ x: 0, y: -11 }, { x: -17, y: -13 }, { x: 17, y: -13 }, { x: 0, y: -22 }])
     for (const p of spots) expect(Math.abs(p.x - a.x) / 32 + Math.abs(p.y - (a.y - 16)) / 16).toBeLessThan(1)
     // Apart on the ground: a world y px is two ground px on the 2:1 face.
     for (const p of spots) for (const q of spots) if (p !== q) expect(Math.hypot(p.x - q.x, 2 * (p.y - q.y))).toBeGreaterThanOrEqual(16)

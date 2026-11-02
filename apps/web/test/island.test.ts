@@ -136,12 +136,28 @@ describe('island model', () => {
     expect(wait.key).toBe(textureKey('hatchling.flame'))
   })
 
-  it('gives the hatchery one badge with its soonest egg timer instead of one per egg', () => {
+  it('gives the hatchery one timer badge, over its soonest egg and not on the castle\'s top', () => {
     const s = { ...newPlayer(0), hatcheryLevel: 3, hatchery: [{ speciesId: 'sea', readyAtMs: 3_600_000 }, { speciesId: 'flame', readyAtMs: 540_000 }, { speciesId: 'nature', readyAtMs: 1_200_000 }] }
     const { objects } = model(s, 0)
-    expect(objects.find(o => o.id === 'hatchery')!.badge).toBe('9m')
-    expect(objects.filter(o => o.id.startsWith('hatchery:')).map(o => o.badge)).toEqual([undefined, undefined, undefined])
-    expect(model(newPlayer(0)).objects.find(o => o.id === 'hatchery')!.badge).toBeUndefined()
+    expect(objects.find(o => o.id === 'hatchery')!.badge).toBeUndefined()
+    expect(objects.filter(o => o.id.startsWith('hatchery:')).map(o => [o.id, o.badge]).filter(([, b]) => b)).toEqual([['hatchery:1', '9m']])
+    expect(model(newPlayer(0)).objects.some(o => o.id.startsWith('hatchery') && o.badge)).toBe(false)
+  })
+
+  it('keeps a construction badge on the castle, and no egg badge beside it', () => {
+    const base = newPlayer(0)
+    const s = { ...base, hatchery: [{ speciesId: 'sea', readyAtMs: 540_000 }], constructions: [{ kind: 'upgrade', building: { type: 'hatchery' }, readyAtMs: 120_000 }] } as never
+    const { objects } = model(s, 0)
+    expect(objects.find(o => o.id === 'hatchery')).toMatchObject({ badge: '2m', tint: 'building' })
+    expect(objects.find(o => o.id === 'hatchery:0')!.badge).toBeUndefined()
+  })
+
+  it('draws 4 or 5 eggs at three quarters of the nest scale, so they stay on the nest', () => {
+    const egg = { speciesId: 'sea', readyAtMs: 540_000 }
+    const scales = (n: number) => model({ ...newPlayer(0), hatcheryLevel: 4, hatcheryFifthSlot: true, hatchery: Array.from({ length: n }, () => egg) }, 0).objects.filter(o => o.id.startsWith('hatchery:')).map(o => o.scale)
+    expect(scales(3)).toEqual([NEST_EGG_HATCHERY_SCALE, NEST_EGG_HATCHERY_SCALE, NEST_EGG_HATCHERY_SCALE])
+    expect(new Set(scales(4))).toEqual(new Set([NEST_EGG_HATCHERY_SCALE * 0.75]))
+    expect(new Set(scales(5))).toEqual(new Set([NEST_EGG_HATCHERY_SCALE * 0.75]))
   })
 
   it('shows hatchery eggs and crops with growth', () => {
@@ -153,8 +169,8 @@ describe('island model', () => {
     const { markers, objects } = model(s, 30_000)
     expect(objects.find(o => o.id === 'hoard')).toBeUndefined()
     expect(markers.hatchery).toEqual([{ slot: 0 }])
-    expect(objects.find(o => o.id === 'hatchery:0')!.badge).toBeUndefined()
-    expect(objects.find(o => o.id === 'hatchery')!.badge).toBe('ready')
+    expect(objects.find(o => o.id === 'hatchery')!.badge).toBeUndefined()
+    expect(objects.find(o => o.id === 'hatchery:0')!.badge).toBe('ready')
     expect(objects.find(o => o.id === 'hatchery:0')!.scale).toBe(NEST_EGG_HATCHERY_SCALE) // sits in the castle's nest
     const crop = objects.find(o => o.id === 'crop:0')!
     expect(crop.scale).toBeCloseTo(0.75, 5) // half grown
@@ -404,8 +420,8 @@ describe('island model', () => {
       const m = model({ ...base, hatchery: [egg(T / 2)] }, 0)
       const o = m.objects.find(x => x.id === 'hatchery:0')!
       expect(o).toMatchObject({ ...hatcheryNestSpot(a, 0), scale: NEST_EGG_HATCHERY_SCALE, progress: 0.5, target: { kind: 'hatchery', slot: 0 } })
-      // The hatchery object's own badge still reads the soonest timer.
-      expect(m.objects.find(x => x.id === 'hatchery')!.badge).toBe(timerLabel(T / 2, 0))
+      // The soonest egg carries the timer.
+      expect(o.badge).toBe(timerLabel(T / 2, 0))
     })
 
     it('a ready egg shows no bar, and a long timer never reads below 0', () => {
@@ -458,7 +474,7 @@ describe('island model', () => {
 
     it('the ghost, its residents and the arrow go last, in that order', () => {
       const ids = buildIslandModel(withResident, FALLBACK_ART, C, 0, 'home', h1Move).objects.map(o => o.id)
-      expect(ids.slice(-4)).toEqual(['ghost', 'dragon:d1', 'dragon:d2', 'arrow'])
+      expect(ids.slice(-4)).toEqual(['ghost', 'dragon:d2', 'dragon:d1', 'arrow']) // back to front: the first resident stands at the front
     })
 
     it('leaves other buildings and their residents alone', () => {
