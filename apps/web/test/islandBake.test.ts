@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge } from '../src/game/bridge'
 import { createGame } from '../src/game/config'
+import { edgeDither } from '../src/game/islandBake'
 import { landmass } from '../src/game/islandShape'
+import { pointerToCell } from '../src/game/layout'
 import type { IslandScene } from '../src/game/scenes/IslandScene'
 import { landPlots } from '../src/game/camera'
 
@@ -36,6 +38,44 @@ async function boot() {
 
 const fallsOf = (scene: Phaser.Scene) => scene.children.list.filter(o => o.name === 'waterfall')
 const buying = (s: PlayerState, plot: number): PlayerState => ({ ...s, islands: { ...s.islands, plots: { ...s.islands.plots, home: [...s.islands.plots.home!, plot] } } } as PlayerState)
+
+describe('the edge between owned and offered land', () => {
+  // Cells col 0..3, row 0..3; offered from col 2 on.
+  const cells = Array.from({ length: 16 }, (_, i) => ({ col: i % 4, row: Math.floor(i / 4) }))
+  const locked = (col: number) => col >= 2
+  const px = edgeDither(cells, col => locked(col))
+
+  it('darkens only owned pixels, within about 3 world px of the line, thinning away from it', () => {
+    expect(px.length).toBeGreaterThan(20)
+    const depths = px.map(p => {
+      const c = pointerToCell(p.x + 0.5, p.y + 0.5)
+      expect(locked(c.col)).toBe(false)
+      expect(c.col).toBe(1)
+      return 2 - ((p.y + 0.5) / 4 + (p.x + 0.5) / 8) / 2 // in cells from col = 2
+    })
+    expect(Math.max(...depths)).toBeLessThanOrEqual(0.4)
+    expect(depths.filter(d => d < 0.2).length).toBeGreaterThan(depths.filter(d => d >= 0.2).length)
+  })
+
+  it('is a dither: not every pixel along the line, and the same each time', () => {
+    const near = new Set(px.map(p => `${p.x},${p.y}`))
+    let holes = 0
+    for (let row = 0; row < 4; row++) for (let d = 0; d < 16; d++) {
+      // Walk the cells beside the line on a row; count pixels in the fray left undarkened.
+      const x = (1 - row) * 8 - 8 + d, y = (1 + row) * 4 + Math.floor(d / 4)
+      const c = pointerToCell(x + 0.5, y + 0.5)
+      const depth = 2 - ((y + 0.5) / 4 + (x + 0.5) / 8) / 2
+      if (c.col === 1 && depth < 0.4 && !near.has(`${x},${y}`)) holes++
+    }
+    expect(holes).toBeGreaterThan(0)
+    expect(edgeDither(cells, col => locked(col))).toEqual(px)
+  })
+
+  it('all owned or all offered land has no edge', () => {
+    expect(edgeDither(cells, () => false)).toEqual([])
+    expect(edgeDither(cells, () => true)).toEqual([])
+  })
+})
 
 describe('the Home bake', () => {
   const games: Phaser.Game[] = []

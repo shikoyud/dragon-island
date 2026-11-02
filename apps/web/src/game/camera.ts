@@ -1,5 +1,5 @@
 import { ISLAND_TILES, offeredPlots, ownedPlots, plotOfTile, plotOrigin, PLOTS_PER_SIDE, TILES_PER_PLOT, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
-import { landmass } from './islandShape'
+import { landmassBox } from './islandShape'
 import { footprintDiamond, islandBox, pointerToCell, type Box } from './layout'
 
 /** Height in world pixels of the cliff drawn under the island's two front edges. */
@@ -15,16 +15,17 @@ export function shownSize(): { w: number; h: number } {
   return { w: ISLAND_TILES, h: ISLAND_TILES }
 }
 
-/** Home with all 16 plots: built once, as it never changes. */
-let fullHome: Box | null = null
+const ALL_PLOTS = Array.from({ length: PLOTS_PER_SIDE * PLOTS_PER_SIDE }, (_, i) => i)
+/** Home with all 16 plots: the widest it can ever be, whichever land is bought, worked out with nothing rasterised. */
+const FULL_HOME = landmassBox(ALL_PLOTS)
 
 /**
- * World box the camera may show. Home: the full landmass of all 16 plots and a margin, so it doesn't change as land grows.
+ * World box the camera may show. Home: the box of the full landmass of all 16 plots and a margin, so it doesn't change as land grows.
  * Other islands: the 32x32 diamond, its cliff skirt and a margin.
  */
 export function cameraBounds(view: IslandId): Box {
   if (view === 'home') {
-    const b = (fullHome ??= landmass(Array.from({ length: PLOTS_PER_SIDE * PLOTS_PER_SIDE }, (_, i) => i)).box)
+    const b = FULL_HOME
     return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + 2 * MARGIN }
   }
   const { w, h } = shownSize()
@@ -37,7 +38,7 @@ export function cameraBounds(view: IslandId): Box {
  * island all 16 (owned ones as grass, the rest as fog).
  */
 export function landPlots(state: PlayerState, view: IslandId): number[] {
-  if (view !== 'home') return Array.from({ length: PLOTS_PER_SIDE * PLOTS_PER_SIDE }, (_, i) => i)
+  if (view !== 'home') return [...ALL_PLOTS]
   return [...ownedPlots(state, view), ...offeredPlots(state, view)]
 }
 
