@@ -523,3 +523,32 @@
 }
 .skin-level-star .hud .hud-avatar__badge { clip-path: none; background: var(--ui-level-star) center / 100% 100% no-repeat; image-rendering: pixelated; }
 .skin-avatar-frame .hud-avatar__frame { background: var(--ui-avatar-frame) center / 100% 100% no-repeat; border: 0; box-shadow: none; }
+
+/* ---- Phase 4: the selected thing's action row, bottom right beside Shop ---- */
+.action-bar { position: absolute; right: 96px; bottom: max(10px, env(safe-area-inset-bottom)); max-width: calc(100% - 200px); pointer-events: auto; }
+.action-bar__row { display: flex; flex-wrap: wrap-reverse; justify-content: flex-end; align-items: flex-end; gap: 6px 12px; margin: 0; padding: 0; list-style: none; }
+.action-bar__item { position: relative; display: flex; flex-direction: column; align-items: center; }
+.action-bar__name {
+  position: absolute; bottom: calc(100% + 6px); right: 0; padding: 4px 10px; white-space: nowrap;
+  font: 12px/1.1 var(--font-display); color: var(--kit-ink, #141627); background: #fbfaf6; border: 2px solid var(--kit-ink, #141627); border-radius: 6px;
+  box-shadow: 0 2px 0 var(--kit-ink, #141627);
+}
+.action-bar .kit-round__timer { margin-bottom: -4px; }
+@media (min-width: 1280px) and (min-height: 800px) {
+  .action-bar { right: 128px; }
+  .action-bar__row { gap: 8px 20px; }
+  .action-bar .kit-round { --plate: 76px; }
+  .action-bar .kit-round__label, .action-bar .kit-round__timer { font-size: 14px; }
+  .action-bar__name { font-size: 16px; }
+}
+@media (max-height: 520px) {
+  .action-bar { right: 76px; max-width: calc(100% - 160px); }
+  .action-bar__row { gap: 4px 14px; }
+  .action-bar .kit-round { --plate: 46px; }
+  .action-bar .kit-round__label, .action-bar .kit-round__timer { font-size: 9px; }
+}
+/* Portrait phone: the row sits over Shop, right-aligned, wrapping upward. */
+@media (max-width: 699px) {
+  .action-bar { right: 6px; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 80px); max-width: calc(100% - 12px); }
+  .action-bar .kit-round { --plate: 48px; }
+}

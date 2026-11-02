@@ -145,3 +145,20 @@ export function actionRow(s: PlayerState, target: Target, nowMs: number, preset:
       return null
   }
 }
+
+const SELECTABLE: ReadonlySet<Target['kind']> = new Set(['habitat', 'hatcheryBuilding', 'farm', 'breeder', 'obstacle', 'roost', 'decoration'])
+
+/**
+ * What a tap on `t` selects (ruling A1), or null when the tap keeps its old behaviour (a plot for sale opens Expand, an
+ * island on the Map its panel, a dragon waiting in the Hatchery its panel). A dragon selects its habitat; an egg the Hatchery.
+ */
+export function selectionOf(s: PlayerState | undefined, t: Target): Target | null {
+  if (t.kind === 'dragon') {
+    const d = s?.dragons.find(x => x.id === t.id)
+    return d?.habitatId ? { kind: 'habitat', id: d.habitatId } : null
+  }
+  if (t.kind === 'hatchery') return { kind: 'hatcheryBuilding' }
+  return SELECTABLE.has(t.kind) ? t : null
+}
+
+export const sameTarget = (a: Target | null, b: Target | null): boolean => JSON.stringify(a) === JSON.stringify(b)

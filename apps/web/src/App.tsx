@@ -5,7 +5,10 @@ import { useSession } from './api/session'
 import { loadActiveArt, FALLBACK_ART } from './art/slots'
 import type { GameArtSet } from './art/types'
 import { createBridge } from './game/bridge'
+import { placementOf } from './game/buildingInfo'
 import { GameCanvas } from './game/GameCanvas'
+import { ActionBar } from './hud/ActionBar'
+import { actionRow, type RowIntent } from './hud/actionRow'
 import { Dialog } from './hud/Dialog'
 import { Hud, isMapDialog, type DialogKey } from './hud/Hud'
 import { LevelUp, useLevelUp } from './hud/LevelUp'
@@ -18,6 +21,7 @@ import { dialogLabel, PanelHost, useDialog } from './panels/PanelHost'
 import { PlacementBar } from './panels/PlacementBar'
 import { useAutoFinish } from './panels/useAutoFinish'
 import { useAction } from './state/actions'
+import { usePreset } from './state/preset'
 import { useBattle } from './state/battle'
 import { useGameClock } from './state/clock'
 import { useMe, useRefreshOnNewDay } from './state/me'
@@ -54,7 +58,8 @@ function Game() {
   const bridge = useMemo(() => createBridge(), [])
   const [art, setArt] = useState<GameArtSet>(FALLBACK_ART)
   const nowMs = useGameClock(me.data?.game?.serverNowMs)
-  const [dialog, setDialog] = useDialog(bridge)
+  const [dialog, setDialog, selection] = useDialog(bridge)
+  const preset = usePreset()
   const battle = useBattle()
   const { run, pending } = useAction()
   const { placing, view, dispatch, moveToIsland } = usePlacing(bridge, pending)
@@ -86,6 +91,15 @@ function Game() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [mapBare, setDialog])
+  // Escape deselects when nothing else is up (a dialog's own Escape closes the dialog first).
+  const { selected, setSelected } = selection
+  const deselectable = selected !== null && dialog === null && levelUp === null
+  useEffect(() => {
+    if (!deselectable) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelected(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [deselectable, setSelected])
   // A Trial's fight ends where it began, on its chapter's nodes. Stable, or a clock tick would render the battle screen.
   const resetBattle = battle.reset
   const closeBattle = useCallback(() => {
@@ -133,6 +147,13 @@ function Game() {
     dispatch({ type: 'start', what, size, island, from, cell })
     if (island !== view) bridge.setView(island)
   }
+  // The selected thing's buttons: hidden under a dialog, during placement and in a battle; the selection itself stays.
+  const row = selected && !dialog && !placing && !battle.setup ? actionRow(state, selected, nowMs, preset) : null
+  const onIntent = (i: RowIntent) => {
+    if (i.kind === 'run') void run(i.action)
+    else if (i.kind === 'open') setDialog(i.dialog)
+    else startPlacing({ kind: 'move', target: i.target }, i.size, placementOf(state, i.target) ?? undefined)
+  }
   const startPvp = (offer: Offer, team: TeamIds) => { battle.startPvp(offer, team); setDialog(null) }
   const startTrial = (chapter: number, node: number, team: TeamIds) => { void battle.startTrial(chapter, node, team).then(entered => { if (entered) setDialog(null) }) }
   const resumeTrial = () => { void battle.resumeTrial().then(entered => { if (entered) setDialog(null) }) }
@@ -161,6 +182,7 @@ function Game() {
               ) : undefined}
             />
           )}
+          {row && <ActionBar row={row} onIntent={onIntent} />}
           {content && <Dialog label={content.label} onClose={content.onClose}>{content.node}</Dialog>}
           {levelUp && <LevelUp from={levelUp.from} to={levelUp.to} onClose={levelUp.dismiss} />}
           {me.data.termsRequired && <Dialog label="Updated terms" onClose={() => {}}><TermsPrompt version={me.data.termsRequired} /></Dialog>}

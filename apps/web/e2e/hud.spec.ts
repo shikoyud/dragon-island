@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dismissLevelUp, expectPixelFonts, openPanel, resetPlayer, setServerClock, signIn } from './helpers'
+import { dismissLevelUp, expectPixelFonts, openPanel, resetPlayer, selectTarget, setServerClock, signIn } from './helpers'
 
 /**
  * The HUD over the full-screen island, at a desktop and a phone size: resources, menus, dialogs, the placement
@@ -178,9 +178,11 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: B }).__bridge?.cellToScreen))
       await dismissLevelUp(page)
       const id = await page.evaluate(() => (window as unknown as { __bridge: { state: { islands: { obstacles: { id: string; kind: string }[] } } } }).__bridge.state.islands.obstacles.find(o => o.kind === 'bush')!.id)
-      await page.evaluate(i => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: { kind: 'obstacle', id: i } }), id)
+      // A tap selects it; Clear on its row starts the clear, and the row's Speed Up opens its panel.
+      const row = await selectTarget(page, { kind: 'obstacle', id })
+      await row.getByRole('button', { name: 'Clear', exact: true }).click()
+      await row.getByRole('button', { name: 'Speed Up', exact: true }).click()
       const dialog = page.getByRole('dialog', { name: 'obstacle' })
-      await dialog.getByRole('button', { name: /^Clear · / }).click()
       await expect(dialog).toContainText('Clearing')
       // The clear finishes by itself while the panel stays open.
       await expect(dialog).toHaveCount(0, { timeout: 30_000 })

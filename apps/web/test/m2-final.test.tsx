@@ -13,7 +13,7 @@ import { HatcheryPanel } from '../src/panels/HatcheryPanel'
 import { ObstaclePanel } from '../src/panels/ObstaclePanel'
 import { UpgradeSection } from '../src/panels/UpgradeSection'
 import { formatGold } from '../src/ui/Money'
-import { harness, TestHost } from './harness'
+import { harness, openInfo, TestHost } from './harness'
 
 const base = newPlayer(0)
 const GAME = { launchAtMs: 0 }
@@ -160,7 +160,7 @@ describe('BreedPanel buildings (item 15)', () => {
   it('opens from a tap on a breeder on the island', async () => {
     const bridge = createBridge()
     harness(base, 0, undefined, GAME).wrap(<TestHost bridge={bridge} />)
-    act(() => bridge.emit({ type: 'select', target: { kind: 'breeder', index: 0 } }))
+    openInfo(bridge, { kind: 'breeder', index: 0 })
     expect(await screen.findByRole('region', { name: 'Breed' })).toBeInTheDocument()
     expect(screen.getByRole('list', { name: 'Breeding buildings' })).toBeInTheDocument()
   })

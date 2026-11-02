@@ -3,7 +3,7 @@ import { act, cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { createBridge } from '../src/game/bridge'
-import { harness, TestHost } from './harness'
+import { harness, openInfo, TestHost } from './harness'
 import { BreedPanel } from '../src/panels/BreedPanel'
 import { DragonPanel } from '../src/panels/DragonPanel'
 import { FarmPanel } from '../src/panels/FarmPanel'
@@ -513,7 +513,7 @@ describe('HatcheryPanel and FarmPanel', () => {
     const two = { ...base, farms: [base.farms[0]!, { ...base.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 0 }] }
     const bridge = createBridge()
     harness(two).wrap(<TestHost bridge={bridge} />)
-    act(() => bridge.emit({ type: 'select', target: { kind: 'farm', plot: 1 } }))
+    openInfo(bridge, { kind: 'farm', plot: 1 })
     expect(screen.getByRole('button', { name: /Harvest/ })).toBeInTheDocument()
     expect(screen.queryByRole('list', { name: /crops/i })).toBeNull()
   })

@@ -10,7 +10,7 @@ import { RoostPanel } from '../src/panels/RoostPanel'
 import { ShopPanel } from '../src/panels/ShopPanel'
 import { StartPlacingProvider } from '../src/state/startPlacing'
 import { LAUNCH_CATALOG } from '@wyrmhaven/game-core'
-import { harness, TestHost } from './harness'
+import { harness, openInfo, TestHost } from './harness'
 import { FREE, FREE_2 } from './land'
 
 const base = newPlayer(0)
@@ -128,7 +128,7 @@ describe('Roost on the island', () => {
     const bridge = createBridge()
     const { wrap } = harness(roosted(2))
     wrap(<StartPlacingProvider value={vi.fn()}><TestHost bridge={bridge} /></StartPlacingProvider>)
-    bridge.emit({ type: 'select', target: { kind: 'roost' } })
+    openInfo(bridge, { kind: 'roost' })
     expect(await screen.findByText('Tier 2 · cap 15')).toBeInTheDocument()
   })
 })

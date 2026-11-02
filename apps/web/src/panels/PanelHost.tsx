@@ -1,7 +1,8 @@
-import { ISLANDS, ownedPlots, type PlayerState, type TeamIds } from '@wyrmhaven/game-core'
+import { DEFAULT_PRESET, ISLANDS, ownedPlots, type PlayerState, type TeamIds } from '@wyrmhaven/game-core'
 import type { GameInfo, Offer } from '@wyrmhaven/shared'
-import { useEffect, useState, type ReactElement } from 'react'
-import type { Bridge } from '../game/bridge'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
+import type { Bridge, Target } from '../game/bridge'
+import { actionRow, sameTarget, selectionOf } from '../hud/actionRow'
 import type { DialogKey } from '../hud/Hud'
 import { useMe } from '../state/me'
 import { useStartPlacing } from '../state/startPlacing'
@@ -48,17 +49,45 @@ export function dialogHasSubject(s: PlayerState, dialog: DialogKey, game: Pick<G
   }
 }
 
+/** The selected thing on the island and its setter; see `useDialog`. */
+export interface Selection { selected: Target | null; setSelected: (t: Target | null) => void }
+
 /**
- * The one open dialog; a click on something in the island scene opens its panel (replacing what was open). When what it
- * is about goes away while it is open (a clear finishes, a dragon is sold) the dialog closes: no empty box or scrim stays.
+ * The one open dialog, and the one selected thing. A tap on a building, habitat, farm, Hatchery, breeder or obstacle
+ * selects it (UI rework ruling A1: its action row shows, no dialog); the same tap again, empty land or a cell deselects.
+ * Anything else tapped (a plot for sale, a waiting dragon, an island on the Map) opens its panel as before. When what a
+ * dialog is about goes away while it is open (a clear finishes, a dragon is sold) the dialog closes, and a selection
+ * whose thing is gone clears: no empty box, scrim or row stays.
  */
-export function useDialog(bridge: Bridge, initial: DialogKey | null = null): [DialogKey | null, (k: DialogKey | null) => void] {
+export function useDialog(bridge: Bridge, initial: DialogKey | null = null): [DialogKey | null, (k: DialogKey | null) => void, Selection] {
   const [dialog, setDialog] = useState<DialogKey | null>(initial)
+  const [selected, setSelected] = useState<Target | null>(null)
   const me = useMe().data
-  useEffect(() => bridge.on('select', e => setDialog(e.target.kind === 'empty' || e.target.kind === 'cell' ? null : { kind: 'target', target: e.target })), [bridge])
+  const state = useRef<PlayerState | undefined>(undefined)
+  state.current = me?.state
+  useEffect(() => bridge.on('select', e => {
+    const t = e.target
+    if (t.kind === 'empty' || t.kind === 'cell') {
+      setDialog(null)
+      setSelected(null)
+      return
+    }
+    const sel = selectionOf(state.current, t)
+    if (sel) {
+      setDialog(null)
+      setSelected(cur => (sameTarget(cur, sel) ? null : sel))
+      return
+    }
+    setSelected(null)
+    setDialog({ kind: 'target', target: t })
+  }), [bridge])
   const gone = dialog !== null && me !== undefined && !dialogHasSubject(me.state, dialog, me.game)
   useEffect(() => { if (gone) setDialog(null) }, [gone])
-  return [gone ? null : dialog, setDialog]
+  const selectedGone = selected !== null && me !== undefined && actionRow(me.state, selected, 0, DEFAULT_PRESET) === null
+  useEffect(() => { if (selectedGone) setSelected(null) }, [selectedGone])
+  const shown = selectedGone ? null : selected
+  useEffect(() => { bridge.setSelection(shown) }, [bridge, shown])
+  return [gone ? null : dialog, setDialog, { selected: shown, setSelected }]
 }
 
 export interface PanelHostProps {

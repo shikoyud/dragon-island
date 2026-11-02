@@ -12,7 +12,7 @@ import { ShopPanel } from '../src/panels/ShopPanel'
 import { UpgradeSection } from '../src/panels/UpgradeSection'
 import { StartPlacingProvider } from '../src/state/startPlacing'
 import * as placing from '../src/state/placing'
-import { harness, TestHost } from './harness'
+import { harness, openInfo, TestHost } from './harness'
 import { withIsland } from './land'
 
 const base = newPlayer(0)
@@ -521,7 +521,7 @@ describe('PanelHost targets', () => {
     const deco = { id: 'c3', kind: 'flowerPatch' as const, placement: { island: 'home' as const, col: 7, row: 7, facing: 0 as const } }
     const { wrap, action } = harness({ ...base, decorations: [deco] })
     wrap(<TestHost bridge={bridge} />)
-    bridge.emit({ type: 'select', target: { kind: 'decoration', id: 'c3' } })
+    openInfo(bridge, { kind: 'decoration', id: 'c3' })
     await userEvent.click(await screen.findByRole('button', { name: /Remove · \+12 gold/ }))
     expect(action).not.toHaveBeenCalled() // first click only asks
     await userEvent.click(screen.getByRole('button', { name: /Confirm remove · \+12 gold/ }))
@@ -534,7 +534,7 @@ describe('PanelHost targets', () => {
     const bridge = createBridge()
     const { wrap } = harness(base)
     wrap(<TestHost bridge={bridge} />)
-    bridge.emit({ type: 'select', target: { kind: 'hatcheryBuilding' } })
+    openInfo(bridge, { kind: 'hatcheryBuilding' })
     expect(await screen.findByRole('region', { name: /hatchery/i })).toBeInTheDocument()
   })
 

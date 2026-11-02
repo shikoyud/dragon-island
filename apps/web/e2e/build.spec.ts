@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openPanel, resetPlayer, signIn } from './helpers'
+import { openInfo, openPanel, resetPlayer, signIn } from './helpers'
 
 /**
  * The Phaser canvas is not pixel-clicked: with the test wallet the app exposes its bridge as `window.__bridge`,
@@ -32,7 +32,7 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows Emb
 
   // The construction badge: the scene draws it from the state's construction; the plot's panel shows the same timer.
   await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
-  await bridge(page, b => b.emit({ type: 'select', target: { kind: 'farm', plot: 1 } }))
+  await openInfo(page, { kind: 'farm', plot: 1 })
   const farm = page.getByRole('region', { name: /farm/i })
   await expect(farm.getByText(/^Building · /)).toBeVisible()
 
@@ -42,7 +42,7 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows Emb
   await expect.poll(() => bridge(page, b => b.state!.farms.length)).toBe(2)
 
   // Upgrade h1.
-  await bridge(page, b => b.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
+  await openInfo(page, { kind: 'habitat', id: 'h1' })
   const habitat = page.getByRole('region', { name: /terra habitat h1/i })
   await habitat.locator('#upgrade-h1').click()
   await expect(habitat.getByText(/^Upgrading to 2 · /)).toBeVisible()
@@ -57,7 +57,7 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows Emb
   await expect.poll(() => bridge(page, b => b.state!.habitats.find(h => h.id === 'h1')!.placement.row)).toBe(12)
 
   // Turn it.
-  await bridge(page, b => b.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
+  await openInfo(page, { kind: 'habitat', id: 'h1' })
   await page.getByRole('region', { name: /terra habitat h1/i }).getByRole('button', { name: /^turn$/i }).click()
   await expect.poll(() => bridge(page, b => b.state!.habitats.find(h => h.id === 'h1')!.placement.facing)).toBe(1)
 

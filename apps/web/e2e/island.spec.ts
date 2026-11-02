@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { offeredPlots, ownedPlots, plotOfTile, type PlayerState } from '@wyrmhaven/game-core'
 import { captionPx } from '../src/game/layout'
-import { dismissLevelUp, resetPlayer, signIn, startingState } from './helpers'
+import { dismissLevelUp, resetPlayer, selectTarget, signIn, startingState } from './helpers'
 
 /**
  * The island canvas, clicked for real: the isometric projection, the camera and the placement ghost. The scene exposes
@@ -173,7 +173,7 @@ test('wheel zoom stays anchored on the pointer and a drag pans without a jump', 
 })
 
 /** A dragon stands on its habitat, so a canvas click lands on the dragon; select the habitat the way the scene would. */
-const selectH1 = (page: Page) => page.evaluate(() => window.__bridge!.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
+const selectH1 = (page: Page) => selectTarget(page, { kind: 'habitat', id: 'h1' })
 
 /** Press Move on h1, which stands at (13, 8). */
 async function moveH1(page: Page) {

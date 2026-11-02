@@ -58,6 +58,8 @@ export type GameEvent =
   /** The level-up screen closed: a play still waiting for the island to wake is dropped. */
   | { type: 'levelUpClosed' }
   | { type: 'ready' }
+  /** What is selected on the island changed (UI rework Phase 4): the scene outlines it. */
+  | { type: 'selection'; target: Target | null }
 
 type Handler<T extends GameEvent['type']> = (e: Extract<GameEvent, { type: T }>) => void
 
@@ -80,6 +82,8 @@ export function createBridge() {
     /** The chapter's element for the backdrop's fill; null for the Arena. */
     battleBackdrop: null as Element | null,
     selected: { kind: 'empty' } as Target,
+    /** The thing selected on the island, whose action row shows (UI rework Phase 4); null when nothing is. */
+    selection: null as Target | null,
     view: 'home' as IslandId,
     placing: null as Placing | null,
     /** True while the Map shows in place of the island (never during placement or a battle). */
@@ -114,6 +118,11 @@ export function createBridge() {
     setState(state: PlayerState | null): void {
       bridge.state = state
       bridge.emit({ type: 'state', state })
+    },
+    setSelection(target: Target | null): void {
+      if (JSON.stringify(target) === JSON.stringify(bridge.selection)) return
+      bridge.selection = target
+      bridge.emit({ type: 'selection', target })
     },
     setArt(art: GameArtSet): void { bridge.art = art },
     setClock(nowMs: number): void { bridge.nowMs = nowMs },

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dismissLevelUp, resetPlayer, signIn } from './helpers'
+import { dismissLevelUp, openInfo, resetPlayer, signIn } from './helpers'
 
 type TestBridge = {
   emit(e: unknown): void
@@ -28,7 +28,7 @@ test('builds the Roost, skips the build, reads its tier, then Ascends through th
   await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
   expect(await bridge(page, b => b.state!.roostTier)).toBe(0)
 
-  await bridge(page, b => b.emit({ type: 'select', target: { kind: 'roost' } }))
+  await openInfo(page, { kind: 'roost' })
   const roost = page.getByRole('region', { name: /dragon roost/i })
   await roost.locator('#skip-construction-roost').click()
   await expect.poll(() => bridge(page, b => b.state!.roostTier)).toBe(1)
@@ -38,7 +38,7 @@ test('builds the Roost, skips the build, reads its tier, then Ascends through th
   const at = { island: 'home', col: 20, row: 16, facing: 0 }
   await resetPlayer(request, { gold: 10_000_000, level: 30, xp: 0, roostTier: 4, roostPlacement: at }, { tokenWei: (100n * 10n ** 18n).toString() })
   await ready(page)
-  await bridge(page, b => b.emit({ type: 'select', target: { kind: 'roost' } }))
+  await openInfo(page, { kind: 'roost' })
   const panel = page.getByRole('region', { name: /dragon roost/i })
   await expect(panel).toContainText('10,000,000 gold + $2.00')
   await panel.locator('#ascend-roost').click()

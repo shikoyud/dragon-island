@@ -58,6 +58,25 @@ export async function signIn(page: Page, opts: { fresh?: boolean } = {}) {
  * Settings for the wallet, Battle's tabs for Trials and Arena, and a click on the hatchery or a plot for Hatchery and
  * Farm. Any dialog already open is closed first (its scrim covers the HUD).
  */
+/** Selects `target` on the island (a fresh selection, whatever was selected) and returns its action row. */
+export async function selectTarget(page: Page, target: unknown) {
+  await page.waitForFunction(() => '__bridge' in window)
+  await page.evaluate(t => {
+    const b = (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge
+    b.emit({ type: 'select', target: { kind: 'empty' } })
+    b.emit({ type: 'select', target: t })
+  }, target)
+  const row = page.getByRole('region', { name: / actions$/ })
+  await expect(row).toBeVisible()
+  return row
+}
+
+/** A tap selects (UI rework ruling A1): selects `target`, then Info on its action row opens its panel. */
+export async function openInfo(page: Page, target: unknown) {
+  const row = await selectTarget(page, target)
+  await row.getByRole('button', { name: 'Info', exact: true }).click()
+}
+
 export async function openPanel(page: Page, label: string) {
   // A level-up screen (R38) sits over everything until the player continues. It opens after /me lands, so wait for the HUD first.
   await dismissLevelUp(page)
@@ -65,10 +84,7 @@ export async function openPanel(page: Page, label: string) {
   const main = (name: string) => page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).click()
   const settings = () => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name: 'Settings', exact: true }).click()
   const side = (name: string) => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name, exact: true }).click()
-  const select = async (target: unknown) => {
-    await page.waitForFunction(() => '__bridge' in window)
-    return page.evaluate(t => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: t }), target)
-  }
+  const select = (target: unknown) => openInfo(page, target)
   switch (label) {
     case 'Trials':
     case 'Arena':

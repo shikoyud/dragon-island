@@ -7,10 +7,12 @@ import { cloneElement, useId, type ReactElement, type ReactNode } from 'react'
  * optional timer chip above, a corner badge ("New") and a lock badge.
  */
 export function RoundAction({
-  icon, label, onClick, timer, locked, badge, disabled,
-}: { icon: ReactNode; label: string; onClick?: () => void; timer?: string; locked?: boolean; badge?: string; disabled?: boolean }) {
+  icon, label, onClick, timer, locked, badge, disabled, reason,
+}: { icon: ReactNode; label: string; onClick?: () => void; timer?: string; locked?: boolean; badge?: string; disabled?: boolean; reason?: string }) {
+  const why = useId()
   return (
-    <button type="button" className={`kit-round${locked ? ' kit-round--locked' : ''}`} onClick={onClick} disabled={disabled} aria-label={label}>
+    <button type="button" className={`kit-round${locked ? ' kit-round--locked' : ''}`} onClick={onClick} disabled={disabled} aria-label={label} aria-describedby={reason || timer ? why : undefined} title={reason}>
+      {(reason || timer) && <span id={why} className="sr-only">{[timer, reason].filter(Boolean).join(' · ')}</span>}
       {timer && <span className="kit-round__timer" aria-hidden="true">{timer}</span>}
       <span className="kit-round__plate" aria-hidden="true">
         {icon}

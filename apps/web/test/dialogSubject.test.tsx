@@ -87,12 +87,12 @@ describe('a dialog closes when its panel has nothing to show', () => {
     })
   }
 
-  it('an island click still opens its panel; the Map (a scene, with no Dialog) and Settings (wallet providers, no subject) stay open', () => {
+  it('a tap on a plot for sale still opens its panel; the Map (a scene, with no Dialog) and Settings (wallet providers, no subject) stay open', () => {
     expect(dialogHasSubject(full, { kind: 'panel', id: 'map' }, GAME)).toBe(true)
     expect(dialogHasSubject(full, { kind: 'panel', id: 'settings' }, GAME)).toBe(true)
     const h = harness(full, 0, undefined, GAME)
     h.wrap(<Host initial={{ kind: 'panel', id: 'shop' }} />)
-    act(() => shared.emit({ type: 'select', target: { kind: 'obstacle', id: 'o1' } }))
-    expect(screen.getByRole('dialog', { name: 'obstacle' })).not.toBeEmptyDOMElement()
+    act(() => shared.emit({ type: 'select', target: { kind: 'plot', island: 'home', plot: 2 } }))
+    expect(screen.getByRole('dialog', { name: 'plot' })).not.toBeEmptyDOMElement()
   })
 })
