@@ -1,0 +1,65 @@
+/* Pixel UI kit (docs/superpowers/plans/2026-11-02-ui-rework-phase2.md). Drawn in CSS: 2 px ink outlines, a light row on
+   top, a dark edge at the bottom, solid offsets, no blur. A piece switches to its ui.kit.* art when hud/skin.ts adds
+   its skin-kit-* class. */
+:root {
+  --kit-ink: #141627;
+  --kit-focus: #1f6feb;
+  --kit-cream: #f3ead2;
+  --kit-cream-hi: #fffaf0;
+  --kit-cream-lo: #c9bc9a;
+  --kit-steel: #6b6f7a;
+  --kit-wood: #b7793f;
+  --kit-wood-hi: #d79a5a;
+  --kit-wood-lo: #7a4a22;
+  --kit-text: #2a2233;
+  --kit-text-muted: #6a5f55;
+  --kit-short: #d8312a;
+  --kit-square: 32px;
+}
+@media (min-width: 700px) and (min-height: 600px) { :root { --kit-square: 40px; } }
+
+/* ---- pills ---- */
+.kit-pill {
+  --face: #3f8fe0; --hi: #8cc4ff; --edge: #1f4f8a; --fg: #fff;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 40px; min-width: 64px; padding: 4px 14px 7px; cursor: pointer;
+  font: 12px/1.1 var(--font-display); letter-spacing: 0.5px; color: var(--fg);
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+  background: var(--face); border: 2px solid var(--kit-ink); border-radius: 10px;
+  box-shadow: inset 0 2px 0 var(--hi), inset 0 -4px 0 var(--edge), 0 2px 0 var(--kit-ink);
+}
+.kit-pill--small { min-height: 32px; min-width: 0; padding: 2px 10px 5px; font-size: 10px; }
+.kit-pill--blue { --face: #3f8fe0; --hi: #8cc4ff; --edge: #1f4f8a; }
+.kit-pill--yellow { --face: #f2b928; --hi: #ffe58a; --edge: #a8720e; }
+.kit-pill--green { --face: #4cb050; --hi: #9de08f; --edge: #276a2b; }
+.kit-pill--purple { --face: #9a5ad8; --hi: #d2a8ff; --edge: #5a2e8c; }
+.kit-pill--grey { --face: #9aa0aa; --hi: #d0d4da; --edge: #5c6068; }
+.kit-pill--red { --face: #e0433a; --hi: #ff9a8a; --edge: #8c1f19; }
+.kit-pill:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 2px 0 var(--hi), inset 0 -2px 0 var(--edge); }
+.kit-pill:disabled { cursor: not-allowed; }
+.kit-pill-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.kit-why { display: block; font: 11px/1.2 var(--font-body); color: var(--text-muted); }
+
+/* ---- price ---- */
+.kit-price { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.kit-price__n { font-family: var(--font-display); }
+.kit-price--short .kit-price__n { color: #ff6b5e; }
+:not(.kit-pill) > .kit-price--short .kit-price__n { color: var(--kit-short); }
+
+/* ---- close, back, help: one square sprite each ---- */
+.kit-square {
+  --face: #e0433a; --rim: #f59a2b; --edge: #8c1f19;
+  position: relative; flex: none; width: var(--kit-square); height: var(--kit-square); aspect-ratio: 1; padding: 0;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--face); border: 2px solid var(--kit-ink); border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--rim), inset 0 -4px 0 var(--edge), 0 2px 0 var(--kit-ink);
+}
+.kit-square--back { --face: #f08a24; --rim: #ffc37a; --edge: #9a4f0c; border-radius: 9px; }
+.kit-square--help { --face: #3f8fe0; --rim: #8cc4ff; --edge: #1f4f8a; border-radius: 50%; }
+.kit-square__glyph { display: block; width: 50%; height: 50%; filter: drop-shadow(0 1px 0 var(--kit-ink)); }
+.kit-square:active { transform: translateY(2px); }
+
+/* ---- focus: a blue ring that reads on cream and on the island ---- */
+.kit-pill:focus-visible, .kit-square:focus-visible, .kit-round:focus-visible, .kit-bubble:focus-visible, .kit-resource__plus:focus-visible {
+  outline: 3px solid var(--kit-focus); outline-offset: 2px;
+}

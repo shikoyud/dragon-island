@@ -1,3 +1,4 @@
+import { PillButton } from './kit/buttons'
 import type { ReactNode } from 'react'
 
 /** 9-slice pixel frame when `ui.panel` art exists; a plain bordered box otherwise. */
@@ -16,24 +17,15 @@ export function Panel({ title, children, onClose, frameSrc }: { title: string; c
   )
 }
 
-/** A button that stays focusable when disabled and explains why via aria-describedby. */
+/** The old action button API, drawn as a kit pill: primary is yellow (go/place), danger red, the rest blue. */
 export function ActionButton({
   id, children, onClick, disabled, reason, primary, danger,
 }: { id: string; children: ReactNode; onClick?: () => void; disabled?: boolean; reason?: string; primary?: boolean; danger?: boolean }) {
-  const descId = `${id}-why`
   return (
     <span className="action-button">
-      <button
-        type="button"
-        id={id}
-        className={`btn ${primary ? 'btn--primary' : ''} ${danger ? 'btn--danger' : ''}`}
-        disabled={disabled}
-        aria-describedby={disabled && reason ? descId : undefined}
-        onClick={onClick}
-      >
+      <PillButton id={id} color={danger ? 'red' : primary ? 'yellow' : 'blue'} disabled={disabled} reason={reason} onClick={onClick}>
         {children}
-      </button>
-      {disabled && reason && <small id={descId} className="action-button__why" style={{ display: 'block', color: 'var(--text-muted)' }}>{reason}</small>}
+      </PillButton>
     </span>
   )
 }

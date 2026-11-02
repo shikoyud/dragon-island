@@ -35,7 +35,7 @@
 1. A long title on the plank (a long dragon name): the plank widens up to the frame and then truncates with an ellipsis, never wrapping or overlapping the close button. Test in Task 3.
 2. A dialog taller than a landscape phone (844×390): the frame's body scrolls with the pixel scrollbar while the plank and close stay visible. Test in Task 3 and the e2e in Task 6.
 3. Fonts not yet loaded (first paint, offline): text uses the self-hosted font files from the bundle, never a remote request; the e2e font check waits for `document.fonts.ready`. Test in Task 1.
-4. Disabled price buttons: an unaffordable price shows a red number and stays focusable with its reason (as `ActionButton` does today). Test in Task 2.
+4. Disabled price buttons: an unaffordable price shows a red number, and a disabled pill shows and is described by its reason (as `ActionButton` does today; it stays a native `disabled` button, which 126 existing assertions rely on). Test in Task 2.
 5. Keyboard: close, back, help, pills and round actions show a visible focus ring on the light frame (the old white ring vanishes on cream). Test in Task 2.
 
 ---
@@ -64,7 +64,7 @@
 
 **Interfaces — Produces:**
 - `type PillColor = 'blue' | 'yellow' | 'green' | 'purple' | 'grey' | 'red'`
-- `PillButton(props: { color?: PillColor; children; onClick?; disabled?; reason?; id?; ariaLabel?; small? })` → `<button class="kit-pill kit-pill--{color}">`; disabled forces grey and keeps `aria-describedby` to the reason.
+- `PillButton(props: { color?: PillColor; children; onClick?; disabled?; reason?; id?; ariaLabel?; small? })` → `<button class="kit-pill kit-pill--{color}">`; disabled forces grey, keeps the native `disabled` attribute and `aria-describedby` to the visible reason.
 - `PriceTag({ amount: number; currency: 'gold' | 'food' | 'dris' | 'usd'; affordable?: boolean })` → number via `formatGold`/`formatMicroUsd` plus the currency icon; `kit-price--short` (red number) when `affordable === false`.
 - `CloseButton({ onClick, label = 'Close' })`, `BackButton({ onClick, label = 'Back' })`, `HelpButton({ onClick, label = 'Help' })` → square buttons, 32 px at 1×, 40 px on wide screens.
 
@@ -105,10 +105,10 @@
 - `ResourcePill({ icon: ReactNode; value: string; onPlus?: () => void; plusLabel?: string })`.
 - `ProgressBar({ value: number; max: number; label?: string })` → `role="progressbar"`, `aria-valuenow/max`, green fill, label centred.
 - `Bubble({ icon: ReactNode; label: string; onClick? })` → white bubble, ink outline, tail.
-- `ElementRibbon({ element: Element })` (colour from `--el-*`), `RarityShield({ rarity: Rarity })` (letter per P6), `Stars({ value: number; max?: 5 })`.
+- `ElementRibbon({ element: Element })` (colour from `--el-*`), `RarityShield({ rarity: Rarity })` (letter per P6). Stars reuse the existing `Stars` in `hud/ArtMark.tsx`.
 - `Tooltip({ text: string; children })`; toasts render as `.kit-toast` (light rounded panel, body font, error variant with red rim).
 
-- [ ] **Step 1: Failing tests:** one per component on its role, label and state classes (locked card text `Required level 12`, progress bar clamps `value` to `[0, max]`, stars render `max` stars with `value` filled, shield letter `E` for epic, ribbon text is the element's display name); toasts have class `kit-toast`.
+- [ ] **Step 1: Failing tests:** one per component on its role, label and state classes (locked card text `Required level 12`, progress bar clamps `value` to `[0, max]`, shield letter `E` for epic, ribbon text is the element's display name); toasts have class `kit-toast`.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS.
 - [ ] **Step 5:** commit `feat(web): kit round action, card, resource pill, progress bar, bubble, ribbon, shield, stars, tooltip and toast`.
 

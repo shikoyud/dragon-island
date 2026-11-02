@@ -9,6 +9,7 @@ import { ME_KEY } from './state/me'
 import { preloadPixelFonts } from './styles/fonts'
 import './styles/tokens.css'
 import './styles/hud.css'
+import './styles/kit.css'
 
 // Error reporting only when a DSN is configured; without one the SDK is never downloaded.
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN as string | undefined
