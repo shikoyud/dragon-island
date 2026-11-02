@@ -7,8 +7,6 @@ import type { Box, Pos } from './layout'
 
 /** On-screen plot diamond: 4 x 4 plots of this size make a diamond as wide as the icon (2:1, like the island's tiles). */
 export const MAP_PLOT = { w: 32, h: 16 } as const
-/** Width every island icon is drawn at, whatever the art's size (the width-ratio idea of R61). */
-export const MAP_ICON_W = 128
 const PLOTS_HALF_H = (PLOTS_PER_SIDE * MAP_PLOT.h) / 2
 
 /**
@@ -16,7 +14,7 @@ const PLOTS_HALF_H = (PLOTS_PER_SIDE * MAP_PLOT.h) / 2
  * (128 x 96 by design, 128 x 128 with today's square art at 4x), the plots, the label (three lines at most, 80 px each way).
  */
 export const MAP_CELL = {
-  left: -80, right: 80,
+  left: -128, right: 128,
   top: -PLOTS_HALF_H - 4 - 128,
   iconBottom: -PLOTS_HALF_H - 4,
   plotsTop: -PLOTS_HALF_H,
@@ -24,6 +22,9 @@ export const MAP_CELL = {
   labelTop: PLOTS_HALF_H + 6,
   bottom: PLOTS_HALF_H + 6 + 50,
 } as const
+
+/** Room for a floating island: the cell's full width, and from its top to the bottom of where the plots go. */
+export const MAP_FLOAT = { w: MAP_CELL.right - MAP_CELL.left, h: MAP_CELL.plotsBottom - MAP_CELL.top } as const
 
 /** Display only (R60): the chain climbs from Home at the bottom to Warlord's Crown at the top, as §5.5's table reads. */
 export const MAP_SPOTS: Record<IslandId, Pos> = {
@@ -56,8 +57,13 @@ export interface MapIsland {
   y: number
   /** Texture of the icon; '' until the art set has one, and the plot diamond stands alone. */
   key: string
-  /** Scale that draws the icon `MAP_ICON_W` wide. */
+  /**
+   * Whole-number scale that draws the floating island as big as fits the cell above the label (`MAP_FLOAT`), standing where
+   * the icon and the plots used to: the floating look (UI rework Phase 3) shows no plot grid when the art exists.
+   */
   scale: number
+  /** Not open yet (the next island or a locked one): the icon is greyed and a chain hangs over it. */
+  chained: boolean
 }
 
 export interface MapModel { islands: MapIsland[]; bridges: { from: IslandId; to: IslandId; built: boolean }[]; bounds: Box }
@@ -114,7 +120,8 @@ export function buildMapModel(s: PlayerState, art: GameArtSet, view: IslandId): 
         return { plot, owned: owned.includes(plot), x: spot.x + at.x, y: spot.y + at.y }
       }),
       key: sprite.src ? textureKey(`map.${id}`) : '',
-      scale: MAP_ICON_W / sprite.w,
+      scale: Math.max(1, Math.floor(Math.min(MAP_FLOAT.w / sprite.w, MAP_FLOAT.h / sprite.h))),
+      chained: !open,
     }
   })
   const bridges = ISLAND_ORDER.slice(1).map((to, i) => ({ from: ISLAND_ORDER[i]!, to, built: isOpen(to) }))

@@ -26,17 +26,22 @@ const PLOT_COLOR = {
   built: 0xe3c489,
   unbuilt: 0x9aa3bd,
 } as const
-/** World px the sea-chart backdrop reaches past the bounds, for a screen wider than the chain at zoom 1. */
-const BACKDROP_PAD = 2048
+/** The island scene's sky colour, behind everything when the sky art is missing. */
+const SKY_FALLBACK = '#8fd0ee'
+/** On-screen size of the chain over a locked island, in world px at zoom 1 (32 px art at 2x). */
+const CHAIN_PX = 64
+/** The middle of a floating island, from its spot: halfway down the room it stands in. */
+const FLOAT_MIDDLE = (MAP_CELL.top + MAP_CELL.plotsBottom) / 2
 
 /**
- * All six islands, in place of `IslandScene` while the Map is open (R60): the same gestures, the sea chart tiled, each
- * island's icon, its plots as a diamond grid, the Bridges and a label. Display only, like the positions: the scene emits
+ * All six islands, in place of `IslandScene` while the Map is open (R60): the same gestures, the sky with clouds, each
+ * island floating (shut ones chained), its plots as a diamond grid, the Bridges and a label. Display only, like the positions: the scene emits
  * `select` for the island under a tap, and React opens its panel. No clock here: nothing on the Map runs on a timer, so it
  * redraws only when the holding or the view changes.
  */
 export class MapScene extends Phaser.Scene {
   private view: View | null = null
+  private sky: Phaser.GameObjects.Image | null = null
   private model: MapModel | null = null
   private bridgesLine!: Phaser.GameObjects.Graphics
   private plots!: Phaser.GameObjects.Graphics
@@ -56,7 +61,7 @@ export class MapScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.drawBackdrop()
+    this.drawSky()
     this.bridgesLine = this.add.graphics()
     this.plots = this.add.graphics()
     const offs = [
@@ -91,25 +96,22 @@ export class MapScene extends Phaser.Scene {
     return this.bridge.art ?? FALLBACK_ART
   }
 
-  /** The sea chart, tiled. Its edges don't meet, so it is tiled mirrored, which leaves no seam. Without the art the game's sea colour shows. */
-  private drawBackdrop(): void {
-    const key = textureKey('map.backdrop')
-    if (!this.art().hud['map.backdrop']?.src || !this.textures.exists(key)) return
-    const src = this.textures.get(key).getSourceImage() as CanvasImageSource & { width: number; height: number }
-    const tile = `${key}:mirrored`
-    const canvas = this.textures.exists(tile) ? null : this.textures.createCanvas(tile, src.width * 2, src.height * 2)
-    if (canvas) {
-      const c = canvas.context
-      c.imageSmoothingEnabled = false
-      for (const [fx, fy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]] as const) {
-        c.setTransform(fx, 0, 0, fy, fx < 0 ? src.width * 2 : 0, fy < 0 ? src.height * 2 : 0)
-        c.drawImage(src, 0, 0)
-      }
-      c.setTransform(1, 0, 0, 1, 0, 0)
-      canvas.refresh()
-    }
-    const b = mapBounds()
-    this.add.tileSprite(b.x - BACKDROP_PAD, b.y - BACKDROP_PAD, b.w + 2 * BACKDROP_PAD, b.h + 2 * BACKDROP_PAD, tile).setOrigin(0, 0).setDepth(-1).setAlpha(0.5) // softened: backdrop, not the subject
+  /**
+   * The sky the islands float in (the floating look, UI rework Phase 3): the island's sky art held to the camera, and a
+   * cloud in each gap of the chain, alternating sides. Without the art the camera's sky colour shows.
+   */
+  private drawSky(): void {
+    this.cameras.main.setBackgroundColor(SKY_FALLBACK)
+    const art = this.art().ground
+    if (art.sky && this.textures.exists(textureKey('ground.sky'))) this.sky = this.add.image(0, 0, textureKey('ground.sky')).setDepth(-3)
+    const clouds = art.clouds.map((_, i) => textureKey(`ground.cloud.${i}`)).filter(k => this.textures.exists(k))
+    if (clouds.length === 0) return
+    const order = Object.values(MAP_SPOTS).sort((a, b) => a.y - b.y)
+    order.slice(1).forEach((spot, i) => {
+      const above = order[i]!
+      const side = i % 2 === 0 ? -1 : 1
+      this.add.image((spot.x + above.x) / 2 + side * 150, (spot.y + above.y) / 2 + 40, clouds[i % clouds.length]!).setScale(2).setAlpha(0.85).setDepth(-1)
+    })
   }
 
   /** True while this scene owns display objects and is what's on screen; see `IslandScene.alive`. */
@@ -148,6 +150,10 @@ export class MapScene extends Phaser.Scene {
     cam.centerOn(this.view.cx, this.view.cy)
     const scale = LABEL_PX / 8 / this.view.zoom
     for (const t of this.labels) t.setScale(scale)
+    if (this.sky) {
+      const cover = Math.ceil(Math.max(this.scale.width / this.sky.width, this.scale.height / this.sky.height))
+      this.sky.setPosition(this.view.cx, this.view.cy).setScale(cover / this.view.zoom)
+    }
   }
 
   private frame(): void {
@@ -202,14 +208,24 @@ export class MapScene extends Phaser.Scene {
     if (this.view) this.apply(this.view)
   }
 
-  /** From the middle of one island's icon to the middle of the next island's plots: both ends hide behind what they join. */
+  /** True when the island's art is drawn: it floats in the whole cell, and its plot grid is left out. */
+  private floats(i: MapIsland): boolean {
+    return i.key !== '' && this.textures.exists(i.key)
+  }
+
+  /** From the middle of one island to the middle of the next: both ends hide behind what they join. */
   private drawBridges(model: MapModel): void {
     const g = this.bridgesLine.clear()
     const art = this.art().hud['map.bridge']
+    const middle = (id: IslandId) => {
+      const i = model.islands.find(x => x.id === id)!
+      return { x: i.x, y: i.y + (this.floats(i) ? FLOAT_MIDDLE : 0) }
+    }
     const iconMiddle = (MAP_CELL.top + MAP_CELL.iconBottom) / 2
     for (const b of model.bridges) {
-      const from = { x: MAP_SPOTS[b.from].x, y: MAP_SPOTS[b.from].y + iconMiddle }
-      const to = MAP_SPOTS[b.to]
+      const fromIsland = model.islands.find(x => x.id === b.from)!
+      const from = { x: MAP_SPOTS[b.from].x, y: MAP_SPOTS[b.from].y + (this.floats(fromIsland) ? FLOAT_MIDDLE : iconMiddle) }
+      const to = middle(b.to)
       if (art?.src && this.textures.exists(textureKey('map.bridge'))) {
         const img = this.add.image((from.x + to.x) / 2, (from.y + to.y) / 2, textureKey('map.bridge'))
         img.setDisplaySize(Math.hypot(to.x - from.x, to.y - from.y), art.h).setRotation(Math.atan2(to.y - from.y, to.x - from.x)).setDepth(0)
@@ -231,6 +247,7 @@ export class MapScene extends Phaser.Scene {
       new Phaser.Math.Vector2(x, y - h), new Phaser.Math.Vector2(x + w, y), new Phaser.Math.Vector2(x, y + h), new Phaser.Math.Vector2(x - w, y),
     ]
     for (const i of model.islands) {
+      if (this.floats(i)) continue
       const open = i.state === 'current' || i.state === 'open'
       for (const p of i.plots) {
         const [color, alpha] = p.owned ? [PLOT_COLOR.owned, 1] : open ? PLOT_COLOR.openEmpty : PLOT_COLOR.shut
@@ -241,15 +258,34 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
+  /** A chain and padlock over the middle of a shut island's icon; a drawn padlock without the art. */
+  private drawChain(i: MapIsland): void {
+    const x = i.x
+    const y = i.y + (this.floats(i) ? FLOAT_MIDDLE : (MAP_CELL.top + MAP_CELL.iconBottom) / 2)
+    const key = textureKey('map.chain')
+    if (this.art().hud['map.chain']?.src && this.textures.exists(key)) {
+      this.drawn.push(this.add.image(x, y, key).setDisplaySize(CHAIN_PX, CHAIN_PX).setDepth(2.5))
+      return
+    }
+    const g = this.add.graphics().setDepth(2.5)
+    g.lineStyle(4, 0x0f1324, 1).strokeCircle(x, y - 8, 9)
+    g.lineStyle(2, 0xc9ccd8, 1).strokeCircle(x, y - 8, 9)
+    g.fillStyle(0x0f1324, 1).fillRect(x - 14, y - 4, 28, 22)
+    g.fillStyle(0xe3b23c, 1).fillRect(x - 12, y - 2, 24, 18)
+    g.fillStyle(0x0f1324, 1).fillRect(x - 2, y + 3, 4, 8)
+    this.drawn.push(g)
+  }
+
   private drawIsland(i: MapIsland): void {
-    if (i.key && this.textures.exists(i.key)) {
+    if (this.floats(i)) {
       const sprite = this.art().map[i.id]
-      const spr = this.add.sprite(i.x, i.y + MAP_CELL.iconBottom, i.key).setOrigin(0.5, 1).setScale(i.scale).setDepth(2)
+      const spr = this.add.sprite(i.x, i.y + MAP_CELL.plotsBottom, i.key).setOrigin(0.5, 1).setScale(i.scale).setDepth(2)
       playOrStill(spr, i.key, sprite.frames, sprite.fps, this.bridge.reducedMotion)
       const tint = ICON_TINT[i.state]
       if (tint !== undefined) spr.setTint(tint)
       this.drawn.push(spr)
     }
+    if (i.chained) this.drawChain(i)
     // One fact a line: the label is wider than an island otherwise.
     const t = this.add.text(i.x, i.y + MAP_CELL.labelTop, i.label.split(' · ').join('\n'), { ...LABEL_STYLE, color: LABEL_COLOR[i.state] })
     t.setOrigin(0.5, 0).setResolution(4).setDepth(3)

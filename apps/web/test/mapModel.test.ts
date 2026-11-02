@@ -4,7 +4,7 @@ import { artSetFromManifest } from '../src/art/fromManifest'
 import { artEntries, textureKey } from '../src/art/phaserLoader'
 import { FALLBACK_ART } from '../src/art/slots'
 import {
-  buildMapModel, MAP_CELL, MAP_ICON_W, MAP_SPOTS, mapBounds, mapBoxOf, mapIslandAt, mapOpeningView, mapPrice, wantedScene,
+  buildMapModel, MAP_CELL, MAP_FLOAT, MAP_SPOTS, mapBounds, mapBoxOf, mapIslandAt, mapOpeningView, mapPrice, wantedScene,
 } from '../src/game/mapModel'
 
 const fresh = newPlayer(0)
@@ -119,8 +119,9 @@ describe('MAP_SPOTS', () => {
     }
   })
 
-  it('an island\'s box holds the 128 px icon at today\'s square art, the 128 px plot diamond and the label', () => {
-    expect(MAP_ICON_W).toBe(128)
+  it('an island\'s box holds a 128 x 96 floating island at 2x (256 x 192), or the icon and plot diamond, and the label', () => {
+    expect(MAP_FLOAT.w).toBeGreaterThanOrEqual(256)
+    expect(MAP_FLOAT.h).toBeGreaterThanOrEqual(192)
     expect(MAP_CELL.right - MAP_CELL.left).toBeGreaterThanOrEqual(128)
     expect(MAP_CELL.iconBottom - MAP_CELL.top).toBeGreaterThanOrEqual(128) // today's art is square: 32 x 32 at 4x
     expect(MAP_CELL.iconBottom).toBeLessThanOrEqual(MAP_CELL.plotsTop)
@@ -130,7 +131,7 @@ describe('MAP_SPOTS', () => {
 })
 
 describe('the icon', () => {
-  it('has no key until the art set has the icon, and fills 128 px wide when it has', () => {
+  it('has no key until the art set has the icon, and is drawn at the biggest whole scale that fits the cell', () => {
     const none = buildMapModel(fresh, FALLBACK_ART, 'home')
     expect(by(none, 'home').key).toBe('')
     const art = artSetFromManifest('v1', {
@@ -141,9 +142,9 @@ describe('the icon', () => {
       },
     }, LAUNCH_CATALOG)
     const m = buildMapModel(fresh, art, 'home')
-    expect(by(m, 'home')).toMatchObject({ key: textureKey('map.home'), scale: 4 })
-    expect(by(m, 'isle2')).toMatchObject({ key: textureKey('map.isle2'), scale: 1 })
-    expect(by(m, 'isle6')).toMatchObject({ key: textureKey('map.isle6'), scale: 4 })
+    expect(by(m, 'home')).toMatchObject({ key: textureKey('map.home'), scale: 6 }) // 192 px: the cell is 196 tall
+    expect(by(m, 'isle2')).toMatchObject({ key: textureKey('map.isle2'), scale: 2 })
+    expect(by(m, 'isle6')).toMatchObject({ key: textureKey('map.isle6'), scale: 6 })
     expect(by(m, 'isle3').key).toBe('')
   })
 
@@ -158,6 +159,31 @@ describe('the icon', () => {
     expect(keys).toContain(textureKey('map.backdrop'))
     expect(keys).toContain(textureKey('map.bridge'))
     expect(artEntries(FALLBACK_ART).map(e => e.key)).not.toContain(textureKey('map.backdrop'))
+  })
+})
+
+describe('the floating look', () => {
+  it('prefers the floating island art to the old icon, and loads the chain', () => {
+    const art = artSetFromManifest('v1', {
+      assets: {
+        'map.home': { file: 'old.png', w: 128, h: 96, frames: 1, fps: 0 },
+        'map.island.home': { file: 'float.png', w: 128, h: 96, frames: 1, fps: 0 },
+        'map.isle2': { file: 'old2.png', w: 128, h: 96, frames: 1, fps: 0 },
+        'map.chain': { file: 'chain.png', w: 32, h: 32, frames: 1, fps: 0 },
+      },
+    }, LAUNCH_CATALOG)
+    expect(art.map.home.src).toBe('/art/v1/float.png')
+    expect(art.map.isle2.src).toBe('/art/v1/old2.png') // no floating art yet: the old icon stays
+    expect(artEntries(art).map(e => e.key)).toContain(textureKey('map.chain'))
+  })
+
+  it('chains every island not yet open: the next one and the locked ones', () => {
+    const m = buildMapModel(fresh, FALLBACK_ART, 'home')
+    expect(m.islands.map(i => [i.id, i.chained])).toEqual([
+      ['home', false], ['isle2', true], ['isle3', true], ['isle4', true], ['isle5', true], ['isle6', true],
+    ])
+    const opened = { ...fresh, islands: { ...fresh.islands, unlocked: ['isle2' as const] } }
+    expect(by(buildMapModel(opened, FALLBACK_ART, 'home'), 'isle2').chained).toBe(false)
   })
 })
 
@@ -262,9 +288,9 @@ describe('mapOpeningView', () => {
   })
 
   it('a screen too narrow for both centres the viewed island alone', () => {
-    // Ironhold and Shadowmere are the widest pair: 150 apart, 160 wide each, 310 in all.
-    expect(mapOpeningView('isle4', 642, 300).cx).toBe(MAP_SPOTS.isle4.x)
-    expect(mapOpeningView('isle4', 642, 390).cx).toBe((MAP_SPOTS.isle4.x + MAP_SPOTS.isle5.x) / 2)
+    // Ironhold and Shadowmere are the widest pair: 150 apart, 256 wide each, 406 in all.
+    expect(mapOpeningView('isle4', 642, 390).cx).toBe(MAP_SPOTS.isle4.x)
+    expect(mapOpeningView('isle4', 642, 420).cx).toBe((MAP_SPOTS.isle4.x + MAP_SPOTS.isle5.x) / 2)
   })
 
   it('only the chain\'s height gets the wide sea margin; its width keeps a narrow one', () => {

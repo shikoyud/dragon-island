@@ -6,7 +6,7 @@ export interface ManifestEntry { file: string; w: number; h: number; frames: num
 export interface Manifest { assets: Record<string, ManifestEntry> }
 
 /** Manifest keys the HUD reads (docs/art/hud-art-list.md). */
-const HUD_KEY = /^(icon\.[a-z]+\.(16|32)|ui\..+|map\.backdrop|map\.bridge|battle\.boss\.marker|trial\.chapter\.[a-z]+|trial\.node(\.boss|\.locked)?)$/
+const HUD_KEY = /^(icon\.[a-z]+\.(16|32)|ui\..+|map\.backdrop|map\.bridge|map\.chain|battle\.boss\.marker|trial\.chapter\.[a-z]+|trial\.node(\.boss|\.locked)?)$/
 
 /** Manifest keys tried in turn for each obstacle until its own art lands: the nearest old sprite by footprint. */
 const OBSTACLE_ART: Record<ObstacleKind, readonly string[]> = {
@@ -68,7 +68,8 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     island: { base: get('island.base', 'island'), layers: layerKeys.map(k => get(k, 'island')), locked: get('island.locked', 'locked'), sign: get('island.sign', 'sign'), arrow: get('ui.island.arrow', 'arrow'), upgradePost: get('ui.island.upgradePost', 'upgradePost') },
     obstacle: Object.fromEntries((Object.keys(OBSTACLES) as ObstacleKind[]).map(k => [k, get(`obstacle.${OBSTACLE_ART[k].find(n => manifest.assets[`obstacle.${n}`]) ?? k}`, footprintPx(OBSTACLES[k].size))])) as Record<ObstacleKind, Sprite>,
     decoration: Object.fromEntries((Object.keys(DECORATIONS) as DecorationId[]).map(d => [d, get(`decoration.${d}`, footprintPx(DECORATIONS[d].size))])) as Record<DecorationId, Sprite>,
-    map: Object.fromEntries(ISLAND_ORDER.map(i => [i, get(`map.${i}`, 'map')])) as Record<IslandId, Sprite>,
+    // The floating island (UI rework Phase 3) wins over the older flat icon when both exist.
+    map: Object.fromEntries(ISLAND_ORDER.map(i => [i, get(manifest.assets[`map.island.${i}`] ? `map.island.${i}` : `map.${i}`, 'map')])) as Record<IslandId, Sprite>,
     fx: { construction: get('fx.construction', 'fxConstruction'), hatch: get('fx.hatch', 'fxHatch'), coins: get('fx.coins', 'fxCoins'), ...(manifest.assets['fx.levelUp'] ? { levelUp: get('fx.levelUp', 'fxHatch') } : {}) },
     ground: {
       grass: [0, 1, 2].map(i => present(`ground.grass.${i}`)).filter((g): g is Sprite => g !== null),
