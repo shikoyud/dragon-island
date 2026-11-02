@@ -75,4 +75,4 @@
 
 ### Task 5: Verify and report
 
-- [ ] Full unit and e2e suites, `pnpm -r typecheck`; `pnpm playtest` with real input over HUD, Settings, Map and a second island; screenshots `docs/art/ui-p3-*-{1920,844}.png`; report `docs/superpowers/reports/2026-11-02-ui-rework-phase3-report.md`; push.
+- [x] Full unit and e2e suites, `pnpm -r typecheck`; `pnpm playtest` with real input over HUD, Settings, Map and a second island; screenshots `docs/art/ui-p3-*-{1920,844}.png`; report `docs/superpowers/reports/2026-11-02-ui-rework-phase3-report.md`; push.
