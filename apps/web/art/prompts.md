@@ -322,3 +322,43 @@ Sign (code): board lightened, nails and dark marks in the text area replaced by 
 Tree start and shadow (code): v1 tree on a 64x72 canvas, hard-cut base removed, five tapered outlined root wedges added. After the edit, dark translucent shadow pixels (alpha 120 and 170) are scattered under the roots.
 
 Post (code): 24x32, wood plate and post, green up-arrow with light and dark edges. Zoom (code): 32x32 light round plate with a bevel, dark minus and plus glyphs; rounded light thumb with three grip lines.
+
+## UI rework Phase 2 set (2026-11-02)
+
+Keys follow `docs/art/ui-rework-p2-art-list.md` (Phases 2 to 4). Cost 60 generations (946 before, 886 after), all `create_image_pixen` through the REST API (`/v2/create-image-pixen`), `outline` "single color black outline", `detail` "medium detail" unless noted, transparent background. Original designs; the layout references were not used as images. Pixen refuses canvases under 32 px that are not square, so thin pieces were drawn on a larger canvas and cut to size in code.
+
+Shared kit tail: "1px dark navy outline, blank, no text, flat front view, crisp pixel art, transparent background". Shared icon tail: "small chunky game icon, 1px dark outline, limited palette, soft shading, crisp pixel art, transparent background, no text".
+
+| Key | Size drawn, seed | Prompt (before the shared tail) |
+| --- | --- | --- |
+| `ui.kit.frame` | 48x48, 802 | game UI dialog window frame: thick light grey stone rim with bevel, light top-left edge and dark bottom-right edge, rounded corners, plain flat cream fill inside |
+| `ui.kit.plank` | 64x32, 812 | one long horizontal wooden plank sign board across the middle of the image, warm brown wood with two thin darker grain lines, lighter top edge, darker bottom edge, slightly rounded corners |
+| `ui.kit.badge` | 16x16, 813 | small dark slate grey rounded rectangle badge, lighter top edge |
+| `ui.kit.close` | 16x16, 801 | round red game UI close button with a thick orange rim and a bold white X in the centre |
+| `ui.kit.back` | 16x16, 814 | orange rounded square game UI button with a bold white arrow pointing left, lighter top edge, darker bottom edge |
+| `ui.kit.help` | 16x16, 815 | round blue game UI button with a bold white question mark in the centre |
+| `ui.kit.plus` | 16x16, 820 | green square game UI button with a bold white plus sign |
+| `ui.kit.pill.*` | 32x32, 811 | one wide horizontal pill-shaped game button lying across the middle of the image, fully rounded ends, bright blue face, a lighter blue highlight row along the top, a thick darker blue band along the bottom edge |
+| `ui.kit.round` | 32x32, 816 | game UI action button: white rounded square with a thick bright orange ring border, empty white centre, soft grey shade at the bottom inside |
+| `ui.kit.card` | 48x64, 818 | tall game shop card, rounded corners, light cream body, the top quarter is a soft green header band with a subtle dragon scale pattern |
+| `ui.kit.resource` | 48x32, 819 | one wide horizontal dark navy rounded bar field, inset look with a darker top inner edge and lighter bottom edge |
+| `ui.kit.scroll.track` | 32x32, 832, low detail | a tall vertical wooden plank filling the full height of the image, narrow, light warm brown wood with vertical grain lines, slightly darker sides, recessed groove look |
+| `ui.kit.scroll.thumb` | 32x32, 833, low detail | a vertical rectangular dark brown wooden handle block with rounded corners, lighter left edge, darker right edge, three short horizontal grip notches in the middle |
+| `ui.kit.bubble`, `.tail` | 24x24, 823 | white speech bubble, rounded square shape, thick dark navy outline, light grey shade along the bottom inside (it drew a tail anyway, which became `.tail`) |
+| `ui.kit.bar` | 32x32, 834, low detail | a wide horizontal empty rounded bar trough, very dark slate blue inside, darker inner top edge, slightly lighter inner bottom edge |
+| `ui.kit.ribbon.*` | 32x32, 825 | a hanging vertical cloth banner ribbon with a V-notched bottom, plain red cloth, lighter left edge, small gold rod at the top |
+| `ui.kit.shield.*` | 32x32, 826 | a heraldic shield, plain empty blue face, a lighter rim around the edge, pointed bottom |
+| `ui.kit.new` | 24x24, 827 | bright pink eight-pointed star burst badge, starburst shape, lighter pink centre |
+| `ui.hud.levelStar` | 32x32, 843 | a bright blue five-pointed star badge, lighter blue top facets, darker blue lower facets, thick rim, empty centre |
+| `ui.hud.avatarFrame` | 48x48, 844, low detail | an empty square portrait frame with rounded corners, steel grey metal rim with a bevel |
+| `icon.book.32` … `icon.storage.32` | 32x32, 845 to 848 | book: a closed thick brown leather book with a gold dragon emblem on the cover; search: a magnifying glass with a wooden handle and a light blue glass lens; goals: a rolled parchment scroll with a red wax seal and a green check mark; storage: a wooden storage crate with metal corner bands |
+| `icon.shop.32` | none | points at the existing `icon-store-32.png` market stall (0 generations) |
+| `map.chain` | 32x32, 849 | a heavy iron chain wrapped in an X with a big gold padlock in the centre |
+| `map.island.*` | 128x96, 850 | "a small fantasy island floating in the sky, seen from above and in front, the grassy top is round and irregular, a rocky underside tapering down to a point with dangling roots, 1px dark outline, crisp pixel art, transparent background, no water, no shadow, no text, the top is …" home: a green meadow with a few round trees and a small stone castle; isle2: black volcanic rock with a smoking volcano and glowing lava cracks; isle3: white snow with blue ice crystal spires and snowy pines; isle4: grey stone with an iron fortress and steel towers; isle5: a dark purple misty swamp with twisted dead trees and violet glowing pools; isle6: crimson stone with a golden war palace, red banners and golden spires |
+| `icon.collect/.upgrade/.hatch/.growFood/.rebreed.32` | 32x32, 862, 863, 866, 867, 869 | a small pile of shiny gold coins with a sparkle; one bold green arrow pointing straight up; a cracked dragon egg with a small baby dragon head peeking out; a green seedling sprout from a mound of soil; two small dragon eggs side by side with a pink heart above them |
+| `icon.getEgg/.info/.speedUp/.clear.32` | 24x24 padded to 32, 881, 886, 887, 884 | one plain smooth cream white egg with a few green spots; a white speech bubble with a bold blue question mark inside; a golden stopwatch with a bold lightning bolt on its face; a small shovel with a wooden handle and a grey iron blade |
+| `icon.bubble.gold/.food/.xp` | 24x24, 871, 872, 885 | a single shiny gold coin; a roasted meat drumstick; a bright green four-pointed sparkle star |
+
+Discarded: close-up lock 817 and 831 (did not read as a padlock), track 821 (bamboo), thumb 822 (a face), bar 824 (checkerboard baked in), shield 841 and ribbon 842 at 24/20 px (a dark box; too small), get-egg 861, move 865 and 882 (diagonal arrows), collect 883 and 889, rebreed 888, clear 870 (filled the canvas), XP 873 (dark box), and four 429 "too many concurrent jobs" refusals, which cost nothing.
+
+Code (Pillow, script kept in the art session): alpha forced to 0 or 255. Every 9-slice piece was remapped so its corners are the generated corners at the exact inset and each edge and the centre are one repeating column or row taken from the middle of the generated edge, so CSS can stretch them cleanly; the frame's centre is flat `#f3ead2`. Plank, resource, bar, track and thumb were cut from their larger canvas this way. Card: header tiled from an 8-column strip, right half of the header mirrored from the left, a 1 px darker green line under it, bottom-right corner mirrored from the bottom-left (the generated card had a stray blob there). Bubble: body cut above the drawn tail, bottom edge mirrored from the top edge; the tail is its own 12x8 piece. Pills: one blue pill recoloured by hue to yellow, green, purple, grey and red (outline and value ramp kept). Ribbons: one red ribbon cut to 12x20, cloth recoloured to each `--el-*` token, a 5x5 element glyph drawn on in white (dark on light and electric). Shields: nearest-neighbour 20x24 from the 32 px shield, broken inner-outline pixels filled from their neighbours, face recoloured per rarity. Avatar frame: the checkerboard the model painted inside was flood-filled to transparent. Drawn entirely in code: `ui.kit.lock` (12x12 dark disc, white padlock) and `icon.move.32` (four yellow arrows from one rotated arrow, light top-left, dark bottom-right, 1 px navy outline).

@@ -51,3 +51,17 @@ All 32×32, drawn inside `ui.kit.round` (leave 4 px clear at the edges): `icon.g
 ## Manifest entries
 
 One entry per key, as the existing ones: `{ "file": "ui-kit-frame.png", "w": 48, "h": 48, "frames": 1, "fps": 0 }`. File names are the key with dots turned into dashes.
+
+## How made (Phases 2 to 4, delivered 2026-11-02)
+
+All 65 keys delivered; contact sheet `docs/art/ui-rework-p2-art-preview.png`. 60 PixelLab generations (946 → 886). Prompts, seeds and the code clean-up are in `apps/web/art/prompts.md` under "UI rework Phase 2 set".
+
+| Group | How |
+| --- | --- |
+| 9-slice kit (frame, plank, badge, card, resource, scroll track and thumb, bubble, bar, pills) | `create_image_pixen`, then remapped in code to the exact size: generated corners at the listed inset, edges and centre one repeating column/row |
+| Fixed kit (close, back, help, plus, round, new) | `create_image_pixen` at the exact size, alpha hardened |
+| Ribbons ×10, shields ×5, pills ×6 | one generated base each, recoloured in code (ribbons from `--el-*`, glyph drawn on) |
+| Lock badge, move icon | drawn in code |
+| HUD (level star, avatar frame, book, search, goals, storage, chain, six floating islands) | `create_image_pixen` at the exact size; avatar centre cleared in code |
+| `icon.shop.32` | manifest points at the existing `icon-store-32.png` |
+| Action and bubble icons | `create_image_pixen`; getEgg, info, speedUp and clear drawn at 24 px and centred on 32 so they keep the 4 px margin. collect, upgrade, hatch, growFood and rebreed were drawn at 32 and keep a 3 to 8 px margin |
