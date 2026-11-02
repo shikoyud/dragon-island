@@ -1,4 +1,4 @@
-import type { PlayerState } from '@wyrmhaven/game-core'
+import { isPaused, type PlayerState } from '@wyrmhaven/game-core'
 import { useEffect, useRef, useState } from 'react'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
@@ -8,7 +8,7 @@ export const AUTO_FINISH_RETRY_MS = 30_000
 
 /** Index of the first construction whose timer has run out, or -1. */
 export function firstReadyConstruction(s: PlayerState, nowMs: number): number {
-  return s.constructions.findIndex(c => c.readyAtMs <= nowMs)
+  return s.constructions.findIndex(c => c.readyAtMs <= nowMs && !isPaused(s, c))
 }
 
 /**

@@ -21,7 +21,7 @@ export function HatcheryPanel({ nowMs, onClose, onOpenDragon }: { nowMs: number;
   const catalog = LAUNCH_CATALOG
   const slots = hatcherySlots(s.hatcheryLevel, s.hatcheryFifthSlot)
   const used = hatcheryUsed(s)
-  const waiting = s.dragons.filter(d => d.habitatId === null)
+  const waiting = s.dragons.filter(d => d.habitatId === null && !d.stored)
   const empty = Math.max(slots, used) - used
   const fifthSlotInStore = priceMicroUsd({ kind: 'hatcheryL5' }, s, nowMs) !== null
   const skipPrice = (index: number) => priceMicroUsd({ kind: 'skip', target: 'hatchery', index }, s, nowMs)

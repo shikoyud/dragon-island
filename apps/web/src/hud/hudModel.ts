@@ -193,7 +193,7 @@ export function attentionItems(s: PlayerState, nowMs: number): AttentionItem[] {
   if (ripe.length > 0) {
     items.push({ id: 'crops', label: ripe.length === 1 ? '1 crop ready' : `${ripe.length} crops ready`, ready: true, action: { type: 'harvest', plot: ripe[0]!.i }, panel: { kind: 'farm', plot: ripe[0]!.i } })
   }
-  const waiting = s.dragons.filter(d => d.habitatId === null).length
+  const waiting = s.dragons.filter(d => d.habitatId === null && !d.stored).length
   if (waiting > 0) {
     items.push({ id: 'noRoom', label: waiting === 1 ? 'Hatchling: no room' : `${waiting} hatchlings: no room`, ready: true, panel: { kind: 'hatcheryBuilding' } })
   }

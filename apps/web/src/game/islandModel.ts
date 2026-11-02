@@ -1,6 +1,6 @@
 import {
   breedTimerMs, constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, offeredPlots, ownedPlots, plotOfTile, plotPrice, plotsBought,
-  DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, sameRef, stageOf, storedGold, upgradeInfo,
+  DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, isStored, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, sameRef, stageOf, storedGold, upgradeInfo,
   type BreederKind, type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
@@ -302,10 +302,10 @@ export function buildingBoxes(state: PlayerState, art: GameArtSet, catalog: Cata
     out.push({ x: at.x - w / 2, y: at.y - h, w, h })
   }
   for (const d of state.decorations) {
-    if (d.placement.island === view) add(anchor(d.placement.col, d.placement.row, DECORATIONS[d.kind].size), art.decoration[d.kind])
+    if (!d.stored && d.placement.island === view) add(anchor(d.placement.col, d.placement.row, DECORATIONS[d.kind].size), art.decoration[d.kind])
   }
   for (const h of state.habitats) {
-    if (h.placement.island !== view) continue
+    if (h.stored || h.placement.island !== view) continue
     const a = anchor(h.placement.col, h.placement.row, FOOTPRINT.habitat)
     const look = h.element === 'aerie' ? aerieLook(art) : habitatLook(art, h.element)
     add(a, look.sprite, look.scale)
@@ -315,12 +315,12 @@ export function buildingBoxes(state: PlayerState, art: GameArtSet, catalog: Cata
     })
   }
   for (const b of state.breeders) {
-    if (b.placement.island === view) add(anchor(b.placement.col, b.placement.row, FOOTPRINT.breeder), breederLook(art, b.kind, b.level).sprite)
+    if (!b.stored && b.placement.island === view) add(anchor(b.placement.col, b.placement.row, FOOTPRINT.breeder), breederLook(art, b.kind, b.level).sprite)
   }
-  if (state.roostPlacement?.island === view) add(anchor(state.roostPlacement.col, state.roostPlacement.row, FOOTPRINT.roost), roostLook(art, state.roostTier).sprite)
+  if (!state.roostStored && state.roostPlacement?.island === view) add(anchor(state.roostPlacement.col, state.roostPlacement.row, FOOTPRINT.roost), roostLook(art, state.roostTier).sprite)
   if (state.hatcheryPlacement.island === view) add(anchor(state.hatcheryPlacement.col, state.hatcheryPlacement.row, FOOTPRINT.hatchery), hatcheryLook(art, state.hatcheryLevel).sprite)
   for (const f of state.farms) {
-    if (f.placement.island !== view) continue
+    if (f.stored || f.placement.island !== view) continue
     const look = farmLook(art)
     add(anchor(f.placement.col, f.placement.row, FOOTPRINT.farm), look.sprite, look.scale)
   }
@@ -348,6 +348,8 @@ export function buildIslandModel(
   const movedRef = placing?.what.kind === 'move' ? placing.what.target : null
   const isMoved = (ref: MovableRef | undefined) => Boolean(ref && movedRef && sameRef(ref, movedRef))
   /** Where a building stands for this picture: on the ghost's cell, on the island in view, while it is the one being moved. */
+  /** In Storage and not being placed from it: off the island (Storage rule S1). */
+  const gone = (ref: MovableRef): boolean => isStored(state, ref) && !isMoved(ref)
   const standing = (ref: MovableRef, placement: Placement): Placement =>
     placing && isMoved(ref) ? { island: view, col: placing.col, row: placing.row, facing: placing.facing } : placement
   /** What the moved building holds, ridden on the ghost. */
@@ -383,6 +385,7 @@ export function buildIslandModel(
 
   for (const d of state.decorations) {
     const ref: MovableRef = { type: 'decoration', id: d.id }
+    if (gone(ref)) continue
     const at = standing(ref, d.placement)
     if (at.island !== view) continue
     const a = anchor(at.col, at.row, DECORATIONS[d.kind].size)
@@ -392,6 +395,7 @@ export function buildIslandModel(
 
   for (const h of state.habitats) {
     const ref: MovableRef = { type: 'habitat', id: h.id }
+    if (gone(ref)) continue
     const at = standing(ref, h.placement)
     if (at.island !== view) continue
     const a = anchor(at.col, at.row, FOOTPRINT.habitat)
@@ -423,6 +427,7 @@ export function buildIslandModel(
 
   state.breeders.forEach((breeder, index) => {
     const ref: MovableRef = { type: 'breeder', index }
+    if (gone(ref)) return
     const at = standing(ref, breeder.placement)
     if (at.island !== view) return
     const a = anchor(at.col, at.row, FOOTPRINT.breeder)
@@ -437,7 +442,7 @@ export function buildIslandModel(
     markers.breeders.push({ index, egg: breeder.egg !== null })
   })
 
-  const roostAt = state.roostPlacement && standing({ type: 'roost' }, state.roostPlacement)
+  const roostAt = state.roostPlacement && !gone({ type: 'roost' }) ? standing({ type: 'roost' }, state.roostPlacement) : null
   if (state.roostPlacement && roostAt?.island === view) {
     const a = anchor(roostAt.col, roostAt.row, FOOTPRINT.roost)
     add(roostAt, FOOTPRINT.roost, [{
@@ -464,7 +469,7 @@ export function buildIslandModel(
       group.push(o)
       markers.hatchery.push({ slot })
     })
-    for (const d of state.dragons.filter(x => x.habitatId === null)) {
+    for (const d of state.dragons.filter(x => x.habitatId === null && !x.stored)) {
       const at = hatcheryNestSpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel, state.hatcheryFifthSlot) - 1))
       group.push({ id: `dragon:${d.id}`, ...hatchlingLook(d.speciesId, art, catalog), ...at, scale: NEST_EGG_HATCHERY_SCALE, target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
@@ -486,6 +491,7 @@ export function buildIslandModel(
 
   state.farms.forEach((plot, i) => {
     const ref: MovableRef = { type: 'farm', index: i }
+    if (gone(ref)) return
     const at = standing(ref, plot.placement)
     if (at.island !== view) return
     const a = anchor(at.col, at.row, FOOTPRINT.farm)
