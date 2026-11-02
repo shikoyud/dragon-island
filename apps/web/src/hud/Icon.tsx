@@ -6,7 +6,7 @@ export type IconName =
   | 'food' | 'gold' | 'dris' | 'xp' | 'timer' | 'build' | 'map' | 'settings'
   | 'dragons' | 'breed' | 'battle' | 'store' | 'admin' | 'quests' | 'wings' | 'inbox'
   | 'book' | 'goals' | 'shop'
-  | 'getEgg' | 'collect' | 'upgrade' | 'info' | 'move' | 'hatch' | 'growFood' | 'speedUp' | 'clear'
+  | 'getEgg' | 'collect' | 'upgrade' | 'info' | 'move' | 'hatch' | 'growFood' | 'speedUp' | 'clear' | 'storage'
 
 /** HUD art from the manifest (`art.hud`), keyed `icon.<name>.16` / `icon.<name>.32`; provided once by the App. */
 export const HudArtContext = createContext<Record<string, Sprite>>({})
@@ -27,7 +27,7 @@ const C: Record<string, string> = {
 }
 
 /** 12x12 placeholder glyphs until the icon.* art exists ('.' is transparent, letters index C). */
-const GLYPHS: Record<Exclude<IconName, 'book' | 'goals' | 'shop' | 'getEgg' | 'collect' | 'upgrade' | 'info' | 'move' | 'hatch' | 'growFood' | 'speedUp' | 'clear'>, string[]> & Partial<Record<IconName, string[]>> = {
+const GLYPHS: Record<Exclude<IconName, 'book' | 'goals' | 'shop' | 'getEgg' | 'collect' | 'upgrade' | 'info' | 'move' | 'hatch' | 'growFood' | 'speedUp' | 'clear' | 'storage'>, string[]> & Partial<Record<IconName, string[]>> = {
   food: ['............', '.......kkk..', '......kRRRk.', '.....kRRrRk.', '....kRRRRRk.', '...kRRRRRk..', '..kWkRRRk...', '.kWWkkkk....', 'kWWk........', 'kWk.........', '.k..........', '............'],
   gold: ['....kkkk....', '..kkYYYYkk..', '.kYYyyyyYYk.', '.kYyYYYYyYk.', 'kYyYYkkYYyYk', 'kYyYkYYYYyYk', 'kYyYkYYYYyYk', 'kYyYYkkYYyYk', '.kYyYYYYyYk.', '.kYYyyyyYYk.', '..kkYYYYkk..', '....kkkk....'],
   dris: ['............', '...kkkkkk...', '..kPPpPPPk..', '.kPPpPPPPPk.', 'kkkkkkkkkkkk', 'kPPPpPPPPPPk', '.kPPPpPPPPk.', '..kPPPpPPk..', '...kPPpPk...', '....kPPk....', '.....kk.....', '............'],
@@ -60,6 +60,7 @@ GLYPHS.info = GLYPHS.quests
 GLYPHS.move = GLYPHS.map
 GLYPHS.growFood = GLYPHS.food
 GLYPHS.speedUp = GLYPHS.timer
+GLYPHS.storage = GLYPHS.store
 
 const glyphCache = new Map<string, ReactElement[]>()
 

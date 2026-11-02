@@ -95,7 +95,7 @@
 
 **Interfaces — Produces:** `storageItems(s, nowMs, catalog): { key: string; kind: 'egg' | 'dragon' | 'building' | 'token'; name: string; filter: 'dragons' | 'eggs' | 'buildings' | 'items'; use?: StorageUse; sell?: ClientAction }[]` where `StorageUse = { kind: 'place'; target: MovableRef; size: Footprint } | { kind: 'run'; action: ClientAction }`.
 
-- [ ] Tests: plank count equals item count; search filters by name; filter panel left narrows by kind; Use on a building starts Move placement and closes; Use on an egg runs `takeEgg`; Use on a dragon opens the home finder; empty Storage says "Storage is empty" with Go to shop. Commit `feat(web): Storage screen`.
+- [x] Tests: plank count equals item count; search filters by name; filter panel left narrows by kind; Use on a building starts Move placement and closes; Use on an egg runs `takeEgg`; Use on a dragon opens the home finder; empty Storage says "Storage is empty" with Go to shop. Commit `feat(web): Storage screen`.
 
 ### Task 9: Goals
 

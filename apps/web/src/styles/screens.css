@@ -143,3 +143,35 @@
   .shop-section__title { display: none; }
   .shop-list { padding: 2px; }
 }
+
+/* Storage (design, Phase 5: storage): search bar and Go to shop on top, the Type panel left, the cards right. */
+.storage-top { display: flex; gap: 8px; align-items: center; justify-content: center; padding: 4px 8px 8px; }
+.storage-search {
+  flex: 0 1 420px; min-height: 40px; padding: 6px 12px; font: 14px/1.2 var(--font-display); color: var(--kit-ink);
+  background: #fbf3df; border: 2px solid var(--kit-ink); border-radius: 20px;
+}
+.storage-grid { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: start; }
+.storage-filter {
+  display: flex; flex-direction: column; gap: 6px; padding: 10px 8px;
+  background: repeating-linear-gradient(180deg, #8a5a2e 0 10px, #6e4522 10px 12px); border: 2px solid var(--kit-ink); border-radius: 10px;
+}
+.storage-filter__btn {
+  min-height: 40px; padding: 4px 8px; font: 13px/1.1 var(--font-display); color: var(--kit-ink); text-align: left;
+  background: #fbf3df; border: 2px solid var(--kit-ink); border-radius: 8px; cursor: pointer;
+}
+.storage-filter__btn[aria-pressed="true"] { background: #ffe58a; }
+.storage-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.storage-list > li { flex: none; }
+.storage-list .kit-card { width: 168px; }
+.storage-list .kit-card__art { display: grid; place-items: center; min-height: 80px; }
+.storage-list .kit-card__foot { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.storage-empty { display: grid; place-items: center; gap: 6px; padding: 32px; color: #fff; font: 16px/1.2 var(--font-display); text-align: center; }
+@media (max-height: 480px) {
+  .storage-grid { grid-template-columns: 112px 1fr; gap: 6px; }
+  .storage-filter { flex-direction: column; gap: 3px; padding: 6px; }
+  .storage-filter__btn { min-height: 32px; font-size: 11px; }
+  .storage-list .kit-card { width: 136px; }
+  .storage-list .kit-card__art { min-height: 52px; }
+  .storage-top { padding: 0 4px 4px; }
+  .storage-search { min-height: 32px; }
+}

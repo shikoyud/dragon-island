@@ -14,7 +14,7 @@ import { Icon, type IconName } from './Icon'
 import { ZoomSlider } from './ZoomSlider'
 import type { ShopCategory } from '../panels/ShopPanel'
 
-export type PanelId = 'shop' | 'breed' | 'book' | 'battle' | 'wings' | 'quests' | 'inbox' | 'map' | 'settings'
+export type PanelId = 'shop' | 'breed' | 'book' | 'battle' | 'wings' | 'quests' | 'inbox' | 'map' | 'settings' | 'storage'
 /** What the one dialog shows: a named panel (the Shop can open on its Store tab, Battle on a chapter's nodes), or the panel of something clicked on the island. */
 export type DialogKey = { kind: 'panel'; id: PanelId; tab?: 'build' | 'store' | 'account' | 'wallet'; chapter?: number; /** The Shop category to open on. */ category?: ShopCategory } | { kind: 'target'; target: Target }
   /** The Info and Upgrade dialogs of a building (UI rework Phase 5). */
@@ -120,16 +120,17 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom }: {
   const bookOpen = isPanel(open, 'book')
   const battleOpen = isPanel(open, 'battle')
   const questsOpen = isPanel(open, 'quests')
-  // Bottom left Battle (Storage joins it in Phase 5), bottom right Shop; the centre stays free for the action and Move bars.
+  const storageOpen = isPanel(open, 'storage')
+  // Bottom left Battle and Storage, bottom right Shop; the centre stays free for the action and Move bars.
   const mainMenu = useMemo(() => {
     const panel = (id: PanelId) => () => onOpen({ kind: 'panel', id })
     return (
       <nav className="hud-corners" aria-label="Main menu">
-        <span className="hud-corner hud-corner--left"><RoundButton icon="battle" label="Battle" active={battleOpen} onClick={panel('battle')} /></span>
+        <span className="hud-corner hud-corner--left"><RoundButton icon="battle" label="Battle" active={battleOpen} onClick={panel('battle')} /><RoundButton icon="storage" label="Storage" active={storageOpen} onClick={panel('storage')} /></span>
         <span className="hud-corner hud-corner--right"><RoundButton icon="shop" label="Shop" active={placing || shopOpen} onClick={panel('shop')} /></span>
       </nav>
     )
-  }, [placing, shopOpen, battleOpen, onOpen])
+  }, [placing, shopOpen, battleOpen, storageOpen, onOpen])
 
   // The Book's red badge: species found since this device last opened it (ruling Q4).
   const playerId = me.data?.playerId

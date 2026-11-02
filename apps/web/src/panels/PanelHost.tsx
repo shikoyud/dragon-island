@@ -22,6 +22,7 @@ import { PlotPanel } from './PlotPanel'
 import { QuestsPanel } from './QuestsPanel'
 import { RoostPanel } from './RoostPanel'
 import { SettingsPanel } from './SettingsPanel'
+import { StoragePanel } from './StoragePanel'
 import { ShopPanel } from './ShopPanel'
 import { InfoDialog } from './InfoDialog'
 import { UpgradeDialog } from './UpgradeDialog'
@@ -150,10 +151,12 @@ export interface PanelHostProps {
   fighting?: boolean
   onResumeTrial?: () => void
   onPvp?: (offer: Offer, team: TeamIds) => void
+  /** Shows the home finder for a dragon (Storage's Use). */
+  onFindHome?: (dragonId: string) => void
 }
 
 /** The panel for the open dialog (a named HUD panel or a clicked island object), or null. */
-export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = () => {}, onResumeTrial = () => {}, onPvp = () => {} }: PanelHostProps): ReactElement | null {
+export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = () => {}, onResumeTrial = () => {}, onPvp = () => {}, onFindHome = () => {} }: PanelHostProps): ReactElement | null {
   const startPlacing = useStartPlacing()
   const game = useMe().data?.game
   const close = () => onOpen(null)
@@ -161,6 +164,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = (
   if (dialog.kind === 'panel') {
     switch (dialog.id) {
       case 'shop': return <ShopPanel key={`${dialog.tab ?? ''}${dialog.category ?? ''}`} start={dialog.category ?? (dialog.tab === 'store' ? 'store' : 'home')} nowMs={nowMs} view={bridge.view} onPlace={(what, size) => { onOpen(null); startPlacing(what, size) }} onClose={close} />
+      case 'storage': return <StoragePanel onPlace={(target, size) => { onOpen(null); startPlacing({ kind: 'move', target }, size) }} onHome={id => { onOpen(null); onFindHome(id) }} onShop={() => onOpen({ kind: 'panel', id: 'shop' })} onClose={close} />
       case 'map': return null // the Map is a scene (R60), not a dialog; its islands open panels
       case 'breed': return <BreedPanel nowMs={nowMs} onClose={close} />
       case 'book': return <DragonBookPanel art={bridge.art} onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />

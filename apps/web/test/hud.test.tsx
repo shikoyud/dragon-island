@@ -67,13 +67,15 @@ describe('HUD', () => {
     expect(screen.queryByText(/today/)).toBeNull()
   })
 
-  it('has Battle bottom left and Shop bottom right, and nothing that is not built (Q2, Q3)', async () => {
+  it('has Battle and Storage bottom left and Shop bottom right, and nothing that is not built (Q2, Q3; Phase 5 adds Storage)', async () => {
     const { onOpen } = renderHud(base())
     const bar = screen.getByRole('navigation', { name: 'Main menu' })
-    expect(within(bar).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Battle', 'Shop'])
-    for (const name of ['Breed', 'Wings', 'Inbox', 'Quests', 'Storage', 'Search', 'News', 'Offers']) expect(screen.queryByRole('button', { name })).toBeNull()
+    expect(within(bar).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Battle', 'Storage', 'Shop'])
+    for (const name of ['Breed', 'Wings', 'Inbox', 'Quests', 'Search', 'News', 'Offers']) expect(screen.queryByRole('button', { name })).toBeNull()
     await userEvent.click(within(bar).getByRole('button', { name: 'Battle' }))
     expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'battle' })
+    await userEvent.click(within(bar).getByRole('button', { name: 'Storage' }))
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'storage' })
     await userEvent.click(within(bar).getByRole('button', { name: 'Shop' }))
     expect(onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'shop' })
   })
