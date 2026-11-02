@@ -39,6 +39,8 @@
 | U13 | **Zoom slider is vertical, as the design says,** though building-1 shows it horizontal. Flagged as a question. | The design's wording is the approved text. |
 | U14 | **Castle Hatchery art: 80×96 at scale 1, walls overhanging the 64-wide footprint by up to 8 px a side.** | "Bigger" than a dome with the footprint fixed. |
 
+Execution amended U6's positions, U7's redraw, U11's dragon scale and the arrow, sign and caption details: see `docs/superpowers/reports/2026-11-01-ui-rework-phase1-report.md`.
+
 ## Review Focus
 
 1. A pointer that leaves the land, or the canvas, mid-drag of the ghost: the ghost stays at the last valid cell, and the next tap still works. Test in Task 4.
@@ -61,7 +63,7 @@
 - `OBSTACLE_GAP = 2`, `obstaclesApart(a, sizeA, b, sizeB): boolean`.
 - `spawnPlotObstacles(island, plot, firstId, rng, occupied: readonly { col: number; row: number; size: number }[]): Obstacle[]`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```ts
 it('offers exactly 3 on Home, from the fixed order', () => {
@@ -85,12 +87,12 @@ it('the rolled kind drops to a smaller one when the gap leaves no room; the coun
 
 Fix the pins these replace: 21 obstacles in `land.test.ts` (`occ` length becomes 5 + 8 + 9), M4 buying orders, `obstacle-spawn` rng order.
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `pnpm --filter @wyrmhaven/game-core test`
 Expected: FAIL on the new tests.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Plots: `offeredPlots` per U1; `plotError` checks it after `PLOT_NOT_ADJACENT`. `plotsBought` is unchanged.
 
@@ -113,12 +115,12 @@ Spawn: for each of `count` obstacles draw kind and quadrant as today, then list 
 
 `buyPlot`: for Home, spawn on `offered after − offered before`, against `occupants(state, 'home')`. Other islands keep spawning on the plot bought, and the Bridge on its 4 plots, each against what's already placed.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `pnpm --filter @wyrmhaven/game-core test`, `pnpm --filter @wyrmhaven/server test`
 Expected: PASS, including the M4 room tests (`island-room.test.ts`: starting land holds every unlock through PL 5; through PL 12 with no moves and 0 clears on seeds 1..50), the XP simulation's end-of-day levels and the 14 Goals. If a pacing number moves, keep the assertion if the rule behind it still holds; otherwise stop and report it, don't retune values.
 
-- [ ] **Step 5: Commit** `feat(core): Home offers 3 plots at a time, fewer obstacles with a gap (U1-U8)`
+- [x] **Step 5: Commit** `feat(core): Home offers 3 plots at a time, fewer obstacles with a gap (U1-U8)`
 
 ### Task 2: Locked land in the island model and camera
 
@@ -131,7 +133,7 @@ Expected: PASS, including the M4 room tests (`island-room.test.ts`: starting lan
 - `landPlots(state, view): number[]`: Home = owned ∪ offered; others = all 16.
 - `lockedTiles` returns only tiles on `landPlots` not owned. `groundCell` returns null on a plot not in `landPlots`.
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 ```ts
 it('Home has 3 signs, each captioned Tap to buy, on top of everything', () => {
@@ -149,13 +151,13 @@ it('the opening view frames owned and offered land', () => {})
 it('camera bounds hold the whole landmass (see islandShape) at every zoom', () => {})
 ```
 
-- [ ] **Step 2: Run:** `pnpm --filter @wyrmhaven/web test -- island camera plots`. Expected: FAIL.
+- [x] **Step 2: Run:** `pnpm --filter @wyrmhaven/web test -- island camera plots`. Expected: FAIL.
 
-- [ ] **Step 3: Implement.** Signs push after the depth sort and before the ghost. The scene draws `caption` as a `Text` with a white background and dark text, in the same font as badges, below the anchor; it's in `objectSignature`. Locked-plot obstacles get `target: { kind: 'plot', island, plot }`. `ownedLandBox` becomes `landBox`, over `landPlots`.
+- [x] **Step 3: Implement.** Signs push after the depth sort and before the ghost. The scene draws `caption` as a `Text` with a white background and dark text, in the same font as badges, below the anchor; it's in `objectSignature`. Locked-plot obstacles get `target: { kind: 'plot', island, plot }`. `ownedLandBox` becomes `landBox`, over `landPlots`.
 
-- [ ] **Step 4: Run** the same command. Expected: PASS.
+- [x] **Step 4: Run** the same command. Expected: PASS.
 
-- [ ] **Step 5: Commit** `feat(web): locked plots show obstacles and Tap to buy signs`
+- [x] **Step 5: Commit** `feat(web): locked plots show obstacles and Tap to buy signs`
 
 ### Task 3: Floating island bake, sky, clouds, waterfalls
 
@@ -186,7 +188,7 @@ A pixel is land when its Euclidean distance in cell space from the nearest plot 
 
 The river is a band 4–18 world px above `frontY`, only on two front stretches, the left and right thirds of the front profile (so a tongue of grass reaches the lip at the centre, as in building-1); never on a plot. `falls` has one point per stretch at its lowest-lying end, at least 48 px apart.
 
-- [ ] **Step 1: Failing tests** in `islandShape.test.ts`
+- [x] **Step 1: Failing tests** in `islandShape.test.ts`
 
 ```ts
 const start = [5, 6, 9, 10, 2, 7, 11]
@@ -209,9 +211,9 @@ it('a state change that changes no plots does not re-bake', () => {})
 it('re-baking leaves one set of waterfall sprites, also after a context restore', () => {})
 ```
 
-- [ ] **Step 2: Run:** `pnpm --filter @wyrmhaven/web test -- islandShape artRobustness`. Expected: FAIL.
+- [x] **Step 2: Run:** `pnpm --filter @wyrmhaven/web test -- islandShape artRobustness`. Expected: FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Art slots, in `GameArtSet.ground`, all from `present(...)`: `sky`, `clouds: Sprite[]` (`ground.cloud.0..2`), `rock` (`ground.rock`), `rim: Sprite[]` (`ground.rim.0..3`), `waterfall` (`ground.waterfall`).
 
@@ -227,11 +229,11 @@ Other islands keep the render-texture path. All islands get the sky in place of 
 
 `cameraBounds()` for Home: `landmass(all 16).box` plus a margin, so it doesn't change as land grows.
 
-- [ ] **Step 4: Run** the same command, then `pnpm --filter @wyrmhaven/web test`. Expected: PASS.
+- [x] **Step 4: Run** the same command, then `pnpm --filter @wyrmhaven/web test`. Expected: PASS.
 
-- [ ] **Step 5: Screenshot and read it** at 1920×1080 in the browser. Check: not a square; cliffs hang; river and falls show; no seam at plot borders; the bake takes under 60 ms at 1× CPU (log once, then remove the log). Fix what's wrong.
+- [x] **Step 5: Screenshot and read it** at 1920×1080 in the browser. Check: not a square; cliffs hang; river and falls show; no seam at plot borders; the bake takes under 60 ms at 1× CPU (log once, then remove the log). Fix what's wrong.
 
-- [ ] **Step 6: Commit** `feat(web): Home Isle is a floating island with cliff, river, waterfalls and sky`
+- [x] **Step 6: Commit** `feat(web): Home Isle is a floating island with cliff, river, waterfalls and sky`
 
 ### Task 4: Move: stays put, tap or drag, Cancel and OK
 
@@ -245,7 +247,7 @@ Other islands keep the render-texture path. All islands get the sky in place of 
 - `PlacementBar` buttons: accessible names `Cancel` and `OK`.
 - `IslandObject` id `arrow` while placing: above the ghost's top, bobbing by tween (still under reduced motion).
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 ```ts
 it('while placing, the model hides the moved building and carries its residents on the ghost', () => {
@@ -277,9 +279,9 @@ test('Move: Cancel leaves the building where it was', ...)
 
 Update `Confirm` to `OK` everywhere it's named in tests.
 
-- [ ] **Step 2: Run:** `pnpm --filter @wyrmhaven/web test -- island placementBar panZoom placing`. Expected: FAIL.
+- [x] **Step 2: Run:** `pnpm --filter @wyrmhaven/web test -- island placementBar panZoom placing`. Expected: FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Scene: delete the hover `emitCell` in `onMove`. While placing, `grab` returns true when the pressed cell is inside the ghost's footprint. It keeps the offset from the footprint's top-left and emits `cell` only when the pointer's cell is on land. `onUp` with a click emits a centred cell as today. `reveal` runs only on placing start and island change, not on every cell, so a tap doesn't scroll the view away. The drawn footprint stays over everything.
 
@@ -287,9 +289,9 @@ Model: filter the moved target's group out of the sort; the ghost plus shifted r
 
 Bar: round red (X) and green (tick) buttons at bottom centre, 64 px on desktop and 56 px on a phone, labels `CANCEL` and `OK` beneath. Tick and X are inline SVG-free block glyphs in CSS until Phase 2 art; use `hud.icons` keys if present. Turn and Island buttons are small, in a row above. `Can't build here` above them. Only buttons take pointer events.
 
-- [ ] **Step 4: Run** unit tests and `pnpm --filter @wyrmhaven/web exec playwright test island hud build` through a temp config using system Chrome (`channel: 'chrome'`, not committed). Expected: PASS.
+- [x] **Step 4: Run** unit tests and `pnpm --filter @wyrmhaven/web exec playwright test island hud build` through a temp config using system Chrome (`channel: 'chrome'`, not committed). Expected: PASS.
 
-- [ ] **Step 5: Commit** `fix(web): Move stays put until a tap or a drag; Cancel and OK at bottom centre`
+- [x] **Step 5: Commit** `fix(web): Move stays put until a tap or a drag; Cancel and OK at bottom centre`
 
 ### Task 5: Habitats, upgrade post, castle Hatchery with nest, grounded tree
 
@@ -304,7 +306,7 @@ Bar: round red (X) and green (tick) buttons at bottom centre, 64 px on desktop a
 - `upgradeReady(s, h, preset): boolean` (U12), object id `post:<habitatId>`, key `ui.island.upgradePost`, at `{x: a.x - 26, y: a.y - 12}`, targeting the habitat, hidden while placing.
 - Fallbacks drawn for `ui.island.upgradePost` and `ui.island.arrow`, and a stone castle fallback for `hatchery` (towers and ring wall with a straw-coloured ellipse).
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 ```ts
 it('feet of the first 4 residents stay on the 64x32 face, at least 16 px apart', () => {})
@@ -319,13 +321,13 @@ it('five eggs stay inside the nest box', () => {})
 
 Update `art.test.ts` pins when the art lands in Task 7, not here.
 
-- [ ] **Step 2: Run:** `pnpm --filter @wyrmhaven/web test -- island layout`. Expected: FAIL.
+- [x] **Step 2: Run:** `pnpm --filter @wyrmhaven/web test -- island layout`. Expected: FAIL.
 
-- [ ] **Step 3: Implement.** The scene draws `progress` as a 16×3 world-px bar (dark frame, green fill) under the sprite and keeps it through `reconcile` under id `bar:<id>`. Fallback habitat art fills the whole diamond.
+- [x] **Step 3: Implement.** The scene draws `progress` as a 16×3 world-px bar (dark frame, green fill) under the sprite and keeps it through `reconcile` under id `bar:<id>`. Fallback habitat art fills the whole diamond.
 
-- [ ] **Step 4: Run** the same. Expected: PASS.
+- [x] **Step 4: Run** the same. Expected: PASS.
 
-- [ ] **Step 5: Commit** `feat(web): larger habitat spots, upgrade post, nest eggs with progress`
+- [x] **Step 5: Commit** `feat(web): larger habitat spots, upgrade post, nest eggs with progress`
 
 ### Task 6: Zoom slider
 
@@ -337,7 +339,7 @@ Update `art.test.ts` pins when the art lands in Task 7, not here.
 - Bridge: `zoom: { zoom: number; min: number; max: number } | null`, event `{ type: 'zoom' }`, method `setZoom(z: number)`, which asks the scene to zoom around the screen centre through `zoomAt`.
 - `<ZoomSlider bridge={bridge} />`: right edge, vertically centred; plus on top, minus below; a `<input type="range" orient="vertical">` with `aria-label="Zoom"`, integer steps. Hidden when the Map or a battle shows. Plus and minus are 44 px; on a phone the track shrinks so the whole control fits the height between the top and bottom HUD.
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 ```ts
 it('reflects the scene zoom and range', () => {})
@@ -348,13 +350,13 @@ it('is hidden while the Map shows', () => {})
 
 And e2e in `hud.spec.ts`: at 844×390 the slider's box stays inside the window and doesn't intersect the Move bar's buttons; plus changes the camera zoom.
 
-- [ ] **Step 2: Run:** `pnpm --filter @wyrmhaven/web test -- zoomSlider`. Expected: FAIL.
+- [x] **Step 2: Run:** `pnpm --filter @wyrmhaven/web test -- zoomSlider`. Expected: FAIL.
 
-- [ ] **Step 3: Implement.** The scene sets `bridge.zoom` from `apply()` when it changes. Move the Map button out of the slider's way if they collide. Art `ui.zoom.minus`, `ui.zoom.plus`, `ui.zoom.thumb` through `ArtMark`, with CSS fallback.
+- [x] **Step 3: Implement.** The scene sets `bridge.zoom` from `apply()` when it changes. Move the Map button out of the slider's way if they collide. Art `ui.zoom.minus`, `ui.zoom.plus`, `ui.zoom.thumb` through `ArtMark`, with CSS fallback.
 
-- [ ] **Step 4: Run** the same and the e2e. Expected: PASS.
+- [x] **Step 4: Run** the same and the e2e. Expected: PASS.
 
-- [ ] **Step 5: Commit** `feat(web): zoom slider at the right edge`
+- [x] **Step 5: Commit** `feat(web): zoom slider at the right edge`
 
 ### Task 7: Phase 1 art through PixelLab
 
@@ -378,18 +380,18 @@ And e2e in `hud.spec.ts`: at 844×390 the slider's box stays inside the window a
 
 Rules: the game's existing pixel style and palette; nothing from the reference game's art; no text in generated art; `top` on every manifest entry; about 60 generations budget (989 left on 2026-11-02); no art for the other 5 islands.
 
-- [ ] **Step 1:** Generate into the scratchpad. View every asset.
-- [ ] **Step 2:** Integrate: copy, add manifest entries, update `art.test.ts` size pins, tune nest spots to the castle art, record prompts and seeds.
-- [ ] **Step 3:** `pnpm --filter @wyrmhaven/web test`. Expected: PASS.
-- [ ] **Step 4: Commit** `art: UI rework Phase 1 set` with explicit paths.
+- [x] **Step 1:** Generate into the scratchpad. View every asset.
+- [x] **Step 2:** Integrate: copy, add manifest entries, update `art.test.ts` size pins, tune nest spots to the castle art, record prompts and seeds.
+- [x] **Step 3:** `pnpm --filter @wyrmhaven/web test`. Expected: PASS.
+- [x] **Step 4: Commit** `art: UI rework Phase 1 set` with explicit paths.
 
 ### Task 8: Verify and report
 
 **Files:** Create `docs/superpowers/reports/2026-11-01-ui-rework-phase1-report.md`, `docs/art/ui-p1-*.png`.
 
-- [ ] **Step 1:** `pnpm -r typecheck`, `pnpm -r test`. Expected: all clean. Record counts.
-- [ ] **Step 2:** Full e2e through a temp config on system Chrome (not committed). Expected: all pass, except the on-chain deposit skip.
-- [ ] **Step 3:** `pnpm playtest`, and drive it: place, move by tap and by drag, collect, hatch, grow, buy a plot, clear an obstacle. No page errors or unexpected 4xx.
-- [ ] **Step 4:** Frame time on Home: 844×390 at 4× CPU, 8 s; compare with M4's numbers. The bake's cost on buying a plot.
-- [ ] **Step 5:** Screenshots at 1920×1080 and 844×390. Side-by-side images with building-1, locked-land, choose-habitat-to-place-after-hatch, hatchery-selected-1egg-pending and -ready, plus review image-2 and image-3's areas. Read each one and fix what doesn't match.
-- [ ] **Step 6:** Write the report: what changed, test counts, screenshots, rulings, what's unverified or rough, questions for shiko. Commit it with explicit paths.
+- [x] **Step 1:** `pnpm -r typecheck`, `pnpm -r test`. Expected: all clean. Record counts.
+- [x] **Step 2:** Full e2e through a temp config on system Chrome (not committed). Expected: all pass, except the on-chain deposit skip.
+- [x] **Step 3:** `pnpm playtest`, and drive it: place, move by tap and by drag, collect, hatch, grow, buy a plot, clear an obstacle. No page errors or unexpected 4xx.
+- [x] **Step 4:** Frame time on Home: 844×390 at 4× CPU, 8 s; compare with M4's numbers. The bake's cost on buying a plot.
+- [x] **Step 5:** Screenshots at 1920×1080 and 844×390. Side-by-side images with building-1, locked-land, choose-habitat-to-place-after-hatch, hatchery-selected-1egg-pending and -ready, plus review image-2 and image-3's areas. Read each one and fix what doesn't match.
+- [x] **Step 6:** Write the report: what changed, test counts, screenshots, rulings, what's unverified or rough, questions for shiko. Commit it with explicit paths.
