@@ -100,10 +100,8 @@ describe('HUD', () => {
     const r = renderHud(done)
     expect(screen.getByRole('button', { name: 'Goals' })).toHaveAccessibleDescription('Goal ready')
     expect(screen.getByRole('navigation', { name: 'Goals' })).toHaveTextContent('Claim!')
-    const list = screen.getByRole('complementary', { name: 'Needs attention' })
-    expect(within(list).getByText('Goal ready')).toBeInTheDocument()
-    await userEvent.click(within(list).getByRole('button', { name: 'Claim' }))
-    expect(r.action).toHaveBeenCalledWith({ type: 'claimGoal' }, expect.any(String))
+    await userEvent.click(screen.getByRole('button', { name: 'Goals' }))
+    expect(r.onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'quests' })
   })
 
   it('has Settings and Map at the top right (Q7); Admin only with an operator token in this tab', () => {
@@ -157,21 +155,10 @@ describe('HUD', () => {
     expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '#/admin')
   })
 
-  it('lists what needs attention, with Finish on a ready build', async () => {
+  it('has no Needs attention column: bubbles and the action row took its place (UI rework Phase 4)', () => {
     const s = { ...base(), constructions: [{ kind: 'build' as const, building: { type: 'farm' as const, index: 1 }, readyAtMs: 5_000 }] }
-    const { action, onOpen } = renderHud(s)
-    const left = screen.getByRole('complementary', { name: 'Needs attention' })
-    expect(within(left).getByText('Building Farm plot 2')).toBeInTheDocument()
-    await userEvent.click(within(left).getByRole('button', { name: 'Finish' }))
-    expect(action).toHaveBeenCalledWith({ type: 'finishConstruction', index: 0 }, expect.any(String))
-    await userEvent.click(within(left).getByRole('button', { name: /Building Farm plot 2/ }))
-    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'target', target: { kind: 'farm', plot: 1 } })
-  })
-
-  it('has no Daily quests attention item', () => {
-    renderHud(base())
-    const left = screen.getByRole('complementary', { name: 'Needs attention' })
-    expect(within(left).queryByText(/quests/i)).toBeNull()
+    renderHud(s)
+    expect(screen.queryByRole('complementary', { name: 'Needs attention' })).toBeNull()
     expect(screen.queryByText(/daily quests/i)).toBeNull()
   })
 

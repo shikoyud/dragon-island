@@ -719,3 +719,23 @@ describe('island model', () => {
   })
 
 })
+
+describe('bars and bubbles (UI rework Phase 4)', () => {
+  const growing = (readyAtMs: number) => ({ ...newPlayer(0), farms: [{ ...newPlayer(0).farms[0]!, crop: 'dragonBush' as const, readyAtMs }] })
+  const crop = (s: ReturnType<typeof growing>, nowMs: number) => buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, nowMs, 'home', null).objects.find(o => o.id === 'crop:0')!
+
+  it('a growing crop has a bar under its timer that fills as it grows', () => {
+    const s = growing(60_000)
+    const early = crop(s, 0).progress!
+    const late = crop(s, 50_000).progress!
+    expect(early).toBeGreaterThanOrEqual(0)
+    expect(late).toBeGreaterThan(early)
+    expect(late).toBeLessThan(1)
+  })
+
+  it('a ripe crop has no bar and a ripe bubble', () => {
+    const o = crop(growing(60_000), 60_000)
+    expect(o.progress).toBeUndefined()
+    expect(o.badge).toBe('ripe')
+  })
+})

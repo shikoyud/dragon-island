@@ -41,6 +41,8 @@ export type GameEvent =
   | { type: 'hover'; target: Target | null }
   /** A tap on a habitat's gold badge; React runs the `collectGold` action. */
   | { type: 'collectGold'; habitatId: string }
+  /** A tap on a ripe farm's bubble; React runs the `harvest` action. */
+  | { type: 'harvest'; plot: number }
   | { type: 'battle'; preview: BattlePreview | null }
   /** How many log events have played: the scene shows those, and plays the effects of the newest. */
   | { type: 'battleShown'; shown: number }

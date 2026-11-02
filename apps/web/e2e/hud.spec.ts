@@ -3,7 +3,7 @@ import { dismissLevelUp, expectPixelFonts, openPanel, resetPlayer, selectTarget,
 
 /**
  * The HUD over the full-screen island, at a desktop and a phone size: resources, menus, dialogs, the placement
- * strip with the ghost in view, the attention column and the automatic finish of a ready build.
+ * strip with the ghost in view and the automatic finish of a ready build.
  */
 type B = { state: { constructions: unknown[]; farms: unknown[] } | null; placing: { col: number; row: number; size: number } | null; cellToScreen: ((c: number, r: number) => { x: number; y: number }) | null }
 const bridge = <T>(page: Page, fn: (b: B) => T) => page.evaluate(`(${fn.toString()})(window.__bridge)`) as Promise<T>
@@ -69,7 +69,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       }
       await expect(page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name: 'Map', exact: true })).toBeVisible()
       for (const b of ['Hoard', 'Season', 'Ranks', 'Referral']) await expect(page.getByRole('button', { name: b, exact: true })).toHaveCount(0)
-      await expect(page.getByRole('complementary', { name: 'Needs attention' }).getByRole('button', { name: /daily quests/i })).toHaveCount(0)
+      await expect(page.getByRole('complementary', { name: 'Needs attention' })).toHaveCount(0)
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0)
       await page.screenshot({ path: `test-results/hud-${size.name}.png` })
     })
@@ -167,7 +167,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await ok.click()
       await expect(strip).toBeHidden()
       await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
-      await expect(page.getByRole('complementary', { name: 'Needs attention' })).toContainText(/Building Farm plot 2/)
+      await expect.poll(() => bridge(page, b => b.state!.farms.length)).toBeGreaterThanOrEqual(1)
     })
 
     test('a real Bush clear finishing with its panel open closes the dialog and scrim, and the Shop opens with one tap', async ({ page, request }) => {

@@ -144,3 +144,26 @@ describe('the island bake', () => {
     expect([c.red, c.green, c.blue]).toEqual([0x8f, 0xd0, 0xee])
   })
 })
+
+describe('the selection outline (UI rework Phase 4)', () => {
+  const games: Phaser.Game[] = []
+  beforeEach(() => { vi.spyOn(console, 'warn').mockImplementation(() => {}) })
+  afterEach(() => { games.splice(0).forEach(g => g.destroy(true)); vi.restoreAllMocks() })
+
+  it('goes round the selected thing on the island shown, not while placing, and goes when deselected', async () => {
+    const { bridge, game, scene } = await boot()
+    games.push(game)
+    expect(scene.selectionShown()).toBeNull()
+    bridge.setSelection({ kind: 'habitat', id: 'h1' })
+    expect(scene.selectionShown()).toEqual({ island: 'home', col: 13, row: 8, size: 4 })
+    bridge.setPlacing({ what: { kind: 'move', target: { type: 'habitat', id: 'h1' } }, size: 4, col: 13, row: 8, facing: 0 } as never)
+    expect(scene.selectionShown()).toBeNull()
+    bridge.setPlacing(null)
+    expect(scene.selectionShown()).not.toBeNull()
+    bridge.setView('isle2')
+    expect(scene.selectionShown()).toBeNull()
+    bridge.setView('home')
+    bridge.setSelection(null)
+    expect(scene.selectionShown()).toBeNull()
+  })
+})

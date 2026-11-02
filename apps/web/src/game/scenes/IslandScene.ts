@@ -8,6 +8,7 @@ import {
   cameraBounds, clampView, groundCell, landPlots, offeredPlotAt, openingView, panBy, revealPan, screenToWorld, worldToScreen, zoomAt, zoomRange, type View,
 } from '../camera'
 import { paintLandmass, type BakeArt, type BakeImage } from '../islandBake'
+import { selectionOutline, type Outline } from '../overlayModel'
 import { ARROW_GAP, ARROW_SCALE, badgeY, buildIslandModel, groundTiles, groundVariant, objectSignature, type IslandMarkers, type IslandObject } from '../islandModel'
 import { driftCloud, landmass, nearestPlot } from '../islandShape'
 import { anchor, captionPx, cellCentre, cellTop, footprintContains, footprintDiamond, pointerToCell, progressFill, PROGRESS_BAR, tapHit, type Box, type Pos } from '../layout'
@@ -17,6 +18,12 @@ import { pickTarget, type Hit } from '../pickTarget'
 const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontFamily: 'Silkscreen, monospace', fontSize: '8px', color: '#f2f1ea', stroke: '#0f1324', strokeThickness: 2,
 }
+/** A collect bubble: dark text on a white box. */
+const BUBBLE_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
+  fontFamily: 'Silkscreen, monospace', fontSize: '8px', color: '#a8740a', backgroundColor: '#fbfaf6', padding: { x: 3, y: 2 },
+}
+/** The selection outline's yellow. */
+const SELECTED = 0xffd23f
 const TINT = { ok: 0x9dffa8, bad: 0xff7a7a, building: 0xa8a8c0 } as const
 /** An egg's progress bar: a dark frame and a green fill. */
 const BAR = { frame: 0x141627, fill: 0x62d44a } as const
@@ -60,6 +67,9 @@ export class IslandScene extends Phaser.Scene {
   /** The placement footprint's fill, on the ground under every sprite; `outline` goes over them. */
   private footFill!: Phaser.GameObjects.Graphics
   private outline!: Phaser.GameObjects.Graphics
+  private selectionLine!: Phaser.GameObjects.Graphics
+  /** The outline drawn now, for specs and tests; null when none is. */
+  private shownSelection: Outline | null = null
   private layer!: Phaser.GameObjects.Container
   /** What is on the layer, in draw order. Kept across syncs: only what changed is made again (see `reconcile`). */
   private drawn: Phaser.GameObjects.GameObject[] = []
@@ -99,6 +109,8 @@ export class IslandScene extends Phaser.Scene {
     this.makeSky()
     // Between the ground and the sprites, so the ghost keeps its colours.
     this.footFill = this.add.graphics()
+    // The selection's outline (UI rework Phase 4) also lies on the ground, under what stands on it.
+    this.selectionLine = this.add.graphics().setName('selection')
     this.layer = this.add.container(0, 0)
     // Over the sprites: an illegal footprint must show even where it overlaps a building.
     this.outline = this.add.graphics()
@@ -129,6 +141,7 @@ export class IslandScene extends Phaser.Scene {
         else this.playLevelUp()
       }),
       this.bridge.on('levelUpClosed', () => { this.levelUpOnWake = false }),
+      this.bridge.on('selection', () => { if (this.alive()) this.drawSelection() }),
     ]
     const cellToScreen = (col: number, row: number) => this.toScreen(cellCentre(col, row))
     const focusCell = () => {
@@ -394,7 +407,7 @@ export class IslandScene extends Phaser.Scene {
   private onUp(p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]): void {
     if (!this.gestures.up(p, heldPointers(this.input))) return
     // A gold badge sits above every sprite: a tap on it collects instead of opening the habitat.
-    const badge = this.bridge.placing ? undefined : over.find(o => o.getData('collect'))
+    const badge = this.bridge.placing ? undefined : over.find(o => o.getData('collect') !== undefined || o.getData('harvest') !== undefined)
     if (badge) return this.collect(badge as Phaser.GameObjects.Text)
     // While placing, every click is a cell; otherwise a sprite under the pointer wins over the ground.
     const hit = this.bridge.placing ? null : (this.targetAt(p, over) ?? this.plotUnder(p))
@@ -453,6 +466,7 @@ export class IslandScene extends Phaser.Scene {
       this.playOnce('fx.hatch', anchor(p.col, p.row, FOOTPRINT.hatchery))
     }
     this.drawOutline(model.markers.ghost)
+    this.drawSelection()
     this.reconcile(model.objects)
     this.fitTapTargets()
   }
@@ -506,7 +520,9 @@ export class IslandScene extends Phaser.Scene {
    * without `fx.coins` art the badge itself goes up and away. Nothing moves with reduced motion.
    */
   private collect(badge: Phaser.GameObjects.Text): void {
-    this.bridge.emit({ type: 'collectGold', habitatId: badge.getData('collect') as string })
+    const plot = badge.getData('harvest') as number | undefined
+    if (plot !== undefined) this.bridge.emit({ type: 'harvest', plot })
+    else this.bridge.emit({ type: 'collectGold', habitatId: badge.getData('collect') as string })
     badge.disableInteractive()
     // Spent: it hides and floats away below. If the collect comes to nothing, the next sync draws a fresh one.
     for (const entry of this.live.values()) if (entry.obj === badge) entry.sig = ''
@@ -628,6 +644,27 @@ export class IslandScene extends Phaser.Scene {
     line.lineStyle(2, color, 1).strokePoints(pts, true, true)
   }
 
+  /**
+   * A yellow diamond round the selected thing's footprint, with a faint fill, when it stands on the island on screen.
+   * Not while placing: the ghost has the ground then.
+   */
+  private drawSelection(): void {
+    const g = this.selectionLine.clear()
+    const { state, view, placing, selection } = this.bridge
+    const o = state && !placing ? selectionOutline(state, selection) : null
+    this.shownSelection = o && o.island === view ? o : null
+    if (!this.shownSelection) return
+    const pts = points(footprintDiamond(o!.col, o!.row, o!.size))
+    g.fillStyle(SELECTED, 0.18).fillPoints(pts, true)
+    g.lineStyle(3, 0x141627, 1).strokePoints(pts, true, true)
+    g.lineStyle(2, SELECTED, 1).strokePoints(pts, true, true)
+  }
+
+  /** The selection outline drawn now; null when none is. */
+  selectionShown(): Outline | null {
+    return this.shownSelection
+  }
+
   markers(): IslandMarkers {
     return this.current
   }
@@ -686,15 +723,20 @@ export class IslandScene extends Phaser.Scene {
   }
 
   private drawBadge(o: IslandObject, badge: string): Phaser.GameObjects.Text {
-    const tappable = (badge === 'gold' || badge === 'full') && o.target.kind === 'habitat'
-    const label = badge === 'gold' ? 'GOLD' : badge === 'full' ? 'FULL' : badge
-    const t = this.add.text(o.x, badgeY(o), label, TEXT_STYLE).setOrigin(0.5, 1).setResolution(4).setScale(this.badgeScale())
+    const gold = (badge === 'gold' || badge === 'full') && o.target.kind === 'habitat'
+    const ripe = badge === 'ripe' && o.target.kind === 'farm'
+    const tappable = gold || ripe
+    const label = badge === 'gold' ? 'GOLD' : badge === 'full' ? 'FULL' : ripe ? 'FOOD' : badge
+    // A collect bubble (UI rework A3): white with a dark rim, its word in the currency's colour; timers keep the outlined text.
+    const style = tappable ? { ...BUBBLE_STYLE, color: ripe ? '#c0563a' : badge === 'full' ? '#b3261e' : '#a8740a' } : TEXT_STYLE
+    const t = this.add.text(o.x, badgeY(o), label, style).setOrigin(0.5, 1).setResolution(4).setScale(this.badgeScale())
+    if (ripe) t.setData('harvest', (o.target as { plot: number }).plot)
     if (tappable) {
       // The text is scaled to BADGE_PX on screen at every zoom, so a hit box of HIT_LOCAL local pixels is
       // HIT_LOCAL * BADGE_PX / 8 = at least 44 CSS px. It grows upward and sideways from the text's bottom edge.
       const w = Math.max(t.width, BADGE_HIT_LOCAL)
       const h = Math.max(t.height, BADGE_HIT_LOCAL)
-      t.setData('collect', (o.target as { id: string }).id)
+      if (gold) t.setData('collect', (o.target as { id: string }).id)
       t.setInteractive({ hitArea: new Phaser.Geom.Rectangle((t.width - w) / 2, t.height - h, w, h), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true })
     }
     this.layer.add(t)

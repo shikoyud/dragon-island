@@ -1,18 +1,15 @@
 import { gameDay, xpToNext } from '@wyrmhaven/game-core'
-import type { ClientAction } from '@wyrmhaven/shared'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { ResourcePill } from '../ui/kit/pieces'
 import type { Bridge, Target } from '../game/bridge'
-import { timerLabel } from '../game/islandModel'
 import { FALLBACK_ART } from '../art/slots'
 import { buildMapModel } from '../game/mapModel'
 import { TOKEN_KEY as ADMIN_TOKEN_KEY } from '../pages/Admin'
-import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { useToasts } from '../ui/Toast'
 import { presetOf } from '../state/preset'
 import { formatGold, formatWei } from '../ui/Money'
-import { attentionItems, bookCount, goalClaimable, goalsBubble, newBookEntries, XP_LIMIT_SHORT, xpBarText, xpFraction, type AttentionItem } from './hudModel'
+import { bookCount, goalClaimable, goalsBubble, newBookEntries, XP_LIMIT_SHORT, xpBarText, xpFraction } from './hudModel'
 import { Icon, type IconName } from './Icon'
 import { ZoomSlider } from './ZoomSlider'
 
@@ -53,31 +50,10 @@ function RoundButton({ icon, label, onClick, active, badge, size = 'large', show
   )
 }
 
-const ACTION_VERB: Partial<Record<ClientAction['type'], string>> = { finishConstruction: 'Finish', collectEgg: 'Collect', harvest: 'Harvest', claimGoal: 'Claim' }
-
-function Shortcut({ item, nowMs, onOpen }: { item: AttentionItem; nowMs: number; onOpen: (k: DialogKey) => void }) {
-  const { run, pending } = useAction()
-  const open = () => onOpen(item.open ?? { kind: 'target', target: item.panel })
-  const icon: IconName = item.id.startsWith('construction') ? 'build' : item.id === 'crops' ? 'food' : item.id === 'goal' ? 'quests' : item.id === 'trial' ? 'battle' : 'breed'
-  return (
-    <li className={`hud-shortcut${item.ready ? ' hud-shortcut--ready' : ''}`}>
-      <button type="button" className="hud-shortcut__open" onClick={open}>
-        <Icon name={icon} size={20} />
-        <span className="hud-shortcut__label">{item.label}</span>
-        {!item.ready && item.readyAtMs !== undefined && <span className="hud-shortcut__timer"><Icon name="timer" size={12} /> {timerLabel(item.readyAtMs, nowMs)}</span>}
-      </button>
-      {item.ready && item.action && (
-        <button type="button" className="btn btn--primary hud-shortcut__act" disabled={pending} onClick={() => void run(item.action!)}>
-          {ACTION_VERB[item.action.type] ?? 'Go'}
-        </button>
-      )}
-    </li>
-  )
-}
 
 /**
  * The game's HUD over the full-screen island: player badge and resources on top, island menu on the right,
- * what needs attention on the left, the main menu at the bottom (or the placement strip while placing, which
+ * the main menu at the bottom (or the placement strip while placing, which
  * the App renders in `bottom`). Reports how much screen its top and bottom take so the camera frames around it.
  */
 export function Hud({ bridge, nowMs, open, onOpen, placing, bottom }: {
@@ -237,12 +213,6 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom }: {
           </ul>
         </nav>
       )}
-
-      <aside className="hud-left" aria-label="Needs attention">
-        <ul>
-          {attentionItems(s, nowMs).map(item => <Shortcut key={item.id} item={item} nowMs={nowMs} onOpen={onOpen} />)}
-        </ul>
-      </aside>
 
       <div className="hud-bottom" ref={foot}>
         {bottom ?? mainMenu}
