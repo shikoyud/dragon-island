@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { messageFor } from '../src/api/errors'
 import { createBridge } from '../src/game/bridge'
 import { FarmPanel } from '../src/panels/FarmPanel'
+import { UpgradeDialog } from '../src/panels/UpgradeDialog'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
 import { BreedPanel } from '../src/panels/BreedPanel'
 import { HatcheryPanel } from '../src/panels/HatcheryPanel'
@@ -486,7 +487,7 @@ describe('Finish button and upgrades that keep working', () => {
   it('lets dragons move into a habitat that is only being upgraded', async () => {
     const waiting = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'terra', level: 1, feeds: 0, habitatId: null }], constructions: [{ kind: 'upgrade' as const, building: h1, readyAtMs: 99 }] }
     harness(waiting).wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
-    expect(screen.getByRole('button', { name: /d9/ })).toBeEnabled()
+    expect(document.getElementById('move-d9-h1')).toBeEnabled()
   })
 
   it('plots under upgrade can be planted but unfinished ones cannot', () => {
@@ -503,7 +504,7 @@ describe('Finish button and upgrades that keep working', () => {
 describe('Hatchery and breeder upgrades', () => {
   it('has an upgrade section for the hatchery and for each breeder', () => {
     const { wrap } = harness({ ...base, level: 12, gold: 200_000 })
-    const hatchery = wrap(<HatcheryPanel nowMs={0} />)
+    const hatchery = wrap(<UpgradeDialog building={{ type: 'hatchery' }} nowMs={0} />)
     const hup = screen.getByRole('button', { name: /Upgrade to 2/ })
     expect(hup.textContent).toContain('2,000 gold · 10m')
     expect(hup).toBeEnabled()
@@ -516,7 +517,7 @@ describe('Hatchery and breeder upgrades', () => {
 })
 
 describe('PanelHost targets', () => {
-  it('maps a decoration target to Move, Turn and Remove', async () => {
+  it('maps a decoration Info to Turn and Remove (Move is on the row)', async () => {
     const bridge = createBridge()
     const deco = { id: 'c3', kind: 'flowerPatch' as const, placement: { island: 'home' as const, col: 7, row: 7, facing: 0 as const } }
     const { wrap, action } = harness({ ...base, decorations: [deco] })
@@ -526,7 +527,6 @@ describe('PanelHost targets', () => {
     expect(action).not.toHaveBeenCalled() // first click only asks
     await userEvent.click(screen.getByRole('button', { name: /Confirm remove · \+12 gold/ }))
     expect(action).toHaveBeenCalledWith({ type: 'removeDecoration', id: 'c3' }, expect.any(String))
-    expect(screen.getByRole('button', { name: 'Move' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Turn' })).toBeInTheDocument()
   })
 

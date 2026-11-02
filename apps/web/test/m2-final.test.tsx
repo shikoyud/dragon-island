@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { clearReward, FLASH_14, FLASH_28, newPlayer, type Dragon, type Obstacle, type PlayerState } from '@wyrmhaven/game-core'
-import { act, screen, within } from '@testing-library/react'
+import { act, fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { createBridge } from '../src/game/bridge'
@@ -160,7 +160,8 @@ describe('BreedPanel buildings (item 15)', () => {
   it('opens from a tap on a breeder on the island', async () => {
     const bridge = createBridge()
     harness(base, 0, undefined, GAME).wrap(<TestHost bridge={bridge} />)
-    openInfo(bridge, { kind: 'breeder', index: 0 })
+    act(() => bridge.emit({ type: 'select', target: { kind: 'breeder', index: 0 } }))
+    fireEvent.click(screen.getByRole('button', { name: 'Breed' }))
     expect(await screen.findByRole('region', { name: 'Breed' })).toBeInTheDocument()
     expect(screen.getByRole('list', { name: 'Breeding buildings' })).toBeInTheDocument()
   })

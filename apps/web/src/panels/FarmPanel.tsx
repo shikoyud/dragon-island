@@ -5,7 +5,6 @@ import { usePreset } from '../state/preset'
 import { formatDuration, formatGold, formatSkipPrice } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { isReady, Timer } from '../ui/Timer'
-import { UpgradeSection } from './UpgradeSection'
 import { SpeedUpButton } from './SpeedUpButton'
 
 /** Crops in tier order (the order of the CROPS table). */
@@ -60,7 +59,6 @@ export function FarmPanel({ index, nowMs, onClose }: { index: number; nowMs: num
           })}
         </ul>
       )}
-      <UpgradeSection building={{ type: 'farm', index }} nowMs={nowMs} />
     </Panel>
   )
 }

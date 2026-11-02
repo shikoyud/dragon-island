@@ -14,7 +14,7 @@ describe('actionRow: the buttons for each selected thing (design Phase 4 table)'
     expect(icons(r)).toEqual(['dragon', 'getEgg', 'collect', 'upgrade', 'info', 'move'])
     expect(button(r, 'dragon')).toMatchObject({ label: 'Terra Basic', portrait: { speciesId: 'terra', level: 1 }, intent: { kind: 'open', dialog: { kind: 'target', target: { kind: 'dragon', id: 'd1' } } } })
     expect(button(r, 'getEgg').intent).toEqual({ kind: 'open', dialog: { kind: 'panel', id: 'shop', tab: 'build' } })
-    expect(button(r, 'info').intent).toEqual({ kind: 'open', dialog: { kind: 'target', target: { kind: 'habitat', id: 'h1' } } })
+    expect(button(r, 'info').intent).toEqual({ kind: 'open', dialog: { kind: 'info', target: { type: 'habitat', id: 'h1' } } })
     expect(button(r, 'move').intent).toMatchObject({ kind: 'move', target: { type: 'habitat', id: 'h1' } })
   })
 
@@ -96,7 +96,7 @@ describe('actionRow: the buttons for each selected thing (design Phase 4 table)'
     const r = actionRow({ ...fresh, level: 1 }, { kind: 'breeder', index: 0 }, 0, P)
     const up = button(r, 'upgrade')
     if (up.locked) expect(up.locked).toMatch(/^Level \d+$/)
-    expect(up.intent).toEqual({ kind: 'open', dialog: { kind: 'target', target: { kind: 'breeder', index: 0 } } })
+    expect(up.intent).toEqual({ kind: 'open', dialog: { kind: 'upgrade', target: { type: 'breeder', index: 0 } } })
   })
 
   it('a plot for sale, the Map, empty land and a cell select nothing: they keep their old behaviour', () => {

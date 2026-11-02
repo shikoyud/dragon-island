@@ -41,7 +41,7 @@ export function upgradeBlockReason(s: PlayerState, minLevel: number, cost: numbe
 const idOf = (b: BuildingRef): string => (b.type === 'habitat' ? b.id : b.type === 'hatchery' || b.type === 'roost' ? b.type : `${b.type}-${b.index}`)
 
 /** Level, upgrade (or its timer, skip and manual finish), Move and Turn for one building. */
-export function UpgradeSection({ building, nowMs }: { building: BuildingRef; nowMs: number }) {
+export function UpgradeSection({ building, nowMs, moveTurn = true }: { building: BuildingRef; nowMs: number; /** The Upgrade dialog leaves Move and Turn to the row and Info. */ moveTurn?: boolean }) {
   const me = useMe()
   const preset = usePreset()
   const { run, pending } = useAction()
@@ -73,7 +73,7 @@ export function UpgradeSection({ building, nowMs }: { building: BuildingRef; now
           Upgrade to {level + 1} · {formatGold(info.cost)} gold · {timerLabel(info.timerMs, 0)}
         </ActionButton>
       ) : <span>{topLevelNote(s, building)}</span>}
-      <MoveTurn target={building} />
+      {moveTurn && <MoveTurn target={building} />}
     </div>
   )
 }

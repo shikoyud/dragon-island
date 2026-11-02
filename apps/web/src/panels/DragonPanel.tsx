@@ -76,7 +76,7 @@ export function DragonPanel({ dragonId, onClose, onOpen, catalog = LAUNCH_CATALO
             disabled={s.roostTier >= ASCENSION_TIER}
             reason="Max level"
             // The Roost if it stands, else the Shop's Build tab where it is bought (§4.2).
-            onClick={() => onOpen?.(s.roostPlacement ? { kind: 'target', target: { kind: 'roost' } } : { kind: 'panel', id: 'shop', tab: 'build' })}
+            onClick={() => onOpen?.(s.roostPlacement ? { kind: 'upgrade', target: { type: 'roost' } } : { kind: 'panel', id: 'shop', tab: 'build' })}
           >
             Upgrade Roost
           </ActionButton>

@@ -101,6 +101,6 @@ describe('panel minors', () => {
 
   it('titles the Golden Aerie by name', () => {
     harness({ ...both, habitats: [...both.habitats, aerie] }).wrap(<HabitatPanel habitatId="h3" nowMs={0} />)
-    expect(screen.getByRole('region', { name: 'Golden Aerie' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Golden Aerie level 5' })).toBeInTheDocument()
   })
 })

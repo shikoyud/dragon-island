@@ -1,0 +1,43 @@
+/* Dialogs and screens in the reference layouts (docs/superpowers/plans/2026-11-02-ui-rework-phase5.md). */
+
+/* ---- Info: art left with Store/Sell under it, a table right ---- */
+.info-grid { display: grid; grid-template-columns: minmax(130px, 2fr) 3fr; gap: 12px; align-items: start; min-width: min(560px, 82vw); }
+.info-grid__art { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 8px; }
+.info-grid__buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.info-table { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-radius: 10px; overflow: hidden; background: #fbf6e8; border: 2px solid var(--kit-cream-lo); }
+.info-table__row { display: flex; flex-direction: column; }
+.info-table__row--wide { grid-column: 1 / -1; }
+.info-table dt { padding: 6px 10px; background: #ddd3bc; font: 12px/1.2 var(--font-display); color: var(--kit-text); }
+.info-table dd { margin: 0; padding: 8px 10px 10px; font-size: 14px; color: var(--kit-text); }
+.info-table__row--wide dd { font-size: 13px; line-height: 1.35; }
+.info-table__ribbons { display: inline-flex; gap: 4px; }
+.info-extra { margin-top: 12px; border: 2px solid var(--kit-cream-lo); border-radius: 10px; }
+
+/* ---- Upgrade: both levels with the XP bubble, Benefits right, the price under ---- */
+.upgrade-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 12px; align-items: start; min-width: min(560px, 82vw); }
+.upgrade-grid__levels { position: relative; display: flex; justify-content: center; align-items: flex-end; gap: 18px; padding-top: 44px; }
+.upgrade-level { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.upgrade-level figcaption { padding: 2px 8px; border-radius: 6px; background: #e9f3dc; font: 11px/1.2 var(--font-display); }
+.upgrade-xp {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%); margin: 0;
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: #fff;
+  border: 2px solid var(--kit-ink); font: 14px/1 var(--font-display); color: #2a7fd0;
+}
+.upgrade-benefits { background: rgba(255, 255, 255, 0.55); border-radius: 10px; padding: 6px 10px 10px; }
+.upgrade-benefits h3 { margin: 0 0 6px; text-align: center; font: 13px/1.2 var(--font-display); }
+.upgrade-benefits ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.upgrade-benefits li { display: flex; flex-direction: column; gap: 2px; }
+.upgrade-benefits__label { font: 12px/1.2 var(--font-display); }
+.upgrade-benefits__value { font-size: 15px; font-weight: 700; }
+.upgrade-benefits__plus { color: #2f9a3a; }
+.upgrade-go { display: flex; justify-content: center; margin-top: 10px; }
+.upgrade-lock {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 12px auto 0; padding: 8px 18px; width: fit-content;
+  border-radius: 10px; background: #3f5a44; color: #ff4a3d; font: 14px/1.2 var(--font-display);
+}
+
+@media (max-height: 480px), (max-width: 640px) {
+  .info-grid, .upgrade-grid { grid-template-columns: 1fr 1.4fr; gap: 8px; min-width: 0; }
+  .upgrade-grid__levels { gap: 8px; padding-top: 36px; }
+}
+.upgrade-go .upgrade-section > span:first-child { display: none; }

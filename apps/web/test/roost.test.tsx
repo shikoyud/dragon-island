@@ -79,7 +79,7 @@ describe('DragonPanel Upgrade Roost', () => {
     const onOpen = vi.fn()
     harness(maxed(roosted(1))).wrap(<DragonPanel dragonId="d1" onOpen={onOpen} />)
     await userEvent.click(screen.getByRole('button', { name: /upgrade roost/i }))
-    expect(onOpen).toHaveBeenCalledWith({ kind: 'target', target: { kind: 'roost' } })
+    expect(onOpen).toHaveBeenCalledWith({ kind: 'upgrade', target: { type: 'roost' } })
   })
 
   it('opens the Shop Build tab when there is no Roost yet', async () => {

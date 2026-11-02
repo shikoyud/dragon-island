@@ -5,7 +5,6 @@ import { formatSkipPrice } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { isReady, Timer } from '../ui/Timer'
 import { useToasts } from '../ui/Toast'
-import { UpgradeSection } from './UpgradeSection'
 import { SpeedUpButton } from './SpeedUpButton'
 
 /**
@@ -68,7 +67,6 @@ export function HatcheryPanel({ nowMs, onClose, onOpenDragon }: { nowMs: number;
       </ul>
       {used > slots && <p role="note"><small>Over capacity: a reward is held here. New eggs wait until {used - slots + 1} more {used - slots + 1 === 1 ? 'slot frees' : 'slots free'} up.</small></p>}
       {fifthSlotInStore && <p><small>Fifth slot in the Store</small></p>}
-      <UpgradeSection building={{ type: 'hatchery' }} nowMs={nowMs} />
     </Panel>
   )
 }

@@ -224,6 +224,19 @@ const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), spr
 /** The Golden Aerie: its own sprite when the manifest has one, else the Nexus sprite. */
 const aerieLook = (art: GameArtSet) => fitFootprint(art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art), FOOTPRINT.habitat)
 
+/**
+ * The art of a building as it stands, or at `level` (the Upgrade dialog's next-level picture): the same look the island
+ * draws, so dialogs never show a different picture of the thing.
+ */
+export function buildingSprite(state: PlayerState, art: GameArtSet, ref: MovableRef, level?: number): Sprite {
+  if (level !== undefined) {
+    if (ref.type === 'breeder') return breederLook(art, state.breeders[ref.index]?.kind ?? 'mountain', level).sprite
+    if (ref.type === 'hatchery') return hatcheryLook(art, level).sprite
+    if (ref.type === 'roost') return roostLook(art, level).sprite
+  }
+  return ghostLook(state, art, { kind: 'move', target: ref }).sprite
+}
+
 /** Sprite and texture key of a thing that can be placed, for the ghost. */
 function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): { key: string; sprite: Sprite; scale?: number } {
   if (what.kind === 'move') {

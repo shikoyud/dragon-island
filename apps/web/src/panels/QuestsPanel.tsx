@@ -20,7 +20,7 @@ export function goalRoute(g: GoalRow, s: PlayerState): { label: string; to: Dial
     case 'discovered': return { label: 'Dragon Book', to: { kind: 'panel', id: 'book' } }
     case 'roost':
       // The Roost if it stands (to upgrade it), else the Shop's Build tab where it is bought.
-      return s.roostPlacement ? { label: 'Roost', to: { kind: 'target', target: { kind: 'roost' } } } : { label: 'Shop', to: { kind: 'panel', id: 'shop', tab: 'build' } }
+      return s.roostPlacement ? { label: 'Roost', to: { kind: 'upgrade', target: { type: 'roost' } } } : { label: 'Shop', to: { kind: 'panel', id: 'shop', tab: 'build' } }
     case 'habitatsOf':
     case 'dragonOf':
     case 'farms': return { label: 'Shop', to: { kind: 'panel', id: 'shop' } }

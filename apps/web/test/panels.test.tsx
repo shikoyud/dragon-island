@@ -1,5 +1,5 @@
 import { atkAt, cropFood, DEFAULT_PRESET, goldPerMinuteX20, hpAt, makeCatalog, newPlayer, SELL_GOLD, type PlayerState } from '@wyrmhaven/game-core'
-import { act, cleanup, screen, within } from '@testing-library/react'
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { createBridge } from '../src/game/bridge'
@@ -8,6 +8,7 @@ import { BreedPanel } from '../src/panels/BreedPanel'
 import { DragonPanel } from '../src/panels/DragonPanel'
 import { FarmPanel } from '../src/panels/FarmPanel'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
+import { UpgradeDialog } from '../src/panels/UpgradeDialog'
 import { HatcheryPanel } from '../src/panels/HatcheryPanel'
 import { QuestsPanel } from '../src/panels/QuestsPanel'
 import { ResourcesBar } from '../src/panels/ResourcesBar'
@@ -62,54 +63,68 @@ describe('ResourcesBar', () => {
   })
 })
 
-describe('HabitatPanel', () => {
-  it('shows stored gold and upgrade cost, and collects', async () => {
-    const { wrap, action } = harness(base, 600_000)
-    wrap(<HabitatPanel habitatId="h1" nowMs={600_000} />)
+describe('HabitatPanel (the Info layout, UI rework Phase 5)', () => {
+  it('shows max dragons, elements, max gold, the gold now and the description', () => {
+    harness(base, 600_000).wrap(<HabitatPanel habitatId="h1" nowMs={600_000} />)
+    expect(screen.getByRole('region', { name: 'Terra Habitat level 1' })).toBeInTheDocument()
+    expect(screen.getByText('2x')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Terra' })).toBeInTheDocument()
     expect(screen.getByText('1,800 / 80,000')).toBeInTheDocument()
-    expect(screen.queryByText('FULL')).toBeNull()
-    expect(screen.getByText(/Level 1 · 1\/2 dragons/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /upgrade to 2/i })).toHaveTextContent('10,000')
-    await userEvent.click(screen.getByRole('button', { name: /collect/i }))
-    expect(action).toHaveBeenCalledWith({ type: 'collectGold', habitatId: 'h1' }, expect.any(String))
+    expect(screen.getByText('Description')).toBeInTheDocument()
   })
 
   it('shows FULL and stored / cap for a capped habitat', () => {
-    const { wrap } = harness(base, 10_000_000_000)
-    wrap(<HabitatPanel habitatId="h1" nowMs={10_000_000_000} />)
-    expect(screen.getByText('80,000 / 80,000')).toBeInTheDocument()
-    expect(screen.getByText('FULL')).toBeInTheDocument()
+    harness(base, 10_000_000_000).wrap(<HabitatPanel habitatId="h1" nowMs={10_000_000_000} />)
+    expect(screen.getByText('80,000 / 80,000 · FULL')).toBeInTheDocument()
   })
 
-  it('shows Gold/min as the residents sum and lists residents that open the dragon panel', async () => {
+  it('shows Gold/min as the residents sum', () => {
     const two: PlayerState = { ...base, dragons: base.dragons.map(d => ({ ...d, speciesId: 'terra', level: 5, habitatId: 'h1' })) }
-    const { wrap } = harness(two)
-    const onOpenDragon = vi.fn()
-    wrap(<HabitatPanel habitatId="h1" nowMs={0} onOpenDragon={onOpenDragon} />)
+    harness(two).wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
     expect(screen.getByText('1,320 gold/min')).toBeInTheDocument()
-    const list = screen.getByRole('list', { name: /residents/i })
-    expect(within(list).getAllByRole('listitem')).toHaveLength(2)
-    const first = within(list).getAllByRole('button')[0]!
-    expect(first).toHaveTextContent(/Terra Basic · Lv 5 · juvenile/)
-    await userEvent.click(first)
-    expect(onOpenDragon).toHaveBeenCalledWith('d1')
   })
 
-  it('disables Collect with the reason when nothing is stored', () => {
-    const { wrap } = harness(base)
-    wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
-    expect(screen.getByRole('button', { name: /collect/i })).toBeDisabled()
-    expect(screen.getByRole('button', { name: /collect/i })).toHaveAccessibleDescription('Nothing to collect yet')
+  it('Store is blocked while dragons live there, and stores an empty habitat (Storage rule 2)', async () => {
+    harness(base).wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
+    expect(screen.getByRole('button', { name: 'Store' })).toHaveAccessibleDescription('Move its dragons out first')
+    cleanup()
+    const empty: PlayerState = { ...base, dragons: base.dragons.map(d => (d.id === 'd2' ? { ...d, habitatId: null } : d)) }
+    const onClose = vi.fn()
+    const { wrap, action } = harness(empty)
+    wrap(<HabitatPanel habitatId="h2" nowMs={0} onClose={onClose} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Store' }))
+    expect(action).toHaveBeenCalledWith({ type: 'putInStorage', target: { type: 'habitat', id: 'h2' } }, expect.any(String))
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
 
   it('offers moves only for dragons that fit', () => {
     const waiting: PlayerState = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'flame', level: 1, feeds: 0, habitatId: null }] }
-    const { wrap } = harness(waiting)
-    wrap(<HabitatPanel habitatId="h2" nowMs={0} />)
+    harness(waiting).wrap(<HabitatPanel habitatId="h2" nowMs={0} />)
     const move = screen.getByRole('group', { name: /move a dragon here/i })
-    expect(within(move).getByRole('button', { name: /d9/ })).toBeEnabled()
-    expect(within(move).queryByRole('button', { name: /d1/ })).toBeNull() // terra cannot live in flame
-    expect(screen.queryByRole('button', { name: /build new habitat/i })).toBeNull() // the Build shop owns new habitats
+    expect(within(move).getAllByRole('button')).toHaveLength(1) // the waiting Flame; the Terra in h1 cannot live in flame
+    expect(within(move).getByRole('button')).toBeEnabled()
+  })
+})
+
+describe('UpgradeDialog (UI rework Phase 5)', () => {
+  it('shows both levels, the XP, the benefits and the price button', async () => {
+    const { wrap, action } = harness({ ...base, gold: 25_000 })
+    wrap(<UpgradeDialog building={{ type: 'habitat', id: 'h1' }} nowMs={0} />)
+    expect(screen.getByRole('region', { name: 'Upgrade Terra Habitat level 2' })).toBeInTheDocument()
+    expect(screen.getByText('LVL 1')).toBeInTheDocument()
+    expect(screen.getByText('LVL 2')).toBeInTheDocument()
+    const benefits = screen.getByRole('region', { name: 'Benefits' })
+    expect(within(benefits).getByText('Max. Dragons')).toBeInTheDocument()
+    expect(within(benefits).getByText('+1')).toBeInTheDocument()
+    expect(screen.getByLabelText(/^XP \+/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Upgrade to 2/ }))
+    expect(action).toHaveBeenCalledWith({ type: 'startUpgrade', building: { type: 'habitat', id: 'h1' } }, expect.any(String))
+  })
+
+  it('shows a lock with "Requires level N" when the player is below it', () => {
+    harness({ ...base, gold: 999_999 }).wrap(<UpgradeDialog building={{ type: 'breeder', index: 0 }} nowMs={0} />)
+    expect(screen.getByRole('note')).toHaveTextContent('Requires level 10')
+    expect(screen.queryByRole('button', { name: /Upgrade to/ })).toBeNull()
   })
 })
 
@@ -510,11 +525,12 @@ describe('HatcheryPanel and FarmPanel', () => {
   })
 
   it('opens from the island with the tapped farm\'s index', () => {
-    const two = { ...base, farms: [base.farms[0]!, { ...base.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 0 }] }
+    const two = { ...base, farms: [base.farms[0]!, { ...base.farms[0]!, crop: 'dragonBush' as const, readyAtMs: 9_000_000 }] }
     const bridge = createBridge()
     harness(two).wrap(<TestHost bridge={bridge} />)
-    openInfo(bridge, { kind: 'farm', plot: 1 })
-    expect(screen.getByRole('button', { name: /Harvest/ })).toBeInTheDocument()
+    act(() => bridge.emit({ type: 'select', target: { kind: 'farm', plot: 1 } }))
+    act(() => screen.getByRole('button', { name: 'Speed Up' }).click())
+    expect(document.getElementById('skip-farm-1')).not.toBeNull()
     expect(screen.queryByRole('list', { name: /crops/i })).toBeNull()
   })
 })

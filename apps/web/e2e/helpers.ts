@@ -77,6 +77,12 @@ export async function openInfo(page: Page, target: unknown) {
   await row.getByRole('button', { name: 'Info', exact: true }).click()
 }
 
+/** Selects `target` and opens its Upgrade dialog from the action row (UI rework Phase 5). */
+export async function openUpgrade(page: Page, target: unknown) {
+  const row = await selectTarget(page, target)
+  await row.getByRole('button', { name: 'Upgrade', exact: true }).click()
+}
+
 export async function openPanel(page: Page, label: string) {
   // A level-up screen (R38) sits over everything until the player continues. It opens after /me lands, so wait for the HUD first.
   await dismissLevelUp(page)

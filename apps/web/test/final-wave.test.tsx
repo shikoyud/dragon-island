@@ -146,7 +146,7 @@ describe('Goals 11 and 14 have a Go to button (final fix 15)', () => {
     const placement = { island: 'home' as const, col: 7, row: 7, facing: 0 as const }
     harness({ ...base, goalIndex: 10, roostPlacement: placement }).wrap(<QuestsPanel onOpen={onOpen} />)
     await userEvent.click(screen.getByRole('button', { name: 'Go to Roost' }))
-    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'target', target: { kind: 'roost' } })
+    expect(onOpen).toHaveBeenLastCalledWith({ kind: 'upgrade', target: { type: 'roost' } })
   })
   it('the Shop route when no Roost stands', async () => {
     const onOpen = vi.fn()

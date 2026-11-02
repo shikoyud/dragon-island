@@ -79,7 +79,7 @@ describe('a dialog closes when its panel has nothing to show', () => {
   })
 
   for (const key of LASTING) {
-    it(`${dialogLabel(key)} (${key.kind === 'panel' ? key.id : key.target.kind}) always has something to show`, () => {
+    it(`${dialogLabel(key)} (${key.kind === 'panel' ? key.id : key.kind === 'target' ? key.target.kind : key.target.type}) always has something to show`, () => {
       expect(dialogHasSubject(full, key, GAME)).toBe(true)
       const h = harness(full, 0, undefined, GAME)
       h.wrap(<Host initial={key} />)

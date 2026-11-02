@@ -1,4 +1,4 @@
-import { gameDay, xpToNext } from '@wyrmhaven/game-core'
+import { gameDay, xpToNext, type BuildingRef, type MovableRef } from '@wyrmhaven/game-core'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { ResourcePill } from '../ui/kit/pieces'
 import type { Bridge, Target } from '../game/bridge'
@@ -16,6 +16,8 @@ import { ZoomSlider } from './ZoomSlider'
 export type PanelId = 'shop' | 'breed' | 'book' | 'battle' | 'wings' | 'quests' | 'inbox' | 'map' | 'settings'
 /** What the one dialog shows: a named panel (the Shop can open on its Store tab, Battle on a chapter's nodes), or the panel of something clicked on the island. */
 export type DialogKey = { kind: 'panel'; id: PanelId; tab?: 'build' | 'store' | 'account' | 'wallet'; chapter?: number } | { kind: 'target'; target: Target }
+  /** The Info and Upgrade dialogs of a building (UI rework Phase 5). */
+  | { kind: 'info'; target: MovableRef } | { kind: 'upgrade'; target: BuildingRef }
 
 /** The operator console keeps its token in this tab's sessionStorage; only then does the HUD offer the Admin button. */
 const hasAdminToken = (): boolean => { try { return Boolean(sessionStorage.getItem(ADMIN_TOKEN_KEY)) } catch { return false } }

@@ -48,7 +48,7 @@ describe('a tap selects (UI rework ruling A1)', () => {
     act(() => bridge.emit({ type: 'select', target: { kind: 'farm', plot: 0 } }))
     fireEvent.click(screen.getByRole('button', { name: 'Info' }))
     expect(row()).toBeNull()
-    expect(screen.getByRole('region', { name: 'Farm' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Farm level 1' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /close/i }))
     expect(row()).toHaveAccessibleName('Farm actions')
     expect(bridge.selection).toEqual({ kind: 'farm', plot: 0 })

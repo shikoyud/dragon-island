@@ -5,7 +5,7 @@ import { useMe } from '../state/me'
 import { useStartPlacing } from '../state/startPlacing'
 
 /** Move (placement mode from the current spot) and Turn (one facing step, sent at once) for anything on the grid. */
-export function MoveTurn({ target }: { target: MovableRef }) {
+export function MoveTurn({ target, turnOnly }: { target: MovableRef; /** The Info dialog: Move is on the action row. */ turnOnly?: boolean }) {
   const me = useMe()
   const { run, pending } = useAction()
   const startPlacing = useStartPlacing()
@@ -14,7 +14,7 @@ export function MoveTurn({ target }: { target: MovableRef }) {
   if (!s || !here) return null
   return (
     <>
-      <button type="button" className="btn" onClick={() => startPlacing({ kind: 'move', target }, footprintOfMovable(s, target), here)}>Move</button>
+      {!turnOnly && <button type="button" className="btn" onClick={() => startPlacing({ kind: 'move', target }, footprintOfMovable(s, target), here)}>Move</button>}
       <button
         type="button"
         className="btn"

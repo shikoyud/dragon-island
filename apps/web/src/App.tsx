@@ -14,6 +14,7 @@ import { Dialog } from './hud/Dialog'
 import { Hud, isMapDialog, type DialogKey } from './hud/Hud'
 import { LevelUp, useLevelUp } from './hud/LevelUp'
 import { HudArtContext, hudArtOf } from './hud/Icon'
+import { GameArtContext } from './ui/GameArt'
 import { hudSkin } from './hud/skin'
 import { Admin } from './pages/Admin'
 import { KitGallery } from './pages/KitGallery'
@@ -166,7 +167,7 @@ function Game() {
     : null
 
   return (
-    <HudArtContext.Provider value={hudArt}>
+    <HudArtContext.Provider value={hudArt}><GameArtContext.Provider value={art}>
       <StartPlacingProvider value={startPlacing}>
         <div className={`game-root ${skin.className}`} style={skin.style} data-testid="shell">
           <GameCanvas bridge={bridge} art={art} nowMs={nowMs} />
@@ -192,6 +193,6 @@ function Game() {
           {me.data.termsRequired && <Dialog label="Updated terms" onClose={() => {}}><TermsPrompt version={me.data.termsRequired} /></Dialog>}
         </div>
       </StartPlacingProvider>
-    </HudArtContext.Provider>
+    </GameArtContext.Provider></HudArtContext.Provider>
   )
 }

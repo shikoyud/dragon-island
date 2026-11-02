@@ -1,4 +1,4 @@
-import { DEFAULT_PRESET, ISLANDS, ownedPlots, type PlayerState, type TeamIds } from '@wyrmhaven/game-core'
+import { DEFAULT_PRESET, ISLANDS, ownedPlots, type MovableRef, type PlayerState, type TeamIds } from '@wyrmhaven/game-core'
 import type { GameInfo, Offer } from '@wyrmhaven/shared'
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import type { Bridge, HomeFinder, Target } from '../game/bridge'
@@ -23,12 +23,15 @@ import { QuestsPanel } from './QuestsPanel'
 import { RoostPanel } from './RoostPanel'
 import { SettingsPanel } from './SettingsPanel'
 import { ShopPanel } from './ShopPanel'
+import { InfoDialog } from './InfoDialog'
+import { UpgradeDialog } from './UpgradeDialog'
 
 /**
  * True while the dialog's panel has something to show: what it is about still exists (an obstacle not yet cleared, a dragon
  * not sold, a plot not yet bought). Its answers match the `return null`s in the panels; test/dialogSubject.test.tsx pins that.
  */
 export function dialogHasSubject(s: PlayerState, dialog: DialogKey, game: Pick<GameInfo, 'launchAtMs'> | undefined): boolean {
+  if (dialog.kind === 'info' || dialog.kind === 'upgrade') return movableExists(s, dialog.target)
   if (dialog.kind === 'panel') {
     if (dialog.id === 'breed') return game !== undefined
     return dialog.id !== 'wings' && dialog.id !== 'inbox' // not built until a later milestone
@@ -48,6 +51,17 @@ export function dialogHasSubject(s: PlayerState, dialog: DialogKey, game: Pick<G
     case 'mapIsland': return true
     case 'cell':
     case 'empty': return false
+  }
+}
+
+function movableExists(s: PlayerState, t: MovableRef): boolean {
+  switch (t.type) {
+    case 'habitat': return s.habitats.some(h => h.id === t.id && !h.stored)
+    case 'farm': return s.farms[t.index] !== undefined && !s.farms[t.index]!.stored
+    case 'breeder': return s.breeders[t.index] !== undefined && !s.breeders[t.index]!.stored
+    case 'hatchery': return true
+    case 'roost': return s.roostPlacement !== null && !s.roostStored
+    case 'decoration': return s.decorations.some(d => d.id === t.id && !d.stored)
   }
 }
 
@@ -157,6 +171,19 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = (
       case 'settings': return <SettingsPanel onClose={close} nowMs={nowMs} game={game} tab={dialog.tab === 'wallet' ? 'wallet' : 'account'} />
     }
   }
+  if (dialog.kind === 'info') {
+    const r = dialog.target
+    switch (r.type) {
+      case 'habitat': return <HabitatPanel habitatId={r.id} nowMs={nowMs} onClose={close} />
+      case 'decoration': return <DecorationPanel decorationId={r.id} onClose={close} />
+      default: return <InfoDialog target={r} nowMs={nowMs} onClose={close} />
+    }
+  }
+  if (dialog.kind === 'upgrade') {
+    return dialog.target.type === 'roost'
+      ? <RoostPanel nowMs={nowMs} onClose={close} />
+      : <UpgradeDialog building={dialog.target} nowMs={nowMs} onClose={close} />
+  }
   const t = dialog.target
   switch (t.kind) {
     case 'habitat': return <HabitatPanel habitatId={t.id} nowMs={nowMs} onClose={close} onOpenDragon={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} />
@@ -177,5 +204,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = (
 /** Accessible name of the dialog around a panel. */
 export function dialogLabel(dialog: DialogKey): string {
   if (dialog.kind === 'panel') return dialog.id === 'book' ? 'Dragon Book' : dialog.id === 'quests' ? 'Goals' : dialog.id.charAt(0).toUpperCase() + dialog.id.slice(1)
+  if (dialog.kind === 'info') return 'Info'
+  if (dialog.kind === 'upgrade') return 'Upgrade'
   return dialog.target.kind === 'mapIsland' ? ISLANDS[dialog.target.id].name : dialog.target.kind
 }

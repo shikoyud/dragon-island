@@ -10,6 +10,7 @@ import { preloadPixelFonts } from './styles/fonts'
 import './styles/tokens.css'
 import './styles/hud.css'
 import './styles/kit.css'
+import './styles/screens.css'
 
 // Error reporting only when a DSN is configured; without one the SDK is never downloaded.
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN as string | undefined
