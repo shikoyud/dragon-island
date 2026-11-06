@@ -1,11 +1,12 @@
-import { FOOTPRINT, LAUNCH_CATALOG, ownedPlots, type Catalog, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { FOOTPRINT, ISLAND_ORDER, LAUNCH_CATALOG, ownedPlots, type Catalog, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
 import Phaser from 'phaser'
 import { isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserLoader'
 import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet, Sprite } from '../../art/types'
 import type { Bridge, Placing, Target } from '../bridge'
+import { archipelagoOpening, fromIsland, isOpenIsland, ISLAND_AT, islandUnder, landCentre, lockedIslandObject, nearestIsland, toIsland, worldBounds } from '../archipelago'
 import {
-  cameraBounds, clampView, groundCell, landPlots, offeredPlotAt, openingView, panBy, revealPan, screenToWorld, worldToScreen, zoomAt, zoomRange, type View,
+  clampView, groundCell, landPlots, offeredPlotAt, openingView, panBy, revealPan, screenToWorld, worldToScreen, zoomAt, zoomRange, type View,
 } from '../camera'
 import { paintLandmass, type BakeArt, type BakeImage } from '../islandBake'
 import { selectionOutline, type Outline } from '../overlayModel'
@@ -26,7 +27,7 @@ const BUBBLE_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
 const HOME_GLOW = 0x9dffa8
 /** The selection outline's yellow. */
 const SELECTED = 0xffd23f
-const TINT = { ok: 0x9dffa8, bad: 0xff7a7a, building: 0xa8a8c0 } as const
+const TINT = { ok: 0x9dffa8, bad: 0xff7a7a, building: 0xa8a8c0, locked: 0x6f7480 } as const
 /** An egg's progress bar: a dark frame and a green fill. */
 const BAR = { frame: 0x141627, fill: 0x62d44a } as const
 const EMPTY: IslandMarkers = {
@@ -37,8 +38,8 @@ const EMPTY: IslandMarkers = {
 const BADGE_PX = 14
 /** Local (unscaled) size of a tappable badge's hit box: 28 local px x BADGE_PX / 8 = 49 CSS px, over the 44 px minimum. */
 const BADGE_HIT_LOCAL = 28
-/** The viewed island's baked landmass, in Phaser's texture manager. */
-const BAKE_KEY = 'island:home-bake'
+/** An island's baked landmass, in Phaser's texture manager. */
+const bakeKey = (id: IslandId): string => `island:${id}-bake`
 /** The sky's plain colour, when its art is absent. */
 const SKY_FALLBACK = '#8fd0ee'
 /** A waterfall starts this far above the lip, so its foam covers the strip of grass between the river and the edge. */
@@ -51,44 +52,56 @@ const CLOUD_AT = [{ x: 0.08, y: 0.16 }, { x: 0.62, y: 0.06 }, { x: 0.88, y: 0.62
 /** What stands for one object id on the layer. */
 type LiveObject = Phaser.GameObjects.Sprite | Phaser.GameObjects.Text | Phaser.GameObjects.Graphics
 
+/**
+ * One island in the scene (R99): a container at its world offset (`ISLAND_AT`) holding, bottom to top, its ground (the bake
+ * and waterfalls), the placement footprint's fill, the selection and home-finder outlines, its objects, and the footprint's
+ * outline. Everything inside is in the island's own coordinates, as `buildIslandModel` gives them.
+ */
+interface Isle {
+  id: IslandId
+  root: Phaser.GameObjects.Container
+  ground: Phaser.GameObjects.Container
+  footFill: Phaser.GameObjects.Graphics
+  selectionLine: Phaser.GameObjects.Graphics
+  homesLine: Phaser.GameObjects.Graphics
+  layer: Phaser.GameObjects.Container
+  outline: Phaser.GameObjects.Graphics
+  arrows: Phaser.GameObjects.Graphics | null
+  bakeImage: Phaser.GameObjects.Image | null
+  falls: (Phaser.GameObjects.Sprite | Phaser.GameObjects.Graphics)[]
+  groundKey: string
+  /** The sprite or badge text standing for each object id (`badge:` + id for a badge) and the look it was made with. */
+  live: Map<string, { obj: LiveObject; sig: string }>
+  badges: Phaser.GameObjects.Text[]
+  current: IslandMarkers
+}
+
 const points = (pts: Pos[]) => pts.map(p => new Phaser.Math.Vector2(p.x, p.y))
 
 /**
- * Draws one island of the player's base in an isometric (2:1) projection from `buildIslandModel` (pure, tested) on
- * every state, view or placing change and once a second for timers; a sprite whose look is unchanged is kept. The camera is a pure `View` (camera.ts) moved by
- * `panZoom`. The scene owns no game logic: it emits `select`, `hover` and `cell` events only. While the Map or a battle
- * shows it sleeps: no drawing and no clock, its camera and bake kept, and it catches up when it wakes.
+ * Draws every island of the player's base together (R99) in an isometric (2:1) projection from `buildIslandModel` (pure,
+ * tested), one container per island at its world offset, on every state, view or placing change and once a second for
+ * timers; a sprite whose look is unchanged is kept. The camera is a pure `View` (camera.ts) moved by `panZoom` over the
+ * whole archipelago. `bridge.view` is the island taps and placement use (R100): a tap makes its island the view, a pan makes
+ * the nearest island the view, and a view set from outside pans the camera there. The scene owns no game logic: it emits
+ * `select`, `hover` and `cell` events only. While a battle shows it sleeps, and catches up when it wakes.
  */
 export class IslandScene extends Phaser.Scene {
-  /** The viewed island's landmass, shown from the canvas texture `BAKE_KEY`. */
-  private bakeImage: Phaser.GameObjects.Image | null = null
-  private falls: (Phaser.GameObjects.Sprite | Phaser.GameObjects.Graphics)[] = []
+  private isles = new Map<IslandId, Isle>()
   private sky: Phaser.GameObjects.Image | null = null
   private clouds: Phaser.GameObjects.Image[] = []
-  private hatchView: string | null = null
-  /** The placement footprint's fill, on the ground under every sprite; `outline` goes over them. */
-  private footFill!: Phaser.GameObjects.Graphics
-  private outline!: Phaser.GameObjects.Graphics
-  private selectionLine!: Phaser.GameObjects.Graphics
-  private homesLine!: Phaser.GameObjects.Graphics
-  private homeArrows: Phaser.GameObjects.Graphics | null = null
-  private shownHomes: string[] = []
   private homesKey = ''
+  private shownHomes: string[] = []
   /** The outline drawn now, for specs and tests; null when none is. */
   private shownSelection: Outline | null = null
-  private layer!: Phaser.GameObjects.Container
-  /** What is on the layer, in draw order. Kept across syncs: only what changed is made again (see `reconcile`). */
-  private drawn: Phaser.GameObjects.GameObject[] = []
-  private badges: Phaser.GameObjects.Text[] = []
-  /** The sprite or badge text standing for each object id (`badge:` + id for a badge) and the look it was made with. */
-  private live = new Map<string, { obj: LiveObject; sig: string }>()
+  /** A view this scene set itself (a tap, a pan): the camera is already there, so it does not move. */
+  private selfView: IslandId | null = null
   /** Sprites that must be at least `minTap` CSS px to tap: their hit box follows the zoom (see `fitTapTargets`). */
   private tapTargets: { spr: Phaser.GameObjects.Sprite; minTap: number; always: boolean; pixel: Phaser.Types.Input.HitAreaCallback; area: unknown }[] = []
-  private current: IslandMarkers = EMPTY
   private catalog: Catalog = LAUNCH_CATALOG
   private readonly gestures = createPanZoom({
     view: () => this.view,
-    apply: v => { this.fitting = false; this.apply(v) },
+    apply: v => { this.fitting = false; this.apply(v); this.followCamera() },
     range: () => this.range(),
     size: () => ({ w: this.scale.width, h: this.scale.height }),
     grab: p => this.grabGhost(p),
@@ -100,7 +113,6 @@ export class IslandScene extends Phaser.Scene {
   /** What is being placed, as last seen: a change means placing started. */
   private placed: Placing['what'] | null = null
   private hoverKey = ''
-  private groundKey = ''
   private view: View | null = null
   private framed = ''
   /** The camera is still on the opening view just framed, so a new measure of the HUD refits it. A gesture or placing ends that. */
@@ -113,19 +125,19 @@ export class IslandScene extends Phaser.Scene {
   create(): void {
     this.cameras.main.setBackgroundColor(SKY_FALLBACK)
     this.makeSky()
-    // Between the ground and the sprites, so the ghost keeps its colours.
-    this.footFill = this.add.graphics()
-    // The selection's outline (UI rework Phase 4) also lies on the ground, under what stands on it.
-    this.selectionLine = this.add.graphics().setName('selection')
-    this.homesLine = this.add.graphics().setName('homes')
-    this.layer = this.add.container(0, 0)
-    // Over the sprites: an illegal footprint must show even where it overlaps a building.
-    this.outline = this.add.graphics()
+    for (const id of ISLAND_ORDER) this.isles.set(id, this.makeIsle(id))
     // Bridge subscriptions must die with the scene: React StrictMode (and hot reload) destroys and
     // recreates the game, and a destroyed scene drawing on a state event crashes Phaser.
     const offs = [
       this.bridge.on('state', () => this.sync()),
-      this.bridge.on('view', () => { this.sync(); this.revealGhost() }),
+      // A view this scene chose is already in sight; one set from outside (Move to, Go) brings its island into view (R100).
+      this.bridge.on('view', e => {
+        const own = e.view === this.selfView
+        this.selfView = null
+        if (!own) this.panToIsland(e.view)
+        this.sync()
+        this.revealGhost()
+      }),
       // The HUD measures after it mounts: an opening view fits itself to that. Otherwise (the bar is another height from the
       // menu it replaces) the camera stays where it is, re-clamped, with the ghost kept in sight.
       this.bridge.on('insets', () => {
@@ -151,21 +163,22 @@ export class IslandScene extends Phaser.Scene {
       this.bridge.on('selection', () => { if (this.alive()) this.drawSelection() }),
       this.bridge.on('homeFinder', () => { if (this.alive()) this.drawSelection() }),
     ]
-    const cellToScreen = (col: number, row: number) => this.toScreen(cellCentre(col, row))
+    // Cells, the focus and signs are the view island's own (R100).
+    const cellToScreen = (col: number, row: number) => this.toScreen(fromIsland(this.bridge.view, cellCentre(col, row)))
     const focusCell = () => {
       const { top, bottom } = this.bridge.insets
-      const w = this.toWorld({ x: this.scale.width / 2, y: (top + this.scale.height - bottom) / 2 })
+      const w = toIsland(this.bridge.view, this.toWorld({ x: this.scale.width / 2, y: (top + this.scale.height - bottom) / 2 }))
       return pointerToCell(w.x, w.y)
     }
     this.bridge.cellToScreen = cellToScreen
     this.bridge.focusCell = focusCell
-    const signCell = (plot: number) => this.current.signs.find(s => s.plot === plot) ?? null
+    const signCell = (plot: number) => this.isle(this.bridge.view).current.signs.find(s => s.plot === plot) ?? null
     this.bridge.signCell = signCell
     const zoomTo = (zoom: number) => this.zoomTo(zoom)
     this.bridge.zoomTo = zoomTo
     const onResize = () => { if (this.alive() && !this.sys.isSleeping()) this.frame() }
     this.scale.on(Phaser.Scale.Events.RESIZE, onResize)
-    // Back from the Map or a battle: the camera is where it was (or opens on a new island), and the bake catches up.
+    // Back from a battle: the camera is where it was, and the bakes catch up.
     this.events.on(Phaser.Scenes.Events.WAKE, () => {
       this.sync()
       if (this.levelUpOnWake) this.playLevelUp()
@@ -208,11 +221,33 @@ export class IslandScene extends Phaser.Scene {
     return this.bridge.art ?? FALLBACK_ART
   }
 
+  /** One island's container and its layers, at its world offset, bottom to top. */
+  private makeIsle(id: IslandId): Isle {
+    const ground = this.add.container(0, 0)
+    // Between the ground and the sprites, so the ghost keeps its colours.
+    const footFill = this.add.graphics()
+    // The selection's outline (UI rework Phase 4) also lies on the ground, under what stands on it.
+    const selectionLine = this.add.graphics().setName('selection')
+    const homesLine = this.add.graphics().setName('homes')
+    const layer = this.add.container(0, 0)
+    // Over the sprites: an illegal footprint must show even where it overlaps a building.
+    const outline = this.add.graphics()
+    const root = this.add.container(ISLAND_AT[id].x, ISLAND_AT[id].y, [ground, footFill, selectionLine, homesLine, layer, outline]).setName(`isle:${id}`)
+    return {
+      id, root, ground, footFill, selectionLine, homesLine, layer, outline, arrows: null, bakeImage: null, falls: [], groundKey: '',
+      live: new Map(), badges: [], current: EMPTY,
+    }
+  }
+
+  private isle(id: IslandId): Isle {
+    return this.isles.get(id)!
+  }
+
   /** The sky and the clouds behind every island; each only if its art loaded. */
   private makeSky(): void {
     const { sky, clouds } = this.art().ground
     if (sky && this.textures.exists(textureKey('ground.sky'))) this.sky = this.add.image(0, 0, textureKey('ground.sky')).setDepth(-3)
-    const b = cameraBounds('home')
+    const b = worldBounds()
     this.clouds = clouds.flatMap((_, i) => {
       const key = textureKey(`ground.cloud.${i}`)
       if (!this.textures.exists(key)) return []
@@ -223,7 +258,7 @@ export class IslandScene extends Phaser.Scene {
   /** Clouds drift in world space and wrap at the bounds; they stay still under reduced motion. A sleeping scene isn't updated. */
   update(_time: number, deltaMs: number): void {
     if (this.bridge.reducedMotion) return
-    const b = cameraBounds(this.bridge.view)
+    const b = worldBounds()
     for (const c of this.clouds) c.x = driftCloud(c.x, deltaMs, b.x, b.x + b.w, c.displayWidth / 2)
   }
 
@@ -240,23 +275,50 @@ export class IslandScene extends Phaser.Scene {
 
   // ---- camera ------------------------------------------------------------------------------------------------
 
-  /** Camera bounds grown by the HUD insets at a zoom, so the island centres in the band the HUD leaves free. */
+  /** Camera bounds, every island (R99), grown by the HUD insets at a zoom, so land can centre in the band the HUD leaves free. */
   private bounds(zoom: number): Box {
-    const b = cameraBounds(this.bridge.view)
+    const b = worldBounds()
     const { top, bottom } = this.bridge.insets
     return { x: b.x, y: b.y - top / zoom, w: b.w, h: b.h + (top + bottom) / zoom }
   }
 
-  /** The opening view (R58): owned land centred in the band the HUD leaves free, at the whole-number zoom that fits it. */
+  /** The opening view (R99): zoomed out on the view island and the next in the chain, centred in the band the HUD leaves free. */
   private opening(): View {
     const { top, bottom } = this.bridge.insets
-    const v = openingView(this.bridge.state, this.bridge.view, this.scale.width, Math.max(1, this.scale.height - top - bottom))
+    const v = archipelagoOpening(this.bridge.state, this.bridge.view)
     // The free band's middle sits (top - bottom) / 2 below the screen's: look that much higher in the world.
     return { ...v, cy: v.cy + (bottom - top) / 2 / v.zoom }
   }
 
+  /** Centres an island's land in the free band at the zoom the camera has (R100): a view set from outside. */
+  private panToIsland(id: IslandId): void {
+    if (!this.view || !this.alive() || this.sys.isSleeping()) return
+    const { top, bottom } = this.bridge.insets
+    const c = landCentre(this.bridge.state, id)
+    this.fitting = false
+    this.apply({ cx: c.x, cy: c.y + (bottom - top) / 2 / this.view.zoom, zoom: this.view.zoom })
+  }
+
+  /** After a pan or zoom, the island nearest the middle of the free band becomes the view (R100); never while placing. */
+  private followCamera(): void {
+    if (!this.view || this.bridge.placing) return
+    const { top, bottom } = this.bridge.insets
+    const id = nearestIsland(this.bridge.state, this.view.cx, this.view.cy - (bottom - top) / 2 / this.view.zoom)
+    if (id !== this.bridge.view) this.setOwnView(id)
+  }
+
+  /** Makes an island the view without moving the camera: the player is already looking at it. */
+  private setOwnView(id: IslandId): void {
+    // A locked island has nothing to work on: the view stays where it was.
+    if (id === this.bridge.view || !isOpenIsland(this.bridge.state, id)) return
+    this.selfView = id
+    this.bridge.setView(id)
+  }
+
+  /** The zoom that fits the view island's owned land (R58): the zoom range runs three steps past it. */
   private fit(): number {
-    return this.opening().zoom
+    const { top, bottom } = this.bridge.insets
+    return openingView(this.bridge.state, this.bridge.view, this.scale.width, Math.max(1, this.scale.height - top - bottom)).zoom
   }
 
   private range(): { min: number; max: number } {
@@ -275,7 +337,7 @@ export class IslandScene extends Phaser.Scene {
     }
     const scale = this.badgeScale()
     const captionScale = this.captionScale()
-    for (const t of this.badges) if (t.active) t.setScale(t.getData('caption') ? captionScale : scale)
+    for (const isle of this.isles.values()) for (const t of isle.badges) if (t.active) t.setScale(t.getData('caption') ? captionScale : scale)
     this.fitTapTargets()
     this.publishZoom()
   }
@@ -299,6 +361,7 @@ export class IslandScene extends Phaser.Scene {
     const { width: w, height: h } = this.scale
     this.fitting = false
     this.apply(zoomAt(this.view, w, h, w / 2, h / 2, z))
+    this.followCamera()
   }
 
   /**
@@ -328,7 +391,8 @@ export class IslandScene extends Phaser.Scene {
   /** Opens the camera on the owned land when the view, the state's arrival or the screen changes; otherwise only re-clamps. */
   private frame(): void {
     const s = this.bridge.state
-    const key = `${this.bridge.view}:${s ? 'state' : 'none'}:${this.scale.width}x${this.scale.height}`
+    // Not the view: every island is in the one world, and a change of view moves the camera itself (R100).
+    const key = `${s ? 'state' : 'none'}:${this.scale.width}x${this.scale.height}`
     if (key === this.framed && this.view) return this.apply(this.view)
     this.framed = key
     this.fitting = true
@@ -348,7 +412,9 @@ export class IslandScene extends Phaser.Scene {
     const p = this.bridge.placing
     if (!p || !this.alive() || this.sys.isSleeping()) return
     const arrow = this.art().island.arrow.h * ARROW_SCALE
-    this.reveal(anchor(p.col, p.row, p.size), cellTop(p.col, p.row).y - ARROW_GAP - arrow - ARROW_BOB.y)
+    const at = ISLAND_AT[this.bridge.view]
+    const foot = anchor(p.col, p.row, p.size)
+    this.reveal({ x: foot.x + at.x, y: foot.y + at.y }, cellTop(p.col, p.row).y + at.y - ARROW_GAP - arrow - ARROW_BOB.y)
   }
 
   private toWorld(p: { x: number; y: number }): { x: number; y: number } {
@@ -369,7 +435,7 @@ export class IslandScene extends Phaser.Scene {
     if (this.gestures.move(p, heldPointers(this.input), p.isDown)) return
     // One hover target: the one a tap here would open.
     if (!p.wasTouch) {
-      const hover = this.bridge.placing ? null : this.targetAt(p, over)
+      const hover = this.bridge.placing ? null : (this.targetAt(p, over)?.target ?? null)
       const key = hover ? JSON.stringify(hover) : ''
       if (key !== this.hoverKey) {
         this.hoverKey = key
@@ -380,11 +446,18 @@ export class IslandScene extends Phaser.Scene {
     }
   }
 
-  /** Emits the cell under a screen point (a tap); while placing, the tap holds the footprint's centre. Off the land, nothing. */
+  /**
+   * Emits the cell under a screen point (a tap); while placing, the tap holds the footprint's centre and only the view
+   * island's land counts. Otherwise a tap on another island's land makes it the view first (R100). Off the land, nothing.
+   */
   private emitCell(p: { x: number; y: number }): void {
-    const w = this.toWorld(p)
-    const c = groundCell(this.bridge.state, this.bridge.view, w.x, w.y)
+    const world = this.toWorld(p)
+    const island = this.bridge.placing ? this.bridge.view : islandUnder(this.bridge.state, world.x, world.y)
+    if (!island || !isOpenIsland(this.bridge.state, island)) return
+    const w = toIsland(island, world)
+    const c = groundCell(this.bridge.state, island, w.x, w.y)
     if (!c) return
+    this.setOwnView(island)
     const off = this.bridge.placing ? Math.floor((this.bridge.placing.size - 1) / 2) : 0
     this.bridge.emit({ type: 'cell', col: c.col - off, row: c.row - off })
   }
@@ -393,7 +466,7 @@ export class IslandScene extends Phaser.Scene {
   private grabGhost(p: { x: number; y: number }): boolean {
     const placing = this.bridge.placing
     if (!placing) return false
-    const w = this.toWorld(p)
+    const w = toIsland(this.bridge.view, this.toWorld(p))
     const c = pointerToCell(w.x, w.y)
     if (!footprintContains(c, placing)) return false
     this.held = { col: c.col - placing.col, row: c.row - placing.row }
@@ -404,7 +477,7 @@ export class IslandScene extends Phaser.Scene {
   private carryGhost(p: { x: number; y: number }): void {
     const placing = this.bridge.placing
     if (!placing) return
-    const w = this.toWorld(p)
+    const w = toIsland(this.bridge.view, this.toWorld(p))
     const c = groundCell(this.bridge.state, this.bridge.view, w.x, w.y)
     if (!c) return
     const col = c.col - this.held.col
@@ -419,41 +492,53 @@ export class IslandScene extends Phaser.Scene {
     if (badge) return this.collect(badge as Phaser.GameObjects.Text)
     // While placing, every click is a cell; otherwise a sprite under the pointer wins over the ground.
     const hit = this.bridge.placing ? null : (this.targetAt(p, over) ?? this.plotUnder(p))
-    if (hit) this.bridge.emit({ type: 'select', target: hit })
-    else this.emitCell(p)
+    if (!hit) return this.emitCell(p)
+    // What was tapped is on its island: that island is now the one being worked on (R100).
+    if (hit.island) this.setOwnView(hit.island)
+    this.bridge.emit({ type: 'select', target: hit.target })
   }
 
   /** Bare ground on a plot for sale opens that plot, as its sign does. */
-  private plotUnder(p: { x: number; y: number }): Target | null {
-    const w = this.toWorld(p)
-    const plot = offeredPlotAt(this.bridge.state, this.bridge.view, w.x, w.y)
-    return plot === null ? null : { kind: 'plot', island: this.bridge.view, plot }
+  private plotUnder(p: { x: number; y: number }): { target: Target; island: IslandId } | null {
+    const world = this.toWorld(p)
+    const island = islandUnder(this.bridge.state, world.x, world.y)
+    if (!island || !isOpenIsland(this.bridge.state, island)) return null
+    const w = toIsland(island, world)
+    const plot = offeredPlotAt(this.bridge.state, island, w.x, w.y)
+    return plot === null ? null : { target: { kind: 'plot', island, plot }, island }
   }
 
   /**
    * What a tap at `p` opens, from the sprites under it (topmost first). A sprite whose tap box was enlarged is a pixel hit
    * only when the pointer is on its own opaque pixels; `pickTarget` lets those beat the boxes.
    */
-  private targetAt(p: { x: number; y: number }, over: Phaser.GameObjects.GameObject[]): Target | null {
+  private targetAt(p: { x: number; y: number }, over: Phaser.GameObjects.GameObject[]): { target: Target; island: IslandId | null } | null {
     // A label is drawn over everything, so it takes the tap whatever stands under it.
     const label = over.find(o => o.getData('caption'))
-    if (label) return label.getData('target') as Target
+    if (label) return { target: label.getData('target') as Target, island: (label.getData('island') as IslandId | undefined) ?? null }
     const w = this.toWorld(p)
     const hits: Hit<Target>[] = []
     for (const o of over) {
       const target = o.getData('target') as Target | undefined
       if (!target) continue
       const spr = o as Phaser.GameObjects.Sprite
+      // Sprites stand in their island's container: their x and y are the island's own.
+      const at = ISLAND_AT[(spr.getData('island') as IslandId | undefined) ?? 'home']
+      const sx = spr.x + at.x
+      const sy = spr.y + at.y
       const entry = this.tapTargets.find(t => t.spr === spr)
       let pixel = true
       if (entry) {
-        const lx = (w.x - spr.x) / spr.scaleX + spr.displayOriginX
-        const ly = (w.y - spr.y) / spr.scaleY + spr.displayOriginY
+        const lx = (w.x - sx) / spr.scaleX + spr.displayOriginX
+        const ly = (w.y - sy) / spr.scaleY + spr.displayOriginY
         pixel = Boolean(entry.pixel(entry.area, lx, ly, spr))
       }
-      hits.push({ target, pixel, centre: { x: spr.x, y: spr.y - spr.displayHeight / 2 } })
+      hits.push({ target, pixel, centre: { x: sx, y: sy - spr.displayHeight / 2 } })
     }
-    return pickTarget(hits, w)
+    const target = pickTarget(hits, w)
+    if (!target) return null
+    const from = over.find(o => o.getData('target') === target)
+    return { target, island: (from?.getData('island') as IslandId | undefined) ?? null }
   }
 
   // ---- drawing -----------------------------------------------------------------------------------------------
@@ -462,20 +547,29 @@ export class IslandScene extends Phaser.Scene {
   sync(): void {
     if (!this.alive() || this.sys.isSleeping()) return
     const { state, view } = this.bridge
-    this.drawGround()
+    for (const isle of this.isles.values()) this.drawGround(isle)
     this.frame()
-    const model = buildIslandModel(state, this.art(), this.catalog, this.bridge.nowMs, view, this.bridge.placing, this.bridge.preset)
-    // Fewer eggs in the hatchery on the same island than a moment ago: one hatched (or was sold). Burst once.
-    const hatched = state && view === this.hatchView && model.markers.hatchery.length < this.current.hatchery.length
-    this.hatchView = view
-    this.current = model.markers
-    if (hatched && state.hatcheryPlacement.island === view) {
-      const p = state.hatcheryPlacement
-      this.playOnce('fx.hatch', anchor(p.col, p.row, FOOTPRINT.hatchery))
+    for (const isle of this.isles.values()) {
+      const id = isle.id
+      if (!isOpenIsland(state, id)) {
+        // A locked island: its greyed picture and caption (R99), nothing else.
+        isle.current = EMPTY
+        this.drawOutline(isle, null)
+        this.reconcile(isle, state ? [lockedIslandObject(state, this.art(), id)] : [])
+        continue
+      }
+      // Only the view island carries the placement ghost.
+      const model = buildIslandModel(state, this.art(), this.catalog, this.bridge.nowMs, id, id === view ? this.bridge.placing : null, this.bridge.preset)
+      // Fewer eggs in the hatchery than a moment ago: one hatched (or was sold). Burst once.
+      if (state && state.hatcheryPlacement.island === id && model.markers.hatchery.length < isle.current.hatchery.length) {
+        const p = state.hatcheryPlacement
+        this.playOnce('fx.hatch', fromIsland(id, anchor(p.col, p.row, FOOTPRINT.hatchery)))
+      }
+      isle.current = model.markers
+      this.drawOutline(isle, model.markers.ghost)
+      this.reconcile(isle, model.objects)
     }
-    this.drawOutline(model.markers.ghost)
     this.drawSelection()
-    this.reconcile(model.objects)
     this.fitTapTargets()
   }
 
@@ -485,42 +579,42 @@ export class IslandScene extends Phaser.Scene {
    * player could see, and each pixel-perfect `setInteractive` and badge canvas has a cost. Badges go on top of every sprite,
    * so a dragon never hides its habitat's gold.
    */
-  private reconcile(objects: IslandObject[]): void {
+  private reconcile(isle: Isle, objects: IslandObject[]): void {
     const motion = this.bridge.reducedMotion
     const next = new Map<string, { obj: LiveObject; sig: string }>()
     const sprites: Phaser.GameObjects.GameObject[] = []
     const badges: Phaser.GameObjects.Text[] = []
     const keep = (id: string, sig: string, make: () => LiveObject) => {
-      const had = this.live.get(id)
-      if (had) this.live.delete(id)
+      const had = isle.live.get(id)
+      if (had) isle.live.delete(id)
       const entry = had && had.sig === sig ? had : { obj: (had?.obj.destroy(), make()), sig }
       next.set(id, entry)
       return entry.obj
     }
-    for (const o of objects) sprites.push(keep(o.id, objectSignature(o, motion), () => this.draw(o)))
+    for (const o of objects) sprites.push(keep(o.id, objectSignature(o, motion), () => this.draw(isle, o)))
     // Bars go over every sprite and under the badges. Made again only when the fill changes.
     const bars: Phaser.GameObjects.GameObject[] = []
     for (const o of objects) {
       if (o.progress === undefined) continue
       const fill = progressFill(o.progress)
-      bars.push(keep(`bar:${o.id}`, JSON.stringify([o.x, o.y, fill]), () => this.drawBar(o, fill)))
+      bars.push(keep(`bar:${o.id}`, JSON.stringify([o.x, o.y, fill]), () => this.drawBar(isle, o, fill)))
     }
     for (const o of objects) {
       if (!o.badge) continue
-      badges.push(keep(`badge:${o.id}`, JSON.stringify([o.badge, o.x, badgeY(o), o.target]), () => this.drawBadge(o, o.badge!)) as Phaser.GameObjects.Text)
+      badges.push(keep(`badge:${o.id}`, JSON.stringify([o.badge, o.x, badgeY(o), o.target]), () => this.drawBadge(isle, o, o.badge!)) as Phaser.GameObjects.Text)
     }
     // Captions (a sign's 'Tap to buy') sit with the badges, on top, and scale like them.
     for (const o of objects) {
       if (!o.caption) continue
-      badges.push(keep(`caption:${o.id}`, JSON.stringify([o.caption, o.x, o.y, o.target]), () => this.drawCaption(o, o.caption!)) as Phaser.GameObjects.Text)
+      badges.push(keep(`caption:${o.id}`, JSON.stringify([o.caption, o.x, o.y, o.target]), () => this.drawCaption(isle, o, o.caption!)) as Phaser.GameObjects.Text)
     }
-    for (const { obj } of this.live.values()) obj.destroy()
-    this.live = next
-    this.drawn = [...sprites, ...bars, ...badges]
-    this.badges = badges
+    for (const { obj } of isle.live.values()) obj.destroy()
+    isle.live = next
+    const drawn = [...sprites, ...bars, ...badges]
+    isle.badges = badges
     this.tapTargets = this.tapTargets.filter(t => t.spr.active)
     // The order is the model's, whatever was made when. Same members, so the list can simply be replaced.
-    if (this.drawn.some((o, i) => this.layer.list[i] !== o)) this.layer.list = [...this.drawn]
+    if (drawn.length !== isle.layer.list.length || drawn.some((o, i) => isle.layer.list[i] !== o)) isle.layer.list = drawn
   }
 
   /**
@@ -533,11 +627,11 @@ export class IslandScene extends Phaser.Scene {
     else this.bridge.emit({ type: 'collectGold', habitatId: badge.getData('collect') as string })
     badge.disableInteractive()
     // Spent: it hides and floats away below. If the collect comes to nothing, the next sync draws a fresh one.
-    for (const entry of this.live.values()) if (entry.obj === badge) entry.sig = ''
+    for (const isle of this.isles.values()) for (const entry of isle.live.values()) if (entry.obj === badge) entry.sig = ''
     if (this.bridge.reducedMotion) return
     if (isSheet(this.art().fx.coins)) {
       badge.setVisible(false)
-      this.playOnce('fx.coins', { x: badge.x, y: badge.y })
+      this.playOnce('fx.coins', fromIsland((badge.getData('island') as IslandId | undefined) ?? 'home', { x: badge.x, y: badge.y }))
       return
     }
     this.tweens.add({ targets: badge, y: badge.y - 12 / (this.view?.zoom ?? 1), alpha: 0, duration: 450, ease: 'Quad.easeOut' })
@@ -559,65 +653,72 @@ export class IslandScene extends Phaser.Scene {
   }
 
   /**
-   * The landmass, drawn again only when the view or its plots change (buying a plot, a Bridge, a switch of island) or after
-   * the WebGL context comes back. Every island is a floating island (`bakeIsland`).
+   * An island's landmass, drawn again only when its plots change (buying a plot or its Bridge) or after the WebGL context
+   * comes back. Every open island is a floating island (`bakeIsland`); a locked one has no land, only its picture.
    */
-  private drawGround(): void {
-    const { state, view } = this.bridge
-    // Owned plots and, on Home, the offered ones (they change with each purchase) decide what is drawn.
-    const key = `${view}:${state ? ownedPlots(state, view).join(',') : '-'}:${state ? landPlots(state, view).join(',') : '-'}`
-    if (key === this.groundKey) return
-    this.groundKey = key
-    this.clearHomeBake()
-    if (!state) return
-    this.bakeIsland(state, view)
+  private drawGround(isle: Isle): void {
+    const { state } = this.bridge
+    const id = isle.id
+    // Owned plots and the offered ones (they change with each purchase) decide what is drawn.
+    const key = state && isOpenIsland(state, id) ? `${ownedPlots(state, id).join(',')}:${landPlots(state, id).join(',')}` : '-'
+    if (key === isle.groundKey) return
+    isle.groundKey = key
+    this.clearBake(isle)
+    if (!state || key === '-') return
+    this.bakeIsland(isle, state)
   }
 
   /** The bake to throw away when the land changes: the image, its texture and the waterfalls standing on it. */
-  private clearHomeBake(): void {
-    this.bakeImage?.destroy()
-    this.bakeImage = null
-    if (this.textures.exists(BAKE_KEY)) this.textures.remove(BAKE_KEY)
-    for (const f of this.falls) f.destroy()
-    this.falls = []
+  private clearBake(isle: Isle): void {
+    isle.bakeImage?.destroy()
+    isle.bakeImage = null
+    if (this.textures.exists(bakeKey(isle.id))) this.textures.remove(bakeKey(isle.id))
+    for (const f of isle.falls) f.destroy()
+    isle.falls = []
   }
 
   /** Throws the ground away and makes it again: after a lost WebGL context, whose textures come back empty. */
   rebake(): void {
-    this.groundKey = ''
+    for (const isle of this.isles.values()) isle.groundKey = ''
     this.sync()
   }
 
   /**
-   * The viewed island floating (Home's look, on every island since UI rework Phase 3): one canvas the size of its landmass,
-   * shown as an image, with a waterfall sprite per fall. A headless game (tests) has no renderer to hold the texture: it
-   * paints nothing, the waterfalls still stand. A locked island has no land and shows only sky.
+   * An island floating (Home's look, on every island since UI rework Phase 3): one canvas the size of its landmass, shown as
+   * an image in the island's ground, with a waterfall sprite per fall. A headless game (tests) has no renderer to hold the
+   * texture: it paints nothing, the waterfalls still stand.
    */
-  private bakeIsland(state: PlayerState, view: IslandId): void {
-    const shown = landPlots(state, view)
+  private bakeIsland(isle: Isle, state: PlayerState): void {
+    const id = isle.id
+    const shown = landPlots(state, id)
     const land = landmass(shown)
-    const owned = ownedPlots(state, view)
+    const owned = ownedPlots(state, id)
     if (shown.length > 0 && this.game.config.renderType !== Phaser.HEADLESS) {
-      const tex = this.textures.createCanvas(BAKE_KEY, land.box.w, land.box.h)
+      const tex = this.textures.createCanvas(bakeKey(id), land.box.w, land.box.h)
       if (tex) {
-        paintLandmass(tex.context, land, this.bakeArt(view), (col, row) => !owned.includes(nearestPlot(shown, col, row)))
+        paintLandmass(tex.context, land, this.bakeArt(id), (col, row) => !owned.includes(nearestPlot(shown, col, row)))
         tex.refresh()
-        this.bakeImage = this.add.image(land.box.x, land.box.y, BAKE_KEY).setOrigin(0, 0).setDepth(-1)
+        isle.bakeImage = this.add.image(land.box.x, land.box.y, bakeKey(id)).setOrigin(0, 0)
+        isle.ground.addAt(isle.bakeImage, 0)
       }
     }
     const fall = this.art().ground.waterfall
     const key = textureKey('ground.waterfall')
-    this.falls = land.falls.map(p => {
+    isle.falls = land.falls.map(p => {
       if (fall && this.textures.exists(key)) {
-        const spr = this.add.sprite(p.x, p.y - FALL_LIP, key).setOrigin(0.5, 0).setDepth(-0.5).setName('waterfall')
+        const spr = this.add.sprite(p.x, p.y - FALL_LIP, key).setOrigin(0.5, 0).setName('waterfall')
         playOrStill(spr, key, fall.frames, fall.fps, this.bridge.reducedMotion)
+        isle.ground.add(spr)
         return spr
       }
-      const g = this.add.graphics().setDepth(-0.5).setName('waterfall')
+      const g = this.add.graphics().setName('waterfall')
       g.fillStyle(0xbfe6fa, 1).fillRect(p.x - 12, p.y - FALL_LIP, 24, 72)
       g.fillStyle(0x3fa6e0, 1).fillRect(p.x - 8, p.y - FALL_LIP + 3, 4, 66).fillRect(p.x + 2, p.y - FALL_LIP + 3, 5, 66)
+      isle.ground.add(g)
       return g
     })
+    // The landmass under its waterfalls, whatever order they were made in.
+    if (isle.bakeImage) isle.ground.sendToBack(isle.bakeImage)
   }
 
   /** The bitmaps the painter samples, the ones whose textures really exist: a PNG that failed leaves none, and it paints its own look. */
@@ -642,9 +743,9 @@ export class IslandScene extends Phaser.Scene {
   }
 
   /** The placement ghost's footprint, coloured by legality: a translucent diamond on the ground, its outline over everything. */
-  private drawOutline(ghost: IslandMarkers['ghost']): void {
-    const fill = this.footFill.clear()
-    const line = this.outline.clear()
+  private drawOutline(isle: Isle, ghost: IslandMarkers['ghost']): void {
+    const fill = isle.footFill.clear()
+    const line = isle.outline.clear()
     if (!ghost) return
     const color = ghost.legal ? TINT.ok : TINT.bad
     const pts = points(footprintDiamond(ghost.col, ghost.row, ghost.size))
@@ -657,13 +758,15 @@ export class IslandScene extends Phaser.Scene {
    * Not while placing: the ghost has the ground then.
    */
   private drawSelection(): void {
-    const g = this.selectionLine.clear()
+    for (const isle of this.isles.values()) isle.selectionLine.clear()
     this.drawHomes()
-    const { state, view, placing, selection } = this.bridge
+    const { state, placing, selection } = this.bridge
     const o = state && !placing ? selectionOutline(state, selection) : null
-    this.shownSelection = o && o.island === view ? o : null
-    if (!this.shownSelection) return
-    const pts = points(footprintDiamond(o!.col, o!.row, o!.size))
+    // Every island is on screen together: the outline goes on whichever island the selection stands on.
+    this.shownSelection = o
+    if (!o) return
+    const g = this.isle(o.island).selectionLine
+    const pts = points(footprintDiamond(o.col, o.row, o.size))
     g.fillStyle(SELECTED, 0.18).fillPoints(pts, true)
     g.lineStyle(3, 0x141627, 1).strokePoints(pts, true, true)
     g.lineStyle(2, SELECTED, 1).strokePoints(pts, true, true)
@@ -674,21 +777,30 @@ export class IslandScene extends Phaser.Scene {
    * under reduced motion). Redrawn whole when the finder or the state changes.
    */
   private drawHomes(): void {
-    const { state, view, placing, homeFinder } = this.bridge
+    const { state, placing, homeFinder } = this.bridge
     const spots = state && homeFinder ? homeFinder.homes.map(id => selectionOutline(state, { kind: 'habitat', id })) : []
     // The clock syncs the scene every second: the same finder in the same places keeps its arrows and their bob.
-    const key = JSON.stringify([view, Boolean(placing), homeFinder, spots])
+    const key = JSON.stringify([Boolean(placing), homeFinder, spots])
     if (key === this.homesKey) return
     this.homesKey = key
-    this.homeArrows?.destroy()
-    this.homeArrows = null
-    const g = this.homesLine.clear()
+    for (const isle of this.isles.values()) {
+      isle.arrows?.destroy()
+      isle.arrows = null
+      isle.homesLine.clear()
+    }
     this.shownHomes = []
     if (!state || placing || !homeFinder) return
-    const arrows = this.add.graphics().setDepth(5)
     for (const id of homeFinder.homes) {
       const o = selectionOutline(state, { kind: 'habitat', id })
-      if (!o || o.island !== view) continue
+      if (!o) continue
+      const isle = this.isle(o.island)
+      const g = isle.homesLine
+      if (!isle.arrows) {
+        isle.arrows = this.add.graphics()
+        isle.root.add(isle.arrows)
+        if (!this.bridge.reducedMotion) this.tweens.add({ targets: isle.arrows, y: -ARROW_BOB.y * 2, duration: ARROW_BOB.ms, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
+      }
+      const arrows = isle.arrows
       this.shownHomes.push(id)
       const pts = points(footprintDiamond(o.col, o.row, o.size))
       g.fillStyle(HOME_GLOW, 0.22).fillPoints(pts, true)
@@ -699,8 +811,6 @@ export class IslandScene extends Phaser.Scene {
       arrows.fillStyle(0x141627, 1).fillTriangle(tip.x - 9, tip.y - 12, tip.x + 9, tip.y - 12, tip.x, tip.y + 1)
       arrows.fillStyle(HOME_GLOW, 1).fillTriangle(tip.x - 6, tip.y - 10, tip.x + 6, tip.y - 10, tip.x, tip.y - 2)
     }
-    this.homeArrows = arrows
-    if (!this.bridge.reducedMotion) this.tweens.add({ targets: arrows, y: -ARROW_BOB.y * 2, duration: ARROW_BOB.ms, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
   }
 
   /** The habitats the home finder outlines now, for tests. */
@@ -713,12 +823,47 @@ export class IslandScene extends Phaser.Scene {
     return this.shownSelection
   }
 
-  markers(): IslandMarkers {
-    return this.current
+  /** The view island's object layer, what is on it and its badges, and the sprite kept for each id: tests read them. */
+  get layer(): Phaser.GameObjects.Container {
+    return this.isle(this.bridge.view).layer
   }
 
-  private draw(o: IslandObject): Phaser.GameObjects.Sprite {
-    const spr = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1)
+  get footFill(): Phaser.GameObjects.Graphics {
+    return this.isle(this.bridge.view).footFill
+  }
+
+  get outline(): Phaser.GameObjects.Graphics {
+    return this.isle(this.bridge.view).outline
+  }
+
+  get drawn(): Phaser.GameObjects.GameObject[] {
+    return this.layer.list
+  }
+
+  get badges(): Phaser.GameObjects.Text[] {
+    return this.isle(this.bridge.view).badges
+  }
+
+  get live(): Map<string, { obj: LiveObject; sig: string }> {
+    return this.isle(this.bridge.view).live
+  }
+
+  /** What the view island shows; `markersOf` for another. */
+  markers(): IslandMarkers {
+    return this.isle(this.bridge.view).current
+  }
+
+  markersOf(id: IslandId): IslandMarkers {
+    return this.isle(id).current
+  }
+
+  /** An island's container, for tests: it stands at the island's world offset. */
+  isleRoot(id: IslandId): Phaser.GameObjects.Container {
+    return this.isle(id).root
+  }
+
+  private draw(isle: Isle, o: IslandObject): Phaser.GameObjects.Sprite {
+    const spr = this.add.sprite(o.x, o.y, o.key).setOrigin(0.5, 1).setData('island', isle.id)
     playOrStill(spr, o.key, o.sprite.frames, o.sprite.fps, this.bridge.reducedMotion)
     if (o.frame) spr.setFrame(o.frame)
     if (o.scale) spr.setScale(o.scale)
@@ -735,18 +880,18 @@ export class IslandScene extends Phaser.Scene {
       spr.setInteractive({ useHandCursor: true, pixelPerfect: true, alphaTolerance: 1 })
       if (o.minTap) this.tapTargets.push({ spr, minTap: o.minTap, always: !!o.boxAlways, pixel: spr.input!.hitAreaCallback, area: spr.input!.hitArea })
     }
-    this.layer.add(spr)
+    isle.layer.add(spr)
     return spr
   }
 
   /** The bar under a sprite: a dark frame centred on its anchor, just below it, and `fill` px of green. */
-  private drawBar(o: IslandObject, fill: number): Phaser.GameObjects.Graphics {
+  private drawBar(isle: Isle, o: IslandObject, fill: number): Phaser.GameObjects.Graphics {
     const x = o.x - PROGRESS_BAR.w / 2
     const y = o.y + 1
     const g = this.add.graphics()
     g.fillStyle(BAR.frame, 1).fillRect(x, y, PROGRESS_BAR.w, PROGRESS_BAR.h)
     g.fillStyle(BAR.fill, 1).fillRect(x + 1, y + 1, fill, PROGRESS_BAR.h - 2)
-    this.layer.add(g)
+    isle.layer.add(g)
     return g
   }
 
@@ -762,22 +907,22 @@ export class IslandScene extends Phaser.Scene {
   }
 
   /** A label under a sprite's anchor: dark text on white, `captionPx` tall on screen. Its own box is a tap target, as what it labels. */
-  private drawCaption(o: IslandObject, caption: string): Phaser.GameObjects.Text {
+  private drawCaption(isle: Isle, o: IslandObject, caption: string): Phaser.GameObjects.Text {
     const style: Phaser.Types.GameObjects.Text.TextStyle = { ...TEXT_STYLE, color: '#0f1324', stroke: undefined, strokeThickness: 0, backgroundColor: '#ffffff', padding: { x: 3, y: 1 } }
-    const t = this.add.text(o.x, o.y + 2, caption, style).setOrigin(0.5, 0).setResolution(4).setScale(this.captionScale()).setData('caption', true).setData('target', o.target)
+    const t = this.add.text(o.x, o.y + 2, caption, style).setOrigin(0.5, 0).setResolution(4).setScale(this.captionScale()).setData('caption', true).setData('target', o.target).setData('island', isle.id)
     t.setInteractive({ useHandCursor: true })
-    this.layer.add(t)
+    isle.layer.add(t)
     return t
   }
 
-  private drawBadge(o: IslandObject, badge: string): Phaser.GameObjects.Text {
+  private drawBadge(isle: Isle, o: IslandObject, badge: string): Phaser.GameObjects.Text {
     const gold = (badge === 'gold' || badge === 'full') && o.target.kind === 'habitat'
     const ripe = badge === 'ripe' && o.target.kind === 'farm'
     const tappable = gold || ripe
     const label = badge === 'gold' ? 'GOLD' : badge === 'full' ? 'FULL' : ripe ? 'FOOD' : badge
     // A collect bubble (UI rework A3): white with a dark rim, its word in the currency's colour; timers keep the outlined text.
     const style = tappable ? { ...BUBBLE_STYLE, color: ripe ? '#c0563a' : badge === 'full' ? '#b3261e' : '#a8740a' } : TEXT_STYLE
-    const t = this.add.text(o.x, badgeY(o), label, style).setOrigin(0.5, 1).setResolution(4).setScale(this.badgeScale())
+    const t = this.add.text(o.x, badgeY(o), label, style).setOrigin(0.5, 1).setResolution(4).setScale(this.badgeScale()).setData('island', isle.id)
     if (ripe) t.setData('harvest', (o.target as { plot: number }).plot)
     if (tappable) {
       // The text is scaled to BADGE_PX on screen at every zoom, so a hit box of HIT_LOCAL local pixels is
@@ -787,7 +932,7 @@ export class IslandScene extends Phaser.Scene {
       if (gold) t.setData('collect', (o.target as { id: string }).id)
       t.setInteractive({ hitArea: new Phaser.Geom.Rectangle((t.width - w) / 2, t.height - h, w, h), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true })
     }
-    this.layer.add(t)
+    isle.layer.add(t)
     return t
   }
 }

@@ -165,7 +165,6 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = (
     switch (dialog.id) {
       case 'shop': return <ShopPanel key={`${dialog.tab ?? ''}${dialog.category ?? ''}`} start={dialog.category ?? (dialog.tab === 'store' ? 'store' : 'home')} nowMs={nowMs} view={bridge.view} onPlace={(what, size) => { onOpen(null); startPlacing(what, size) }} onClose={close} />
       case 'storage': return <StoragePanel onPlace={(target, size) => { onOpen(null); startPlacing({ kind: 'move', target }, size) }} onHome={id => { onOpen(null); onFindHome(id) }} onShop={() => onOpen({ kind: 'panel', id: 'shop' })} onClose={close} />
-      case 'map': return null // the Map is a scene (R60), not a dialog; its islands open panels
       case 'breed': return <BreedPanel nowMs={nowMs} onClose={close} />
       case 'book': return <DragonBookPanel art={bridge.art} onSelect={id => onOpen({ kind: 'target', target: { kind: 'dragon', id } })} onClose={close} />
       case 'battle': return <BattleHub nowMs={nowMs} chapter={dialog.chapter} fighting={fighting} onShop={() => onOpen({ kind: 'panel', id: 'shop', tab: 'build' })} onTrial={onTrial} onResume={onResumeTrial} onPvp={onPvp} onClose={close} />
@@ -201,7 +200,7 @@ export function PanelHost({ bridge, nowMs, dialog, onOpen, fighting, onTrial = (
     case 'roost': return <RoostPanel nowMs={nowMs} onClose={close} />
     case 'farm': return <FarmPanel index={t.plot} nowMs={nowMs} onClose={close} />
     case 'obstacle': return <ObstaclePanel obstacleId={t.id} nowMs={nowMs} onClose={close} />
-    case 'mapIsland': return <MapIslandPanel island={t.id} view={bridge.view} onView={id => { bridge.setView(id); close() }} onClose={() => onOpen({ kind: 'panel', id: 'map' })} art={bridge.art} />
+    case 'mapIsland': return <MapIslandPanel island={t.id} view={bridge.view} onView={id => { bridge.setView(id); close() }} onClose={close} art={bridge.art} />
     case 'plot': return <PlotPanel key={`${t.island}:${t.plot}`} island={t.island} plot={t.plot} onClose={close} />
     default: return null
   }

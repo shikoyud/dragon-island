@@ -1,9 +1,8 @@
-import { gameDay, xpToNext, type BuildingRef, type MovableRef } from '@wyrmhaven/game-core'
+import { gameDay, ISLAND_ORDER, xpToNext, type BuildingRef, type MovableRef } from '@wyrmhaven/game-core'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { ResourcePill } from '../ui/kit/pieces'
 import type { Bridge, Target } from '../game/bridge'
-import { FALLBACK_ART } from '../art/slots'
-import { buildMapModel } from '../game/mapModel'
+import { islandLabel } from '../game/archipelago'
 import { TOKEN_KEY as ADMIN_TOKEN_KEY } from '../pages/Admin'
 import { useMe } from '../state/me'
 import { useToasts } from '../ui/Toast'
@@ -14,7 +13,7 @@ import { Icon, type IconName } from './Icon'
 import { ZoomSlider } from './ZoomSlider'
 import type { ShopCategory } from '../panels/ShopPanel'
 
-export type PanelId = 'shop' | 'breed' | 'book' | 'battle' | 'wings' | 'quests' | 'inbox' | 'map' | 'settings' | 'storage'
+export type PanelId = 'shop' | 'breed' | 'book' | 'battle' | 'wings' | 'quests' | 'inbox' | 'settings' | 'storage'
 /** What the one dialog shows: a named panel (the Shop can open on its Store tab, Battle on a chapter's nodes), or the panel of something clicked on the island. */
 export type DialogKey = { kind: 'panel'; id: PanelId; tab?: 'build' | 'store' | 'account' | 'wallet'; chapter?: number; /** The Shop category to open on. */ category?: ShopCategory } | { kind: 'target'; target: Target }
   /** The Info and Upgrade dialogs of a building (UI rework Phase 5). */
@@ -30,8 +29,6 @@ const writeSeen = (key: string, ids: readonly string[]): void => { try { localSt
 
 const isPanel = (open: DialogKey | null, id: PanelId) => open?.kind === 'panel' && open.id === id
 
-/** The Map's scene shows for the Map itself and for an island panel over it; any other dialog closes it. */
-export const isMapDialog = (open: DialogKey | null): boolean => isPanel(open, 'map') || (open?.kind === 'target' && open.target.kind === 'mapIsland')
 
 /** A round HUD button: icon in a plate, label under it (or only for screen readers), optional badge. */
 function RoundButton({ icon, label, onClick, active, badge, size = 'large', showLabel = true, disabledReason, description }: {
@@ -84,13 +81,9 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom }: {
     return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
   }, [bridge, placing])
 
-  const mapOpen = isMapDialog(open)
   const playerState = me.data?.state
   // The HUD renders on every clock tick; the list changes only with the state.
-  const mapIslands = useMemo(
-    () => (mapOpen && playerState ? buildMapModel(playerState, bridge.art ?? FALLBACK_ART, bridge.view).islands : []),
-    [mapOpen, playerState, bridge.art, bridge.view],
-  )
+  const islandList = useMemo(() => (playerState ? ISLAND_ORDER.map(id => ({ id, label: islandLabel(playerState, id) })) : []), [playerState])
 
   // The HUD renders on every clock tick (the countdown, the XP day limit, the attention timers). What doesn't read the clock
   // keeps its elements, so React skips it: on a throttled phone a whole-HUD render a second was the longest task there is.
@@ -107,14 +100,13 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom }: {
     </div>
   ), [food, gold, balanceWei, onOpen])
   const settingsOpen = isPanel(open, 'settings')
-  // Top right: Settings, and the Map under it (Phase 3 ruling Q7).
+  // Top right: Settings. Every island is on the island itself (R99): there is no Map.
   const islandMenu = useMemo(() => (
     <nav className="hud-right" aria-label="Island menu">
       <RoundButton icon="settings" label="Settings" size="small" showLabel={false} active={settingsOpen} onClick={() => onOpen({ kind: 'panel', id: 'settings' })} />
-      <RoundButton icon="map" label="Map" size="small" active={mapOpen} onClick={mapOpen ? () => onOpen(null) : () => onOpen({ kind: 'panel', id: 'map' })} disabledReason={placing ? 'Finish placing first' : undefined} />
       {hasAdminToken() && <a className="hud-round hud-round--small" href="#/admin" aria-label="Admin"><span className="hud-round__plate"><Icon name="admin" size={22} /></span><span className="hud-round__label" aria-hidden="true">Admin</span></a>}
     </nav>
-  ), [settingsOpen, mapOpen, placing, onOpen])
+  ), [settingsOpen, onOpen])
   const goalReady = playerState ? goalClaimable(playerState) : false
   const shopOpen = isPanel(open, 'shop')
   const bookOpen = isPanel(open, 'book')
@@ -207,12 +199,12 @@ export function Hud({ bridge, nowMs, open, onOpen, placing, bottom }: {
       {/* Memoised on the bridge and fed by its zoom event: the clock tick doesn't render it. */}
       <ZoomSlider bridge={bridge} />
 
-      {/* R60: the Map's canvas is invisible to the keyboard and to screen readers. These stay out of sight until focused. */}
-      {mapOpen && (
+      {/* The canvas is invisible to the keyboard and to screen readers: every island's panel is here too, out of sight until focused (R99). */}
+      {!placing && (
         <nav className="map-list" aria-label="Islands">
           <ul>
-            {mapIslands.map(i => (
-              <li key={i.id}><button type="button" className="btn" aria-current={i.state === 'current' ? 'true' : undefined} onClick={() => onOpen({ kind: 'target', target: { kind: 'mapIsland', id: i.id } })}>{i.label}</button></li>
+            {islandList.map(i => (
+              <li key={i.id}><button type="button" className="btn" aria-current={i.id === bridge.view ? 'true' : undefined} onClick={() => onOpen({ kind: 'target', target: { kind: 'mapIsland', id: i.id } })}>{i.label}</button></li>
             ))}
           </ul>
         </nav>

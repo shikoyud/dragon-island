@@ -1,6 +1,6 @@
 import { applyAction, createRng, ISLAND_ORDER, ISLANDS, LAUNCH_CATALOG, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
-import { ISLAND_AT, islandFrame, islandUnder, lockedLabel, nearestIsland, worldBounds } from '../src/game/archipelago'
+import { archipelagoOpening, ISLAND_AT, islandFrame, islandUnder, landCentre as islandLandCentre, lockedLabel, nearestIsland, worldBounds } from '../src/game/archipelago'
 import { landBox } from '../src/game/camera'
 import { boxesOverlap } from '../src/game/layout'
 
@@ -60,5 +60,24 @@ describe('the archipelago (R99)', () => {
     const s = { ...fresh, level: 12 }
     expect(lockedLabel(s, 'isle2')).toBe(`${ISLANDS.isle2.name} · Level 12 · Bridge 150,000`)
     expect(lockedLabel(s, 'isle3')).toMatch(new RegExp(`^${ISLANDS.isle3.name} · Level \\d+$`))
+  })
+})
+
+describe('the opening view (R99)', () => {
+  it('opens at zoom 1 between Home and Ember Reach, with both on a desktop screen', () => {
+    const v = archipelagoOpening(fresh, 'home')
+    expect(v.zoom).toBe(1)
+    const home = islandLandCentre(fresh, 'home')
+    const isle2 = islandFrame('isle2')
+    for (const p of [home, { x: isle2.x + isle2.w / 2, y: isle2.y + isle2.h / 2 }]) {
+      expect(Math.abs(p.x - v.cx)).toBeLessThan(1920 / 2)
+      expect(Math.abs(p.y - v.cy)).toBeLessThan(900 / 2)
+    }
+  })
+
+  it('the last island opens beside the one before it', () => {
+    const v = archipelagoOpening(fresh, 'isle6')
+    const isle5 = islandFrame('isle5')
+    expect(Math.abs(isle5.x + isle5.w / 2 - v.cx)).toBeLessThan(1920 / 2)
   })
 })

@@ -6,7 +6,7 @@ import { FALLBACK_ART } from '../src/art/slots'
 import type { GameArtSet } from '../src/art/types'
 import { createBridge } from '../src/game/bridge'
 import { createGame } from '../src/game/config'
-import { MAP_SPOTS } from '../src/game/mapModel'
+import { ISLAND_AT, islandFrame } from '../src/game/archipelago'
 
 // As in artSwapCrash.test.ts: the browser build of Phaser, in a real headless game, on the drawn fallbacks.
 vi.mock('phaser', async () => {
@@ -36,25 +36,73 @@ async function boot(art: GameArtSet = FALLBACK_ART) {
 
 const PREVIEW = { state: { sides: { attacker: { team: [], active: 0 }, defender: { team: [], active: 0 } }, log: [] }, done: null } as unknown as BattlePreview
 
-describe('the scene switch', () => {
+describe('the island scene (R99, R100)', () => {
   const games: Phaser.Game[] = []
   const shown = async (game: Phaser.Game, key: string) => vi.waitFor(() => expect(game.scene.isActive(key)).toBe(true), { timeout: 3000 })
 
   beforeEach(() => { vi.spyOn(console, 'warn').mockImplementation(() => {}) })
   afterEach(() => { games.splice(0).forEach(g => g.destroy(true)); vi.restoreAllMocks() })
 
-  it('runs the Map in place of the island, and the island sleeps with its state rather than dying', async () => {
+  it('draws every island at once, each in a container at its own offset (R99)', async () => {
+    const { game } = await boot()
+    games.push(game)
+    await shown(game, 'island')
+    const island = game.scene.getScene('island') as unknown as { isleRoot(id: string): Phaser.GameObjects.Container }
+    for (const id of ['home', 'isle2', 'isle3', 'isle4', 'isle5', 'isle6'] as const) {
+      const root = island.isleRoot(id)
+      expect([root.x, root.y]).toEqual([ISLAND_AT[id].x, ISLAND_AT[id].y])
+    }
+  })
+
+  it('a locked island shows its picture and a caption with its level, whose tap opens the island (R99)', async () => {
     const { bridge, game } = await boot()
     games.push(game)
     await shown(game, 'island')
-    const island = game.scene.getScene('island')
-    bridge.setMapOpen(true)
-    await shown(game, 'map')
-    expect(game.scene.isSleeping('island')).toBe(true)
-    bridge.setMapOpen(false)
+    const island = game.scene.getScene('island') as unknown as { isleRoot(id: string): Phaser.GameObjects.Container; onUp(p: unknown, over: unknown[]): void; onDown(p: unknown): void }
+    const layer = island.isleRoot('isle2').list.find(o => o instanceof Phaser.GameObjects.Container && o.list.some(c => c.getData?.('caption'))) as Phaser.GameObjects.Container
+    const caption = layer.list.find(c => c.getData('caption')) as Phaser.GameObjects.Text
+    expect(caption.text).toMatch(/Level \d+ · Bridge/)
+    const seen: unknown[] = []
+    bridge.on('select', e => seen.push(e.target))
+    const p = { x: 5, y: 5, wasTouch: false, isDown: true, id: 1 }
+    island.onDown(p)
+    island.onUp({ ...p, isDown: false }, [caption])
+    expect(seen).toEqual([{ kind: 'mapIsland', id: 'isle2' }])
+    // A locked island is never the one being worked on.
+    expect(bridge.view).toBe('home')
+  })
+
+  it('a tap on an open island makes it the view without moving the camera (R100)', async () => {
+    const { bridge, game } = await boot()
+    games.push(game)
+    const s = newPlayer(0)
+    bridge.setState({ ...s, islands: { ...s.islands, unlocked: [...s.islands.unlocked, 'isle2'], plots: { ...s.islands.plots, isle2: [5, 6, 9, 10] } } } as typeof s)
     await shown(game, 'island')
-    expect(game.scene.isSleeping('map')).toBe(true)
-    expect(game.scene.getScene('island')).toBe(island)
+    const island = game.scene.getScene('island') as unknown as { view: { cx: number; cy: number }; isleRoot(id: string): Phaser.GameObjects.Container; onUp(p: unknown, over: unknown[]): void; onDown(p: unknown): void }
+    const layer = island.isleRoot('isle2').list.filter(o => o instanceof Phaser.GameObjects.Container).at(-1) as Phaser.GameObjects.Container
+    const spr = layer.list.find(o => o.getData?.('target'))!
+    const seen: unknown[] = []
+    bridge.on('select', e => seen.push(e.target))
+    const before = { ...island.view }
+    const p = { x: 5, y: 5, wasTouch: false, isDown: true, id: 1 }
+    island.onDown(p)
+    island.onUp({ ...p, isDown: false }, [spr])
+    expect(bridge.view).toBe('isle2')
+    expect(seen).toEqual([spr.getData('target')])
+    expect({ ...island.view }).toEqual(before)
+  })
+
+  it('a view set from outside brings that island into sight at the same zoom (R100)', async () => {
+    const { bridge, game } = await boot()
+    games.push(game)
+    await shown(game, 'island')
+    const island = game.scene.getScene('island') as unknown as { view: { cx: number; cy: number; zoom: number } }
+    const zoom = island.view.zoom
+    bridge.setView('isle2')
+    const f = islandFrame('isle2')
+    expect(island.view.zoom).toBe(zoom)
+    expect(island.view.cx).toBeGreaterThan(f.x)
+    expect(island.view.cx).toBeLessThan(f.x + f.w)
   })
 
   it('a sleeping island draws nothing; it catches up on the state when it wakes', async () => {
@@ -62,35 +110,15 @@ describe('the scene switch', () => {
     games.push(game)
     await shown(game, 'island')
     const island = game.scene.getScene('island') as Phaser.Scene
-    bridge.setMapOpen(true)
-    await shown(game, 'map')
+    bridge.setBattle(PREVIEW)
+    await shown(game, 'battle')
     const sprites = vi.spyOn(island.add, 'sprite')
-    // Something new to draw: a sprite whose look did not change is kept.
     const fresh = newPlayer(0)
     bridge.setState({ ...fresh, islands: { ...fresh.islands, obstacles: [...fresh.islands.obstacles, { id: 'new', kind: 'bush', island: 'home', col: 16, row: 13 }] } })
     expect(sprites).not.toHaveBeenCalled()
-    bridge.setMapOpen(false)
+    bridge.setBattle(null)
     await shown(game, 'island')
     await vi.waitFor(() => expect(sprites).toHaveBeenCalled())
-  })
-
-  it('the Map opens on the viewed island every time, whatever was panned before', async () => {
-    const { bridge, game } = await boot()
-    games.push(game)
-    bridge.setMapOpen(true)
-    await shown(game, 'map')
-    const home = bridge.mapIslandToScreen!('home')
-    expect(home.x).toBe(game.scale.width / 2)
-    const scene = game.scene.getScene('map') as unknown as { apply(v: { cx: number; cy: number; zoom: number }): void }
-    scene.apply({ cx: MAP_SPOTS.isle6.x, cy: MAP_SPOTS.isle6.y, zoom: 1 })
-    expect(bridge.mapIslandToScreen!('isle6').y).not.toBe(bridge.mapIslandToScreen!('home').y)
-    const panned = bridge.mapIslandToScreen!('home')
-    expect(panned).not.toEqual(home)
-    bridge.setMapOpen(false)
-    await shown(game, 'island')
-    bridge.setMapOpen(true)
-    await shown(game, 'map')
-    expect(bridge.mapIslandToScreen!('home')).toEqual(home)
   })
 
   describe('the island keeps its sprites across a sync', () => {
@@ -380,16 +408,6 @@ describe('the scene switch', () => {
         expect(scene.view).toEqual(view)
       })
 
-      it('a new view opens fresh, and takes the HUD measure that follows it', async () => {
-        const { bridge, scene } = await island()
-        bridge.setInsets({ top: 90, bottom: 80 })
-        scene.gestures.wheel({ x: 400, y: 300 }, -100)
-        bridge.setView('isle2')
-        const opened = scene.view
-        bridge.setInsets({ top: 90, bottom: 200 })
-        expect(scene.view.cy).not.toBe(opened.cy)
-      })
-
       it('a screen resize opens fresh and refits to the measure after it', async () => {
         const { bridge, scene, resize } = await island()
         bridge.setInsets({ top: 90, bottom: 80 })
@@ -433,38 +451,13 @@ describe('the scene switch', () => {
     })
   })
 
-  it('open, close, open within one frame lands on the Map, with no restart of either scene', async () => {
+  it('a battle takes over from the island, and ends on it', async () => {
     const { bridge, game } = await boot()
     games.push(game)
     await shown(game, 'island')
-    bridge.setMapOpen(true)
-    await shown(game, 'map')
-    const map = game.scene.getScene('map')
-    const created = vi.fn()
-    map.events.on(Phaser.Scenes.Events.START, created)
-    bridge.setMapOpen(false)
-    bridge.setMapOpen(true)
-    bridge.setMapOpen(false)
-    await shown(game, 'island')
-    bridge.setMapOpen(true)
-    bridge.setMapOpen(false)
-    bridge.setMapOpen(true)
-    await shown(game, 'map')
-    expect(game.scene.isSleeping('island')).toBe(true)
-    expect(created).not.toHaveBeenCalled()
-  })
-
-  it('a battle takes over from the Map, and ends on the island', async () => {
-    const { bridge, game } = await boot()
-    games.push(game)
-    bridge.setMapOpen(true)
-    await shown(game, 'map')
-    // The Map is still open on the bridge when the battle starts: the battle wins.
     bridge.setBattle(PREVIEW)
-    expect(bridge.mapOpen).toBe(true)
     await shown(game, 'battle')
-    expect(game.scene.isActive('map')).toBe(false)
-    bridge.setMapOpen(false)
+    expect(game.scene.isSleeping('island')).toBe(true)
     bridge.setBattle(null)
     await shown(game, 'island')
     expect(game.scene.isActive('battle')).toBe(false)
@@ -490,23 +483,23 @@ describe('the scene switch', () => {
       await shown(game, 'island')
       expect(played(sprites)).toBe(1)
       // It is not played again by the next sleep and wake.
-      bridge.setMapOpen(true)
-      await shown(game, 'map')
-      bridge.setMapOpen(false)
+      bridge.setBattle(PREVIEW)
+      await shown(game, 'battle')
+      bridge.setBattle(null)
       await shown(game, 'island')
       expect(played(sprites)).toBe(1)
     })
 
-    it('a level gained with the Map open, whose screen is closed there, plays nothing on return', async () => {
+    it('a level-up screen closed while the island sleeps plays nothing on return', async () => {
       const { bridge, game } = await boot(WITH_FX)
       games.push(game)
       await shown(game, 'island')
       const sprites = vi.spyOn((game.scene.getScene('island') as Phaser.Scene).add, 'sprite')
-      bridge.setMapOpen(true)
-      await shown(game, 'map')
-      bridge.emit({ type: 'levelUp' }) // the screen opens over the Map
+      bridge.setBattle(PREVIEW)
+      await shown(game, 'battle')
+      bridge.emit({ type: 'levelUp' }) // the screen opens over the battle
       bridge.emit({ type: 'levelUpClosed' }) // and is dismissed there
-      bridge.setMapOpen(false)
+      bridge.setBattle(null)
       await shown(game, 'island')
       expect(played(sprites)).toBe(0)
     })
@@ -519,49 +512,5 @@ describe('the scene switch', () => {
       bridge.emit({ type: 'levelUp' })
       expect(played(sprites)).toBe(1)
     })
-  })
-
-  it('the art swap with the Map up: the next game comes back to the Map', async () => {
-    const { bridge, game } = await boot()
-    bridge.setMapOpen(true)
-    await shown(game, 'map')
-    game.destroy(true)
-    await new Promise(r => setTimeout(r, 50))
-    const host = document.createElement('div')
-    document.body.append(host)
-    const next = createGame(host, bridge, { headless: true })
-    games.push(next)
-    await shown(next, 'map')
-    expect(next.scene.isSleeping('island')).toBe(true)
-  })
-
-  it('a tap on an island selects it; open water does nothing', async () => {
-    const { bridge, game } = await boot()
-    games.push(game)
-    bridge.setMapOpen(true)
-    await shown(game, 'map')
-    const seen: unknown[] = []
-    bridge.on('select', e => seen.push(e.target))
-    const scene = game.scene.getScene('map') as unknown as { tap(p: { x: number; y: number }): void }
-    scene.tap(bridge.mapIslandToScreen!('home'))
-    expect(seen).toEqual([{ kind: 'mapIsland', id: 'home' }])
-    const home = bridge.mapIslandToScreen!('home')
-    scene.tap({ x: home.x + 400, y: home.y })
-    expect(seen).toHaveLength(1)
-  })
-
-  it('the plots are drawn once for a holding, and again only when it changes', async () => {
-    const { bridge, game } = await boot()
-    games.push(game)
-    bridge.setMapOpen(true)
-    await shown(game, 'map')
-    const scene = game.scene.getScene('map') as unknown as { plots: Phaser.GameObjects.Graphics }
-    const clear = vi.spyOn(scene.plots, 'clear')
-    const s = newPlayer(0)
-    bridge.setState({ ...s, gold: 7 })
-    bridge.setState({ ...s, gold: 8 })
-    expect(clear).not.toHaveBeenCalled()
-    bridge.setState({ ...s, islands: { ...s.islands, plots: { home: [5, 6, 9, 10, 4] } } })
-    expect(clear).toHaveBeenCalledTimes(1)
   })
 })

@@ -87,8 +87,7 @@ describe('a dialog closes when its panel has nothing to show', () => {
     })
   }
 
-  it('a tap on a plot for sale still opens its panel; the Map (a scene, with no Dialog) and Settings (wallet providers, no subject) stay open', () => {
-    expect(dialogHasSubject(full, { kind: 'panel', id: 'map' }, GAME)).toBe(true)
+  it('a tap on a plot for sale still opens its panel; Settings (wallet providers, no subject) stays open', () => {
     expect(dialogHasSubject(full, { kind: 'panel', id: 'settings' }, GAME)).toBe(true)
     const h = harness(full, 0, undefined, GAME)
     h.wrap(<Host initial={{ kind: 'panel', id: 'shop' }} />)

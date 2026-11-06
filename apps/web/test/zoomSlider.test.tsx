@@ -54,12 +54,8 @@ describe('the zoom slider', () => {
     expect(setZoom).toHaveBeenLastCalledWith(3)
   })
 
-  it('is hidden while the Map shows, and before the scene reports a zoom', () => {
-    const { bridge } = mounted()
-    expect(screen.getByRole('slider', { name: 'Zoom' })).toBeInTheDocument()
-    act(() => bridge.setMapOpen(true))
-    expect(screen.queryByRole('slider', { name: 'Zoom' })).toBeNull()
-    act(() => bridge.setMapOpen(false))
+  it('is hidden before the scene reports a zoom', () => {
+    mounted()
     expect(screen.getByRole('slider', { name: 'Zoom' })).toBeInTheDocument()
     cleanup()
     mounted(null)

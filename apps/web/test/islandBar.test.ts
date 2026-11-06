@@ -45,14 +45,14 @@ describe('the placement footprint', () => {
     const lines = vi.spyOn(Phaser.GameObjects.Graphics.prototype, 'lineStyle')
     const fills = vi.spyOn(Phaser.GameObjects.Graphics.prototype, 'fillStyle')
     bridge.setPlacing({ what: { kind: 'farm' }, size: 3, col: 14, row: 13, facing: 0 })
-    s.children.depthSort()
-    const order = s.children.getChildren()
+    // Inside the island's container (R99), bottom to top: its ground (land and falls), the fill, the objects, the outline.
+    const order = (s as unknown as { isleRoot(id: string): Phaser.GameObjects.Container }).isleRoot('home').list
     const at = (o: Phaser.GameObjects.GameObject) => order.indexOf(o)
-    expect(at(s.footFill)).toBeGreaterThanOrEqual(0)
+    expect(at(s.footFill)).toBeGreaterThanOrEqual(1)
     expect(at(s.footFill)).toBeLessThan(at(s.layer))
     expect(at(s.layer)).toBeLessThan(at(s.outline))
-    // Above the land and the falls.
-    for (const o of order) if (o.name === 'waterfall') expect(at(o)).toBeLessThan(at(s.footFill))
+    // Above the land and the falls, which stand in the first child.
+    expect((order[0] as Phaser.GameObjects.Container).list.some(o => o.name === 'waterfall')).toBe(true)
     const cmds = (g: Phaser.GameObjects.Graphics) => (g as unknown as { commandBuffer: unknown[] }).commandBuffer
     expect(cmds(s.footFill).length).toBeGreaterThan(0)
     expect(lines.mock.contexts).toEqual([s.outline])

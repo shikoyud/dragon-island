@@ -6,22 +6,19 @@ type Zoom = NonNullable<Bridge['zoom']>
 
 /**
  * The island's zoom at the right edge: plus on top, a vertical track, minus below. It follows the island scene's zoom and range
- * through the bridge's `zoom` event (and hides with the Map), and asks the scene to zoom through `setZoom`. It is memoised on the
+ * through the bridge's `zoom` event, and asks the scene to zoom through `setZoom`. It is memoised on the
  * bridge alone and never reads the clock, so the HUD's 1 s tick doesn't render it.
  */
 export const ZoomSlider = memo(function ZoomSlider({ bridge }: { bridge: Bridge }) {
   const [zoom, setZoom] = useState<Zoom | null>(bridge.zoom)
-  const [mapOpen, setMapOpen] = useState(bridge.mapOpen)
   const thumb = useHudSprite('ui.zoom.thumb')
   useEffect(() => {
     // The scene may have reported between the first render and this subscription.
     setZoom(bridge.zoom)
-    setMapOpen(bridge.mapOpen)
-    const offs = [bridge.on('zoom', () => setZoom(bridge.zoom)), bridge.on('map', e => setMapOpen(e.open))]
-    return () => offs.forEach(off => off())
+    return bridge.on('zoom', () => setZoom(bridge.zoom))
   }, [bridge])
 
-  if (!zoom || mapOpen) return null
+  if (!zoom) return null
   const style = thumb ? { '--zoom-thumb': `url("${thumb.src}")` } as CSSProperties : undefined
   return (
     <div className="zoom-slider" role="group" aria-label="Zoom controls" style={style}>

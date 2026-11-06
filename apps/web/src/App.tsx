@@ -11,7 +11,7 @@ import { ActionBar } from './hud/ActionBar'
 import { HomeFinderBar } from './hud/HomeFinderBar'
 import { actionRow, type RowIntent } from './hud/actionRow'
 import { Dialog } from './hud/Dialog'
-import { Hud, isMapDialog, type DialogKey } from './hud/Hud'
+import { Hud, type DialogKey } from './hud/Hud'
 import { LevelUp, useLevelUp } from './hud/LevelUp'
 import { NewDragon } from './hud/NewDragon'
 import { useNewDragon } from './hud/newDragonCard'
@@ -83,20 +83,7 @@ function Game() {
   useEffect(() => { if (me.error) toasts.error(me.error) }, [me.error, toasts])
   const levelUpOpen = levelUp !== null
   useEffect(() => { bridge.emit({ type: levelUpOpen ? 'levelUp' : 'levelUpClosed' }) }, [bridge, levelUpOpen])
-  // A panel over the Map closes back to the Map; the Map closes to the island.
-  const mapPanelOpen = dialog?.kind === 'target' && dialog.target.kind === 'mapIsland'
-  const close = useCallback(() => setDialog(mapPanelOpen ? { kind: 'panel', id: 'map' } : null), [setDialog, mapPanelOpen])
-  // The Map runs in place of the island (R60): never under placement or a battle, and any other dialog closes it.
-  const mapShown = isMapDialog(dialog) && placing === null && !battle.setup
-  useEffect(() => { bridge.setMapOpen(mapShown) }, [bridge, mapShown])
-  // The bare Map has no Dialog to close it: Escape does it here. With an island panel open, the Dialog's Escape closes that first.
-  const mapBare = mapShown && !mapPanelOpen && levelUp === null
-  useEffect(() => {
-    if (!mapBare) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDialog(null) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [mapBare, setDialog])
+  const close = useCallback(() => setDialog(null), [setDialog])
   // Escape deselects when nothing else is up (a dialog's own Escape closes the dialog first).
   const { selected, setSelected, finding, setFinding } = selection
   const deselectable = (selected !== null || finding !== null) && dialog === null && levelUp === null
@@ -166,7 +153,7 @@ function Game() {
 
   // Escape belongs to the level-up screen while it is up; the panel under it stays open.
   const underLevelUp = (fn: () => void) => (levelUp ? () => {} : fn)
-  const content = !battle.setup && dialog && !placing && !(dialog.kind === 'panel' && dialog.id === 'map')
+  const content = !battle.setup && dialog && !placing
     ? { label: dialogLabel(dialog), node: <PanelHost bridge={bridge} nowMs={nowMs} dialog={dialog} onOpen={setDialog} fighting={battle.pending} onTrial={startTrial} onResumeTrial={resumeTrial} onPvp={startPvp} onFindHome={setFinding} />, onClose: underLevelUp(close) }
     : null
 

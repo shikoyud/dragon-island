@@ -12,7 +12,7 @@ export type Target =
   | { kind: 'roost' }
   | { kind: 'decoration'; id: string }
   | { kind: 'obstacle'; id: string }
-  /** An island on the Map. */
+  /** An island's panel: a locked island's caption, or the Islands list (R99). */
   | { kind: 'mapIsland'; id: IslandId }
   /** The sign on an unowned plot that touches owned land. */
   | { kind: 'plot'; island: IslandId; plot: number }
@@ -56,8 +56,6 @@ export type GameEvent =
   | { type: 'insets' }
   /** The island camera's zoom or range changed (`bridge.zoom` has the new values). */
   | { type: 'zoom' }
-  /** The Map opened or closed; config.ts runs the scene switch. */
-  | { type: 'map'; open: boolean }
   /** The level-up screen opened: the island plays `fx.levelUp` once if the art has it. */
   | { type: 'levelUp' }
   /** The level-up screen closed: a play still waiting for the island to wake is dropped. */
@@ -95,8 +93,6 @@ export function createBridge() {
     homeFinder: null as HomeFinder | null,
     view: 'home' as IslandId,
     placing: null as Placing | null,
-    /** True while the Map shows in place of the island (never during placement or a battle). */
-    mapOpen: false,
     /** Screen pixels the HUD covers at the top and bottom; the island camera frames the island between them. */
     insets: { top: 0, bottom: 0 },
     /** The island camera's zoom and whole-number range, kept by the island scene; null until it has framed a view. */
@@ -109,8 +105,6 @@ export function createBridge() {
     focusCell: null as (() => { col: number; row: number }) | null,
     /** The cell a plot's sign stands on, as last drawn. For specs, like `cellToScreen`. */
     signCell: null as ((plot: number) => { col: number; row: number } | null) | null,
-    /** Set by the Map scene: the canvas position of an island's plot diamond. Playwright clicks islands through it. */
-    mapIslandToScreen: null as ((id: IslandId) => { x: number; y: number }) | null,
     on<T extends GameEvent['type']>(type: T, h: Handler<T>): () => void {
       const set = handlers.get(type) ?? new Set()
       handlers.set(type, set)
@@ -156,11 +150,6 @@ export function createBridge() {
     },
     /** Asks the island scene to zoom to `z` about the screen centre; nothing if no island is up. */
     setZoom(z: number): void { bridge.zoomTo?.(z) },
-    setMapOpen(open: boolean): void {
-      if (open === bridge.mapOpen) return
-      bridge.mapOpen = open
-      bridge.emit({ type: 'map', open })
-    },
     setBattle(preview: BattlePreview | null, backdrop: Element | null = null): void {
       bridge.battle = preview
       bridge.battleBackdrop = backdrop

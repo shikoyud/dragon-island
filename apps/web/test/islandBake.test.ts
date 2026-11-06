@@ -36,7 +36,10 @@ async function boot() {
   return { bridge, game, scene: game.scene.getScene('island') as IslandScene }
 }
 
-const fallsOf = (scene: Phaser.Scene) => scene.children.list.filter(o => o.name === 'waterfall')
+/** Every object in the scene, inside the island containers too (R99). */
+const everything = (list: Phaser.GameObjects.GameObject[]): Phaser.GameObjects.GameObject[] =>
+  list.flatMap(o => (o instanceof Phaser.GameObjects.Container ? [o, ...everything(o.list)] : [o]))
+const fallsOf = (scene: Phaser.Scene) => everything(scene.children.list).filter(o => o.name === 'waterfall')
 const buying = (s: PlayerState, plot: number): PlayerState => ({ ...s, islands: { ...s.islands, plots: { ...s.islands.plots, home: [...s.islands.plots.home!, plot] } } } as PlayerState)
 
 describe('the edge between owned and offered land', () => {
@@ -112,29 +115,26 @@ describe('the island bake', () => {
     for (const f of second) expect(f.active).toBe(false)
   })
 
-  it('every island floats: an opened island bakes its own landmass and waterfalls; coming home brings Home\'s back', async () => {
+  it('every island floats: an opened island bakes its own landmass and waterfalls beside Home\'s (R99)', async () => {
     const { bridge, game, scene } = await boot()
     games.push(game)
     const home = fallsOf(scene).length
     const s = bridge.state!
     bridge.setState({ ...s, islands: { ...s.islands, unlocked: [...s.islands.unlocked, 'isle2'], plots: { ...s.islands.plots, isle2: [5, 6, 9, 10] } } } as PlayerState)
-    bridge.setView('isle2')
     const isle = landmass(landPlots(bridge.state!, 'isle2'))
     expect(isle.falls.length).toBeGreaterThan(0)
-    expect(fallsOf(scene)).toHaveLength(isle.falls.length)
+    expect(fallsOf(scene)).toHaveLength(home + isle.falls.length)
     // No fog diamonds: the old tile render texture stays hidden.
-    expect(scene.children.list.some(o => o instanceof Phaser.GameObjects.RenderTexture && o.visible)).toBe(false)
+    expect(everything(scene.children.list).some(o => o instanceof Phaser.GameObjects.RenderTexture && o.visible)).toBe(false)
     scene.rebake()
-    expect(fallsOf(scene)).toHaveLength(isle.falls.length)
-    bridge.setView('home')
-    expect(fallsOf(scene)).toHaveLength(home)
+    expect(fallsOf(scene)).toHaveLength(home + isle.falls.length)
   })
 
   it('a locked island shows no land and no waterfalls', async () => {
-    const { bridge, game, scene } = await boot()
+    const { game, scene } = await boot()
     games.push(game)
-    bridge.setView('isle3')
-    expect(fallsOf(scene)).toHaveLength(0)
+    const root = (scene as unknown as { isleRoot(id: string): Phaser.GameObjects.Container }).isleRoot('isle3')
+    expect(everything(root.list).filter(o => o.name === 'waterfall')).toHaveLength(0)
   })
 
   it('shows the plain sky colour behind everything when the sky art is absent', async () => {
@@ -150,7 +150,7 @@ describe('the selection outline (UI rework Phase 4)', () => {
   beforeEach(() => { vi.spyOn(console, 'warn').mockImplementation(() => {}) })
   afterEach(() => { games.splice(0).forEach(g => g.destroy(true)); vi.restoreAllMocks() })
 
-  it('goes round the selected thing on the island shown, not while placing, and goes when deselected', async () => {
+  it('goes round the selected thing on whichever island it stands, not while placing, and goes when deselected', async () => {
     const { bridge, game, scene } = await boot()
     games.push(game)
     expect(scene.selectionShown()).toBeNull()
@@ -160,8 +160,9 @@ describe('the selection outline (UI rework Phase 4)', () => {
     expect(scene.selectionShown()).toBeNull()
     bridge.setPlacing(null)
     expect(scene.selectionShown()).not.toBeNull()
+    // Every island is on screen together (R99): another view keeps it.
     bridge.setView('isle2')
-    expect(scene.selectionShown()).toBeNull()
+    expect(scene.selectionShown()).not.toBeNull()
     bridge.setView('home')
     bridge.setSelection(null)
     expect(scene.selectionShown()).toBeNull()
@@ -173,7 +174,7 @@ describe('the home finder outlines (ruling A5)', () => {
   beforeEach(() => { vi.spyOn(console, 'warn').mockImplementation(() => {}) })
   afterEach(() => { games.splice(0).forEach(g => g.destroy(true)); vi.restoreAllMocks() })
 
-  it('outlines each habitat the dragon fits on the island shown, keeps them over a clock sync, and clears them on close', async () => {
+  it('outlines each habitat the dragon fits on any island, keeps them over a clock sync and a change of view, and clears them on close', async () => {
     const { bridge, game, scene } = await boot()
     games.push(game)
     bridge.setHomeFinder({ dragonId: 'd3', homes: ['h1'] })
@@ -181,7 +182,7 @@ describe('the home finder outlines (ruling A5)', () => {
     bridge.setState({ ...bridge.state!, gold: bridge.state!.gold + 1 })
     expect(scene.homesShown()).toEqual(['h1'])
     bridge.setView('isle2')
-    expect(scene.homesShown()).toEqual([])
+    expect(scene.homesShown()).toEqual(['h1'])
     bridge.setView('home')
     bridge.setHomeFinder(null)
     expect(scene.homesShown()).toEqual([])

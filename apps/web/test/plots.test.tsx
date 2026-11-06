@@ -9,7 +9,7 @@ import { createBridge, type Placing } from '../src/game/bridge'
 import { cameraBounds, groundCell, lockedTiles, shownSize } from '../src/game/camera'
 import { buildIslandModel, SIGN_SCALE } from '../src/game/islandModel'
 import { cellCentre, cellTop, islandBox, pointerToCell } from '../src/game/layout'
-import { isMapDialog, type DialogKey } from '../src/hud/Hud'
+import { type DialogKey } from '../src/hud/Hud'
 import { levelUnlockLines } from '../src/hud/hudModel'
 import { MapIslandPanel } from '../src/panels/MapIslandPanel'
 import { dialogLabel, PanelHost } from '../src/panels/PanelHost'
@@ -245,10 +245,10 @@ describe('MapIslandPanel', () => {
   })
 })
 
-describe('the Map in the dialog host', () => {
+describe('an island panel in the dialog host (R99)', () => {
   const open: PlayerState = { ...base, islands: { ...base.islands, unlocked: ['home', 'isle2'], plots: { ...base.islands.plots, isle2: [5, 6, 9, 10] } } }
 
-  it('a tap on an island opens its panel; Go closes the Map and shows that island', async () => {
+  it('a tap on an island opens its panel; Go closes it and shows that island', async () => {
     const bridge = createBridge()
     harness(open).wrap(<TestHost bridge={bridge} />)
     act(() => bridge.emit({ type: 'select', target: { kind: 'mapIsland', id: 'isle2' } }))
@@ -257,29 +257,19 @@ describe('the Map in the dialog host', () => {
     expect(screen.queryByRole('button', { name: 'Go to Ember Reach' })).toBeNull()
   })
 
-  it('Close goes back to the Map, not the island, and the Map itself is no dialog', async () => {
+  it('Close goes back to the island: there is no Map', async () => {
     const bridge = createBridge()
     const seen: (DialogKey | null)[] = []
     harness(open).wrap(<PanelHost bridge={bridge} nowMs={0} dialog={{ kind: 'target', target: { kind: 'mapIsland', id: 'isle2' } }} onOpen={k => seen.push(k)} />)
     await userEvent.click(screen.getByRole('button', { name: 'Close' }))
-    expect(seen).toEqual([{ kind: 'panel', id: 'map' }])
-    cleanup()
-    harness(open).wrap(<PanelHost bridge={bridge} nowMs={0} dialog={{ kind: 'panel', id: 'map' }} onOpen={() => {}} />)
-    expect(screen.queryByRole('region')).toBeNull()
+    expect(seen).toEqual([null])
   })
 
   it('the dialog around an island panel is named for the island', () => {
     expect(dialogLabel({ kind: 'target', target: { kind: 'mapIsland', id: 'isle2' } })).toBe('Ember Reach')
   })
-
-  it('isMapDialog: the Map and its island panels, nothing else', () => {
-    expect(isMapDialog({ kind: 'panel', id: 'map' })).toBe(true)
-    expect(isMapDialog({ kind: 'target', target: { kind: 'mapIsland', id: 'home' } })).toBe(true)
-    expect(isMapDialog({ kind: 'panel', id: 'shop' })).toBe(false)
-    expect(isMapDialog({ kind: 'target', target: { kind: 'plot', island: 'home', plot: 0 } })).toBe(false)
-    expect(isMapDialog(null)).toBe(false)
-  })
 })
+
 
 describe('copy', () => {
   it('messageFor covers the land errors', () => {

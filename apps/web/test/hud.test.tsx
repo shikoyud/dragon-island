@@ -106,35 +106,17 @@ describe('HUD', () => {
     expect(r.onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'quests' })
   })
 
-  it('has Settings and Map at the top right (Q7); Admin only with an operator token in this tab', () => {
+  it('has Settings at the top right and no Map (R99); Admin only with an operator token in this tab', () => {
     renderHud(base())
     const right = screen.getByRole('navigation', { name: 'Island menu' })
-    expect(within(right).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Settings', 'Map'])
+    expect(within(right).getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Settings'])
+    expect(screen.queryByRole('button', { name: 'Map' })).toBeNull()
     for (const label of ['Hoard', 'Season', 'Ranks', 'Referral']) expect(screen.queryByRole('button', { name: label })).toBeNull()
     expect(within(right).queryByRole('link', { name: 'Admin' })).toBeNull()
   })
 
-  it('the Map button opens the Map and toggles back; it is lit with an island panel open too', async () => {
-    const closed = renderHud(base())
-    await userEvent.click(screen.getByRole('button', { name: 'Map' }))
-    expect(closed.onOpen).toHaveBeenLastCalledWith({ kind: 'panel', id: 'map' })
-    cleanup()
-    const open = renderHud(base(), { open: { kind: 'panel', id: 'map' } })
-    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true')
-    await userEvent.click(screen.getByRole('button', { name: 'Map' }))
-    expect(open.onOpen).toHaveBeenLastCalledWith(null)
-    cleanup()
-    renderHud(base(), { open: { kind: 'target', target: { kind: 'mapIsland', id: 'isle2' } } })
-    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('the Map waits while a building is being placed', () => {
-    renderHud(base(), { placing: true })
-    expect(screen.getByRole('button', { name: 'Map' })).toBeDisabled()
-  })
-
-  it('on the Map, a list of buttons named for each island sits in the page (R60), and the menus stay', async () => {
-    const { onOpen } = renderHud(base(), { open: { kind: 'panel', id: 'map' } })
+  it('a list of buttons named for each island sits in the page for the keyboard (R99), and the menus stay', async () => {
+    const { onOpen } = renderHud(base())
     const list = screen.getByRole('navigation', { name: 'Islands' })
     expect(within(list).getAllByRole('button').map(b => b.textContent)).toEqual([
       'Home Isle · 4 / 16', 'Ember Reach · Level 12 · Bridge 150,000', 'Frostspire · Level 18', 'Ironhold · Level 25', 'Shadowmere · Level 32', "Warlord's Crown · Level 40",
@@ -146,8 +128,8 @@ describe('HUD', () => {
     expect(screen.getByRole('status', { name: 'Resources' })).toBeInTheDocument()
   })
 
-  it('off the Map there is no island list', () => {
-    renderHud(base())
+  it('while placing there is no island list', () => {
+    renderHud(base(), { placing: true })
     expect(screen.queryByRole('navigation', { name: 'Islands' })).toBeNull()
   })
 

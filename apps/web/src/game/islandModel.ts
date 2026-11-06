@@ -26,8 +26,8 @@ export interface IslandObject {
   frame?: number
   /** Facings 1 and 3 draw the mirror of the front view. */
   flipX?: boolean
-  /** bad reddens a placement ghost on an illegal spot; building marks a construction in progress. */
-  tint?: 'bad' | 'building'
+  /** bad reddens a placement ghost on an illegal spot; building marks a construction in progress; locked greys a locked island (R99). */
+  tint?: 'bad' | 'building' | 'locked'
   /**
    * The least this is tapped at on screen, in CSS px: something drawn smaller than that at the current zoom (a plot sign,
    * its 48 px art drawn at `SIGN_SCALE`, is 24 px at zoom 1) gets a tap box of this size, centred on it, in place of its own pixels.
