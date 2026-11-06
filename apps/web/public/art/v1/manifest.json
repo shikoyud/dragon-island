@@ -4535,6 +4535,86 @@
       "frames": 1,
       "fps": 0,
       "top": 8
+    },
+    "battle.wide.dark": {
+      "file": "battle-wide-dark.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.electric": {
+      "file": "battle-wide-electric.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.flame": {
+      "file": "battle-wide-flame.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.ice": {
+      "file": "battle-wide-ice.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.light": {
+      "file": "battle-wide-light.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.metal": {
+      "file": "battle-wide-metal.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.nature": {
+      "file": "battle-wide-nature.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.sea": {
+      "file": "battle-wide-sea.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.terra": {
+      "file": "battle-wide-terra.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.war": {
+      "file": "battle-wide-war.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
     }
   }
 }

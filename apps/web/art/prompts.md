@@ -389,3 +389,26 @@ Scene tail: "chunky pixel art, 1px dark outline, limited palette, warm daylight,
 Discarded: breeding 917 (two scenes side by side), parchment 914 (a rolled scroll), wood 915 (diagonal grain), and one 429 refusal (no cost).
 
 Code: alpha hardened everywhere except the opaque backgrounds. `bg.parchment` cut to its outline and remapped to the 16 px 9-slice with a flat centre. `bg.wood`: the drawn outline cropped off, then the left 32 columns plus their mirror, so the tile repeats in x with no seam. `fx.glow` drawn in code: 12 pale gold rays plus a core, alpha from a 4x4 ordered dither (alpha 200 inside radius 14, 150 outside).
+
+## Landscape battle backdrops (2026-11-06)
+
+`battle.wide.<element>`, 640x360, for the landscape battle screen; the portrait `battle.backdrop.<element>` stay. Cost 15 generations (861 before, 846 after), `create_image_pixen` 640x360, opaque, view side.
+
+Prompt: "Wide background scene for a turn-based battle: <place>. <sky or ceiling> in the upper half only, calm and simple in the top centre. From 55 percent down a broad flat empty <ground> fills the whole width, same simple texture everywhere, nothing standing on it. Muted mid-dark tones, low contrast, simple side edges. Scene only: no interface, no HUD, no icons, no text, no characters, no creatures, no border, no frame. Crisp pixel art." Rerolls (seeds 951, 952) add "seen from slightly above" after the ground, "Open space in the middle, nothing in the foreground", and "Muted mid tones"; 952 adds "no health bar, no score, no numbers".
+
+| Element | Seed | Place / sky / ground |
+| --- | --- | --- |
+| flame | 950 | a volcanic wasteland / a smoky dark sky with a distant smoking volcano at the far left / dark ash and black rock ground |
+| ice | 950 | a frozen valley between pale blue ice cliffs at the far left and right / a cold grey overcast sky / cracked pale blue ice floor |
+| metal | 950 | a dim iron forge hall / a dark back wall with a row of glowing furnace mouths and iron beams / dark iron plate floor |
+| sea | 950 | an underwater sea cave / a blue cave ceiling with soft light rays from above and coral at the sides / pale blue sandy sea floor |
+| terra | 950 | a canyon at sunset between tall sandstone cliffs at the far left and right / an orange sunset sky / dry orange earth ground with sparse dry grass |
+| war | 950 | a castle courtyard / a dark stone castle wall with a gate and red banners under a red sky / brown packed earth courtyard ground |
+| dark | 951 | a large dark cavern with twisted black roots on the far left and right walls / a dim violet cave with glowing violet spores / flat smooth dark purple stone ground |
+| light | 951 | a bright open marble temple terrace / a pale gold sky with soft clouds and white marble columns only at the far left and far right / flat pale stone tile floor |
+| nature | 951 | a forest clearing / dark green forest trees and canopy / flat open short green grass meadow |
+| electric | 952 | a wide open stormy plain / a dark violet storm sky with clouds and lightning bolts / flat dark grey rocky plain with a few small glowing yellow cracks |
+
+Discarded: seed 950 dark (floor read as a wall), electric (plain read as a wall), light (a pillar in the middle foreground), nature (hedge ground); seed 951 electric (a fake "55" HUD panel in the sky).
+
+Code: alpha forced to 255. War: the model wrote "55" on a small sign by the flag pole; the board's inside (x 255–274, y 18–35) is filled with its own median red, leaving a blank banner.
