@@ -12,14 +12,17 @@ export type Target =
   | { kind: 'roost' }
   | { kind: 'decoration'; id: string }
   | { kind: 'obstacle'; id: string }
-  /** An island on the Map. */
+  /** An island's panel: a locked island's caption, or the Islands list (R99). */
   | { kind: 'mapIsland'; id: IslandId }
   /** The sign on an unowned plot that touches owned land. */
   | { kind: 'plot'; island: IslandId; plot: number }
   | { kind: 'cell'; col: number; row: number }
   | { kind: 'empty' }
 
-/** The Golden Aerie: a Store purchase (§5.2) placed like a habitat; the charge is sent with its placement on Confirm. */
+/** A dragon waiting for a home, and the habitats it can move into. */
+export interface HomeFinder { dragonId: string; homes: string[] }
+
+/** The Golden Aerie: a Store purchase (§5.2) placed like a habitat; the charge is sent with its placement on OK. */
 export interface AerieOffer { kind: 'goldenAerie' }
 
 /** What the grid rules judge for a thing being placed: the Aerie is a habitat-sized building. */
@@ -41,6 +44,8 @@ export type GameEvent =
   | { type: 'hover'; target: Target | null }
   /** A tap on a habitat's gold badge; React runs the `collectGold` action. */
   | { type: 'collectGold'; habitatId: string }
+  /** A tap on a ripe farm's bubble; React runs the `harvest` action. */
+  | { type: 'harvest'; plot: number }
   | { type: 'battle'; preview: BattlePreview | null }
   /** How many log events have played: the scene shows those, and plays the effects of the newest. */
   | { type: 'battleShown'; shown: number }
@@ -49,13 +54,17 @@ export type GameEvent =
   | { type: 'view'; view: IslandId }
   | { type: 'placing'; placing: Placing | null }
   | { type: 'insets' }
-  /** The Map opened or closed; config.ts runs the scene switch. */
-  | { type: 'map'; open: boolean }
+  /** The island camera's zoom or range changed (`bridge.zoom` has the new values). */
+  | { type: 'zoom' }
   /** The level-up screen opened: the island plays `fx.levelUp` once if the art has it. */
   | { type: 'levelUp' }
   /** The level-up screen closed: a play still waiting for the island to wake is dropped. */
   | { type: 'levelUpClosed' }
   | { type: 'ready' }
+  /** A waiting dragon's home finder opened, changed or closed (ruling A5): the scene outlines the habitats. */
+  | { type: 'homeFinder' }
+  /** What is selected on the island changed (UI rework Phase 4): the scene outlines it. */
+  | { type: 'selection'; target: Target | null }
 
 type Handler<T extends GameEvent['type']> = (e: Extract<GameEvent, { type: T }>) => void
 
@@ -78,18 +87,29 @@ export function createBridge() {
     /** The chapter's element for the backdrop's fill; null for the Arena. */
     battleBackdrop: null as Element | null,
     selected: { kind: 'empty' } as Target,
+    /** The thing selected on the island, whose action row shows (UI rework Phase 4); null when nothing is. */
+    selection: null as Target | null,
+    /** A dragon waiting in the Hatchery and the habitats it can move into, while the player picks one (ruling A5). */
+    homeFinder: null as HomeFinder | null,
     view: 'home' as IslandId,
     placing: null as Placing | null,
-    /** True while the Map shows in place of the island (never during placement or a battle). */
-    mapOpen: false,
     /** Screen pixels the HUD covers at the top and bottom; the island camera frames the island between them. */
     insets: { top: 0, bottom: 0 },
+    /** The island camera's zoom and whole-number range, kept by the island scene; null until it has framed a view. */
+    zoom: null as { zoom: number; min: number; max: number } | null,
+    /** Set by the island scene: zooms the camera around the screen centre to a whole zoom (the zoom slider's way in). */
+    zoomTo: null as ((zoom: number) => void) | null,
     /** Set by the island scene: the canvas position of a cell's centre. Playwright clicks cells through it. */
     cellToScreen: null as ((col: number, row: number) => { x: number; y: number }) | null,
     /** Set by the island scene: the cell at the centre of what the player is looking at (new buildings open near it). */
     focusCell: null as (() => { col: number; row: number }) | null,
-    /** Set by the Map scene: the canvas position of an island's plot diamond. Playwright clicks islands through it. */
-    mapIslandToScreen: null as ((id: IslandId) => { x: number; y: number }) | null,
+    /**
+     * Set by the island scene: the canvas position of an island's tap point, its land's middle when open and its caption when
+     * locked (R99). Playwright clicks islands through it, like `cellToScreen`.
+     */
+    islandToScreen: null as ((id: IslandId) => { x: number; y: number }) | null,
+    /** The cell a plot's sign stands on, as last drawn. For specs, like `cellToScreen`. */
+    signCell: null as ((plot: number) => { col: number; row: number } | null) | null,
     on<T extends GameEvent['type']>(type: T, h: Handler<T>): () => void {
       const set = handlers.get(type) ?? new Set()
       handlers.set(type, set)
@@ -107,6 +127,16 @@ export function createBridge() {
       bridge.state = state
       bridge.emit({ type: 'state', state })
     },
+    setSelection(target: Target | null): void {
+      if (JSON.stringify(target) === JSON.stringify(bridge.selection)) return
+      bridge.selection = target
+      bridge.emit({ type: 'selection', target })
+    },
+    setHomeFinder(f: HomeFinder | null): void {
+      if (JSON.stringify(f) === JSON.stringify(bridge.homeFinder)) return
+      bridge.homeFinder = f
+      bridge.emit({ type: 'homeFinder' })
+    },
     setArt(art: GameArtSet): void { bridge.art = art },
     setClock(nowMs: number): void { bridge.nowMs = nowMs },
     setPreset(preset: Preset): void { bridge.preset = preset },
@@ -123,11 +153,8 @@ export function createBridge() {
       bridge.insets = insets
       bridge.emit({ type: 'insets' })
     },
-    setMapOpen(open: boolean): void {
-      if (open === bridge.mapOpen) return
-      bridge.mapOpen = open
-      bridge.emit({ type: 'map', open })
-    },
+    /** Asks the island scene to zoom to `z` about the screen centre; nothing if no island is up. */
+    setZoom(z: number): void { bridge.zoomTo?.(z) },
     setBattle(preview: BattlePreview | null, backdrop: Element | null = null): void {
       bridge.battle = preview
       bridge.battleBackdrop = backdrop

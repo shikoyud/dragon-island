@@ -1,9 +1,10 @@
-import { ISLAND_TILES, ownedPlots, plotOfTile, plotOrigin, TILES_PER_PLOT, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { ISLAND_TILES, offeredPlots, ownedPlots, plotOfTile, plotOrigin, PLOTS_PER_SIDE, TILES_PER_PLOT, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { landmassBox } from './islandShape'
 import { footprintDiamond, islandBox, pointerToCell, type Box } from './layout'
 
 /** Height in world pixels of the cliff drawn under the island's two front edges. */
 export const SKIRT = 12
-/** Sea shown around the island at the camera's edges. */
+/** Sky shown around the island at the camera's edges. */
 const MARGIN = 24
 
 /** What the camera shows: the world point at the screen's centre, and a whole-number zoom. */
@@ -14,18 +15,41 @@ export function shownSize(): { w: number; h: number } {
   return { w: ISLAND_TILES, h: ISLAND_TILES }
 }
 
-/** World box the camera may show: the island's diamond (every island is 32x32), its cliff skirt and a margin of sea. */
-export function cameraBounds(): Box {
-  const { w, h } = shownSize()
-  const b = islandBox(w, h)
-  return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + SKIRT + 2 * MARGIN }
+const ALL_PLOTS = Array.from({ length: PLOTS_PER_SIDE * PLOTS_PER_SIDE }, (_, i) => i)
+/** An island with all 16 plots: the widest it can ever be, whichever land is bought, worked out with nothing rasterised. */
+const FULL_ISLAND = landmassBox(ALL_PLOTS)
+
+/**
+ * World box the camera may show: the box of the full landmass of all 16 plots and a margin, so it doesn't change as land
+ * grows. Every island floats as Home does (UI rework Phase 3), so they share it.
+ */
+export function cameraBounds(_view: IslandId): Box {
+  const b = FULL_ISLAND
+  return { x: b.x - MARGIN, y: b.y - MARGIN, w: b.w + 2 * MARGIN, h: b.h + 2 * MARGIN }
 }
 
-/** The tile under a world position, or null off the island. Land not owned counts: a red ghost can go over fog. */
-export function groundCell(state: PlayerState | null, worldX: number, worldY: number): { col: number; row: number } | null {
+/**
+ * The plots drawn as land on an island: what the player owns plus the plots offered for sale (U3), on every island. A
+ * locked island has none.
+ */
+export function landPlots(state: PlayerState, view: IslandId): number[] {
+  return [...ownedPlots(state, view), ...offeredPlots(state, view)]
+}
+
+/** The tile under a world position, or null off the land shown. Locked land counts: a red ghost can go over it. */
+export function groundCell(state: PlayerState | null, view: IslandId, worldX: number, worldY: number): { col: number; row: number } | null {
   if (!state) return null
   const c = pointerToCell(worldX, worldY)
-  return plotOfTile(c.col, c.row) === null ? null : c
+  const plot = plotOfTile(c.col, c.row)
+  return plot === null || !landPlots(state, view).includes(plot) ? null : c
+}
+
+/** The plot for sale under a world position, or null: a tap on its bare ground opens it (design: "Locked plot | any | opens Expand"). */
+export function offeredPlotAt(state: PlayerState | null, view: IslandId, worldX: number, worldY: number): number | null {
+  if (!state) return null
+  const c = pointerToCell(worldX, worldY)
+  const plot = plotOfTile(c.col, c.row)
+  return plot !== null && offeredPlots(state, view).includes(plot) ? plot : null
 }
 
 /** World position of a screen pixel (screen = the game canvas, in CSS pixels). */
@@ -66,26 +90,41 @@ export function clampView(v: View, viewportW: number, viewportH: number, b: Box)
 }
 
 /**
- * Opening zoom, a whole number never below 1. Landscape: nearest to fitting the box, leaning up from x.4. Portrait
- * (a phone): rounded up, since the wide island is width-limited with height to spare; edges are a drag away.
+ * Opening zoom, a whole number. Landscape: nearest to fitting the box, leaning up from x.4, and never below 2: zoom 1 is
+ * unreadable, and a short screen has the rest a drag or a zoom away. Portrait (a phone): rounded up, never below 1, since
+ * the wide island is width-limited with height to spare; edges are a drag away.
  */
 export function fitZoom(viewportW: number, viewportH: number, b: Box): number {
   const f = Math.min(viewportW / b.w, viewportH / b.h)
-  return Math.max(1, viewportH > viewportW ? Math.ceil(f) : Math.round(f + 0.1))
+  return viewportH > viewportW ? Math.max(1, Math.ceil(f)) : Math.max(2, Math.round(f + 0.1))
 }
 
-/** World px kept round owned land when fitting it: a 64 px plot sign at the corner stays clear of the HUD, a building on the edge uncropped. */
+/**
+ * How far to pan, in screen px, to bring a thing into the band the HUD leaves free: from the `top` of what it shows above
+ * itself to its `bottom`, and its `x` from the sides. If it's taller than the band, the bottom wins: that keeps it clear of the buttons.
+ */
+export function revealPan(s: { x: number; top: number; bottom: number }, screen: { w: number; h: number }, insets: { top: number; bottom: number }): { dx: number; dy: number } {
+  const side = 48
+  const minY = insets.top + 8
+  const maxY = screen.h - insets.bottom - 24
+  const dx = s.x < side ? side - s.x : s.x > screen.w - side ? screen.w - side - s.x : 0
+  let dy = s.top < minY ? minY - s.top : 0
+  if (s.bottom + dy > maxY) dy = maxY - s.bottom
+  return { dx, dy }
+}
+
+/** World px kept round owned land when fitting it: a plot sign (drawn at half size) and its caption at the corner stay clear of the HUD, a building on the edge uncropped. */
 const OPENING_PAD = 32
 
 /**
- * World box round the diamonds of the plots owned on an island. With none owned (or no state) it is the whole island's, so
- * the camera has somewhere to open.
+ * World box round the diamonds of the land shown on an island (`landPlots`: owned plus, on Home, the offered ones). With no
+ * state it is the whole island's, so the camera has somewhere to open.
  */
-export function ownedLandBox(state: PlayerState | null, view: IslandId): Box {
-  const owned = state ? ownedPlots(state, view) : []
-  if (owned.length === 0) return islandBox(ISLAND_TILES, ISLAND_TILES)
+export function landBox(state: PlayerState | null, view: IslandId): Box {
+  const land = state ? landPlots(state, view) : []
+  if (land.length === 0) return islandBox(ISLAND_TILES, ISLAND_TILES)
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
-  for (const plot of owned) {
+  for (const plot of land) {
     const o = plotOrigin(plot)
     for (const p of footprintDiamond(o.col, o.row, TILES_PER_PLOT)) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y) }
   }
@@ -94,10 +133,10 @@ export function ownedLandBox(state: PlayerState | null, view: IslandId): Box {
 
 /**
  * Where the camera opens (R58): the middle of the owned land, at the whole-number zoom that fits it with a margin
- * (`fitZoom`, never below 1). `viewportH` is the height the HUD leaves free. Drag or zoom reaches the rest of the island.
+ * (`fitZoom`). `viewportH` is the height the HUD leaves free. Drag or zoom reaches the rest of the island.
  */
 export function openingView(state: PlayerState | null, view: IslandId, viewportW: number, viewportH: number): View {
-  const b = ownedLandBox(state, view)
+  const b = landBox(state, view)
   const padded = { x: b.x - OPENING_PAD, y: b.y - OPENING_PAD, w: b.w + 2 * OPENING_PAD, h: b.h + 2 * OPENING_PAD }
   return { cx: b.x + b.w / 2, cy: b.y + b.h / 2, zoom: fitZoom(viewportW, viewportH, padded) }
 }
@@ -117,11 +156,15 @@ export function stepZoom(zoom: number, dir: -1 | 1, range: { min: number; max: n
   return Math.min(range.max, Math.max(range.min, zoom - dir))
 }
 
-/** Every tile of the viewed island not on an owned plot: the fog. */
+/** Every tile on land shown but not owned: the offered plots. */
 export function lockedTiles(state: PlayerState | null, view: IslandId): { col: number; row: number }[] {
   if (!state) return []
   const owned = new Set(ownedPlots(state, view))
+  const shownPlots = new Set(landPlots(state, view))
   const out: { col: number; row: number }[] = []
-  for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) if (!owned.has(plotOfTile(col, row)!)) out.push({ col, row })
+  for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) {
+    const plot = plotOfTile(col, row)!
+    if (shownPlots.has(plot) && !owned.has(plot)) out.push({ col, row })
+  }
   return out
 }

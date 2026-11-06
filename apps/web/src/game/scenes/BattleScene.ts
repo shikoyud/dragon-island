@@ -59,8 +59,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
-    // The no-art fill stays inside the stage; past its edges the camera's flat colour shows, with no horizon seam.
-    this.ground = this.add.rectangle(0, BATTLE_HORIZON_Y, BATTLE.w, BATTLE.h - BATTLE_HORIZON_Y, 0xffffff).setOrigin(0, 0)
+    // The ground runs far past the stage's sides and foot (R98): a screen wider or taller than the stage shows more ground, not a seam.
+    this.ground = this.add.rectangle(-BATTLE.w * 4, BATTLE_HORIZON_Y, BATTLE.w * 9, BATTLE.h * 4, 0xffffff).setOrigin(0, 0)
     // Backdrop art covers the stage (the fill shows only past its edges); the drawn platforms, or the platform art, sit on it.
     this.backdrop = this.add.image(0, 0, FALLBACK_KEY).setOrigin(0, 0).setVisible(false)
     this.platforms = this.add.graphics()
@@ -101,9 +101,15 @@ export class BattleScene extends Phaser.Scene {
     this.ground.setFillStyle(fill.ground)
     const art = this.bridge.art ?? FALLBACK_ART
     const element = this.bridge.battleBackdrop
-    const backdropKey = element && art.battle.backdrop[element] ? textureKey(`battle.backdrop.${element}`) : null
-    if (backdropKey && this.textures.exists(backdropKey)) this.backdrop.setTexture(backdropKey).setDisplaySize(BATTLE.w, BATTLE.h).setVisible(true)
-    else this.backdrop.setVisible(false)
+    // The landscape backdrop covers the stage (R98); without it the portrait one spans its width, cropped to its lower part (R102).
+    const wideKey = element && art.battle.wide?.[element] ? textureKey(`battle.wide.${element}`) : null
+    const tallKey = element && art.battle.backdrop[element] ? textureKey(`battle.backdrop.${element}`) : null
+    if (wideKey && this.textures.exists(wideKey)) this.backdrop.setTexture(wideKey).setPosition(0, 0).setDisplaySize(BATTLE.w, BATTLE.h).setVisible(true)
+    else if (tallKey && this.textures.exists(tallKey)) {
+      const tall = art.battle.backdrop[element!]!
+      const h = Math.round((BATTLE.w * tall.h) / tall.w)
+      this.backdrop.setTexture(tallKey).setDisplaySize(BATTLE.w, h).setPosition(0, BATTLE.h - h).setVisible(true)
+    } else this.backdrop.setVisible(false)
     const platformKey = art.battle.platform ? textureKey('ui.battle.platform') : null
     const platformArt = platformKey !== null && this.textures.exists(platformKey)
     const g = this.platforms.clear()

@@ -1,4 +1,4 @@
-import { ISLAND_TILES, LAUNCH_CATALOG, newPlayer, plotOfTile, plotOrigin, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
+import { LAUNCH_CATALOG, newPlayer, plotOfTile, plotOrigin, type IslandId, type PlayerState } from '@wyrmhaven/game-core'
 import { act, cleanup, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -7,9 +7,9 @@ import { artSetFromManifest } from '../src/art/fromManifest'
 import { FALLBACK_ART } from '../src/art/slots'
 import { createBridge, type Placing } from '../src/game/bridge'
 import { cameraBounds, groundCell, lockedTiles, shownSize } from '../src/game/camera'
-import { buildIslandModel } from '../src/game/islandModel'
-import { cellCentre, cellTop, islandBox } from '../src/game/layout'
-import { isMapDialog, type DialogKey } from '../src/hud/Hud'
+import { buildIslandModel, SIGN_SCALE } from '../src/game/islandModel'
+import { cellCentre, cellTop, islandBox, pointerToCell } from '../src/game/layout'
+import { type DialogKey } from '../src/hud/Hud'
 import { levelUnlockLines } from '../src/hud/hudModel'
 import { MapIslandPanel } from '../src/panels/MapIslandPanel'
 import { dialogLabel, PanelHost } from '../src/panels/PanelHost'
@@ -22,40 +22,64 @@ const base = newPlayer(0)
 const model = (s: PlayerState, view: IslandId = 'home', placing: Placing | null = null) => buildIslandModel(s, FALLBACK_ART, LAUNCH_CATALOG, 0, view, placing)
 
 describe('fog and ground on 32x32 (R43, R58)', () => {
-  it('lockedTiles lists every tile not on an owned plot', () => {
+  it('on Home lockedTiles lists the tiles of the offered plots only', () => {
     const tiles = lockedTiles(base, 'home')
-    expect(tiles).toHaveLength(ISLAND_TILES * ISLAND_TILES - 4 * 64)
-    for (const t of tiles) expect([5, 6, 9, 10]).not.toContain(plotOfTile(t.col, t.row))
+    expect(tiles).toHaveLength(3 * 64)
+    for (const t of tiles) expect([2, 7, 11]).toContain(plotOfTile(t.col, t.row))
     expect(lockedTiles(null, 'home')).toEqual([])
     expect(lockedTiles(withPlots(base, Array.from({ length: 16 }, (_, i) => i)), 'home')).toEqual([])
   })
-  it('groundCell returns tiles anywhere on 32x32, so a red ghost can go over fog', () => {
-    const at = (col: number, row: number) => { const c = cellCentre(col, row); return groundCell(base, c.x, c.y) }
-    expect(at(0, 0)).toEqual({ col: 0, row: 0 })
-    expect(at(31, 31)).toEqual({ col: 31, row: 31 })
+  it('on another island lockedTiles is the offered land round the owned plots; the far corners are sky', () => {
+    const s = withPlots({ ...base, islands: { ...base.islands, unlocked: ['home', 'isle2'] } }, [5, 6, 9, 10], 'isle2')
+    const tiles = lockedTiles(s, 'isle2')
+    expect(tiles).toHaveLength(8 * 64)
+    expect(tiles).not.toContainEqual({ col: 0, row: 0 })
+    for (const t of tiles) expect([5, 6, 9, 10]).not.toContain(plotOfTile(t.col, t.row))
+  })
+  it('groundCell is a cell on owned and offered Home land, a red ghost can go over a locked plot, and nothing else', () => {
+    const at = (col: number, row: number, view: IslandId = 'home') => { const c = cellCentre(col, row); return groundCell(base, view, c.x, c.y) }
+    expect(at(0, 0)).toBeNull()
+    expect(at(31, 31)).toBeNull()
+    expect(at(24, 8)).toEqual({ col: 24, row: 8 }) // plot 7, offered
+    expect(at(0, 0, 'isle2')).toBeNull() // a locked island shows no land
+    expect(at(31, 31, 'isle2')).toBeNull()
     expect(at(32, 0)).toBeNull()
-    expect(groundCell(null, 0, 4)).toBeNull()
+    expect(groundCell(null, 'home', 0, 4)).toBeNull()
   })
   it('the shown size is always 32x32', () => {
     expect(shownSize()).toEqual({ w: 32, h: 32 })
-    expect(cameraBounds().w).toBeGreaterThan(islandBox(32, 32).w)
+    expect(cameraBounds('home').w).toBeGreaterThan(islandBox(32, 32).w)
+    expect(cameraBounds('isle2').w).toBeGreaterThan(islandBox(32, 32).w)
   })
 })
 
 describe('plot signs', () => {
-  it('each unowned plot touching owned land yields one sign at its centre', () => {
+  it('Home yields one sign per offered plot, at its centre', () => {
     const { objects, markers } = model(base)
     const signs = objects.filter(o => o.id.startsWith('sign:'))
-    expect(signs.map(o => o.id).sort()).toEqual([1, 2, 4, 7, 8, 11, 13, 14].map(p => `sign:${p}`).sort())
-    expect(markers.signs.map(s => s.plot).sort((a, b) => a - b)).toEqual([1, 2, 4, 7, 8, 11, 13, 14])
-    const four = objects.find(o => o.id === 'sign:4')!
-    const o = plotOrigin(4)
-    expect(four.target).toEqual({ kind: 'plot', island: 'home', plot: 4 })
-    expect({ x: four.x, y: four.y }).toEqual(cellTop(o.col + 4, o.row + 4))
+    expect(signs.map(o => o.id).sort()).toEqual(['sign:11', 'sign:2', 'sign:7'])
+    expect(markers.signs.map(s => s.plot)).toEqual([2, 7, 11])
+    const seven = objects.find(o => o.id === 'sign:7')!
+    const o = plotOrigin(7)
+    expect(seven.target).toEqual({ kind: 'plot', island: 'home', plot: 7 })
+    // On plot 7, within 3 cells of its middle: the spot itself is signSpot's (test/signSpot.test.ts).
+    const c = pointerToCell(seven.x, seven.y)
+    expect(plotOfTile(c.col, c.row)).toBe(7)
+    expect(Math.hypot(c.col + 0.5 - o.col - 4, c.row + 0.5 - o.row - 4)).toBeLessThanOrEqual(3)
   })
-  it('a plot bought loses its sign and opens the plots around it', () => {
-    const { markers } = model(withPlots(base, [5, 6, 9, 10, 4]))
-    expect(markers.signs.map(s => s.plot).sort((a, b) => a - b)).toEqual([0, 1, 2, 7, 8, 11, 13, 14])
+  it('a sign shown at the 48 px art\'s half scale stays on its own plot and off the starting Farm', () => {
+    const { objects } = model(base)
+    const seven = objects.find(o => o.id === 'sign:7')!
+    expect(SIGN_SCALE).toBe(0.5)
+    expect(seven.scale).toBe(SIGN_SCALE)
+    const w = 48 * SIGN_SCALE, h = 48 * SIGN_SCALE
+    // The Farm's middle cell (22, 9) must not lie inside the sign's box at any zoom it is shown whole.
+    const farm = cellCentre(22, 9)
+    expect(farm.x >= seven.x - w / 2 && farm.x <= seven.x + w / 2 && farm.y >= seven.y - h && farm.y <= seven.y).toBe(false)
+  })
+  it('a plot bought loses its sign and the next in the order appears', () => {
+    const { markers } = model(withPlots(base, [5, 6, 9, 10, 2]))
+    expect(markers.signs.map(s => s.plot)).toEqual([7, 11, 1])
   })
   it('a fully owned island has no signs', () => {
     expect(model(withPlots(base, Array.from({ length: 16 }, (_, i) => i))).markers.signs).toEqual([])
@@ -112,7 +136,8 @@ describe('the ghost agrees with the server on odd land (§5.5)', () => {
     expect(model(lShape, 'home', grove).markers.ghost).toMatchObject({ legal: false })
   })
   it('a straddling building is sent', () => {
-    expect(placingAction(lShape, 'home', { what: { kind: 'habitat', element: 'terra' }, size: 4, col: 21, row: 12, facing: 0 })).toMatchObject({ type: 'placeBuilding' })
+    const bare = { ...lShape, islands: { ...lShape.islands, obstacles: [] } } // the Start's Bush at (21, 14) is not the point here
+    expect(placingAction(bare, 'home', { what: { kind: 'habitat', element: 'terra' }, size: 4, col: 21, row: 12, facing: 0 })).toMatchObject({ type: 'placeBuilding' })
   })
   it('a new building opens on owned land, never on the 12x12 corner', () => {
     const { cell } = placementStart(base, { kind: 'farm' }, 3, 'home', null)
@@ -123,12 +148,25 @@ describe('the ghost agrees with the server on odd land (§5.5)', () => {
 })
 
 describe('PlotPanel', () => {
+  it('is Expand: plot for gold, premium Unavailable, and the next island gated with its reason (design Phase 5)', async () => {
+    const h = harness({ ...base, level: 2, gold: 200_000 })
+    h.wrap(<PlotPanel island="home" plot={2} />)
+    expect(screen.getByRole('region', { name: 'Expand' })).toBeInTheDocument()
+    expect(screen.getAllByRole('article').map(a => a.getAttribute('aria-label'))).toEqual(['More land', 'Premium land', 'Open Ember Reach'])
+    expect(document.getElementById('buy-plot-premium')).toHaveAccessibleDescription('Plots are sold for gold only')
+    expect(document.getElementById('expand-bridge')).toHaveAccessibleDescription(/Needs player level/)
+    cleanup()
+    const ready = harness({ ...base, level: 40, gold: 200_000 })
+    ready.wrap(<PlotPanel island="home" plot={2} />)
+    await userEvent.click(screen.getByRole('button', { name: /Bridge · 150,000 gold/ }))
+    expect(ready.action).toHaveBeenCalledWith({ type: 'buyBridge', island: 'isle2' }, expect.any(String))
+  })
   it('buys the plot at the count\'s price, and closes', async () => {
     const onClose = vi.fn()
     const h = harness({ ...base, level: 2 })
-    h.wrap(<PlotPanel island="home" plot={4} onClose={onClose} />)
+    h.wrap(<PlotPanel island="home" plot={2} onClose={onClose} />)
     await userEvent.click(screen.getByRole('button', { name: /Buy plot · 100 gold/ }))
-    expect(h.action).toHaveBeenCalledWith({ type: 'buyPlot', island: 'home', plot: 4 }, expect.any(String))
+    expect(h.action).toHaveBeenCalledWith({ type: 'buyPlot', island: 'home', plot: 2 }, expect.any(String))
     expect(onClose).toHaveBeenCalled()
   })
   it('reads the level first, then the gold, in the handler\'s order', async () => {
@@ -140,6 +178,11 @@ describe('PlotPanel', () => {
     setState({ ...third, level: 3 })
     expect(await screen.findByText('Not enough gold')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Buy plot · 1,500 gold/ })).toBeDisabled()
+  })
+  it('says a plot that touches owned land but isn\'t on offer is not for sale yet', () => {
+    harness(newPlayer(0)).wrap(<PlotPanel island="home" plot={1} />)
+    expect(screen.getByText('Not for sale yet')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Buy plot/ })).toBeDisabled()
   })
   it('has no level gate on an outer island (R47)', () => {
     const s = withPlots({ ...base, level: 12, gold: 100_000, islands: { ...base.islands, unlocked: ['home', 'isle2'] } }, [5, 6, 9, 10], 'isle2')
@@ -202,10 +245,10 @@ describe('MapIslandPanel', () => {
   })
 })
 
-describe('the Map in the dialog host', () => {
+describe('an island panel in the dialog host (R99)', () => {
   const open: PlayerState = { ...base, islands: { ...base.islands, unlocked: ['home', 'isle2'], plots: { ...base.islands.plots, isle2: [5, 6, 9, 10] } } }
 
-  it('a tap on an island opens its panel; Go closes the Map and shows that island', async () => {
+  it('a tap on an island opens its panel; Go closes it and shows that island', async () => {
     const bridge = createBridge()
     harness(open).wrap(<TestHost bridge={bridge} />)
     act(() => bridge.emit({ type: 'select', target: { kind: 'mapIsland', id: 'isle2' } }))
@@ -214,29 +257,19 @@ describe('the Map in the dialog host', () => {
     expect(screen.queryByRole('button', { name: 'Go to Ember Reach' })).toBeNull()
   })
 
-  it('Close goes back to the Map, not the island, and the Map itself is no dialog', async () => {
+  it('Close goes back to the island: there is no Map', async () => {
     const bridge = createBridge()
     const seen: (DialogKey | null)[] = []
     harness(open).wrap(<PanelHost bridge={bridge} nowMs={0} dialog={{ kind: 'target', target: { kind: 'mapIsland', id: 'isle2' } }} onOpen={k => seen.push(k)} />)
     await userEvent.click(screen.getByRole('button', { name: 'Close' }))
-    expect(seen).toEqual([{ kind: 'panel', id: 'map' }])
-    cleanup()
-    harness(open).wrap(<PanelHost bridge={bridge} nowMs={0} dialog={{ kind: 'panel', id: 'map' }} onOpen={() => {}} />)
-    expect(screen.queryByRole('region')).toBeNull()
+    expect(seen).toEqual([null])
   })
 
   it('the dialog around an island panel is named for the island', () => {
     expect(dialogLabel({ kind: 'target', target: { kind: 'mapIsland', id: 'isle2' } })).toBe('Ember Reach')
   })
-
-  it('isMapDialog: the Map and its island panels, nothing else', () => {
-    expect(isMapDialog({ kind: 'panel', id: 'map' })).toBe(true)
-    expect(isMapDialog({ kind: 'target', target: { kind: 'mapIsland', id: 'home' } })).toBe(true)
-    expect(isMapDialog({ kind: 'panel', id: 'shop' })).toBe(false)
-    expect(isMapDialog({ kind: 'target', target: { kind: 'plot', island: 'home', plot: 0 } })).toBe(false)
-    expect(isMapDialog(null)).toBe(false)
-  })
 })
+
 
 describe('copy', () => {
   it('messageFor covers the land errors', () => {

@@ -1,5 +1,6 @@
 import { MAX_CLEARS } from './data/obstacles'
 import type { BuildingRef, Construction, PlayerState } from './state'
+import { isPaused } from './storage'
 
 type NewConstruction = Construction extends infer C ? (C extends unknown ? Omit<C, 'readyAtMs'> : never) : never
 
@@ -25,7 +26,7 @@ export function isUnderConstruction(s: PlayerState, ref: BuildingRef): boolean {
 
 /** Builds and upgrades running; clears have their own limit (M4 Q1 a). */
 export function activeBuilds(s: PlayerState): number {
-  return s.constructions.filter(c => c.kind !== 'clear').length
+  return s.constructions.filter(c => c.kind !== 'clear' && !isPaused(s, c)).length
 }
 
 export function activeClears(s: PlayerState): number {

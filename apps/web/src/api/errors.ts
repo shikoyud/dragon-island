@@ -52,6 +52,8 @@ export const errorMessages: Record<string, string> = {
   NOT_OWNED: 'You don’t own that land yet. Buy the plot first.',
   PLOT_OWNED: 'You already own that.',
   PLOT_NOT_ADJACENT: 'A new plot must touch land you own.',
+  PLOT_NOT_OFFERED: 'That plot is not for sale yet. Buy one of the plots on offer first.',
+  PLOT_LOCKED: 'Buy that plot before you clear what stands on it.',
   OVERLAP: 'Something is already there.',
   BUILDERS_BUSY: 'Both builders are busy. Finish or skip a build first.',
   CLEARS_BUSY: 'Two clears are already running. Finish or skip one first.',

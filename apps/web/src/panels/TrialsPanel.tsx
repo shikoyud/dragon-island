@@ -5,12 +5,14 @@ import {
 } from '@wyrmhaven/game-core'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState, type CSSProperties } from 'react'
+import { dragonLook } from '../game/islandModel'
 import { ArtMark, Stars, useHudSprite } from '../hud/ArtMark'
 import { Icon } from '../hud/Icon'
 import { useAction } from '../state/actions'
 import { clearTrialDraft, TRIAL_ABANDON_COST } from '../state/battle'
 import { ME_KEY, useMe } from '../state/me'
 import { usePreset } from '../state/preset'
+import { SpriteStill, useGameArt } from '../ui/GameArt'
 import { formatGold, formatMicroUsd } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { AbandonConfirm } from './AbandonConfirm'
@@ -49,10 +51,10 @@ function saveTeam(playerId: string, team: readonly string[]): void {
   try { localStorage.setItem(teamKey(playerId), JSON.stringify(team)) } catch { /* a convenience, never needed */ }
 }
 
-/** A chapter's card (`trial.chapter.<element>`, 64x64 shown at 32), else its element icon. */
+/** A chapter's card (`trial.chapter.<element>`, 64x64 shown at 128), else its element icon. */
 function ChapterCard({ element }: { element: Element }) {
   const card = useHudSprite(`trial.chapter.${element}`)
-  return card ? <img className="pixel trials__card-art" src={card.src} width={32} height={32} alt="" aria-hidden="true" /> : <Icon name={element} size={28} />
+  return card ? <img className="pixel trials__card-art" src={card.src} width={128} height={128} alt="" aria-hidden="true" /> : <Icon name={element} size={64} />
 }
 
 /** The node's mark: locked, Boss or plain, each from its `trial.node*` art when the manifest has it. A locked Boss reads as locked. */
@@ -75,6 +77,7 @@ export function TrialsPanel({ nowMs, chapter, fighting = false, onShop, onFight,
 }) {
   const me = useMe()
   const preset = usePreset()
+  const art = useGameArt()
   const { run, pending } = useAction()
   const qc = useQueryClient()
   const c = LAUNCH_CATALOG
@@ -85,6 +88,7 @@ export function TrialsPanel({ nowMs, chapter, fighting = false, onShop, onFight,
   const [picked, setPicked] = useState<string[] | null>(null)
   const [confirmAbandon, setConfirmAbandon] = useState(false)
   const cancelAbandon = useCallback(() => setConfirmAbandon(false), [])
+  const questCard = useHudSprite('ui.quest.card')?.src
   if (!s) return null
 
   const active = s.pve.active
@@ -169,19 +173,28 @@ export function TrialsPanel({ nowMs, chapter, fighting = false, onShop, onFight,
         <div className="trials">
           {banner}
           {s.level < unlockPl('pve') && <p>The Trials unlock at player level {unlockPl('pve')}.</p>}
-          <ul aria-label="Chapters" className="trials__list">
+          <ul aria-label="Chapters" className="quest-cards kit-scroll">
             {TRIAL_CHAPTERS.map(ch => {
               const reason = chapterReason(ch.chapter)
+              const cleared = Array.from({ length: NODES_PER_CHAPTER }, (_, i) => s.pve.stars[nodeKey(ch.chapter, i + 1)] ? 1 : 0).reduce<number>((a, b) => a + b, 0)
+              const xp = nodeRewards(ch.chapter, BOSS_NODE, 'first').xp * preset.xpMult
               return (
                 <li key={ch.chapter}>
-                  <button type="button" className={`btn trials__chapter${reason ? ' trials__chapter--locked' : ''}`} style={TAP} onClick={() => setView({ screen: 'nodes', chapter: ch.chapter })}>
-                    <ChapterCard element={ch.element} />
-                    <span className="trials__main">
-                      <span className="trials__name">{ch.theme}</span>
-                      <span className="trials__sub">PL {pl(ch.chapter)} · ★ {chapterStars(ch.chapter)} / {STARS_PER_CHAPTER}</span>
-                      {reason && <span className="trials__why">{reason}</span>}
+                  <button type="button" className={`quest-card${reason ? ' quest-card--locked' : ''}`} style={{ ...TAP, ...(questCard ? { backgroundImage: `url(${questCard})` } : {}) }} onClick={() => setView({ screen: 'nodes', chapter: ch.chapter })}>
+                    <span className="quest-card__ribbon">
+                      <span className="quest-card__name">{ch.theme}</span>
+                      <Icon name={ch.element} size={20} />
                     </span>
-                    <span aria-hidden="true">›</span>
+                    <span className="quest-card__art"><ChapterCard element={ch.element} /></span>
+                    {xp > 0 && <span className="quest-card__xp"><ArtMark name="ui.xpStar" size={24} />{`${formatGold(xp)} XP`}</span>}
+                    <span className="quest-card__progress">
+                      <span className="quest-card__bar" aria-hidden="true"><span className="quest-card__fill" style={{ width: `${(cleared * 100) / NODES_PER_CHAPTER}%` }} /></span>
+                      <span className="quest-card__done">{`Completed: ${cleared}/${NODES_PER_CHAPTER}`}</span>
+                      <span className="trials__sub">PL {pl(ch.chapter)} · ★ {chapterStars(ch.chapter)} / {STARS_PER_CHAPTER}</span>
+                    </span>
+                    {reason
+                      ? <span className="quest-card__lock"><ArtMark name="ui.kit.lock" size={24} /><span className="trials__why">{reason}</span></span>
+                      : <span className="quest-card__go">Battle</span>}
                   </button>
                 </li>
               )
@@ -265,15 +278,18 @@ export function TrialsPanel({ nowMs, chapter, fighting = false, onShop, onFight,
           {back(ch.theme, { screen: 'nodes', chapter: ch.chapter })}
           <h3 className="trials__title"><Icon name={ch.element} size={20} /> Node {node}{node === BOSS_NODE ? ' · Boss' : ''} · L{nodeLevel(ch.chapter, node)}</h3>
         </div>
-        <ol aria-label="Team slots" className="trials__slots">
+        <ol aria-label="Team slots" className="trials__slots lineup">
           {Array.from({ length: TEAM_SIZE }, (_, i) => i).map(i => {
             const d = s.dragons.find(x => x.id === team[i])
+            const sp = d ? getSpecies(c, d.speciesId) : null
             return (
-              <li key={i}>
-                <button type="button" className="btn trials__slot" style={TAP} disabled={!d} aria-label={d ? `${i === 0 ? 'Lead' : `Slot ${i + 1}`}: ${getSpecies(c, d.speciesId).name}, tap to remove` : `${i === 0 ? 'Lead' : `Slot ${i + 1}`}: empty`} onClick={() => d && toggle(d.id)}>
+              <li key={i} className="lineup__slot">
+                <button type="button" className="btn trials__slot lineup__card" style={TAP} disabled={!d} aria-label={d ? `${i === 0 ? 'Lead' : `Slot ${i + 1}`}: ${sp!.name}, tap to remove` : `${i === 0 ? 'Lead' : `Slot ${i + 1}`}: empty`} onClick={() => d && toggle(d.id)}>
                   <span className="trials__slot-n">{i === 0 ? 'Lead' : i + 1}</span>
-                  <span>{d ? <><Icon name={getSpecies(c, d.speciesId).elements[0]!} size={16} /> {getSpecies(c, d.speciesId).name}</> : 'Empty'}</span>
+                  <span className="lineup__art">{d && <SpriteStill sprite={dragonLook(d.speciesId, d.level, art, c).sprite} height={96} />}</span>
+                  <span className="lineup__name">{d ? <><Icon name={sp!.elements[0]!} size={16} /> {sp!.name}</> : 'Empty'}</span>
                 </button>
+                <span className="lineup__select" aria-hidden="true">{d ? `Level ${d.level}` : 'Select Dragon'}</span>
               </li>
             )
           })}
@@ -308,8 +324,24 @@ export function TrialsPanel({ nowMs, chapter, fighting = false, onShop, onFight,
             )
           })}
         </div>
+        <div className="lineup__opponents" role="group" aria-label="Opponents">
+          <span className="lineup__opponents-label">Opponents:</span>
+          {nodeTeam(ch.chapter, node, c).map((e, i) => {
+            const sp = getSpecies(c, e.speciesId)
+            return (
+              <span key={i} className="lineup__opponent">
+                <span className={`lineup__portrait${s.discovered.includes(sp.id) ? '' : ' lineup__portrait--hidden'}`}><SpriteStill sprite={dragonLook(e.speciesId, e.level, art, c).sprite} height={40} /></span>
+                <span className="lineup__opponent-text">
+                  {/* A species not in the player's Book stays ??? (R22). */}
+                  <span className="lineup__opponent-name">{s.discovered.includes(sp.id) ? sp.name : '???'}</span>
+                  <span className="lineup__opponent-level">{`level ${e.level}`} {sp.elements.map(el => <Icon key={el} name={el} size={14} label={cap(el)} />)}</span>
+                </span>
+              </span>
+            )
+          })}
+        </div>
         <div className="trials__row trials__actions">
-          <ActionButton id="trial-fight" primary disabled={Boolean(teamReason) || pending || fighting} reason={teamReason} onClick={fight}>Fight</ActionButton>
+          <ActionButton id="trial-fight" primary disabled={Boolean(teamReason) || pending || fighting} reason={teamReason} onClick={fight} ariaLabel="Fight">Go to Battle!</ActionButton>
           {heal}
         </div>
       </div>

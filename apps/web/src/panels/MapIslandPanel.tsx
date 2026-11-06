@@ -15,7 +15,7 @@ function MapIcon({ art, id }: { art?: GameArtSet | null; id: IslandId }) {
 }
 
 /** Why the Bridge can't be bought, in the handler's order (`buyBridge`); '' when it can. */
-function bridgeRefusal(s: PlayerState, id: OuterIsland): string {
+export function bridgeRefusal(s: PlayerState, id: OuterIsland): string {
   switch (bridgeError(s, id)) {
     case 'PLOT_OWNED': return 'Already open'
     case 'ISLAND_LOCKED': return `Needs the Bridge to ${ISLANDS[ISLAND_ORDER[ISLAND_ORDER.indexOf(id) - 1]!].name}`

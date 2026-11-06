@@ -21,5 +21,13 @@ export function withIsland(s: PlayerState, island: Exclude<IslandId, 'home'>): P
 
 /** A free cell on a new player's Home that fits any footprint. */
 export const FREE: Placement = freeCell(newPlayer(0), FOOTPRINT.breeder)
-/** A second one, clear of `FREE`. */
-export const FREE_2: Placement = { ...FREE, col: FREE.col + FOOTPRINT.breeder }
+/** A second one that fits a 4x4, clear of `FREE` (the Start leaves no second free 5x5): the first such cell, as game-core's test/helpers/land.ts. */
+export const FREE_2: Placement = (() => {
+  const s = newPlayer(0)
+  for (let row = 0; row < ISLAND_TILES; row++) for (let col = 0; col < ISLAND_TILES; col++) {
+    const p: Placement = { island: 'home', col, row, facing: 0 }
+    const apart = col >= FREE.col + FOOTPRINT.breeder || FREE.col >= col + FOOTPRINT.habitat || row >= FREE.row + FOOTPRINT.breeder || FREE.row >= row + FOOTPRINT.habitat
+    if (apart && placementError(s, p, FOOTPRINT.habitat) === null) return p
+  }
+  throw new Error('no second free 4x4 cell')
+})()

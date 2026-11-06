@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
-  anchor, BATTLE, BATTLE_CONTROLS_H, BATTLE_DRAGON_SCALE, BATTLE_SPOT, battleCamera, battleStage, cellCentre, cellTop, depthOrder, dragonSpot, footprintDiamond, HATCHERY_ITEM_SCALE, hatcherySpot, integerZoom,
-  islandBox, ISO, pointerToCell,
+  anchor, BATTLE, BATTLE_DRAGON_SCALE, BATTLE_SPOT, battleCamera, battleStage, cellCentre, cellTop, depthOrder, dragonSpot, footprintDiamond, hatcheryNestSpot, integerZoom,
+  captionPx, islandBox, ISO, pointerToCell,
 } from '../src/game/layout'
+
+describe('captionPx', () => {
+  it('is 9 CSS px at zoom 1, 12 at zoom 2 and 14 from zoom 3', () => {
+    expect([1, 2, 3, 4, 6].map(captionPx)).toEqual([9, 12, 14, 14, 14])
+  })
+})
 
 describe('isometric layout', () => {
   it('uses 16x8 diamonds: cell (col,row) has its top vertex at ((col-row)*8, (col+row)*4)', () => {
@@ -61,55 +67,48 @@ describe('isometric layout', () => {
     expect(new Set(spots.map(p => `${p.x},${p.y}`)).size).toBe(7)
     for (const p of spots) {
       expect(Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true)
-      expect(inside(p)).toBeLessThanOrEqual(0.9)
+      expect(inside(p)).toBeLessThanOrEqual(0.95)
     }
-    expect(spots[0]).toEqual({ x: a.x, y: a.y - 16 }) // the first dragon stands in the middle
-    // The art list's habitat silhouette (docs/art/gdd-m4-art-list.md): a 52x26 top face centred 16 px above the anchor; every spot is on it.
-    for (const p of spots) expect(Math.abs(p.x - a.x) / 26 + Math.abs(p.y - (a.y - 16)) / 13).toBeLessThanOrEqual(1)
+    expect(spots[0]).toEqual({ x: a.x, y: a.y - 11 }) // the first dragon stands at the front middle
     expect(dragonSpot(a, 12)).toEqual(spots[6]) // past the last, they share it
   })
 
-  it('puts hatchery eggs in the niches along the front of the 64x64 hatchery', () => {
+  it('feet of the first 4 residents stay on the 64x32 face, at least 16 px apart', () => {
+    const a = anchor(8, 8, 4)
+    const spots = [0, 1, 2, 3].map(i => dragonSpot(a, i))
+    expect(spots.map(p => ({ x: p.x - a.x, y: p.y - a.y }))).toEqual([{ x: 0, y: -11 }, { x: -17, y: -13 }, { x: 17, y: -13 }, { x: 0, y: -22 }])
+    for (const p of spots) expect(Math.abs(p.x - a.x) / 32 + Math.abs(p.y - (a.y - 16)) / 16).toBeLessThan(1)
+    // Apart on the ground: a world y px is two ground px on the 2:1 face.
+    for (const p of spots) for (const q of spots) if (p !== q) expect(Math.hypot(p.x - q.x, 2 * (p.y - q.y))).toBeGreaterThanOrEqual(16)
+  })
+
+  it('five eggs stay inside the nest box', () => {
     const a = anchor(0, 8, 4)
-    const spots = [0, 1, 2, 3, 4].map(i => hatcherySpot(a, i))
+    const spots = [0, 1, 2, 3, 4].map(i => hatcheryNestSpot(a, i))
     expect(new Set(spots.map(p => `${p.x},${p.y}`)).size).toBe(5)
     for (const p of spots) {
       expect(Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true)
-      expect(p.x - 16 * HATCHERY_ITEM_SCALE).toBeGreaterThanOrEqual(a.x - 32)
-      expect(p.x + 16 * HATCHERY_ITEM_SCALE).toBeLessThanOrEqual(a.x + 32)
-      expect(p.y).toBeGreaterThanOrEqual(a.y - 26)
-      expect(p.y).toBeLessThanOrEqual(a.y - 18)
+      expect(Math.abs(p.x - a.x)).toBeLessThanOrEqual(14) // the nest is about 28x14, centred 14 px above the anchor
+      expect(p.y).toBeGreaterThanOrEqual(a.y - 21)
+      expect(p.y).toBeLessThanOrEqual(a.y - 7)
     }
-    for (let i = 1; i < 5; i++) expect(spots[i]!.x).toBeGreaterThan(spots[i - 1]!.x)
+    expect(hatcheryNestSpot(a, 9)).toEqual(spots[4]) // past the last, they share it
   })
 
-  it('fits the 360x420 portrait battle stage by whole-number zoom, never below 1', () => {
-    expect(BATTLE).toEqual({ w: 360, h: 420 })
-    expect(integerZoom(1920, 1080)).toBe(2)
-    expect(integerZoom(390, 600)).toBe(1)
-    expect(integerZoom(720, 840)).toBe(2)
-    expect(integerZoom(719, 840)).toBe(1)
+  it('fits the 640x360 landscape battle stage by whole-number zoom, never below 1 (R98)', () => {
+    expect(BATTLE).toEqual({ w: 640, h: 360 })
+    expect(integerZoom(1920, 1080)).toBe(3)
+    expect(integerZoom(1280, 720)).toBe(2)
+    expect(integerZoom(1279, 720)).toBe(1)
     expect(integerZoom(200, 200)).toBe(1)
   })
 
   describe('battleStage', () => {
-    it('rests the stage 8 px above the controls, spare room over it, by whole pixels, on the three screens that matter', () => {
-      expect(battleStage(390, 844)).toEqual({ zoom: 1, x: 15, y: 844 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
-      expect(battleStage(360, 640)).toEqual({ zoom: 1, x: 0, y: 640 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
-      expect(battleStage(1440, 900)).toEqual({ zoom: 1, x: 540, y: 900 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
-    })
-    it('the stage and the controls together fit 360x640 with nothing covered', () => {
-      const s = battleStage(360, 640)
-      expect(s.y).toBeGreaterThanOrEqual(0)
-      expect(s.y + s.h).toBeLessThanOrEqual(640 - BATTLE_CONTROLS_H)
-    })
-    it('zooms only as far as the room above the controls allows', () => {
-      expect(battleStage(1920, 1080).zoom).toBe(2)
-      expect(battleStage(2560, 1440).zoom).toBe(2)
-      expect(battleStage(3840, 2160).zoom).toBe(4)
-    })
-    it('a short screen pins the stage to the top: the controls stay reachable over it', () => {
-      expect(battleStage(844, 390)).toMatchObject({ zoom: 1, y: 0 })
+    it('centres the stage on the viewport by whole pixels, on the screens that matter (R98)', () => {
+      expect(battleStage(1920, 1080)).toEqual({ zoom: 3, x: 0, y: 0, w: 1920, h: 1080 })
+      expect(battleStage(844, 390)).toEqual({ zoom: 1, x: 102, y: 15, w: 640, h: 360 })
+      expect(battleStage(390, 844)).toEqual({ zoom: 1, x: -125, y: 242, w: 640, h: 360 })
+      expect(battleStage(1440, 900)).toEqual({ zoom: 2, x: 80, y: 90, w: 1280, h: 720 })
     })
     it('the camera centre puts the stage where the box says', () => {
       for (const [w, h] of [[390, 844], [360, 640], [1440, 900], [1920, 1080]] as const) {
@@ -120,16 +119,16 @@ describe('isometric layout', () => {
         expect((0 - cam.y) * box.zoom + h / 2).toBe(box.y)
       }
     })
-    it('the dragons stand on the stage, the enemy upper right and yours lower left', () => {
-      const scale = BATTLE_DRAGON_SCALE
-      const halfAdult = (48 * scale) / 2
+    it('the dragons stand side by side on one ground line, facing each other (R98)', () => {
+      const halfAdult = (48 * BATTLE_DRAGON_SCALE) / 2
       for (const side of ['attacker', 'defender'] as const) {
         expect(BATTLE_SPOT[side].x - halfAdult).toBeGreaterThanOrEqual(0)
         expect(BATTLE_SPOT[side].x + halfAdult).toBeLessThanOrEqual(BATTLE.w)
         expect(BATTLE_SPOT[side].y).toBeLessThanOrEqual(BATTLE.h)
       }
       expect(BATTLE_SPOT.defender.x).toBeGreaterThan(BATTLE_SPOT.attacker.x)
-      expect(BATTLE_SPOT.defender.y).toBeLessThan(BATTLE_SPOT.attacker.y)
+      expect(BATTLE_SPOT.defender.y).toBe(BATTLE_SPOT.attacker.y)
+      expect(BATTLE_SPOT.attacker.x + BATTLE_SPOT.defender.x).toBe(BATTLE.w)
     })
   })
 })

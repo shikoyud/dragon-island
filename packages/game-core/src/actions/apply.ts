@@ -15,6 +15,8 @@ import { collectGold, feed, moveDragon, sellDragon } from './island-actions'
 import { settleLevels } from '../progression'
 import { failure, type Action, type ActionCtx, type ActionResult } from './types'
 import { isValidAction } from './validate'
+import { storedTargetError } from '../storage'
+import { putInStorage, takeEgg } from './storage-actions'
 
 /** Single entry point: pure, deterministic given (state, action, nowMs, rng, catalog, preset). */
 export function applyAction(
@@ -29,6 +31,8 @@ export function applyAction(
 }
 
 function dispatch(s: PlayerState, a: Action, ctx: ActionCtx): ActionResult {
+  const stored = storedTargetError(s, a)
+  if (stored) return failure(stored)
   switch (a.type) {
     case 'collectGold': return collectGold(s, a, ctx)
     case 'claimGoal': return claimGoal(s, a, ctx)
@@ -56,5 +60,7 @@ function dispatch(s: PlayerState, a: Action, ctx: ActionCtx): ActionResult {
     case 'startTrial': return startTrial(s, a, ctx)
     case 'finishTrial': return finishTrial(s, a, ctx)
     case 'abandonTrial': return abandonTrial(s, a, ctx)
+    case 'putInStorage': return putInStorage(s, a, ctx)
+    case 'takeEgg': return takeEgg(s, a, ctx)
   }
 }

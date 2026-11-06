@@ -6,7 +6,7 @@ export interface ManifestEntry { file: string; w: number; h: number; frames: num
 export interface Manifest { assets: Record<string, ManifestEntry> }
 
 /** Manifest keys the HUD reads (docs/art/hud-art-list.md). */
-const HUD_KEY = /^(icon\.[a-z]+\.(16|32)|ui\..+|map\.backdrop|map\.bridge|battle\.boss\.marker|trial\.chapter\.[a-z]+|trial\.node(\.boss|\.locked)?)$/
+const HUD_KEY = /^(icon\.[a-zA-Z]+\.(16|32)|icon\.(health|damage|speed|sell)|shop\.category\.[a-z]+|bg\.[a-z]+|fx\.(glow|newBurst)|ui\..+|map\.backdrop|map\.bridge|map\.chain|battle\.boss\.marker|trial\.chapter\.[a-z]+|trial\.node(\.boss|\.locked)?)$/
 
 /** Manifest keys tried in turn for each obstacle until its own art lands: the nearest old sprite by footprint. */
 const OBSTACLE_ART: Record<ObstacleKind, readonly string[]> = {
@@ -55,7 +55,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
       nest: get('building.nest', 'nest'),
       hatchery: get('building.hatchery', 'hatchery'),
       breeder: { mountain: levelSheets('mountain', 3, 80), grove: levelSheets('grove', 3, 80) },
-      hatcheryLevel: levelSheets('hatchery', 4, 64),
+      hatcheryLevel: levelSheets('hatchery', 4, 80),
       roostTier: levelSheets('roost', 5, 64),
       farmPlot: get('building.farmPlot', 'farmPlot'),
       cropStage: Object.fromEntries(CROPS.map(c => [c, get(`crop.${c}`, 'crop')])) as Record<CropId, Sprite>,
@@ -65,10 +65,11 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     },
     elementIcon: perElement('icon', 'icon'),
     ui: { panel: get('ui.panel', 'panel'), button: get('ui.button', 'button'), cursor: get('ui.cursor', 'cursor') },
-    island: { base: get('island.base', 'island'), layers: layerKeys.map(k => get(k, 'island')), locked: get('island.locked', 'locked'), sign: get('island.sign', 'sign') },
+    island: { base: get('island.base', 'island'), layers: layerKeys.map(k => get(k, 'island')), locked: get('island.locked', 'locked'), sign: get('island.sign', 'sign'), arrow: get('ui.island.arrow', 'arrow'), upgradePost: get('ui.island.upgradePost', 'upgradePost') },
     obstacle: Object.fromEntries((Object.keys(OBSTACLES) as ObstacleKind[]).map(k => [k, get(`obstacle.${OBSTACLE_ART[k].find(n => manifest.assets[`obstacle.${n}`]) ?? k}`, footprintPx(OBSTACLES[k].size))])) as Record<ObstacleKind, Sprite>,
     decoration: Object.fromEntries((Object.keys(DECORATIONS) as DecorationId[]).map(d => [d, get(`decoration.${d}`, footprintPx(DECORATIONS[d].size))])) as Record<DecorationId, Sprite>,
-    map: Object.fromEntries(ISLAND_ORDER.map(i => [i, get(`map.${i}`, 'map')])) as Record<IslandId, Sprite>,
+    // The floating island (UI rework Phase 3) wins over the older flat icon when both exist.
+    map: Object.fromEntries(ISLAND_ORDER.map(i => [i, get(manifest.assets[`map.island.${i}`] ? `map.island.${i}` : `map.${i}`, 'map')])) as Record<IslandId, Sprite>,
     fx: { construction: get('fx.construction', 'fxConstruction'), hatch: get('fx.hatch', 'fxHatch'), coins: get('fx.coins', 'fxCoins'), ...(manifest.assets['fx.levelUp'] ? { levelUp: get('fx.levelUp', 'fxHatch') } : {}) },
     ground: {
       grass: [0, 1, 2].map(i => present(`ground.grass.${i}`)).filter((g): g is Sprite => g !== null),
@@ -80,9 +81,15 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
         return grass.length > 0 || cliffSw || cliffSe ? [[i, { grass, cliffSw, cliffSe }]] : []
       })),
       plotEdge: present('ground.plotEdge'),
+      sky: present('ground.sky'),
+      clouds: [0, 1, 2].map(i => present(`ground.cloud.${i}`)).filter((c): c is Sprite => c !== null),
+      rock: present('ground.rock'),
+      rim: [0, 1, 2, 3].map(i => present(`ground.rim.${i}`)).filter((r): r is Sprite => r !== null),
+      waterfall: present('ground.waterfall'),
     },
     battle: {
       backdrop: Object.fromEntries(ELEMENTS.flatMap(el => { const s = present(`battle.backdrop.${el}`); return s ? [[el, s]] : [] })),
+      wide: Object.fromEntries(ELEMENTS.flatMap(el => { const s = present(`battle.wide.${el}`); return s ? [[el, s]] : [] })),
       platform: present('ui.battle.platform'),
       moveFx: Object.fromEntries([...ELEMENTS, 'physical'].flatMap(m => { const s = present(`fx.move.${m}`); return s ? [[m, s]] : [] })),
       fx: Object.fromEntries(BATTLE_FX.flatMap(n => { const s = present(`fx.${n}`); return s ? [[n, s]] : [] })),

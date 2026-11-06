@@ -69,6 +69,10 @@ export function isValidAction(a: unknown): a is Action {
       return isMoves(x['moves']) && isOptionalIndex(x['index'])
     case 'abandonTrial':
       return isOptionalIndex(x['index'])
+    case 'putInStorage':
+      return isStorageRef(x['target'])
+    case 'takeEgg':
+      return isIndex(x['index'])
     default:
       return false
   }
@@ -174,4 +178,12 @@ function isStoreItem(v: unknown): boolean {
     default:
       return false
   }
+}
+
+function isStorageRef(v: unknown): boolean {
+  if (typeof v !== 'object' || v === null) return false
+  const t = v as Record<string, unknown>
+  if (t['type'] === 'dragon') return isId(t['id'])
+  if (t['type'] === 'egg') return isIndex(t['slot'])
+  return t['type'] !== 'hatchery' && isMovable(v)
 }

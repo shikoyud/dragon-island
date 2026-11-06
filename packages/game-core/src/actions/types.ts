@@ -8,6 +8,7 @@ import type { Rng } from '../rng'
 import type { BuildingRef, CropId, DecorationId, IslandId, Placement, PlayerState } from '../state'
 import type { SkipTarget, StoreItem } from '../store'
 import type { SpeedUpToken } from '../data/speedups'
+import type { StorageRef } from '../storage'
 
 export type TeamIds = [string, string, string]
 
@@ -49,13 +50,16 @@ export type Action =
   /** `index` is the `active.index` the caller believes it settles; another is NO_ACTIVE_TRIAL, so a stale tab can't forfeit the next Trial. */
   | { type: 'finishTrial'; moves: PlayerMove[]; index?: number }
   | { type: 'abandonTrial'; index?: number }
+  /** Storage (shiko, 2026-11-01): `moveBuilding` and `moveDragon` take things out again (S3, S4). */
+  | { type: 'putInStorage'; target: StorageRef }
+  | { type: 'takeEgg'; index: number }
 
 export type ActionError = 'INVALID_ACTION' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'INSUFFICIENT_GOLD' | 'INSUFFICIENT_FOOD' | 'MAX_LEVEL' | 'LEVEL_CAP'
   | 'LEVEL_TOO_LOW' | 'INVALID_PARENTS' | 'OPPOSITE_BASICS' | 'NO_FREE_BREEDER' | 'BREEDER_EMPTY' | 'NOT_READY' | 'HATCHERY_FULL'
   | 'NO_HABITAT_SLOT' | 'ELEMENT_MISMATCH' | 'MAX_PLOTS' | 'PLOT_BUSY' | 'PLOT_EMPTY'
   | 'LAST_DRAGONS' | 'NOT_SELLABLE' | 'NOTHING_TO_SKIP' | 'NO_TOKEN'
   | 'INVALID_TEAM' | 'NO_DEFENCE_TEAM' | 'DAILY_CAP_REACHED' | 'STAGE_LOCKED'
-  | 'OUT_OF_BOUNDS' | 'OVERLAP' | 'BUILDERS_BUSY' | 'ISLAND_LOCKED' | 'NOT_OWNED' | 'PLOT_OWNED' | 'PLOT_NOT_ADJACENT' | 'WRONG_ISLAND' | 'UNDER_CONSTRUCTION' | 'CLEARS_BUSY'
+  | 'OUT_OF_BOUNDS' | 'OVERLAP' | 'BUILDERS_BUSY' | 'ISLAND_LOCKED' | 'NOT_OWNED' | 'PLOT_OWNED' | 'PLOT_NOT_ADJACENT' | 'PLOT_NOT_OFFERED' | 'PLOT_LOCKED' | 'WRONG_ISLAND' | 'UNDER_CONSTRUCTION' | 'CLEARS_BUSY'
   | 'AERIE_EXISTS' | 'GOAL_NOT_DONE' | 'NO_GOAL'
   | 'DRAGON_TIRED' | 'TRIAL_ACTIVE' | 'NO_ACTIVE_TRIAL' | 'IN_TRIAL' | 'NOTHING_TO_HEAL'
 

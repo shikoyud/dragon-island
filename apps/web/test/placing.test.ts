@@ -7,7 +7,7 @@ import { usePlacing } from '../src/state/usePlacing'
 import { FREE, withIsland, withPlots } from './land'
 
 describe('placing', () => {
-  it('a new building opens on the legal cell nearest the given one, so Confirm works at once', () => {
+  it('a new building opens on the legal cell nearest the given one, so OK works at once', () => {
     const s = newPlayer(0)
     // (0,0) is fog; the nearest legal 3x3 farm spot to it is the first clear cell past the Mountain (cols 8-12, rows 12-16).
     const c = nearestLegalCell(s, { kind: 'farm' }, 'home', { col: 0, row: 0 })!
@@ -21,7 +21,7 @@ describe('placing', () => {
     expect(nearestLegalCell({ ...s, gold: 0 }, { kind: 'habitat', element: 'flame' }, 'isle2', { col: 0, row: 0 })).toBeNull()
   })
 
-  it('placing reducer tracks the cursor, turns and cancels', () => {
+  it('placing reducer takes a cell, turns and cancels', () => {
     const p = placingReducer(null, { type: 'start', what: { kind: 'farm' }, size: FOOTPRINT.farm, island: 'home' })!
     expect(placingReducer(p, { type: 'cell', col: 6, row: 8 })).toMatchObject({ col: 6, row: 8 })
     expect(placingReducer(placingReducer(p, { type: 'turn' })!, { type: 'turn' })!.facing).toBe(2)
@@ -98,7 +98,7 @@ describe('moving between plots and islands (R57)', () => {
     expect(placementIslands(noLand, h1, 'home').find(c => c.island === 'isle2')).toMatchObject({ room: false })
   })
 
-  it('a new building opens on an outer island with room after a Bridge, and Confirm sends that island (pin)', () => {
+  it('a new building opens on an outer island with room after a Bridge, and OK sends that island (pin)', () => {
     const s = withPlots(withIsland(newPlayer(0), 'isle2'), [5], 'home')
     const { island, cell } = placementStart(s, { kind: 'habitat', element: 'terra' }, 4, 'home', null)
     expect(island).toBe('isle2')
@@ -107,7 +107,7 @@ describe('moving between plots and islands (R57)', () => {
     expect(placingAction(s, 'isle2', p)).toMatchObject({ type: 'placeBuilding', placement: { island: 'isle2', ...cell } })
   })
 
-  it('switching to Ember Reach changes the view, opens on the nearest legal cell, and Confirm sends that island', () => {
+  it('switching to Ember Reach changes the view, opens on the nearest legal cell, and OK sends that island', () => {
     const bridge = createBridge()
     const { result } = renderHook(() => usePlacing(bridge))
     act(() => result.current.dispatch({ type: 'start', what: h1, size: 4, island: 'home', from: { island: 'home', col: 13, row: 8, facing: 2 } }))
@@ -119,6 +119,30 @@ describe('moving between plots and islands (R57)', () => {
     expect(placingAction(two, result.current.view, result.current.placing!)).toEqual({
       type: 'moveBuilding', target: h1.target, placement: { island: 'isle2', col: 13, row: 8, facing: 2 },
     })
+  })
+
+  it('a cell from the scene is ignored while an action is pending', () => {
+    const bridge = createBridge()
+    const { result, rerender } = renderHook(({ locked }) => usePlacing(bridge, locked), { initialProps: { locked: false } })
+    act(() => result.current.dispatch({ type: 'start', what: h1, size: 4, island: 'home', from: { island: 'home', col: 13, row: 8, facing: 0 } }))
+    rerender({ locked: true })
+    act(() => bridge.emit({ type: 'cell', col: 14, row: 13 }))
+    expect(result.current.placing).toMatchObject({ col: 13, row: 8 })
+    rerender({ locked: false })
+    act(() => bridge.emit({ type: 'cell', col: 14, row: 13 }))
+    expect(result.current.placing).toMatchObject({ col: 14, row: 13 })
+  })
+
+  it('a switch has the ghost on its new cell by the time the view changes, so the scene reveals the right spot', () => {
+    const bridge = createBridge()
+    const { result } = renderHook(() => usePlacing(bridge))
+    act(() => result.current.dispatch({ type: 'start', what: h1, size: 4, island: 'home', from: { island: 'home', col: 13, row: 8, facing: 0 } }))
+    act(() => result.current.dispatch({ type: 'cell', col: 0, row: 0 }))
+    let atView: unknown = null
+    const off = bridge.on('view', () => { atView = bridge.placing })
+    act(() => result.current.moveToIsland(two, 'isle2'))
+    off()
+    expect(atView).toMatchObject(nearestLegalCell(two, h1, 'isle2', { col: 0, row: 0 })!)
   })
 
   it('a switch snaps a ghost sitting in the fog to the nearest legal cell', () => {

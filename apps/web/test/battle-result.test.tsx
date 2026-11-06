@@ -76,7 +76,7 @@ describe('HatcheryPanel above capacity', () => {
   it('shows used over slots and says new eggs wait', () => {
     const egg = { speciesId: 'terra', readyAtMs: 9_000 }
     harness({ ...base, hatchery: [egg, egg] }).wrap(<HatcheryPanel nowMs={0} />)
-    expect(screen.getByText('Hatchery · 2/1')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Hatchery · 2/1' })).toBeInTheDocument()
     expect(screen.getByRole('note')).toHaveTextContent('New eggs wait until 2 more slots free up.')
   })
 })

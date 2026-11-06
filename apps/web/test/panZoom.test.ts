@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { View } from '../src/game/camera'
-import { createPanZoom, heldPointers } from '../src/game/panZoom'
+import { createPanZoom, heldPointers, type Point } from '../src/game/panZoom'
 
 const VP = { w: 400, h: 800 }
 
@@ -97,6 +97,104 @@ describe('panZoom', () => {
     expect(pz.move({ x: 90, y: 90 }, [{ x: 90, y: 90 }], true)).toBe(false)
     expect(pz.up({ x: 90, y: 90 }, [])).toBe(false)
     expect(view().cx).toBe(100)
+  })
+
+  describe('a claimed grab', () => {
+    /** A scene whose `grab` claims a press left of x = 100, as the placement ghost's footprint would. */
+    function grabbing(start: View = { cx: 100, cy: 100, zoom: 2 }) {
+      const box = { view: start }
+      const moves: Point[] = []
+      const pz = createPanZoom({
+        view: () => box.view, apply: v => { box.view = v }, range: () => ({ min: 1, max: 5 }), size: () => VP,
+        grab: p => p.x < 100, onGrabMove: p => moves.push(p),
+      })
+      return { pz, moves, view: () => box.view }
+    }
+
+    it('a press inside it never pans: its moves go to onGrabMove, past the click threshold', () => {
+      const { pz, moves, view } = grabbing()
+      pz.down({ x: 50, y: 50 }, [{ x: 50, y: 50 }])
+      expect(pz.move({ x: 52, y: 50 }, [{ x: 52, y: 50 }], true)).toBe(false) // under the threshold: still a tap
+      expect(moves).toEqual([])
+      expect(pz.move({ x: 90, y: 60 }, [{ x: 90, y: 60 }], true)).toBe(true)
+      expect(moves).toEqual([{ x: 90, y: 60 }])
+      expect(view()).toEqual({ cx: 100, cy: 100, zoom: 2 })
+      expect(pz.up({ x: 90, y: 60 }, [])).toBe(false)
+    })
+
+    it('a tap inside it is still a click', () => {
+      const { pz, moves } = grabbing()
+      pz.down({ x: 50, y: 50 }, [{ x: 50, y: 50 }])
+      expect(pz.up({ x: 51, y: 50 }, [])).toBe(true)
+      expect(moves).toEqual([])
+    })
+
+    it('a press the grab does not claim pans as ever', () => {
+      const { pz, moves, view } = grabbing()
+      pz.down({ x: 200, y: 50 }, [{ x: 200, y: 50 }])
+      pz.move({ x: 220, y: 50 }, [{ x: 220, y: 50 }], true)
+      expect(moves).toEqual([])
+      expect(view().cx).toBe(90)
+    })
+
+    it('the grab lasts one press: the next press asks again', () => {
+      const { pz, moves, view } = grabbing()
+      pz.down({ x: 50, y: 50 }, [{ x: 50, y: 50 }])
+      pz.up({ x: 50, y: 50 }, [])
+      pz.down({ x: 200, y: 50 }, [{ x: 200, y: 50 }])
+      pz.move({ x: 220, y: 50 }, [{ x: 220, y: 50 }], true)
+      expect(moves).toEqual([])
+      expect(view().cx).toBe(90)
+    })
+
+    it('a second finger cancels the grab and pinches; the finger left behind neither carries nor pans', () => {
+      const { pz, moves, view } = grabbing()
+      const a = { x: 50, y: 400 }
+      pz.down(a, [a])
+      const b = { x: 150, y: 400 }
+      pz.down(b, [a, b])
+      const far = { x: 190, y: 400 } // ratio 1.4
+      expect(pz.move(far, [a, far], true)).toBe(true)
+      expect(view().zoom).toBe(3)
+      expect(moves).toEqual([])
+      expect(pz.up(far, [a])).toBe(false)
+      const before = view()
+      expect(pz.move({ x: 90, y: 500 }, [{ x: 90, y: 500 }], true)).toBe(false)
+      expect(moves).toEqual([])
+      expect(view()).toEqual(before)
+    })
+
+    it('a wheel during it zooms and carries nothing; the grab goes on after', () => {
+      const { pz, moves, view } = grabbing()
+      pz.down({ x: 50, y: 50 }, [{ x: 50, y: 50 }])
+      pz.move({ x: 70, y: 50 }, [{ x: 70, y: 50 }], true)
+      moves.length = 0
+      pz.wheel({ x: 70, y: 50 }, -100)
+      expect(view().zoom).toBe(3)
+      expect(moves).toEqual([])
+      pz.move({ x: 80, y: 50 }, [{ x: 80, y: 50 }], true)
+      expect(moves).toEqual([{ x: 80, y: 50 }])
+    })
+
+    it('a wheel during a press cancels the pending click, claimed or not', () => {
+      for (const x of [50, 200]) {
+        const { pz } = grabbing()
+        pz.down({ x, y: 50 }, [{ x, y: 50 }])
+        pz.wheel({ x, y: 50 }, -100)
+        expect(pz.up({ x, y: 50 }, [])).toBe(false)
+        // The next press is a click again.
+        pz.down({ x, y: 50 }, [{ x, y: 50 }])
+        expect(pz.up({ x, y: 50 }, [])).toBe(true)
+      }
+    })
+
+    it('reset forgets it', () => {
+      const { pz, moves } = grabbing()
+      pz.down({ x: 50, y: 50 }, [{ x: 50, y: 50 }])
+      pz.reset()
+      expect(pz.move({ x: 90, y: 50 }, [{ x: 90, y: 50 }], true)).toBe(false)
+      expect(moves).toEqual([])
+    })
   })
 
   it('heldPointers lists only the pressed ones of the two touch points', () => {

@@ -6,14 +6,19 @@ import { createApi } from './api/client'
 import { sessionStore } from './api/session'
 import { App } from './App'
 import { ME_KEY } from './state/me'
+import { preloadPixelFonts } from './styles/fonts'
 import './styles/tokens.css'
 import './styles/hud.css'
+import './styles/kit.css'
+import './styles/screens.css'
 
 // Error reporting only when a DSN is configured; without one the SDK is never downloaded.
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN as string | undefined
 if (sentryDsn) {
   void import('@sentry/react').then(Sentry => Sentry.init({ dsn: sentryDsn, environment: import.meta.env.MODE }))
 }
+
+void preloadPixelFonts()
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } })
 
@@ -48,4 +53,15 @@ void walletRoot().then(Root => {
       </QueryClientProvider>
     </StrictMode>,
   )
-})
+}).catch(showBootError)
+
+/** Anything failing before React mounts (a module that won't load, a bad env) would otherwise leave a blank page. */
+function showBootError(err: unknown): void {
+  console.error('Dragon Island failed to start', err)
+  const root = document.getElementById('root')
+  if (!root) return
+  const pre = document.createElement('pre')
+  pre.style.cssText = 'margin:24px;padding:16px;white-space:pre-wrap;font:14px monospace;color:#fff;background:#7a1f1f'
+  pre.textContent = `Dragon Island failed to start.\n\n${err instanceof Error ? `${err.message}\n\n${err.stack ?? ''}` : String(err)}`
+  root.replaceChildren(pre)
+}

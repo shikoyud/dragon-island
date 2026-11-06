@@ -1,15 +1,22 @@
 import {
   BREEDER_LEVELS, DECORATIONS, ISLANDS, basicHome, basicPriceGold, canLiveIn, getSpecies, LAUNCH_CATALOG, ELEMENTS, FOOD_PACK, FOOTPRINT, HABITATS, ROOST_FOOTPRINT, ROOST_TIERS, farmBuildGold, MAX_FARMS, priceMicroUsd, unlockPl,
-  type DecorationId, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem, type UnlockKey,
+  type DecorationId, type Element, type Footprint, type IslandId, type PlayerState, type SkipTarget, type StoreItem, type UnlockKey,
 } from '@wyrmhaven/game-core'
 import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Placing } from '../game/bridge'
+import { dragonLook } from '../game/islandModel'
+import { ArtMark } from '../hud/ArtMark'
+import { Icon } from '../hud/Icon'
+import { SpriteStill, useGameArt } from '../ui/GameArt'
+import { PillButton } from '../ui/kit/buttons'
+import { FullScreenFrame } from '../ui/kit/frames'
+import { ElementRibbon, KitCard, ResourcePill } from '../ui/kit/pieces'
 import { breederName } from '../hud/hudModel'
 import { hasLegalCell } from '../state/placing'
 import { useAction } from '../state/actions'
 import { useMe } from '../state/me'
 import { formatGold, formatMicroUsd, formatSkipPrice } from '../ui/Money'
-import { ActionButton, Panel } from '../ui/Panel'
+import { ActionButton } from '../ui/Panel'
 import { clearingLabel } from '../ui/obstacleNames'
 import { Timer } from '../ui/Timer'
 
@@ -37,22 +44,63 @@ function decorationRoom(s: PlayerState, view: IslandId): Record<DecorationId, bo
   return out
 }
 
+/** The Shop's six categories (design, Phase 5: shop-selected); `all` lists every build item at once. */
+export type ShopCategory = 'dragons' | 'habitats' | 'buildings' | 'farms' | 'decorations' | 'store'
+export type ShopView = 'home' | ShopCategory | 'all'
+
+export const SHOP_CATEGORIES: readonly { id: ShopCategory; title: string; sections: readonly string[] }[] = [
+  { id: 'dragons', title: 'Dragons', sections: ['dragons'] },
+  { id: 'habitats', title: 'Habitats', sections: ['habitats'] },
+  { id: 'buildings', title: 'Buildings', sections: ['breeding', 'roost'] },
+  { id: 'farms', title: 'Farms', sections: ['farming'] },
+  { id: 'decorations', title: 'Decorations', sections: ['decorations'] },
+  { id: 'store', title: 'Store', sections: [] },
+]
+
+/** The lowest player level at which anything in the category can be bought; a card below it shows the lock (shop-selected). */
+export function categoryLevel(c: ShopCategory): number {
+  switch (c) {
+    case 'dragons': return Math.min(...ELEMENTS.map(el => unlockPl(`basic:${el}`)))
+    case 'habitats': return Math.min(...ELEMENTS.map(el => unlockPl(`habitat:${el}`)))
+    case 'buildings': return Math.min(unlockPl('grove:1'), unlockPl('roost:1'))
+    case 'farms': return unlockPl('farm:1')
+    case 'decorations': return Math.min(...Object.values(DECORATIONS).map(d => d.minLevel))
+    case 'store': return 1
+  }
+}
+
+/** The plank's count badge for a category list: owned, or owned/limit. */
+function categoryBadge(s: PlayerState, c: ShopCategory): string | undefined {
+  switch (c) {
+    case 'dragons': return `${s.dragons.length}`
+    case 'habitats': return `${s.habitats.length}`
+    case 'farms': return `${s.farms.length}/${MAX_FARMS}`
+    case 'decorations': return `${s.decorations.length}`
+    default: return undefined
+  }
+}
+
 export interface ShopPanelProps {
   onPlace: (what: Placing['what'], size: Footprint) => void
   view: IslandId
   nowMs: number
-  /** The tab to open on; Build by default. The resource pills' "+" open the Store tab. */
+  /** Legacy: `store` opens the Store category. */
   tab?: ShopTab
+  /** Where it opens: the category cards (the app's default), a category, or every build item (`all`). */
+  start?: ShopView
   onClose?: () => void
 }
 
 /**
- * The Shop: Build (everything that goes on the grid, paid in Gold) and Store (USD-priced items paid in DRIS from the
- * game balance: skips, the food pack, level 5 upgrades and the Golden Aerie). Cards that place something start placement.
+ * The Shop (design, Phase 5): a home of six category cards; a category is a plank with its count, a row of item cards,
+ * and a wooden footer with the resources and, for dragons and habitats, an element filter. Build items are paid in Gold
+ * and start placement; the Store sells USD-priced items paid in DRIS from the game balance.
  */
-export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClose }: ShopPanelProps) {
+export function ShopPanel({ onPlace, view, nowMs, tab: initial, start, onClose }: ShopPanelProps) {
   const me = useMe()
-  const [tab, setTab] = useState<ShopTab>(initial)
+  const [at, setAt] = useState<ShopView>(start ?? (initial === 'store' ? 'store' : 'all'))
+  const [element, setElement] = useState<Element | null>(null)
+  const [strip, setStrip] = useState(false)
   const s = me.data?.state
   // One scan for the habitat rows (the Golden Aerie shares the footprint), one each for the Grove and the Roost; not tied to the clock.
   const { room, groveRoom, roostRoom, farmRoom, decoRoom } = useMemo(
@@ -71,39 +119,90 @@ export function ShopPanel({ onPlace, view, nowMs, tab: initial = 'build', onClos
   latestPlace.current = onPlace
   const place = useCallback<ShopPanelProps['onPlace']>((what, size) => latestPlace.current(what, size), [])
   if (!s) return null
+  const category = SHOP_CATEGORIES.find(c => c.id === at)
+  const filtered = at === 'dragons' || at === 'habitats'
+  const open = (c: ShopCategory) => { setAt(c); setElement(null); setStrip(false) }
   return (
-    <Panel title="Shop" onClose={onClose}>
-      <div className="hud-tabs" role="tablist" aria-label="Shop sections">
-        <button type="button" role="tab" className="hud-tab" aria-selected={tab === 'build'} onClick={() => setTab('build')}>Build</button>
-        <button type="button" role="tab" className="hud-tab" aria-selected={tab === 'store'} onClick={() => setTab('store')}>Store</button>
-      </div>
-      <div role="tabpanel" aria-label={tab === 'build' ? 'Build' : 'Store'}>
-        {tab === 'build' ? <BuildTab s={s} onPlace={place} view={view} room={room} groveRoom={groveRoom} roostRoom={roostRoom} farmRoom={farmRoom} decoRoom={decoRoom} /> : <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />}
-      </div>
-    </Panel>
+    <FullScreenFrame title={category ? category.title : 'Shop'} badge={category ? categoryBadge(s, category.id) : undefined} backdrop={at === 'home' ? 'scene' : 'wood'}
+      onBack={at !== 'home' && start !== undefined ? () => setAt('home') : undefined} onClose={onClose}>
+      {at === 'home' ? (
+        <ul className="shop-home" aria-label="Shop categories">
+          {SHOP_CATEGORIES.map(c => {
+            const level = categoryLevel(c.id)
+            const locked = s.level < level
+            return (
+              <li key={c.id}>
+                <button type="button" id={`shop-category-${c.id}`} className={`shop-category${locked ? ' shop-category--locked' : ''}`} disabled={locked}
+                  aria-label={locked ? `${c.title}, level ${level}` : c.title} onClick={() => open(c.id)}>
+                  <span className="shop-category__head">{c.title}</span>
+                  <span className="shop-category__art"><ArtMark name={`shop.category.${c.id}`} size={96} /></span>
+                  {locked && <span className="shop-category__lock">{`Level ${level}`}</span>}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <div className="shop-list">
+          {at === 'store'
+            ? <StoreTab s={s} nowMs={nowMs} onPlace={onPlace} room={room} />
+            : <BuildTab s={s} onPlace={place} view={view} room={room} groveRoom={groveRoom} roostRoom={roostRoom} farmRoom={farmRoom} decoRoom={decoRoom}
+                only={category?.sections} element={element} />}
+        </div>
+      )}
+      {at !== 'home' && (
+        <footer className="shop-foot" aria-label="Shop footer">
+          <span className="shop-foot__pills">
+            <ResourcePill icon={<Icon name="gold" size={24} />} label="Gold" value={formatGold(s.gold)} />
+            <ResourcePill icon={<Icon name="food" size={24} />} label="Food" value={formatGold(s.food)} />
+          </span>
+          {filtered && (
+            <span className="shop-foot__filter">
+              {element && <PillButton small color="grey" onClick={() => setElement(null)}>{`${cap(element)} ×`}</PillButton>}
+              <PillButton small color="yellow" onClick={() => setStrip(v => !v)} ariaLabel="Category">Category</PillButton>
+            </span>
+          )}
+          {filtered && strip && (
+            <span className="shop-strip" role="group" aria-label="Elements">
+              {ELEMENTS.map(el => (
+                <button key={el} type="button" className="shop-strip__el" aria-pressed={element === el} aria-label={cap(el)} onClick={() => { setElement(el); setStrip(false) }}>
+                  <ElementRibbon element={el} />
+                </button>
+              ))}
+            </span>
+          )}
+        </footer>
+      )}
+    </FullScreenFrame>
   )
 }
 
 const section = (key: string, title: string, items: ReactNode) => (
-  <section data-testid={`shop-${key}`} style={{ marginBottom: 10 }}>
-    <h3 style={{ fontSize: 12 }}>{title}</h3>
-    <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 6 }}>{items}</ul>
+  <section data-testid={`shop-${key}`} className="shop-section" aria-label={title}>
+    <h3 className="shop-section__title">{title}</h3>
+    <ul className="shop-row">{items}</ul>
   </section>
 )
 
 /** Gold-and-level shop for everything that goes on the grid (spec section 8). */
-const BuildTab = memo(function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom, farmRoom, decoRoom }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean; groveRoom: boolean; roostRoom: boolean; farmRoom: boolean; decoRoom: Record<DecorationId, boolean> }) {
-  const card = (id: string, label: string, price: string, reason: string | undefined, what: Placing['what'], size: Footprint) => (
+const BuildTab = memo(function BuildTab({ s, onPlace, view, room, groveRoom, roostRoom, farmRoom, decoRoom, only, element }: { s: PlayerState; onPlace: ShopPanelProps['onPlace']; view: IslandId; room: boolean; groveRoom: boolean; roostRoom: boolean; farmRoom: boolean; decoRoom: Record<DecorationId, boolean>; only?: readonly string[]; element?: Element | null }) {
+  const card = (id: string, label: string, price: string, reason: string | undefined, what: Placing['what'], size: Footprint, art?: ReactNode) => (
     <li key={id}>
-      <ActionButton id={`shop-${id}`} disabled={Boolean(reason)} reason={reason} onClick={() => onPlace(what, size)}>
-        {label} · {price}
-      </ActionButton>
+      <KitCard title={label} art={art} footer={(
+        <ActionButton id={`shop-${id}`} disabled={Boolean(reason)} reason={reason} onClick={() => onPlace(what, size)} ariaLabel={`${label} · ${price}`}>
+          {price}
+        </ActionButton>
+      )} />
     </li>
   )
+  const shows = (key: string) => !only || only.includes(key)
+  const els = element ? ELEMENTS.filter(e => e === element) : ELEMENTS
+  const empty = <li className="shop-empty">Nothing here yet</li>
   const gold = (cost: number, minLevel: number, other?: string) =>
     s.level < minLevel ? `Level ${minLevel}` : other ?? (s.gold < cost ? 'Not enough gold' : undefined)
 
   const { run, pending } = useAction()
+  const gameArt = useGameArt()
   const noRoom = room ? undefined : NO_ROOM
   const plots = s.farms.length
   const grove = BREEDER_LEVELS.grove[0]!
@@ -111,7 +210,7 @@ const BuildTab = memo(function BuildTab({ s, onPlace, view, room, groveRoom, roo
   const groveBuilt = s.breeders.some(b => b.kind === 'grove')
   return (
     <>
-      {section('dragons', 'Dragons', ELEMENTS.map(el => {
+      {shows('dragons') && section('dragons', 'Dragons', els.map(el => {
         const basicPl = unlockPl(`basic:${el}`)
         const price = basicPriceGold(el)
         // The engine's order: Player Level, then a finished habitat with room (R26), then Gold.
@@ -120,30 +219,33 @@ const BuildTab = memo(function BuildTab({ s, onPlace, view, room, groveRoom, roo
           : s.gold < price ? 'Not enough gold' : undefined
         return (
           <li key={el}>
-            <ActionButton id={`shop-basic-${el}`} disabled={Boolean(reason) || pending} reason={reason} onClick={() => void run({ type: 'buyBasic', element: el })}>
-              {cap(el)} Basic · {formatGold(price)} gold
-            </ActionButton>
+            <KitCard title={`${cap(el)} Basic`} elements={[el]} rarity="common" art={<SpriteStill sprite={dragonLook(el, 1, gameArt).sprite} height={64} />} footer={(
+              <ActionButton id={`shop-basic-${el}`} disabled={Boolean(reason) || pending} reason={reason} onClick={() => void run({ type: 'buyBasic', element: el })} ariaLabel={`${cap(el)} Basic · ${formatGold(price)} gold`}>
+                {`${formatGold(price)} gold`}
+              </ActionButton>
+            )} />
           </li>
         )
       }))}
-      {section('habitats', 'Habitats', <>
-        {ELEMENTS.map(el => {
+      {shows('habitats') && section('habitats', 'Habitats', <>
+        {els.map(el => {
           const { buildGold } = HABITATS[el]
           return card(`habitat-${el}`, `${cap(el)} habitat`, `${formatGold(buildGold)} gold`,
-            gold(buildGold, unlockPl(`habitat:${el}`), noRoom), { kind: 'habitat', element: el }, FOOTPRINT.habitat)
+            gold(buildGold, unlockPl(`habitat:${el}`), noRoom), { kind: 'habitat', element: el }, FOOTPRINT.habitat, <SpriteStill sprite={gameArt.habitat[el]} height={56} />)
         })}
+        {els.length === 0 && empty}
       </>)}
-      {section('breeding', 'Breeding', card('grove', breederName('grove'), `${formatGold(grove.gold!)} gold`,
+      {shows('breeding') && section('breeding', 'Breeding', card('grove', breederName('grove'), `${formatGold(grove.gold!)} gold`,
         gold(grove.gold!, unlockPl('grove:1'), groveBuilt ? 'Already built' : groveRoom ? undefined : NO_ROOM), { kind: 'grove' }, FOOTPRINT.breeder))}
-      {section('roost', 'Roost', card('roost', 'Dragon Roost', `${formatGold(roost.gold)} gold`,
+      {shows('roost') && section('roost', 'Roost', card('roost', 'Dragon Roost', `${formatGold(roost.gold)} gold`,
         gold(roost.gold, unlockPl('roost:1'), s.roostPlacement ? 'Already built' : roostRoom ? undefined : NO_ROOM), { kind: 'roost' }, ROOST_FOOTPRINT))}
-      {section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_FARMS ? 'maximum' : `${formatGold(farmBuildGold(plots + 1))} gold`,
+      {shows('farming') && section('farming', 'Farming', card('farm', 'Farm plot', plots >= MAX_FARMS ? 'maximum' : `${formatGold(farmBuildGold(plots + 1))} gold`,
         plots >= MAX_FARMS ? 'Maximum plots reached' : gold(farmBuildGold(plots + 1), unlockPl(`farm:${plots + 1}` as UnlockKey), farmRoom ? undefined : NO_ROOM), { kind: 'farm' }, FOOTPRINT.farm))}
-      {section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {
+      {shows('decorations') && section('decorations', 'Decorations', (Object.keys(DECORATIONS) as DecorationId[]).map(id => {
         const d = DECORATIONS[id]
         // Locked items stay visible, greyed (spec section 8): an item for one island says so anywhere else.
         const reason = d.island && d.island !== view ? `${ISLANDS[d.island].name} only` : gold(d.cost, d.minLevel, decoRoom[id] ? undefined : NO_ROOM)
-        return card(`deco-${id}`, decorationName(id), `${formatGold(d.cost)} gold`, reason, { kind: 'decoration', decoration: id }, d.size)
+        return card(`deco-${id}`, decorationName(id), `${formatGold(d.cost)} gold`, reason, { kind: 'decoration', decoration: id }, d.size, <SpriteStill sprite={gameArt.decoration[id]} height={48} />)
       }))}
     </>
   )
@@ -246,7 +348,7 @@ function StoreTab({ s, nowMs, onPlace, room }: { s: PlayerState; nowMs: number; 
           <ActionButton id="buy-golden-aerie" disabled={aerieFull} reason={aerieFull ? NO_ROOM : 'Not available right now'} onClick={() => onPlace({ kind: 'goldenAerie' }, FOOTPRINT.habitat)}>
             Golden Aerie · {formatMicroUsd(aeriePrice)}
           </ActionButton>
-          <small style={{ display: 'block', color: 'var(--text-muted)' }}>A level 5 habitat for any element. You pick the spot, then confirm. One per player.</small>
+          <small style={{ display: 'block', color: 'var(--text-muted)' }}>A level 5 habitat for any element. You pick the spot, then press OK. One per player.</small>
         </li>
       ))}
     </>

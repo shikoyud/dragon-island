@@ -57,7 +57,26 @@ export function plotsBought(s: PlayerState, island: IslandId): number {
   return Math.max(0, ownedPlots(s, island).length - STARTING_PLOTS.length)
 }
 
-export type PlotError = 'ISLAND_LOCKED' | 'PLOT_OWNED' | 'PLOT_NOT_ADJACENT' | 'LEVEL_TOO_LOW' | 'MAX_PLOTS'
+/** U1: the order Home reveals its 12 purchasable plots in. The first three stand on the right of the screen (U2). */
+export const HOME_PLOT_ORDER: readonly number[] = [2, 7, 11, 1, 14, 13, 4, 8, 3, 15, 0, 12]
+
+/** How many Home plots are for sale at once. */
+const HOME_OFFER_SIZE = 3
+
+/**
+ * The plots that can be bought now. Home (U1): the first 3 of HOME_PLOT_ORDER that are unowned and touch owned land.
+ * Other islands: every unowned plot touching owned land (M4), ascending.
+ */
+export function offeredPlots(s: PlayerState, island: IslandId): number[] {
+  const owned = ownedPlots(s, island)
+  const open = (plot: number) => !owned.includes(plot) && owned.some(o => plotsTouch(o, plot))
+  if (island === 'home') return HOME_PLOT_ORDER.filter(open).slice(0, HOME_OFFER_SIZE)
+  const out: number[] = []
+  for (let plot = 0; plot < PLOTS_PER_SIDE * PLOTS_PER_SIDE; plot++) if (open(plot)) out.push(plot)
+  return out
+}
+
+export type PlotError = 'ISLAND_LOCKED' | 'PLOT_OWNED' | 'PLOT_NOT_ADJACENT' | 'PLOT_NOT_OFFERED' | 'LEVEL_TOO_LOW' | 'MAX_PLOTS'
 
 /** Why a plot can't be bought, Gold aside. Only Home's plots have a level gate (R47). */
 export function plotError(s: PlayerState, island: IslandId, plot: number): PlotError | null {
@@ -65,6 +84,7 @@ export function plotError(s: PlayerState, island: IslandId, plot: number): PlotE
   const owned = ownedPlots(s, island)
   if (owned.includes(plot)) return 'PLOT_OWNED'
   if (!owned.some(o => plotsTouch(o, plot))) return 'PLOT_NOT_ADJACENT'
+  if (!offeredPlots(s, island).includes(plot)) return 'PLOT_NOT_OFFERED'
   const bought = plotsBought(s, island)
   if (plotPrice(island, bought) === null) return 'MAX_PLOTS'
   return island === 'home' && !isUnlocked(`home:${bought}`, s.level) ? 'LEVEL_TOO_LOW' : null

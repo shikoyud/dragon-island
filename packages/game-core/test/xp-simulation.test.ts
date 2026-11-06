@@ -219,6 +219,8 @@ const hoursOf = (r: BotResult, pl: number) => r.reached.get(pl)?.hours ?? Infini
 
 /** A bot runs thousands of simulated actions; the default 5 s is too short on a loaded machine. */
 const BOT_TIMEOUT_MS = 120_000
+/** This one bot alone takes about 115 s here, at the branch base as at head, so a parallel suite tips it over BOT_TIMEOUT_MS. */
+const SLOW_BOT_TIMEOUT_MS = 400_000
 
 /** Bots playing the real rules from newPlayer (§4.3, §7.2). Each also has to get there, so a bot stuck at PL 1 can't pass. */
 describe('non-stop bots hold to the §4.3 targets', () => {
@@ -330,7 +332,7 @@ describe('bots that fight Trials stay on §7.2 (R40, R41, Review Focus 5)', () =
       expect(r.endOfDay.every((pl, i) => pl <= (levelLimit(i + 1, FLASH_28) ?? 50))).toBe(true)
       expect(r.endOfDay).toHaveLength(25)
       expect(r.endOfDay).toEqual(runBot(make(FLASH_28, 50, 25)).endOfDay)
-    }, BOT_TIMEOUT_MS)
+    }, SLOW_BOT_TIMEOUT_MS)
   }
 
   it('Flash-14 breedLoop+trials (grants, seed 1) holds the rows too', () => {

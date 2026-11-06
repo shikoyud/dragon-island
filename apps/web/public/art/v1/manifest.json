@@ -11,18 +11,18 @@
     "building.goldenAerie": {
       "file": "golden-aerie.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 7
+      "top": 8
     },
     "building.hatchery": {
       "file": "hatchery.png",
-      "w": 64,
-      "h": 64,
+      "w": 80,
+      "h": 96,
       "frames": 1,
       "fps": 0,
-      "top": 17
+      "top": 13
     },
     "building.hoard": {
       "file": "hoard.png",
@@ -571,82 +571,82 @@
     "habitat.dark": {
       "file": "habitat-dark.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 7
     },
     "habitat.electric": {
       "file": "habitat-electric.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 7
     },
     "habitat.flame": {
       "file": "habitat-flame.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 7
     },
     "habitat.ice": {
       "file": "habitat-ice.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 6
+      "top": 12
     },
     "habitat.light": {
       "file": "habitat-light.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 4
+      "top": 7
     },
     "habitat.metal": {
       "file": "habitat-metal.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 0
+      "top": 7
     },
     "habitat.nature": {
       "file": "habitat-nature.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 1
+      "top": 7
     },
     "habitat.sea": {
       "file": "habitat-sea.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 17
+      "top": 20
     },
     "habitat.terra": {
       "file": "habitat-terra.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 4
+      "top": 7
     },
     "habitat.war": {
       "file": "habitat-war.png",
       "w": 64,
-      "h": 56,
+      "h": 64,
       "frames": 4,
       "fps": 4,
-      "top": 14
+      "top": 17
     },
     "hatchling.dark": {
       "file": "hatchling-dark.png",
@@ -1106,11 +1106,11 @@
     },
     "island.sign": {
       "file": "island-sign.png",
-      "w": 32,
-      "h": 32,
+      "w": 48,
+      "h": 48,
       "frames": 1,
       "fps": 0,
-      "top": 1
+      "top": 0
     },
     "juvenile.dark": {
       "file": "juvenile-dark.png",
@@ -2954,27 +2954,27 @@
     },
     "building.hatchery.2": {
       "file": "hatchery-2.png",
-      "w": 64,
-      "h": 64,
+      "w": 80,
+      "h": 96,
       "frames": 1,
       "fps": 0,
-      "top": 11
+      "top": 13
     },
     "building.hatchery.3": {
       "file": "hatchery-3.png",
-      "w": 64,
-      "h": 64,
+      "w": 80,
+      "h": 96,
       "frames": 1,
       "fps": 0,
-      "top": 11
+      "top": 3
     },
     "building.hatchery.4": {
       "file": "hatchery-4.png",
-      "w": 64,
-      "h": 64,
+      "w": 80,
+      "h": 96,
       "frames": 1,
       "fps": 0,
-      "top": 4
+      "top": 1
     },
     "book.unknown": {
       "file": "book-unknown.png",
@@ -3043,7 +3043,7 @@
     "obstacle.ancientTree": {
       "file": "obstacle-ancientTree.png",
       "w": 64,
-      "h": 64,
+      "h": 72,
       "frames": 1,
       "fps": 0,
       "top": 0
@@ -3708,6 +3708,910 @@
       "file": "trial-chapter-war.png",
       "w": 64,
       "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.sky": {
+      "file": "ground-sky.png",
+      "w": 480,
+      "h": 272,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.cloud.0": {
+      "file": "ground-cloud-0.png",
+      "w": 96,
+      "h": 40,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "ground.cloud.1": {
+      "file": "ground-cloud-1.png",
+      "w": 96,
+      "h": 40,
+      "frames": 1,
+      "fps": 0,
+      "top": 9
+    },
+    "ground.cloud.2": {
+      "file": "ground-cloud-2.png",
+      "w": 96,
+      "h": 40,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "ground.rock": {
+      "file": "ground-rock.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.rim.0": {
+      "file": "ground-rim-0.png",
+      "w": 48,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.rim.1": {
+      "file": "ground-rim-1.png",
+      "w": 48,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "ground.rim.2": {
+      "file": "ground-rim-2.png",
+      "w": 40,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.rim.3": {
+      "file": "ground-rim-3.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ground.waterfall": {
+      "file": "ground-waterfall.png",
+      "w": 32,
+      "h": 96,
+      "frames": 4,
+      "fps": 8,
+      "top": 0
+    },
+    "ui.island.upgradePost": {
+      "file": "ui-island-upgradePost.png",
+      "w": 24,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.island.arrow": {
+      "file": "ui-island-arrow.png",
+      "w": 32,
+      "h": 40,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.zoom.minus": {
+      "file": "ui-zoom-minus.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.zoom.plus": {
+      "file": "ui-zoom-plus.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.zoom.thumb": {
+      "file": "ui-zoom-thumb.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "ui.kit.frame": {
+      "file": "ui-kit-frame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.plank": {
+      "file": "ui-kit-plank.png",
+      "w": 48,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.badge": {
+      "file": "ui-kit-badge.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.close": {
+      "file": "ui-kit-close.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.kit.back": {
+      "file": "ui-kit-back.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.kit.help": {
+      "file": "ui-kit-help.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.kit.plus": {
+      "file": "ui-kit-plus.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.kit.pill.blue": {
+      "file": "ui-kit-pill-blue.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.pill.yellow": {
+      "file": "ui-kit-pill-yellow.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.pill.green": {
+      "file": "ui-kit-pill-green.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.pill.purple": {
+      "file": "ui-kit-pill-purple.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.pill.grey": {
+      "file": "ui-kit-pill-grey.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.pill.red": {
+      "file": "ui-kit-pill-red.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.round": {
+      "file": "ui-kit-round.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.lock": {
+      "file": "ui-kit-lock.png",
+      "w": 12,
+      "h": 12,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.card": {
+      "file": "ui-kit-card.png",
+      "w": 48,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.resource": {
+      "file": "ui-kit-resource.png",
+      "w": 48,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.scroll.track": {
+      "file": "ui-kit-scroll-track.png",
+      "w": 12,
+      "h": 16,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.scroll.thumb": {
+      "file": "ui-kit-scroll-thumb.png",
+      "w": 12,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.bubble": {
+      "file": "ui-kit-bubble.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.bubble.tail": {
+      "file": "ui-kit-bubble-tail.png",
+      "w": 12,
+      "h": 8,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "ui.kit.bar": {
+      "file": "ui-kit-bar.png",
+      "w": 32,
+      "h": 12,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.terra": {
+      "file": "ui-kit-ribbon-terra.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.flame": {
+      "file": "ui-kit-ribbon-flame.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.sea": {
+      "file": "ui-kit-ribbon-sea.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.nature": {
+      "file": "ui-kit-ribbon-nature.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.electric": {
+      "file": "ui-kit-ribbon-electric.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.ice": {
+      "file": "ui-kit-ribbon-ice.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.metal": {
+      "file": "ui-kit-ribbon-metal.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.dark": {
+      "file": "ui-kit-ribbon-dark.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.light": {
+      "file": "ui-kit-ribbon-light.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.ribbon.war": {
+      "file": "ui-kit-ribbon-war.png",
+      "w": 12,
+      "h": 20,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.shield.common": {
+      "file": "ui-kit-shield-common.png",
+      "w": 20,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.shield.uncommon": {
+      "file": "ui-kit-shield-uncommon.png",
+      "w": 20,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.shield.rare": {
+      "file": "ui-kit-shield-rare.png",
+      "w": 20,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.shield.epic": {
+      "file": "ui-kit-shield-epic.png",
+      "w": 20,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.shield.legendary": {
+      "file": "ui-kit-shield-legendary.png",
+      "w": 20,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.kit.new": {
+      "file": "ui-kit-new.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "ui.hud.levelStar": {
+      "file": "ui-hud-levelStar.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.hud.avatarFrame": {
+      "file": "ui-hud-avatarFrame.png",
+      "w": 48,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "icon.book.32": {
+      "file": "icon-book-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.search.32": {
+      "file": "icon-search-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
+    },
+    "icon.goals.32": {
+      "file": "icon-goals-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "icon.storage.32": {
+      "file": "icon-storage-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "map.chain": {
+      "file": "map-chain.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "map.island.home": {
+      "file": "map-island-home.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "map.island.isle2": {
+      "file": "map-island-isle2.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "map.island.isle3": {
+      "file": "map-island-isle3.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "map.island.isle4": {
+      "file": "map-island-isle4.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "map.island.isle5": {
+      "file": "map-island-isle5.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "map.island.isle6": {
+      "file": "map-island-isle6.png",
+      "w": 128,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "icon.getEgg.32": {
+      "file": "icon-getEgg-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.collect.32": {
+      "file": "icon-collect-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.upgrade.32": {
+      "file": "icon-upgrade-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.info.32": {
+      "file": "icon-info-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.hatch.32": {
+      "file": "icon-hatch-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "icon.growFood.32": {
+      "file": "icon-growFood-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "icon.speedUp.32": {
+      "file": "icon-speedUp-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 5
+    },
+    "icon.rebreed.32": {
+      "file": "icon-rebreed-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
+    },
+    "icon.clear.32": {
+      "file": "icon-clear-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
+    },
+    "icon.move.32": {
+      "file": "icon-move-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.bubble.gold": {
+      "file": "icon-bubble-gold.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "icon.bubble.food": {
+      "file": "icon-bubble-food.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "icon.bubble.xp": {
+      "file": "icon-bubble-xp.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "icon.shop.32": {
+      "file": "icon-store-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "shop.category.dragons": {
+      "file": "shop-category-dragons.png",
+      "w": 96,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "shop.category.habitats": {
+      "file": "shop-category-habitats.png",
+      "w": 96,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 8
+    },
+    "shop.category.buildings": {
+      "file": "shop-category-buildings.png",
+      "w": 96,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "shop.category.farms": {
+      "file": "shop-category-farms.png",
+      "w": 96,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 8
+    },
+    "shop.category.store": {
+      "file": "shop-category-store.png",
+      "w": 96,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "shop.category.decorations": {
+      "file": "shop-category-decorations.png",
+      "w": 96,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "ui.expand.gold": {
+      "file": "ui-expand-gold.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
+    },
+    "ui.expand.dris": {
+      "file": "ui-expand-dris.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 6
+    },
+    "ui.expand.island": {
+      "file": "ui-expand-island.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 8
+    },
+    "bg.parchment": {
+      "file": "bg-parchment.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "bg.wood": {
+      "file": "bg-wood.png",
+      "w": 64,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "bg.breeding": {
+      "file": "bg-breeding.png",
+      "w": 480,
+      "h": 272,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "fx.newBurst": {
+      "file": "fx-newBurst.png",
+      "w": 48,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 1
+    },
+    "fx.glow": {
+      "file": "fx-glow.png",
+      "w": 96,
+      "h": 96,
+      "frames": 1,
+      "fps": 0,
+      "top": 4
+    },
+    "ui.book.frame": {
+      "file": "ui-book-frame.png",
+      "w": 64,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.book.ribbon": {
+      "file": "ui-book-ribbon.png",
+      "w": 24,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 3
+    },
+    "ui.quest.card": {
+      "file": "ui-quest-card.png",
+      "w": 64,
+      "h": 112,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "ui.battle.vs": {
+      "file": "ui-battle-vs.png",
+      "w": 48,
+      "h": 48,
+      "frames": 1,
+      "fps": 0,
+      "top": 7
+    },
+    "ui.xpStar": {
+      "file": "ui-xpStar.png",
+      "w": 24,
+      "h": 24,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "icon.health.32": {
+      "file": "icon-health-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "icon.damage.32": {
+      "file": "icon-damage-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 2
+    },
+    "icon.speed.32": {
+      "file": "icon-speed-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "icon.sell.32": {
+      "file": "icon-sell-32.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "fps": 0,
+      "top": 8
+    },
+    "battle.wide.dark": {
+      "file": "battle-wide-dark.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.electric": {
+      "file": "battle-wide-electric.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.flame": {
+      "file": "battle-wide-flame.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.ice": {
+      "file": "battle-wide-ice.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.light": {
+      "file": "battle-wide-light.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.metal": {
+      "file": "battle-wide-metal.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.nature": {
+      "file": "battle-wide-nature.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.sea": {
+      "file": "battle-wide-sea.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.terra": {
+      "file": "battle-wide-terra.png",
+      "w": 640,
+      "h": 360,
+      "frames": 1,
+      "fps": 0,
+      "top": 0
+    },
+    "battle.wide.war": {
+      "file": "battle-wide-war.png",
+      "w": 640,
+      "h": 360,
       "frames": 1,
       "fps": 0,
       "top": 0

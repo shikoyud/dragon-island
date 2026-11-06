@@ -1,5 +1,5 @@
 import { DEFAULT_PRESET, LAUNCH_CATALOG, newPlayer } from '@wyrmhaven/game-core'
-import { render } from '@testing-library/react'
+import { act, render } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ComponentProps, ReactNode } from 'react'
@@ -18,7 +18,7 @@ import { ToastProvider } from '../src/ui/Toast'
 import { harness } from './harness'
 
 /** Counts every time a parent renders an icon, past the icon's own memo. */
-const counter = vi.hoisted(() => ({ renders: 0, buttons: 0 }))
+const counter = vi.hoisted(() => ({ renders: 0, buttons: 0, marks: 0 }))
 vi.mock('../src/ui/Panel', async original => {
   const actual = await original<typeof import('../src/ui/Panel')>()
   return { ...actual, ActionButton: (props: ComponentProps<typeof actual.ActionButton>) => { counter.buttons++; return <actual.ActionButton {...props} /> } }
@@ -26,6 +26,11 @@ vi.mock('../src/ui/Panel', async original => {
 vi.mock('../src/hud/Icon', async original => {
   const actual = await original<typeof import('../src/hud/Icon')>()
   return { ...actual, Icon: (props: ComponentProps<typeof actual.Icon>) => { counter.renders++; return <actual.Icon {...props} /> } }
+})
+
+vi.mock('../src/hud/ArtMark', async original => {
+  const actual = await original<typeof import('../src/hud/ArtMark')>()
+  return { ...actual, ArtMark: (props: ComponentProps<typeof actual.ArtMark>) => { counter.marks++; return <actual.ArtMark {...props} /> } }
 })
 
 function hud(gold: number) {
@@ -37,7 +42,7 @@ function hud(gold: number) {
   const onOpen = vi.fn()
   const wrap = (ui: ReactNode) => <QueryClientProvider client={qc}><ApiProvider api={{} as Api}><ToastProvider>{ui}</ToastProvider></ApiProvider></QueryClientProvider>
   const at = (nowMs: number) => wrap(<Hud bridge={bridge} nowMs={nowMs} open={null} onOpen={onOpen} placing={false} />)
-  return { at, setMe }
+  return { at, setMe, bridge }
 }
 
 describe('the 1 s clock tick costs the HUD next to nothing', () => {
@@ -51,6 +56,20 @@ describe('the 1 s clock tick costs the HUD next to nothing', () => {
     rerender(at(11_000))
     rerender(at(12_000))
     expect(counter.renders).toBe(0)
+  })
+
+  it('does not render the zoom slider again on a tick, only on a zoom event', () => {
+    const { at, bridge } = hud(100)
+    bridge.zoom = { zoom: 2, min: 1, max: 4 }
+    const { rerender, container } = render(at(10_000))
+    expect(container.querySelector('input[aria-label="Zoom"]')).not.toBeNull()
+    counter.marks = 0
+    rerender(at(11_000))
+    rerender(at(12_000))
+    expect(counter.marks).toBe(0)
+    act(() => { bridge.zoom = { zoom: 3, min: 1, max: 4 }; bridge.emit({ type: 'zoom' }) })
+    expect(counter.marks).toBeGreaterThan(0)
+    expect(container.querySelector('input[aria-label="Zoom"]')).toHaveValue('3')
   })
 
   it('a resource change still reaches the pills', async () => {

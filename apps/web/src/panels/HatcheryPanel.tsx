@@ -5,7 +5,6 @@ import { formatSkipPrice } from '../ui/Money'
 import { ActionButton, Panel } from '../ui/Panel'
 import { isReady, Timer } from '../ui/Timer'
 import { useToasts } from '../ui/Toast'
-import { UpgradeSection } from './UpgradeSection'
 import { SpeedUpButton } from './SpeedUpButton'
 
 /**
@@ -21,7 +20,7 @@ export function HatcheryPanel({ nowMs, onClose, onOpenDragon }: { nowMs: number;
   const catalog = LAUNCH_CATALOG
   const slots = hatcherySlots(s.hatcheryLevel, s.hatcheryFifthSlot)
   const used = hatcheryUsed(s)
-  const waiting = s.dragons.filter(d => d.habitatId === null)
+  const waiting = s.dragons.filter(d => d.habitatId === null && !d.stored)
   const empty = Math.max(slots, used) - used
   const fifthSlotInStore = priceMicroUsd({ kind: 'hatcheryL5' }, s, nowMs) !== null
   const skipPrice = (index: number) => priceMicroUsd({ kind: 'skip', target: 'hatchery', index }, s, nowMs)
@@ -32,7 +31,7 @@ export function HatcheryPanel({ nowMs, onClose, onOpenDragon }: { nowMs: number;
   }
 
   return (
-    <Panel title={`Hatchery · ${used}/${slots}`} onClose={onClose}>
+    <Panel title="Hatchery" badge={`${used}/${slots}`} onClose={onClose}>
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {s.hatchery.map((egg, slot) => {
           const price = skipPrice(slot)
@@ -41,6 +40,9 @@ export function HatcheryPanel({ nowMs, onClose, onOpenDragon }: { nowMs: number;
               <span>Egg · <Timer readyAtMs={egg.readyAtMs} nowMs={nowMs} /></span>
               <ActionButton id={`hatch-${slot}`} primary disabled={pending || !isReady(egg.readyAtMs, nowMs)} reason="Still hatching" onClick={() => void hatch(slot)}>
                 Hatch
+              </ActionButton>
+              <ActionButton id={`store-egg-${slot}`} disabled={pending} onClick={() => void run({ type: 'putInStorage', target: { type: 'egg', slot } })}>
+                Store
               </ActionButton>
               <SpeedUpButton id={`speedup-hatch-${slot}`} target="hatchery" index={slot} readyAtMs={egg.readyAtMs} nowMs={nowMs} />
               {price !== null && (
@@ -68,7 +70,6 @@ export function HatcheryPanel({ nowMs, onClose, onOpenDragon }: { nowMs: number;
       </ul>
       {used > slots && <p role="note"><small>Over capacity: a reward is held here. New eggs wait until {used - slots + 1} more {used - slots + 1 === 1 ? 'slot frees' : 'slots free'} up.</small></p>}
       {fifthSlotInStore && <p><small>Fifth slot in the Store</small></p>}
-      <UpgradeSection building={{ type: 'hatchery' }} nowMs={nowMs} />
     </Panel>
   )
 }

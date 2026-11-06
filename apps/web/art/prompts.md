@@ -200,7 +200,7 @@ Keys follow `docs/art/gdd-m3-art-list.md`. Each Roost tier is an edit of the tie
 
 | Run | Tool | Cost | Used for |
 | --- | --- | --- | --- |
-| Roost Tier 1 | `create_image_pro_flash` 64�64, style image `hatchery.png`, seed 301 | 5 | `building.roost.1` |
+| Roost Tier 1 | `create_image_pro_flash` 64�64, style image `hatchery.png`, seed 301 | 5 | `building.roost.1` |
 | Roost Tiers 2 to 5 | `edit_image_pixen`, seeds 302, 307, 309, 310 (candidates 303, 304, 305, 306, 308, 311 discarded) | 10 | `building.roost.2` to `.5` |
 | Goal mark | `edit_image_pixen` on `ui-close.png`, seed 322 (two `create_image_pixen` tries, seeds 320 and 321, discarded: tick off the plate) | 3 | `ui.goal` |
 | Level-up | drawn in code: two rising 2:1 rings in gold-white with dithered fade, ground glow, four-point stars (no generation; the `level_up` part of `vfx_workbench` was tried for free and dropped, it is a pillar with arrows, not a ring) | 0 | `fx.levelUp` |
@@ -264,3 +264,151 @@ Backdrop pass (code): sea moved up 30 px and nature 40 px so both standing spots
 Champion loop (code): frame 0 is the generated frame, unchanged. Frames 1 and 2 move the rows above 55 % of the body height down 1 px; amber pixels brighten by 1, 1.12, 1.28, 1.12 over the four frames. The egg takes only the glow.
 
 Champion adult prompt: "same dragon, same pose, facing left: turn it into a regal heavily armoured legendary war-drake: dark crimson hide, big riveted steel plates over shoulders, chest and tail, a horned visored steel helmet on the head, a crest of crimson spines on the neck, a dull amber glow in a chest seam, the tail ends in a big spiked steel club. Crisp, 1px dark outline, transparent background". Juvenile: "same dragon one growth stage younger, same facing left: smaller steel plates on the shoulders only, a bare crimson head with no helmet and two small horn buds, shorter tail with a small steel knob, amber glow in the chest seam". Hatchling: "same hatchling, same pose, facing right: a round dark crimson baby dragon with two tiny steel studs on its brow and a bright amber spark in its eye, small steel tail tip".
+
+## UI rework Phase 1 set (2026-11-02)
+
+Keys follow `docs/superpowers/plans/2026-11-01-ui-rework-phase1.md` Task 7. Cost 43 generations (989 before, 946 after). Original designs: the old v1 sheets are only start images for habitats, Aerie and tree; the castle starts from a code block-out. No art copied from the layout references, which were used only for composition.
+
+| Run | Tool | Cost | Used for |
+| --- | --- | --- | --- |
+| Sky | `create_image_pixen` 480x272, seed 715 (seed 702 discarded: floating rock in the middle) | 2 | `ground.sky` |
+| Clouds | `create_image_pixen` 96x40, no background, seeds 703, 724, 722 (704, 705, 723 discarded: sparkles, peach balls, a tray of puffs) | 6 | `ground.cloud.0..2` |
+| Rock | `create_image_pixen` 64x64, seed 719 (seed 706 discarded: no facets) | 2 | `ground.rock` |
+| Rim | `create_image_pixen`, 48x32 seeds 716, 717; 40x32 seed 718; 32x32 seed 710 (707 a saucer, 708 a tank, 709 a floating islet, discarded) | 7 | `ground.rim.0..3` |
+| Waterfall | `create_image_pixen` 32x96, seeds 711 and 720, both discarded; drawn in code (Pillow, seed 20261102: a foam dome of sine lumps, column streaks of one blue ramp looping over 48 rows, 12 rows a frame; sides from two looping sine waves; a 4x4 ordered dither on `m ** 1.4` from row 64 to the bottom, ending per column) | 2 | `ground.waterfall` |
+| Sign | `create_image_pixen` 48x48, seed 712, blank board; letters in code | 1 | `island.sign` |
+| Tree | `edit_image_pixen` on a code start, 64x72, seed 742 (741 thin spider roots, 743 stray pixels in the roots, discarded) | 3 | `obstacle.ancientTree` |
+| Castle Level 1 | `edit_image_pixen` on a code block-out, 80x96, seed 731, then on that result seed 733 (`create_image_pixen` seed 701 and edit seed 732 discarded: nest on a wall top; gate wall closing the front) | 4 | `building.hatchery` |
+| Castle Levels 2 to 4 | `edit_image_pixen` chained, seeds 734, 735, 736; Level 1's courtyard pasted back each time | 3 | `building.hatchery.2`, `.3`, `.4` |
+| Habitats, Aerie | `edit_image_pixen` on a 1.25x nearest-neighbour start of v1 frame 0, 64x64, seed 721 | 11 | frame 0 of `habitat.<element>`, `building.goldenAerie` |
+| Post | `create_image_pixen` 32x32, seed 713, discarded (plate too wide for 24 px); drawn in code | 1 | `ui.island.upgradePost` |
+| Arrow | `create_image_pixen` 32x40, seed 714; orange brightened in code | 1 | `ui.island.arrow` |
+| Zoom controls | drawn in code | 0 | `ui.zoom.minus`, `.plus`, `.thumb` |
+
+Sky: "Empty open sky background: teal blue sky at the top fading to warm cream near the horizon, soft rounded puffy cream clouds only along the left and right edges, a band of far misty blue-green hills along the very bottom. The centre of the image is empty clear sky. Nothing floating, no rocks, no islands. Scene only: no interface, no HUD, no icons, no text, no characters, no border, no frame. Crisp pixel art, soft low contrast". "Floating island game" in the prompt draws a floating island.
+
+Clouds, all `outline` lineless: 703 "single soft puffy cream white cloud, wide and low, rounded lobes with pale warm shadow at the bottom, no outline, crisp pixel art, transparent background"; 724 (view side) "wide flat stratocumulus cloud, long and low, several soft rounded lobes along the top, flat bottom, cream, no outline, crisp pixel art, transparent background"; 722 "one big soft cream cumulus cloud with rounded lobes, warm cream colour, pale tan-rose shadow at the bottom, flat base, no outline, crisp pixel art, transparent background".
+
+Rock (view side, lineless): "rough grey cliff rock wall texture with large tall vertical facets and long vertical cracks, broad flat planes of light grey and mid grey with dark grey crevices, cool colour, fills the whole image from edge to edge, crisp pixel art".
+
+Rim (view side, black outline). 716: "a single natural grey boulder, big rounded stone with pale grey top and dark grey base, a few cracks, simple solid rock, 1px dark outline, crisp pixel art, transparent background". 717: "a single natural grey rock with big flat angular facets, pointed on one side, pale grey lit planes and dark grey shadow planes, solid stone, 1px dark outline, crisp pixel art, transparent background". 718: "two natural grey rocks side by side, one tall and one low, pale grey lit top and dark grey shadow, solid stone, 1px dark outline, crisp pixel art, transparent background". 710 (no view): "small low flat grey boulder, wider than it is tall, in the lower part of the image, pale highlight on top, dark underside, 1px dark outline, crisp pixel art, transparent background". Saying "rim of a floating island" draws saucers, tanks and islets.
+
+Sign: "blank wooden sign board on a single wooden post stuck in a small tuft of grass, front view, wide empty rectangular plank board with two nails, warm brown wood with lighter face, completely blank board, no writing, no symbols, 1px dark outline, crisp pixel art, transparent background".
+
+Arrow: "one bold chunky arrow pointing straight down, bright orange with lighter yellow-orange highlight on top and dark orange shading on the bottom edge, thick dark brown outline, flat simple game UI marker, fills the canvas, crisp pixel art, transparent background, no text".
+
+Tree: "the same ancient tree, same crown, same twisted trunk and hollow: the trunk base spreads into thick gnarled bark roots that hug the ground and taper to points, same bark colours and 1px dark outline as the trunk, roots of uneven length, irregular bottom edge, no flat cut, crisp pixel art, transparent background".
+
+Castle. Block-out 731: "Redraw as a polished fantasy castle in crisp pixel art, keep this exact layout: pale grey stone blocks with visible masonry, crenellated ring wall around the back and sides, round keep tower at the back with a small teal banner, two small round corner towers, wall open at the front, green courtyard, and a round empty woven straw nest of warm golden straw at the front centre. 1px dark outline, transparent background, no egg". Level 1, 733: "the same castle, same walls, same towers, same position: the ground of the courtyard becomes pale worn flagstones with little tufts of grass, the disc at the front becomes a clearly woven round straw nest, warm golden straw strands sticking out at its rim, shallow empty darker straw hollow inside, the keep top gets crenellations. Crisp, 1px dark outline, transparent background, no egg". Level 2, 734: "the same castle, same camera, same base, same flagstones and same empty straw nest in the same place: upgraded one level, add tall teal pennant banners on both small corner towers and a teal cloth banner hanging on the keep front. Do not change the courtyard. Crisp, 1px dark outline, transparent background, no egg". Level 3, 735: "the same castle, same camera, same base, keep the courtyard and the empty straw nest exactly: upgraded one level, the keep is taller, add one extra round pale grey stone tower with crenellations rising from the back wall on the left side of the keep, with a small teal flag. Keep all teal banners. Crisp, 1px dark outline, transparent background, no egg". Level 4, 736: "the same castle, same camera, same base, keep the courtyard and the empty straw nest exactly: final upgrade, add a matching round pale grey stone tower with crenellations rising from the back wall on the right side of the keep, a slim pointed teal roof with a gold finial on the keep, gold trim on the teal banners. Crisp, 1px dark outline, transparent background, no egg". Level 2's edit dropped the nest although told to keep it, so Level 1's courtyard is pasted back on Levels 2 to 4 (wedge `abs(x-40) <= min((y-66)*0.95, 22)`, rows 66 to 95): the nest is pixel-identical on all four. Nest centre about (40, 82), about 28x14; base bottom vertex (40, 95).
+
+Habitats, all seed 721: "redraw cleanly as crisp pixel art, same design: <design>, the platform fills the whole diamond, sharp 1px dark outline, transparent background". Designs: terra two tall tan standing stones at the back corner, a flat brown earth platform; flame slim black lava spire with flame at the back corner, black rock platform with glowing orange lava cracks; sea small grey rock with a little waterfall at the back corner, blue water platform, one lily pad; nature small leafy tree with ferns at the back corner, green meadow platform with tiny flowers and a stone rim; electric slim copper lightning rod with a bright yellow spark at the back corner, slate grey platform with copper circuit lines and copper rim; ice tall pointed blue-white ice crystals at the back corner, cracked white ice platform with a bright rim; metal small iron forge chimney with glowing furnace hatch and an anvil at the back corner, grey steel plate platform with rust seams; dark slim black obelisk with violet runes and a violet flame at the back corner, dark purple stone platform with glowing violet rim; light slim white marble pillar with a small radiant golden sun at the back corner, white marble platform with gold inlay rim; war two crimson banners on poles and a small iron brazier with fire at the back, dark grey-brown stone slab platform; Aerie ring of ten small glowing coloured gem motes floating above the back half, white stone platform with gold trim.
+
+Habitat start (code): rows from old row 28 down scale 1.25x about the bottom vertex; rows above it compress where the prop would leave the canvas (flame, nature, metal, dark, electric, light, terra props are slightly shorter than a straight 1.25x).
+
+Habitat silhouette (code): every edit keeps a 5 px slab side under the face (rows 42 to 47 full width, measured on all 11), so the art moves down 5 px and the face itself becomes the exact footprint diamond: rows 32 to 63, 2 px wide at the vertices, 64 px wide on rows 47 and 48. Below row 40 nothing stays outside the diamond and the diamond is filled; 1 px dark outline on those edges, 2 px of shade inside the lower edges in place of the lost slab side. Rim spurs above row 40 beside the prop are removed on sea, nature, electric, dark, flame and light.
+
+Habitat loop (code), 4 frames at 4 fps, frame 0 is the generated frame on every sheet. Flame, dark, electric: the glow's hue band brightens by 1, 1.12, 1.28, 1.12 (electric 1, 1.15, 1.3, 1.1). Metal: forge glow above row 40. War: fire above row 44. Light: sun above row 34. Aerie: gems above row 32. Sea: a light band moves across the blue pixels. Nature, terra: pale motes rise on frames 1 to 3. Ice: one white glint per frame on the crystals.
+
+Rock (code): pale strip in rows 0 to 3 replaced; blacks lifted (`62 + 0.72 * luminance`, cool tint) so crevices do not stripe when tiled; wrap by a min-error cut into a donor strip from inside the tile, both axes, at least 3 px per line; the two rows meeting at the wrap mixed 60/40.
+
+Waterfall (code, no generated pixels): 28 columns of runs 7 to 19 rows long in one five-colour blue-white ramp, periodic over 48 rows, outer columns darker. Frames scroll the rows by 12. Foam lip, drips, edge insets and mist are the same on every frame. Mist: from row 60 the water whitens, and ordered Bayer dither steps alpha through 192, 128, 64, 0, reaching 0 before the bottom row.
+
+Clouds (code): specks dropped, alpha hardened, luminance mapped to one cream ramp from rose-tan shadow to near-white, which also dissolves the outlines the model draws anyway. Centred in x.
+
+Rim (code): alpha hardened, specks dropped, desaturated and cooled to the rock's grey.
+
+Sign (code): board lightened, nails and dark marks in the text area replaced by plank colour, "FOR" and "SALE" on two lines from a hand-defined 3x5 font, drawn 2 px wide and 8 rows tall, dark brown.
+
+Tree start and shadow (code): v1 tree on a 64x72 canvas, hard-cut base removed, five tapered outlined root wedges added. After the edit, dark translucent shadow pixels (alpha 120 and 170) are scattered under the roots.
+
+Post (code): 24x32, wood plate and post, green up-arrow with light and dark edges. Zoom (code): 32x32 light round plate with a bevel, dark minus and plus glyphs; rounded light thumb with three grip lines.
+
+## UI rework Phase 2 set (2026-11-02)
+
+Keys follow `docs/art/ui-rework-p2-art-list.md` (Phases 2 to 4). Cost 60 generations (946 before, 886 after), all `create_image_pixen` through the REST API (`/v2/create-image-pixen`), `outline` "single color black outline", `detail` "medium detail" unless noted, transparent background. Original designs; the layout references were not used as images. Pixen refuses canvases under 32 px that are not square, so thin pieces were drawn on a larger canvas and cut to size in code.
+
+Shared kit tail: "1px dark navy outline, blank, no text, flat front view, crisp pixel art, transparent background". Shared icon tail: "small chunky game icon, 1px dark outline, limited palette, soft shading, crisp pixel art, transparent background, no text".
+
+| Key | Size drawn, seed | Prompt (before the shared tail) |
+| --- | --- | --- |
+| `ui.kit.frame` | 48x48, 802 | game UI dialog window frame: thick light grey stone rim with bevel, light top-left edge and dark bottom-right edge, rounded corners, plain flat cream fill inside |
+| `ui.kit.plank` | 64x32, 812 | one long horizontal wooden plank sign board across the middle of the image, warm brown wood with two thin darker grain lines, lighter top edge, darker bottom edge, slightly rounded corners |
+| `ui.kit.badge` | 16x16, 813 | small dark slate grey rounded rectangle badge, lighter top edge |
+| `ui.kit.close` | 16x16, 801 | round red game UI close button with a thick orange rim and a bold white X in the centre |
+| `ui.kit.back` | 16x16, 814 | orange rounded square game UI button with a bold white arrow pointing left, lighter top edge, darker bottom edge |
+| `ui.kit.help` | 16x16, 815 | round blue game UI button with a bold white question mark in the centre |
+| `ui.kit.plus` | 16x16, 820 | green square game UI button with a bold white plus sign |
+| `ui.kit.pill.*` | 32x32, 811 | one wide horizontal pill-shaped game button lying across the middle of the image, fully rounded ends, bright blue face, a lighter blue highlight row along the top, a thick darker blue band along the bottom edge |
+| `ui.kit.round` | 32x32, 816 | game UI action button: white rounded square with a thick bright orange ring border, empty white centre, soft grey shade at the bottom inside |
+| `ui.kit.card` | 48x64, 818 | tall game shop card, rounded corners, light cream body, the top quarter is a soft green header band with a subtle dragon scale pattern |
+| `ui.kit.resource` | 48x32, 819 | one wide horizontal dark navy rounded bar field, inset look with a darker top inner edge and lighter bottom edge |
+| `ui.kit.scroll.track` | 32x32, 832, low detail | a tall vertical wooden plank filling the full height of the image, narrow, light warm brown wood with vertical grain lines, slightly darker sides, recessed groove look |
+| `ui.kit.scroll.thumb` | 32x32, 833, low detail | a vertical rectangular dark brown wooden handle block with rounded corners, lighter left edge, darker right edge, three short horizontal grip notches in the middle |
+| `ui.kit.bubble`, `.tail` | 24x24, 823 | white speech bubble, rounded square shape, thick dark navy outline, light grey shade along the bottom inside (it drew a tail anyway, which became `.tail`) |
+| `ui.kit.bar` | 32x32, 834, low detail | a wide horizontal empty rounded bar trough, very dark slate blue inside, darker inner top edge, slightly lighter inner bottom edge |
+| `ui.kit.ribbon.*` | 32x32, 825 | a hanging vertical cloth banner ribbon with a V-notched bottom, plain red cloth, lighter left edge, small gold rod at the top |
+| `ui.kit.shield.*` | 32x32, 826 | a heraldic shield, plain empty blue face, a lighter rim around the edge, pointed bottom |
+| `ui.kit.new` | 24x24, 827 | bright pink eight-pointed star burst badge, starburst shape, lighter pink centre |
+| `ui.hud.levelStar` | 32x32, 843 | a bright blue five-pointed star badge, lighter blue top facets, darker blue lower facets, thick rim, empty centre |
+| `ui.hud.avatarFrame` | 48x48, 844, low detail | an empty square portrait frame with rounded corners, steel grey metal rim with a bevel |
+| `icon.book.32` … `icon.storage.32` | 32x32, 845 to 848 | book: a closed thick brown leather book with a gold dragon emblem on the cover; search: a magnifying glass with a wooden handle and a light blue glass lens; goals: a rolled parchment scroll with a red wax seal and a green check mark; storage: a wooden storage crate with metal corner bands |
+| `icon.shop.32` | none | points at the existing `icon-store-32.png` market stall (0 generations) |
+| `map.chain` | 32x32, 849 | a heavy iron chain wrapped in an X with a big gold padlock in the centre |
+| `map.island.*` | 128x96, 850 | "a small fantasy island floating in the sky, seen from above and in front, the grassy top is round and irregular, a rocky underside tapering down to a point with dangling roots, 1px dark outline, crisp pixel art, transparent background, no water, no shadow, no text, the top is …" home: a green meadow with a few round trees and a small stone castle; isle2: black volcanic rock with a smoking volcano and glowing lava cracks; isle3: white snow with blue ice crystal spires and snowy pines; isle4: grey stone with an iron fortress and steel towers; isle5: a dark purple misty swamp with twisted dead trees and violet glowing pools; isle6: crimson stone with a golden war palace, red banners and golden spires |
+| `icon.collect/.upgrade/.hatch/.growFood/.rebreed.32` | 32x32, 862, 863, 866, 867, 869 | a small pile of shiny gold coins with a sparkle; one bold green arrow pointing straight up; a cracked dragon egg with a small baby dragon head peeking out; a green seedling sprout from a mound of soil; two small dragon eggs side by side with a pink heart above them |
+| `icon.getEgg/.info/.speedUp/.clear.32` | 24x24 padded to 32, 881, 886, 887, 884 | one plain smooth cream white egg with a few green spots; a white speech bubble with a bold blue question mark inside; a golden stopwatch with a bold lightning bolt on its face; a small shovel with a wooden handle and a grey iron blade |
+| `icon.bubble.gold/.food/.xp` | 24x24, 871, 872, 885 | a single shiny gold coin; a roasted meat drumstick; a bright green four-pointed sparkle star |
+
+Discarded: close-up lock 817 and 831 (did not read as a padlock), track 821 (bamboo), thumb 822 (a face), bar 824 (checkerboard baked in), shield 841 and ribbon 842 at 24/20 px (a dark box; too small), get-egg 861, move 865 and 882 (diagonal arrows), collect 883 and 889, rebreed 888, clear 870 (filled the canvas), XP 873 (dark box), and four 429 "too many concurrent jobs" refusals, which cost nothing.
+
+Code (Pillow, script kept in the art session): alpha forced to 0 or 255. Every 9-slice piece was remapped so its corners are the generated corners at the exact inset and each edge and the centre are one repeating column or row taken from the middle of the generated edge, so CSS can stretch them cleanly; the frame's centre is flat `#f3ead2`. Plank, resource, bar, track and thumb were cut from their larger canvas this way. Card: header tiled from an 8-column strip, right half of the header mirrored from the left, a 1 px darker green line under it, bottom-right corner mirrored from the bottom-left (the generated card had a stray blob there). Bubble: body cut above the drawn tail, bottom edge mirrored from the top edge; the tail is its own 12x8 piece. Pills: one blue pill recoloured by hue to yellow, green, purple, grey and red (outline and value ramp kept). Ribbons: one red ribbon cut to 12x20, cloth recoloured to each `--el-*` token, a 5x5 element glyph drawn on in white (dark on light and electric). Shields: nearest-neighbour 20x24 from the 32 px shield, broken inner-outline pixels filled from their neighbours, face recoloured per rarity. Avatar frame: the checkerboard the model painted inside was flood-filled to transparent. Drawn entirely in code: `ui.kit.lock` (12x12 dark disc, white padlock) and `icon.move.32` (four yellow arrows from one rotated arrow, light top-left, dark bottom-right, 1 px navy outline).
+
+Hatchery sandstone (2026-11-02, code, 0 generations): on `building.hatchery` and `.2` to `.4`, every grey stone pixel (HSV saturation < 0.16, value > 0.22) outside the courtyard wedge `abs(x-40) <= min((y-66)*0.95, 22)`, rows 66 to 95, moves to hue 0.085, saturation 0.20 + 0.12 × (1 − value), value × 1.02. Outlines, banners, flags, grass and the wedge (nest and its flagstones) are unchanged, so the nest stays pixel-identical on all four levels. The castle no longer blends into the grey rim rocks.
+
+## UI rework Phase 5 set (2026-11-02)
+
+Keys follow the "Phase 5: dialogs and screens" table in `docs/art/ui-rework-p2-art-list.md`. Cost 25 generations (886 before, 861 after), all `create_image_pixen` (REST `/v2/create-image-pixen`), black outline, medium detail unless noted. Original designs; the layout references were used only for composition.
+
+Scene tail: "chunky pixel art, 1px dark outline, limited palette, warm daylight, crisp, transparent background, no text". Icon tail as in the Phase 2 set.
+
+| Key | Size, seed | Prompt (before the tail) |
+| --- | --- | --- |
+| `shop.category.dragons` … `.decorations` | 96x64, 901 to 906 | a small pile of three speckled dragon eggs on a straw nest; a small square grassy stone platform for dragons with a little rock and a fern on it, three-quarter view from above; a small stone cottage with a red tiled roof and a wooden door, three-quarter view from above; a small field of ripe crops in tilled soil rows with a little wooden fence, three-quarter view from above; an open wooden treasure chest with gold trim next to two small golden hourglasses; a small stone garden statue of a sitting dragon on a pedestal with flowers around it |
+| `ui.expand.gold`, `.dris`, `.island` | 64x64, 911, 912, 913 | a small square plot of sand with a wooden stake marker in the middle, four green arrows pointing outward, a stack of gold bars / a glowing purple crystal beside it; a small floating grassy island with a rocky underside and one tree |
+| `bg.parchment` | 64x64, 932, low detail | a flat sheet of old cream parchment paper seen straight on, rectangular with slightly torn rough edges on all four sides, darker tan edges, plain empty light centre, no curl, no roll, 1px dark brown outline |
+| `bg.wood` | 64x32, 933, opaque, low detail | two straight horizontal warm brown wooden planks stacked, straight horizontal wood grain lines, a dark seam between the planks, fills the whole image edge to edge, front view |
+| `bg.breeding` | 480x272, 931, opaque | "One single wide mountain meadow landscape: one big natural grey rock arch shaped like a heart stands in the exact centre of the image, soft green grass meadow across the whole bottom, a few pink blossom trees near the arch, distant blue mountains along the horizon, bright sky with soft cream clouds. Wide open empty grass and sky on the far left and far right. One continuous scene, not split, no panels. Scene only: no interface, no characters, no text, no border, no frame. Crisp pixel art, soft low contrast" |
+| `fx.newBurst` | 48x48, 916 | bright pink eight-pointed star burst badge, starburst shape, lighter pink centre (kit tail) |
+| `ui.book.frame` | 64x48, 918, low detail | an open book seen from above, brown leather cover edge around two plain cream blank pages, a darker spine fold in the centre (kit tail) |
+| `ui.book.ribbon` | 48x48 cut to 24x48, 919, low detail | a long vertical white cloth bookmark ribbon with a V-notched bottom, light grey shading (kit tail) |
+| `ui.quest.card` | 64x112, 920 | a tall stone arched card frame: grey stone border, a dark empty arched window filling the middle, a plain cloth ribbon band across the top (kit tail) |
+| `ui.battle.vs` | 48x48, 921 | two crossed steel swords over a round red and gold shield emblem, no letters |
+| `ui.xpStar` | 24x24, 922 | a small bright blue five-pointed star, lighter blue top |
+| `icon.health/.damage/.speed/.sell.32` | 32x32, 923 to 926 | a bold red medical cross with a lighter red highlight; a bright orange spiky impact burst explosion; a single light blue feathered wing; a single gold coin with a small green arrow pointing out to the right |
+
+Discarded: breeding 917 (two scenes side by side), parchment 914 (a rolled scroll), wood 915 (diagonal grain), and one 429 refusal (no cost).
+
+Code: alpha hardened everywhere except the opaque backgrounds. `bg.parchment` cut to its outline and remapped to the 16 px 9-slice with a flat centre. `bg.wood`: the drawn outline cropped off, then the left 32 columns plus their mirror, so the tile repeats in x with no seam. `fx.glow` drawn in code: 12 pale gold rays plus a core, alpha from a 4x4 ordered dither (alpha 200 inside radius 14, 150 outside).
+
+## Landscape battle backdrops (2026-11-06)
+
+`battle.wide.<element>`, 640x360, for the landscape battle screen; the portrait `battle.backdrop.<element>` stay. Cost 15 generations (861 before, 846 after), `create_image_pixen` 640x360, opaque, view side.
+
+Prompt: "Wide background scene for a turn-based battle: <place>. <sky or ceiling> in the upper half only, calm and simple in the top centre. From 55 percent down a broad flat empty <ground> fills the whole width, same simple texture everywhere, nothing standing on it. Muted mid-dark tones, low contrast, simple side edges. Scene only: no interface, no HUD, no icons, no text, no characters, no creatures, no border, no frame. Crisp pixel art." Rerolls (seeds 951, 952) add "seen from slightly above" after the ground, "Open space in the middle, nothing in the foreground", and "Muted mid tones"; 952 adds "no health bar, no score, no numbers".
+
+| Element | Seed | Place / sky / ground |
+| --- | --- | --- |
+| flame | 950 | a volcanic wasteland / a smoky dark sky with a distant smoking volcano at the far left / dark ash and black rock ground |
+| ice | 950 | a frozen valley between pale blue ice cliffs at the far left and right / a cold grey overcast sky / cracked pale blue ice floor |
+| metal | 950 | a dim iron forge hall / a dark back wall with a row of glowing furnace mouths and iron beams / dark iron plate floor |
+| sea | 950 | an underwater sea cave / a blue cave ceiling with soft light rays from above and coral at the sides / pale blue sandy sea floor |
+| terra | 950 | a canyon at sunset between tall sandstone cliffs at the far left and right / an orange sunset sky / dry orange earth ground with sparse dry grass |
+| war | 950 | a castle courtyard / a dark stone castle wall with a gate and red banners under a red sky / brown packed earth courtyard ground |
+| dark | 951 | a large dark cavern with twisted black roots on the far left and right walls / a dim violet cave with glowing violet spores / flat smooth dark purple stone ground |
+| light | 951 | a bright open marble temple terrace / a pale gold sky with soft clouds and white marble columns only at the far left and far right / flat pale stone tile floor |
+| nature | 951 | a forest clearing / dark green forest trees and canopy / flat open short green grass meadow |
+| electric | 952 | a wide open stormy plain / a dark violet storm sky with clouds and lightning bolts / flat dark grey rocky plain with a few small glowing yellow cracks |
+
+Discarded: seed 950 dark (floor read as a wall), electric (plain read as a wall), light (a pillar in the middle foreground), nature (hedge ground); seed 951 electric (a fake "55" HUD panel in the sky).
+
+Code: alpha forced to 255. War: the model wrote "55" on a small sign by the flag pole; the board's inside (x 255–274, y 18–35) is filled with its own median red, leaving a blank banner.

@@ -57,7 +57,7 @@ describe('placementRuleError', () => {
     it('a 5x5 Mountain moves from (8, 8) to a spot straddling a plot border', () => {
       const m = { kind: 'move' as const, target: { type: 'breeder' as const, index: 0 } }
       expect(placementRuleError(s, m, P(8, 8))).toBeNull()
-      expect(placementRuleError(s, m, P(13, 13))).toBeNull()
+      expect(placementRuleError(s, m, P(13, 12))).toBeNull()
       expect(placementRuleError(s, m, P(14, 12))).toBeNull()
     })
     it('a habitat with stored Gold may go to Island 2, and the move rule never reads Gold', () => {

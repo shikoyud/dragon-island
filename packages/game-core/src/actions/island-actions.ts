@@ -6,7 +6,7 @@ import { isUnfinished } from '../construction'
 import { canLiveIn, habitatSlots, residents, storedGold } from '../habitat'
 import { addXp } from '../progression'
 import { SELL_GOLD } from '../data/sell'
-import type { PlayerState } from '../state'
+import type { Dragon, PlayerState } from '../state'
 import { earnGold, spendGold } from '../wallet'
 import { failure, success, type Handler } from './types'
 
@@ -45,7 +45,8 @@ export const moveDragon: Handler<'moveDragon'> = (s, a, ctx) => {
   if (!canLiveIn(getSpecies(ctx.catalog, d.speciesId), target)) return failure('ELEMENT_MISMATCH')
   if (residents(s, target.id).length >= habitatSlots(target)) return failure('NO_HABITAT_SLOT')
   const collected = collectHabitat(collectDragonHome(s, d.id, ctx.catalog, ctx.nowMs, ctx.preset), target.id, ctx.catalog, ctx.nowMs, ctx.preset)
-  return success({ ...collected, dragons: collected.dragons.map(x => x.id === d.id ? { ...x, habitatId: target.id } : x) })
+  // A stored dragon comes out of Storage this way (S4).
+  return success({ ...collected, dragons: collected.dragons.map(x => x.id === d.id ? { ...unstore(x), habitatId: target.id } : x) })
 }
 
 export const feed: Handler<'feed'> = (s, a, ctx) => {
@@ -78,4 +79,9 @@ export const sellDragon: Handler<'sellDragon'> = (s, a, ctx) => {
   const collected = collectDragonHome(s, d.id, ctx.catalog, ctx.nowMs, ctx.preset)
   const defenceTeam = s.defenceTeam?.includes(d.id) ? null : s.defenceTeam
   return success(earnGold({ ...collected, defenceTeam, dragons: collected.dragons.filter(x => x.id !== d.id) }, gold))
+}
+
+function unstore(d: Dragon): Dragon {
+  const { stored: _, ...rest } = d
+  return rest
 }

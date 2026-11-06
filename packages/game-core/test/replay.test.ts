@@ -19,7 +19,7 @@ const script: [Action, number][] = [
   [{ type: 'buy', item: { kind: 'skip', target: 'construction', index: 0 } }, 170_000],
   [{ type: 'startUpgrade', building: { type: 'farm', index: 0 } }, 180_000],
   [{ type: 'finishConstruction', index: 0 }, 99_999_999],
-  [{ type: 'buyPlot', island: 'home', plot: 4 }, 100_000_000],
+  [{ type: 'buyPlot', island: 'home', plot: 7 }, 100_000_000],
   [{ type: 'buyBridge', island: 'isle2' }, 100_000_000],
   [{ type: 'clearObstacle', obstacleId: OBSTACLE_ID }, 100_000_000],
   [{ type: 'finishConstruction', index: 0 }, 200_000_000],
@@ -50,7 +50,7 @@ it('replays to an identical state', () => {
 
 it('the building scenario changes the island and is deterministic', () => {
   const { state } = replay()
-  expect(state.islands.plots.home).toEqual([5, 6, 9, 10, 4])
+  expect(state.islands.plots.home).toEqual([5, 6, 9, 10, 7])
   expect(state.islands.unlocked).toEqual(['home', 'isle2'])
   expect(state.islands.obstacles.some(o => o.id === OBSTACLE_ID)).toBe(false)
   expect(state.constructions).toEqual([])

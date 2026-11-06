@@ -1,24 +1,26 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dismissLevelUp, openPanel, resetPlayer, setServerClock, signIn } from './helpers'
+import { dismissLevelUp, expectPixelFonts, openPanel, openShop, resetPlayer, selectTarget, setServerClock, signIn } from './helpers'
 
 /**
  * The HUD over the full-screen island, at a desktop and a phone size: resources, menus, dialogs, the placement
- * strip with the ghost in view, the attention column and the automatic finish of a ready build.
+ * strip with the ghost in view and the automatic finish of a ready build.
  */
 type B = { state: { constructions: unknown[]; farms: unknown[] } | null; placing: { col: number; row: number; size: number } | null; cellToScreen: ((c: number, r: number) => { x: number; y: number }) | null }
 const bridge = <T>(page: Page, fn: (b: B) => T) => page.evaluate(`(${fn.toString()})(window.__bridge)`) as Promise<T>
 
-test('the countdown follows the server clock, not the device', async ({ page, request }) => {
+test('the countdown in Settings follows the server clock, not the device', async ({ page, request }) => {
   const days = async () => Number(/(\d+)d /.exec(await page.getByRole('timer', { name: 'Terminal countdown' }).innerText())![1])
   await signIn(page)
   await resetPlayer(request)
   await setServerClock(request, 0)
   await page.reload()
+  await openPanel(page, 'Settings')
   await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toBeVisible()
   const before = await days()
   try {
     await setServerClock(request, 86_400_000)
     await page.reload()
+    await openPanel(page, 'Settings')
     await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toBeVisible()
     expect(await days()).toBe(before - 1)
   } finally {
@@ -45,17 +47,30 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       const res = page.getByRole('status', { name: 'Resources' })
       await expect(res.getByLabel('Gold', { exact: true })).toHaveText('5,000')
       await expect(res.getByLabel('Food', { exact: true })).toHaveText('50')
-      const bar = page.getByRole('navigation', { name: 'Main menu' })
-      for (const b of ['Shop', 'Breed', 'Dragon Book', 'Battle', 'Wings', 'Quests', 'Inbox']) {
-        await expect(bar.getByRole('button', { name: b, exact: true })).toBeVisible()
-        expect((await bar.getByRole('button', { name: b, exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(44)
+      // Phase 3 layout: Battle bottom left, Shop bottom right, Goals on the left edge, Book counter top left, no Finals clock.
+      const boxOf = async (name: string) => (await page.getByRole('button', { name, exact: true }).boundingBox())!
+      for (const b of ['Battle', 'Shop', 'Goals', 'Dragon Book', 'Settings']) {
+        await expect(page.getByRole('button', { name: b, exact: true })).toBeVisible()
+        expect((await boxOf(b)).height, b).toBeGreaterThanOrEqual(26)
       }
-      for (const b of ['Wings', 'Inbox']) await expect(bar.getByRole('button', { name: b, exact: true })).toBeDisabled()
-      await expect(bar.getByRole('button', { name: 'Quests', exact: true })).toBeEnabled()
-      await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toContainText(/^(Launch in|Finals lock in) \d+d \d\d:\d\d:\d\d$/)
-      await expect(page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name: 'Map', exact: true })).toBeVisible()
+      const battle = await boxOf('Battle'), shop = await boxOf('Shop')
+      expect(battle.x).toBeLessThan(size.width / 4)
+      expect(shop.x + shop.width).toBeGreaterThan(size.width * 3 / 4)
+      expect(battle.y + battle.height).toBeGreaterThan(size.height - 120)
+      expect((await boxOf('Goals')).x).toBeLessThan(80)
+      for (const b of ['Breed', 'Wings', 'Inbox', 'Quests']) await expect(page.getByRole('button', { name: b, exact: true })).toHaveCount(0)
+      await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toHaveCount(0)
+      // No two HUD controls overlap (the Islands list stays out of sight until focused).
+      const controls = await page.locator('.hud button:visible, .hud .kit-resource:visible').evaluateAll(els => els.filter(e => !e.closest('.map-list') && (!e.closest('.kit-resource') || e.classList.contains('kit-resource'))).map(e => { const r = e.getBoundingClientRect(); return { n: e.getAttribute('aria-label') ?? e.className, x: r.x, y: r.y, w: r.width, h: r.height } }))
+      for (const a of controls) for (const b of controls) {
+        if (a === b) continue
+        const hit = a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1 && a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1
+        expect(hit, `${a.n} overlaps ${b.n}`).toBe(false)
+      }
+      // Every island is on the island itself (R99): no Map button.
+      await expect(page.getByRole('button', { name: 'Map', exact: true })).toHaveCount(0)
       for (const b of ['Hoard', 'Season', 'Ranks', 'Referral']) await expect(page.getByRole('button', { name: b, exact: true })).toHaveCount(0)
-      await expect(page.getByRole('complementary', { name: 'Needs attention' }).getByRole('button', { name: /daily quests/i })).toHaveCount(0)
+      await expect(page.getByRole('complementary', { name: 'Needs attention' })).toHaveCount(0)
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0)
       await page.screenshot({ path: `test-results/hud-${size.name}.png` })
     })
@@ -67,8 +82,10 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await page.getByRole('button', { name: 'Buy food' }).click()
       const store = page.getByRole('dialog', { name: 'Shop' })
       await expect(store).toBeVisible()
-      await expect(store.getByRole('tab', { name: 'Store' })).toHaveAttribute('aria-selected', 'true')
+      await expect(store.getByRole('region', { name: 'Store' })).toBeVisible()
+      await expectPixelFonts(page)
       await store.getByRole('button', { name: 'Close' }).click()
+      await expectPixelFonts(page)
       await expect(store).toBeHidden()
       await openPanel(page, 'Dragon Book')
       await expect(page.getByRole('dialog', { name: 'Dragon Book' })).toContainText('found')
@@ -116,16 +133,11 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
           expect(await contrast(tab), name).toBeGreaterThanOrEqual(4.5)
         }
       }
-      await openPanel(page, 'Shop')
-      await checkTabs(['Build', 'Store'])
-      await page.keyboard.press('Escape')
       await openPanel(page, 'Trials')
       await checkTabs(['Trials', 'Arena'])
       await page.keyboard.press('Escape')
 
-      const clock = page.getByRole('timer', { name: 'Terminal countdown' })
-      expect(Number.parseFloat(await clock.evaluate(el => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(12)
-      for (const name of ['Wings', 'Quests', 'Inbox']) {
+      for (const name of ['Battle', 'Shop']) {
         const button = page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true })
         expect(await button.evaluate(el => getComputedStyle(el).opacity)).toBe('1')
       }
@@ -136,13 +148,13 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await resetPlayer(request, { gold: 5_000, level: 3 })
       await page.reload()
       await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: B }).__bridge?.cellToScreen))
-      await openPanel(page, 'Shop')
+      await openShop(page, 'Farms')
       await page.locator('#shop-farm').click()
       const strip = page.getByRole('toolbar', { name: 'Placement' })
       await expect(strip).toBeVisible()
       await expect(page.getByRole('navigation', { name: 'Main menu' })).toHaveCount(0)
-      const confirm = strip.getByRole('button', { name: 'Confirm' })
-      await expect(confirm).toBeEnabled() // opens on a free cell
+      const ok = strip.getByRole('button', { name: 'OK' })
+      await expect(ok).toBeEnabled() // opens on a free cell
       // The ghost's footprint is on screen and not under the strip.
       const stripTop = (await strip.boundingBox())!.y
       const ghost = await bridge(page, b => b.cellToScreen!(b.placing!.col, b.placing!.row))
@@ -150,10 +162,10 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       expect(ghost.x).toBeLessThan(size.width)
       expect(ghost.y).toBeGreaterThan(0)
       expect(ghost.y).toBeLessThan(stripTop)
-      await confirm.click()
+      await ok.click()
       await expect(strip).toBeHidden()
       await expect.poll(() => bridge(page, b => b.state!.constructions.length)).toBe(1)
-      await expect(page.getByRole('complementary', { name: 'Needs attention' })).toContainText(/Building Farm plot 2/)
+      await expect.poll(() => bridge(page, b => b.state!.farms.length)).toBeGreaterThanOrEqual(1)
     })
 
     test('a real Bush clear finishing with its panel open closes the dialog and scrim, and the Shop opens with one tap', async ({ page, request }) => {
@@ -164,9 +176,11 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: B }).__bridge?.cellToScreen))
       await dismissLevelUp(page)
       const id = await page.evaluate(() => (window as unknown as { __bridge: { state: { islands: { obstacles: { id: string; kind: string }[] } } } }).__bridge.state.islands.obstacles.find(o => o.kind === 'bush')!.id)
-      await page.evaluate(i => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: { kind: 'obstacle', id: i } }), id)
+      // A tap selects it; Clear on its row starts the clear, and the row's Speed Up opens its panel.
+      const row = await selectTarget(page, { kind: 'obstacle', id })
+      await row.getByRole('button', { name: 'Clear', exact: true }).click()
+      await row.getByRole('button', { name: 'Speed Up', exact: true }).click()
       const dialog = page.getByRole('dialog', { name: 'obstacle' })
-      await dialog.getByRole('button', { name: /^Clear · / }).click()
       await expect(dialog).toContainText('Clearing')
       // The clear finishes by itself while the panel stays open.
       await expect(dialog).toHaveCount(0, { timeout: 30_000 })
@@ -180,9 +194,9 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await signIn(page)
       await resetPlayer(request)
       await page.reload()
-      const nav = (await page.getByRole('navigation', { name: 'Main menu' }).boundingBox())!
+      const shop = (await page.getByRole('button', { name: 'Shop', exact: true }).boundingBox())!
       const toasts = (await page.locator('.toasts').boundingBox())!
-      expect(toasts.y + toasts.height).toBeLessThanOrEqual(nav.y)
+      expect(toasts.y + toasts.height).toBeLessThanOrEqual(shop.y)
     })
 
     test('a build whose timer has run out finishes by itself', async ({ page, request }) => {
@@ -195,3 +209,55 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
     })
   })
 }
+
+test.describe('zoom slider on a landscape phone', () => {
+  test.use({ viewport: { width: 844, height: 390 } })
+  const cam = (page: Page) => page.evaluate(() => (window as unknown as { __bridge: { zoom: { zoom: number; min: number; max: number } | null } }).__bridge.zoom)
+  type Rect = { x: number; y: number; width: number; height: number }
+  const inside = (b: Rect) => b.x >= 0 && b.y >= 0 && b.x + b.width <= 844 && b.y + b.height <= 390
+  const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+
+  test('stays on screen, clear of the island menu, the main menu and the Move bar; plus zooms the camera', async ({ page, request }) => {
+    await signIn(page)
+    await resetPlayer(request, { gold: 50_000, level: 6 })
+    await page.reload()
+    await page.waitForFunction(() => Boolean((window as unknown as { __bridge?: B }).__bridge?.cellToScreen))
+    await dismissLevelUp(page)
+    const group = page.getByRole('group', { name: 'Zoom controls' })
+    await expect(group).toBeVisible()
+    const box = (await group.boundingBox())!
+    expect(inside(box)).toBe(true)
+    for (const name of ['Zoom in', 'Zoom out']) {
+      const b = (await page.getByRole('button', { name, exact: true }).boundingBox())!
+      expect(b.width).toBeGreaterThanOrEqual(44)
+      expect(b.height).toBeGreaterThanOrEqual(44)
+    }
+    const menu = (await page.getByRole('navigation', { name: 'Island menu' }).boundingBox())!
+    expect(overlaps(box, menu)).toBe(false)
+    for (const name of ['Battle', 'Shop']) {
+      const b = (await page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).boundingBox())!
+      expect(overlaps(box, b), name).toBe(false)
+    }
+
+    const before = (await cam(page))!
+    expect(before.max).toBeGreaterThan(before.zoom)
+    await page.getByRole('button', { name: 'Zoom in', exact: true }).click()
+    await expect.poll(async () => (await cam(page))!.zoom).toBe(before.zoom + 1)
+    await expect(page.getByRole('slider', { name: 'Zoom' })).toHaveValue(String(before.zoom + 1))
+    await page.getByRole('button', { name: 'Zoom out', exact: true }).click()
+    await expect.poll(async () => (await cam(page))!.zoom).toBe(before.zoom)
+
+    // Mid-Move: Cancel and OK are on screen and don't touch the slider.
+    await page.evaluate(() => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: { kind: 'habitat', id: 'h1' } }))
+    await page.getByRole('button', { name: /^move$/i }).click()
+    const bar = page.getByRole('toolbar', { name: 'Placement' })
+    await expect(bar).toBeVisible()
+    const slider = (await group.boundingBox())!
+    expect(inside(slider)).toBe(true)
+    for (const name of ['Cancel', 'OK']) {
+      const b = (await bar.getByRole('button', { name, exact: true }).boundingBox())!
+      expect(inside(b)).toBe(true)
+      expect(overlaps(b, slider)).toBe(false)
+    }
+  })
+})

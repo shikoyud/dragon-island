@@ -1,31 +1,56 @@
 import type { IslandId } from '@wyrmhaven/game-core'
+import { useEffect } from 'react'
 import type { IslandChoice } from '../state/placing'
 
-/** Turn / Confirm / Cancel while a building is being placed or moved, plus an Island button per island a mover may go to (R57). */
+/** A round button with its label beneath; its glyph is made of CSS blocks. */
+function GoButton({ name, label, kind, disabled, onClick }: { name: string; label: string; kind: 'cancel' | 'ok'; disabled?: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className={`placement-go placement-go--${kind}`} aria-label={name} disabled={disabled} onClick={onClick}>
+      <span className="placement-go__plate" aria-hidden="true"><span className="placement-go__glyph" /></span>
+      <span className="placement-go__label outlined">{label}</span>
+    </button>
+  )
+}
+
+/**
+ * While a building is placed or moved: an Island button per island a mover may go to (R57) and Turn in a small row, over
+ * Cancel and OK. It stands at the bottom centre, and only its buttons take pointer events: the rest of it is still island.
+ * Escape cancels, as Cancel does, unless a dialog over it (a level-up) has Escape for itself.
+ */
 export function PlacementBar({ legal, pending, islands = [], onIsland, onTurn, onConfirm, onCancel }: {
   legal: boolean; pending?: boolean; islands?: readonly IslandChoice[]; onIsland?: (island: IslandId) => void
   onTurn: () => void; onConfirm: () => void; onCancel: () => void
 }) {
+  useEffect(() => {
+    if (pending) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('[role="dialog"]')) onCancel() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [pending, onCancel])
   return (
     <div className="placement-bar" role="toolbar" aria-label="Placement">
-      {islands.map(c => (
-        <button
-          key={c.island}
-          type="button"
-          className="btn"
-          aria-label={`Move to ${c.name}`}
-          aria-pressed={c.current}
-          disabled={!c.room || pending}
-          title={c.room ? undefined : `No room on ${c.name}`}
-          onClick={() => onIsland?.(c.island)}
-        >
-          {c.name}
-        </button>
-      ))}
-      <button type="button" className="btn" onClick={onTurn}>Turn</button>
-      <button type="button" className="btn btn--primary" disabled={!legal || pending} onClick={onConfirm}>Confirm</button>
-      <button type="button" className="btn" disabled={pending} onClick={onCancel}>Cancel</button>
-      {!legal && <small>Can't build here</small>}
+      {!legal && <small className="placement-bar__why">Can't build here</small>}
+      <div className="placement-bar__row">
+        {islands.map(c => (
+          <button
+            key={c.island}
+            type="button"
+            className="btn"
+            aria-label={`Move to ${c.name}`}
+            aria-pressed={c.current}
+            disabled={!c.room || pending}
+            title={c.room ? undefined : `No room on ${c.name}`}
+            onClick={() => onIsland?.(c.island)}
+          >
+            {c.name}
+          </button>
+        ))}
+        <button type="button" className="btn" disabled={pending} onClick={onTurn}>Turn</button>
+      </div>
+      <div className="placement-bar__go">
+        <GoButton name="Cancel" label="CANCEL" kind="cancel" disabled={pending} onClick={onCancel} />
+        <GoButton name="OK" label="OK" kind="ok" disabled={!legal || pending} onClick={onConfirm} />
+      </div>
     </div>
   )
 }

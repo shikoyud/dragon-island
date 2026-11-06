@@ -38,6 +38,7 @@ export function GameCanvas({ bridge, art, nowMs }: { bridge: Bridge; art: GameAr
   const runRef = useRef(run)
   runRef.current = run
   useEffect(() => bridge.on('collectGold', e => { void runRef.current({ type: 'collectGold', habitatId: e.habitatId }) }), [bridge])
+  useEffect(() => bridge.on('harvest', e => { void runRef.current({ type: 'harvest', plot: e.plot }) }), [bridge])
 
   // The preset goes first so the redraw the state triggers already uses it.
   useEffect(() => {

@@ -58,16 +58,46 @@ export async function signIn(page: Page, opts: { fresh?: boolean } = {}) {
  * Settings for the wallet, Battle's tabs for Trials and Arena, and a click on the hatchery or a plot for Hatchery and
  * Farm. Any dialog already open is closed first (its scrim covers the HUD).
  */
+/** Selects `target` on the island (a fresh selection, whatever was selected) and returns its action row. */
+export async function selectTarget(page: Page, target: unknown) {
+  await page.waitForFunction(() => '__bridge' in window)
+  await page.evaluate(t => {
+    const b = (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge
+    b.emit({ type: 'select', target: { kind: 'empty' } })
+    b.emit({ type: 'select', target: t })
+  }, target)
+  const row = page.getByRole('region', { name: / actions$/ })
+  await expect(row).toBeVisible()
+  return row
+}
+
+/** A tap selects (UI rework ruling A1): selects `target`, then Info on its action row opens its panel. */
+export async function openInfo(page: Page, target: unknown) {
+  const row = await selectTarget(page, target)
+  await row.getByRole('button', { name: 'Info', exact: true }).click()
+}
+
+/** Opens the Shop and one of its category cards (UI rework Phase 5). */
+export async function openShop(page: Page, category: 'Dragons' | 'Habitats' | 'Buildings' | 'Farms' | 'Decorations' | 'Store') {
+  await openPanel(page, 'Shop')
+  await page.getByRole('list', { name: 'Shop categories' }).getByRole('button', { name: category, exact: true }).click()
+}
+
+/** Selects `target` and opens its Upgrade dialog from the action row (UI rework Phase 5). */
+export async function openUpgrade(page: Page, target: unknown) {
+  const row = await selectTarget(page, target)
+  await row.getByRole('button', { name: 'Upgrade', exact: true }).click()
+}
+
 export async function openPanel(page: Page, label: string) {
   // A level-up screen (R38) sits over everything until the player continues. It opens after /me lands, so wait for the HUD first.
   await dismissLevelUp(page)
   if (await page.getByTestId('dialog-scrim').isVisible().catch(() => false)) await page.keyboard.press('Escape')
+  if (await page.getByRole('dialog', { name: 'New dragon' }).isVisible().catch(() => false)) await page.keyboard.press('Escape')
   const main = (name: string) => page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).click()
+  const settings = () => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name: 'Settings', exact: true }).click()
   const side = (name: string) => page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name, exact: true }).click()
-  const select = async (target: unknown) => {
-    await page.waitForFunction(() => '__bridge' in window)
-    return page.evaluate(t => (window as unknown as { __bridge: { emit(e: unknown): void } }).__bridge.emit({ type: 'select', target: t }), target)
-  }
+  const select = (target: unknown) => openInfo(page, target)
   switch (label) {
     case 'Trials':
     case 'Arena':
@@ -75,12 +105,24 @@ export async function openPanel(page: Page, label: string) {
       return page.getByRole('tab', { name: label }).click()
     case 'Map':
       return side(label)
+    case 'Settings':
+      return settings()
     case 'Wallet':
-      return page.getByRole('button', { name: 'Settings' }).click()
+      await settings()
+      return page.getByRole('tab', { name: 'Wallet' }).click()
+    case 'Quests':
+    case 'Goals':
+      return page.getByRole('navigation', { name: 'Goals' }).getByRole('button', { name: 'Goals', exact: true }).click()
+    case 'Dragon Book':
+      return page.getByRole('group', { name: 'Player' }).getByRole('button', { name: 'Dragon Book', exact: true }).click()
+    case 'Breed':
+      // The Breed button left the HUD (Phase 3 ruling Q3): the breeding building opens it.
+      return (await selectTarget(page, { kind: 'breeder', index: 0 })).getByRole('button', { name: 'Breed', exact: true }).first().click()
     case 'Hatchery':
       return select({ kind: 'hatcheryBuilding' })
     case 'Farm':
-      return select({ kind: 'farm', plot: 0 })
+      // The farm's first row button opens its board (Grow Food) or its timer (Speed Up).
+      return (await selectTarget(page, { kind: 'farm', plot: 0 })).getByRole('button').first().click()
     default:
       return main(label)
   }
@@ -100,3 +142,28 @@ export async function dismissLevelUp(page: Page) {
 
 export const flameTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'flame', level, feeds: 0, habitatId: 'h1' }))
 export const seaTeam = (level: number) => ['d1', 'd2', 'd3'].map(id => ({ id, speciesId: 'sea', level, feeds: 0, habitatId: 'h2' }))
+
+/**
+ * No visible text in a browser default font (UI rework design, "One font family"): every visible element with its own
+ * text draws with Silkscreen or Pixelify Sans, and both families have loaded.
+ */
+export async function expectPixelFonts(page: Page) {
+  const bad = await page.evaluate(async () => {
+    await document.fonts.ready
+    const loaded = document.fonts.check('12px "Pixelify Sans"') && document.fonts.check('12px "Silkscreen"')
+    const offenders: string[] = []
+    for (const el of Array.from(document.body.querySelectorAll<HTMLElement>('*'))) {
+      const ownText = Array.from(el.childNodes).some(n => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim() !== '')
+      const isField = el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement
+      if (!ownText && !isField) continue
+      const r = el.getBoundingClientRect()
+      const cs = getComputedStyle(el)
+      if (r.width === 0 || r.height === 0 || cs.visibility === 'hidden' || cs.display === 'none') continue
+      const first = (cs.fontFamily.split(',')[0] ?? '').trim().replace(/^["']|["']$/g, '')
+      if (first !== 'Silkscreen' && first !== 'Pixelify Sans') offenders.push(`${el.tagName.toLowerCase()}.${el.className}: ${first}`)
+    }
+    return { loaded, offenders: offenders.slice(0, 10) }
+  })
+  expect(bad.offenders, 'text in a non-pixel font').toEqual([])
+  expect(bad.loaded, 'pixel fonts loaded').toBe(true)
+}

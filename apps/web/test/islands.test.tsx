@@ -1,5 +1,5 @@
 import { LAUNCH_CATALOG, newPlayer, type Obstacle, type PlayerState } from '@wyrmhaven/game-core'
-import { screen } from '@testing-library/react'
+import { act, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { artSetFromManifest } from '../src/art/fromManifest'
@@ -83,11 +83,13 @@ describe('ObstaclePanel', () => {
 })
 
 describe('PanelHost targets', () => {
-  it('opens the obstacle panel from the bridge', async () => {
+  it('a tap on an obstacle selects it: its row is Clear alone, its price above', async () => {
     const bridge = createBridge()
     const { wrap } = harness(withRock({ level: 2 }))
     wrap(<TestHost bridge={bridge} />)
-    bridge.emit({ type: 'select', target: { kind: 'obstacle', id: 'home-start-rock' } })
-    expect(await screen.findByRole('button', { name: /Clear · 500 gold/ })).toBeInTheDocument()
+    act(() => bridge.emit({ type: 'select', target: { kind: 'obstacle', id: 'home-start-rock' } }))
+    const row = await screen.findByRole('region', { name: /actions$/ })
+    expect(row.querySelectorAll('button')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Clear' }).textContent).toContain('500 gold')
   })
 })

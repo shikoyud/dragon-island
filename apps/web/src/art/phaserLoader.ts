@@ -40,7 +40,7 @@ export function artEntries(art: GameArtSet): Entry[] {
   for (const [k, s] of Object.entries(art.obstacle)) add(`obstacle.${k}`, s, 'obstacle', OBSTACLES[k as keyof typeof OBSTACLES].size > 1 ? 'terra' : 'nature')
   for (const [i, s] of Object.entries(art.map)) add(`map.${i}`, s, 'map', 'sea')
   // The Map's backdrop and Bridge load only when they exist: without them it shows the sea and draws its own lines.
-  for (const k of ['map.backdrop', 'map.bridge']) { const s = art.hud[k]; if (s) add(k, s, 'island', 'sea') }
+  for (const k of ['map.backdrop', 'map.bridge', 'map.chain']) { const s = art.hud[k]; if (s) add(k, s, 'island', 'sea') }
   for (const [el, s] of Object.entries(art.elementIcon) as [Element, Sprite][]) add(`icon.${el}`, s, 'icon', el)
   add('ui.panel', art.ui.panel, 'panel')
   add('ui.button', art.ui.button, 'button')
@@ -48,6 +48,8 @@ export function artEntries(art: GameArtSet): Entry[] {
   add('island.base', art.island.base, 'island', 'sea')
   add('island.locked', art.island.locked, 'locked')
   add('island.sign', art.island.sign, 'sign')
+  add('ui.island.arrow', art.island.arrow, 'arrow')
+  add('ui.island.upgradePost', art.island.upgradePost, 'upgradePost')
   art.island.layers.forEach((s, i) => add(`island.layer.${i}`, s, 'island', 'sea'))
   add('fx.construction', art.fx.construction, 'fx', 'terra')
   add('fx.hatch', art.fx.hatch, 'fx', 'light')
@@ -57,6 +59,7 @@ export function artEntries(art: GameArtSet): Entry[] {
   // Battle stage art loads only when it exists, and a sheet that fails to load is simply absent (the scene draws its own look).
   const opt = (path: string, s: Sprite) => rows.push({ key: textureKey(path), sprite: s, slot: 'fx', element: 'light', optional: true })
   for (const [el, s] of Object.entries(art.battle.backdrop)) opt(`battle.backdrop.${el}`, s)
+  for (const [el, s] of Object.entries(art.battle.wide ?? {})) opt(`battle.wide.${el}`, s)
   if (art.battle.platform) opt('ui.battle.platform', art.battle.platform)
   for (const [m, s] of Object.entries(art.battle.moveFx)) opt(`fx.move.${m}`, s)
   for (const [n, s] of Object.entries(art.battle.fx)) opt(`fx.${n}`, s)
@@ -69,6 +72,12 @@ export function artEntries(art: GameArtSet): Entry[] {
     if (t.cliffSe) add(`ground.cliff.${island}.se`, t.cliffSe, 'island', 'terra')
   }
   if (ground.plotEdge) add('ground.plotEdge', ground.plotEdge, 'island', 'terra')
+  // Optional like the battle art: the scene has its own look for each. Clouds and rim go by position, as the scene reads them.
+  if (ground.sky) opt('ground.sky', ground.sky)
+  ground.clouds.forEach((s, i) => opt(`ground.cloud.${i}`, s))
+  if (ground.rock) opt('ground.rock', ground.rock)
+  ground.rim.forEach((s, i) => opt(`ground.rim.${i}`, s))
+  if (ground.waterfall) opt('ground.waterfall', ground.waterfall)
   return rows
 }
 
@@ -100,16 +109,6 @@ export function loadArt(scene: Phaser.Scene, art: GameArtSet): void {
     const e = entries.find(x => x.key === file.key)
     if (e && !scene.textures.exists(e.key)) drawn(e)
   })
-}
-
-/**
- * Ticks the water tile sprite through its frames and returns the looping timer, so whoever rebuilds the water can remove it;
- * null (nothing started) for a still, reduced motion or a sheet whose frames are missing.
- */
-export function animateWater(scene: Phaser.Scene, water: Phaser.GameObjects.TileSprite, key: string, frames: number, fps: number, reducedMotion: boolean): Phaser.Time.TimerEvent | null {
-  if (frames <= 1 || fps <= 0 || reducedMotion || !hasFrames(scene, key, frames)) return null
-  let f = 0
-  return scene.time.addEvent({ delay: 1000 / fps, loop: true, callback: () => { if (water.active) water.setFrame(f = (f + 1) % frames) } })
 }
 
 /** Animation key for a sprite sheet texture. */

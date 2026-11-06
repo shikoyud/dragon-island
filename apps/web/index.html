@@ -5,11 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dragon Island</title>
     <link rel="icon" type="image/png" href="/art/v1/icon-dragons-32.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Before the app bundle: if it fails to load or throws before React mounts, say so instead of a blank page.
+      (function () {
+        function show(err) {
+          var root = document.getElementById('root')
+          if (!root || root.hasChildNodes()) return
+          var pre = document.createElement('pre')
+          pre.style.cssText = 'margin:24px;padding:16px;white-space:pre-wrap;font:14px monospace;color:#fff;background:#7a1f1f'
+          pre.textContent = 'Dragon Island failed to start.\n\n' + (err && err.stack ? err.stack : String(err))
+          root.appendChild(pre)
+        }
+        window.addEventListener('error', function (e) { show(e.error || e.message) })
+        window.addEventListener('unhandledrejection', function (e) { show(e.reason) })
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

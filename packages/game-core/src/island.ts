@@ -19,12 +19,12 @@ export interface Occupant { ref: OccupantRef; col: number; row: number; size: Fo
 export function occupants(s: PlayerState, island: IslandId): Occupant[] {
   const out: Occupant[] = []
   const add = (ref: OccupantRef, p: { col: number; row: number }, size: Footprint) => out.push({ ref, col: p.col, row: p.row, size })
-  for (const h of s.habitats) if (h.placement.island === island) add({ type: 'habitat', id: h.id }, h.placement, FOOTPRINT.habitat)
-  s.farms.forEach((f, index) => { if (f.placement.island === island) add({ type: 'farm', index }, f.placement, FOOTPRINT.farm) })
-  s.breeders.forEach((b, index) => { if (b.placement.island === island) add({ type: 'breeder', index }, b.placement, FOOTPRINT.breeder) })
-  if (s.roostPlacement?.island === island) add({ type: 'roost' }, s.roostPlacement, FOOTPRINT.roost)
+  for (const h of s.habitats) if (!h.stored && h.placement.island === island) add({ type: 'habitat', id: h.id }, h.placement, FOOTPRINT.habitat)
+  s.farms.forEach((f, index) => { if (!f.stored && f.placement.island === island) add({ type: 'farm', index }, f.placement, FOOTPRINT.farm) })
+  s.breeders.forEach((b, index) => { if (!b.stored && b.placement.island === island) add({ type: 'breeder', index }, b.placement, FOOTPRINT.breeder) })
+  if (!s.roostStored && s.roostPlacement?.island === island) add({ type: 'roost' }, s.roostPlacement, FOOTPRINT.roost)
   if (s.hatcheryPlacement.island === island) add({ type: 'hatchery' }, s.hatcheryPlacement, FOOTPRINT.hatchery)
-  for (const d of s.decorations) if (d.placement.island === island) add({ type: 'decoration', id: d.id }, d.placement, DECORATIONS[d.kind].size)
+  for (const d of s.decorations) if (!d.stored && d.placement.island === island) add({ type: 'decoration', id: d.id }, d.placement, DECORATIONS[d.kind].size)
   for (const o of s.islands.obstacles) if (o.island === island) add({ type: 'obstacle', id: o.id }, o, OBSTACLES[o.kind].size)
   return out
 }

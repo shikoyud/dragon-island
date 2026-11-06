@@ -42,6 +42,16 @@ const movableRefSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('decoration'), id }),
 ])
 
+const storageRefSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('habitat'), id }),
+  z.object({ type: z.literal('farm'), index }),
+  z.object({ type: z.literal('breeder'), index }),
+  z.object({ type: z.literal('roost') }),
+  z.object({ type: z.literal('decoration'), id }),
+  z.object({ type: z.literal('dragon'), id }),
+  z.object({ type: z.literal('egg'), slot: index }),
+])
+
 export const teamIdsSchema = z.tuple([id, id, id])
 const teamSlot = index.max(TEAM_SIZE - 1)
 export const playerMoveSchema = z.discriminatedUnion('kind', [
@@ -96,6 +106,8 @@ const common = [
   z.object({ type: z.literal('startTrial'), chapter: z.number().int().min(1).max(TRIAL_CHAPTERS.length), node: z.number().int().min(1).max(NODES_PER_CHAPTER), team: teamIdsSchema }),
   z.object({ type: z.literal('finishTrial'), moves: movesSchema, index: index.optional() }),
   z.object({ type: z.literal('abandonTrial'), index: index.optional() }),
+  z.object({ type: z.literal('putInStorage'), target: storageRefSchema }),
+  z.object({ type: z.literal('takeEgg'), index }),
 ] as const
 
 /** The full game-core Action, including the server-built pvpBattle opponent. */

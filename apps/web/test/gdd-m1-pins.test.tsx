@@ -63,9 +63,9 @@ describe('the client prediction follows the Gold accrual', () => {
 })
 
 describe('small panel cleanups', () => {
-  it('HabitatPanel names the element with an icon', () => {
+  it('HabitatPanel names the element with a ribbon', () => {
     harness(newPlayer(0)).wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
-    expect(screen.getByRole('img', { name: 'terra' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Terra' })).toBeInTheDocument()
   })
 
   it('a habitat reads as a name in the move picker, numbered only when there are several', () => {

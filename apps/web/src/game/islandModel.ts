@@ -1,12 +1,12 @@
 import {
-  constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, isPlot, ownedPlots, plotOrigin, plotPrice, plotsBought, plotsTouch, TILES_PER_PLOT,
-  DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, stageOf, storedGold,
+  breedTimerMs, constructionFor, cropGrowMs, DECORATIONS, FOOTPRINT, getSpecies, hatcherySlots, offeredPlots, ownedPlots, plotOfTile, plotPrice, plotsBought,
+  DEFAULT_PRESET, dragonRateX20, habitatCap, hatcheryUsed, isStored, LAUNCH_CATALOG, OBSTACLES, placementRuleError, residents, sameRef, stageOf, storedGold, upgradeInfo,
   type BreederKind, type BuildingRef, type Catalog, type Dragon, type Habitat, type IslandId, type MovableRef, type Placement, type PlayerState, type Preset,
 } from '@wyrmhaven/game-core'
 import { textureKey } from '../art/phaserLoader'
 import type { GameArtSet, Sprite } from '../art/types'
 import { placementSubject, type Placing, type Target } from './bridge'
-import { anchor, cellTop, depthOrder, dragonSpot, HATCHERY_ITEM_SCALE, hatcherySpot, ISO, NEST_EGG_SCALE, TAP_PX } from './layout'
+import { anchor, cellCentre, cellTop, depthOrder, dragonSpot, habitatDragonScale, hatcheryEggScale, hatcheryNestSpot, ISO, NEST_EGG_HATCHERY_SCALE, NEST_EGG_SCALE, SIGN_SCALE, signSpot, TAP_PX, UPGRADE_POST, type Box, type Pos } from './layout'
 
 /** One thing to draw: a sprite at a whole-pixel spot with an optional badge and click target. */
 export interface IslandObject {
@@ -26,15 +26,19 @@ export interface IslandObject {
   frame?: number
   /** Facings 1 and 3 draw the mirror of the front view. */
   flipX?: boolean
-  /** ok/bad colour a placement ghost; building marks a construction in progress. */
-  tint?: 'ok' | 'bad' | 'building'
+  /** bad reddens a placement ghost on an illegal spot; building marks a construction in progress; locked greys a locked island (R99). */
+  tint?: 'bad' | 'building' | 'locked'
   /**
-   * The least this is tapped at on screen, in CSS px: something drawn smaller than that at the current zoom (a 32 px plot
-   * sign at zoom 1) gets a tap box of this size, centred on it, in place of its own pixels.
+   * The least this is tapped at on screen, in CSS px: something drawn smaller than that at the current zoom (a plot sign,
+   * its 48 px art drawn at `SIGN_SCALE`, is 24 px at zoom 1) gets a tap box of this size, centred on it, in place of its own pixels.
    */
   minTap?: number
   /** With `minTap`: the tap box is used at every zoom, never the pixel-perfect test (a plot sign). */
   boxAlways?: boolean
+  /** A white label drawn under the sprite (the 'Tap to buy' of a plot sign); a constant size on screen, like a badge. */
+  caption?: string
+  /** 0..1: a small bar the scene draws under the sprite (an egg hatching). Absent = no bar. */
+  progress?: number
 }
 
 /**
@@ -42,7 +46,7 @@ export interface IslandObject {
  * it again otherwise. The badge is not in it: that is an object of its own, kept by its own label.
  */
 export function objectSignature(o: IslandObject, reducedMotion: boolean): string {
-  return JSON.stringify([o.key, o.sprite.frames, o.sprite.fps, o.x, o.y, o.target, o.scale, o.frame, o.flipX, o.tint, o.minTap, o.boxAlways, reducedMotion])
+  return JSON.stringify([o.key, o.sprite.frames, o.sprite.fps, o.x, o.y, o.target, o.scale, o.frame, o.flipX, o.tint, o.minTap, o.boxAlways, o.caption, reducedMotion])
 }
 
 export interface IslandMarkers {
@@ -56,8 +60,8 @@ export interface IslandMarkers {
   decorations: string[]
   /** The placement ghost's footprint, drawn as a diamond outline tinted by legality. */
   ghost: { legal: boolean; col: number; row: number; size: number } | null
-  /** One per unowned plot touching owned land; `price` is null when the island's price list has run out. */
-  signs: { plot: number; price: number | null }[]
+  /** One per unowned plot touching owned land, with the cell its sign stands on; `price` is null when the island's price list has run out. */
+  signs: { plot: number; price: number | null; col: number; row: number }[]
 }
 
 export interface IslandModel {
@@ -99,6 +103,29 @@ export function goldBadgeThreshold(h: Habitat, live: readonly Dragon[], cap: num
     return n + dragonRateX20(sp, d.level, h, preset)
   }, 0)
   return Math.min(Math.floor(perMinuteX20 / 20), Math.floor(cap * GOLD_BADGE_CAP_PERCENT / 100))
+}
+
+/** The green-arrow post: a next level exists, its level gate is met, the Gold covers it (Phase 1 question 2) and none is running. */
+export function upgradeReady(s: PlayerState, h: Habitat, preset: Preset): boolean {
+  const ref: BuildingRef = { type: 'habitat', id: h.id }
+  const next = upgradeInfo(s, ref, preset)
+  return next !== null && s.level >= next.minLevel && s.gold >= next.cost && !constructionFor(s, ref)
+}
+
+/**
+ * How far an egg in the Hatchery has come, 0..1, or undefined once it is ready (no bar then). Its stored timer has no start
+ * time, so this reads against its species' full timer.
+ */
+function hatchProgress(readyAtMs: number, speciesId: string, nowMs: number, catalog: Catalog, preset: Preset): number | undefined {
+  const left = readyAtMs - nowMs
+  if (left <= 0) return undefined
+  const sp = getSpecies(catalog, speciesId)
+  return Math.max(0, 1 - left / breedTimerMs(sp.rarity, sp.elements, preset))
+}
+
+/** Index of the egg still hatching that is due soonest, or -1. */
+function soonestHatching(eggs: readonly { readyAtMs: number }[], nowMs: number): number {
+  return eggs.reduce((best, e, i) => (e.readyAtMs > nowMs && (best < 0 || e.readyAtMs < eggs[best]!.readyAtMs) ? i : best), -1)
 }
 
 /** World y of a badge's bottom edge: 2 px above the sprite's visible top (canvas top when unknown), scaled. */
@@ -197,6 +224,19 @@ const nexusLook = (art: GameArtSet) => ({ key: textureKey('building.nexus'), spr
 /** The Golden Aerie: its own sprite when the manifest has one, else the Nexus sprite. */
 const aerieLook = (art: GameArtSet) => fitFootprint(art.building.goldenAerie ? { key: textureKey('building.goldenAerie'), sprite: art.building.goldenAerie } : nexusLook(art), FOOTPRINT.habitat)
 
+/**
+ * The art of a building as it stands, or at `level` (the Upgrade dialog's next-level picture): the same look the island
+ * draws, so dialogs never show a different picture of the thing.
+ */
+export function buildingSprite(state: PlayerState, art: GameArtSet, ref: MovableRef, level?: number): Sprite {
+  if (level !== undefined) {
+    if (ref.type === 'breeder') return breederLook(art, state.breeders[ref.index]?.kind ?? 'mountain', level).sprite
+    if (ref.type === 'hatchery') return hatcheryLook(art, level).sprite
+    if (ref.type === 'roost') return roostLook(art, level).sprite
+  }
+  return ghostLook(state, art, { kind: 'move', target: ref }).sprite
+}
+
 /** Sprite and texture key of a thing that can be placed, for the ghost. */
 function ghostLook(state: PlayerState, art: GameArtSet, what: Placing['what']): { key: string; sprite: Sprite; scale?: number } {
   if (what.kind === 'move') {
@@ -256,18 +296,55 @@ export function groundTiles(art: GameArtSet, island: IslandId): { grass: string[
   return { grass, cliffSw: plain ? 'ground.cliff.sw' : null, cliffSe: plain ? 'ground.cliff.se' : null }
 }
 
-/** The unowned plots of an island that touch owned land (§5.5, R44). */
-function signPlots(s: PlayerState, island: IslandId): number[] {
-  const owned = ownedPlots(s, island)
-  const out: number[] = []
-  for (let plot = 0; isPlot(plot); plot++) if (!owned.includes(plot) && owned.some(o => plotsTouch(o, plot))) out.push(plot)
+/** The placement arrow draws at half its art's size, its tip this many world px above the footprint's top vertex. */
+export const ARROW_SCALE = 0.5
+export const ARROW_GAP = 2
+
+/** What the sign on a plot for sale says. */
+export const SIGN_CAPTION = 'Tap to buy'
+export { SIGN_SCALE }
+
+/**
+ * The sprite boxes of an island's buildings and their residents, at their real placements: what a plot's sign keeps clear of.
+ * It reads the state alone, so a building being moved counts where it stands and the signs don't jump about during placement.
+ */
+export function buildingBoxes(state: PlayerState, art: GameArtSet, catalog: Catalog, view: IslandId): Box[] {
+  const out: Box[] = []
+  const add = (at: Pos, sprite: Sprite, scale = 1) => {
+    const h = (sprite.h - (sprite.top ?? 0)) * scale, w = sprite.w * scale
+    out.push({ x: at.x - w / 2, y: at.y - h, w, h })
+  }
+  for (const d of state.decorations) {
+    if (!d.stored && d.placement.island === view) add(anchor(d.placement.col, d.placement.row, DECORATIONS[d.kind].size), art.decoration[d.kind])
+  }
+  for (const h of state.habitats) {
+    if (h.stored || h.placement.island !== view) continue
+    const a = anchor(h.placement.col, h.placement.row, FOOTPRINT.habitat)
+    const look = h.element === 'aerie' ? aerieLook(art) : habitatLook(art, h.element)
+    add(a, look.sprite, look.scale)
+    residents(state, h.id).forEach((d, slot) => {
+      const r = dragonLook(d.speciesId, d.level, art, catalog)
+      add(dragonSpot(a, slot), r.sprite, habitatDragonScale(r.sprite.w))
+    })
+  }
+  for (const b of state.breeders) {
+    if (!b.stored && b.placement.island === view) add(anchor(b.placement.col, b.placement.row, FOOTPRINT.breeder), breederLook(art, b.kind, b.level).sprite)
+  }
+  if (!state.roostStored && state.roostPlacement?.island === view) add(anchor(state.roostPlacement.col, state.roostPlacement.row, FOOTPRINT.roost), roostLook(art, state.roostTier).sprite)
+  if (state.hatcheryPlacement.island === view) add(anchor(state.hatcheryPlacement.col, state.hatcheryPlacement.row, FOOTPRINT.hatchery), hatcheryLook(art, state.hatcheryLevel).sprite)
+  for (const f of state.farms) {
+    if (f.stored || f.placement.island !== view) continue
+    const look = farmLook(art)
+    add(anchor(f.placement.col, f.placement.row, FOOTPRINT.farm), look.sprite, look.scale)
+  }
   return out
 }
 
 /**
  * Pure: everything the Island scene draws for a state at a moment, for one island view. No Phaser, so it is
  * unit-tested directly; the scene only turns objects into sprites. Objects are ordered by anchor y (back to
- * front); a building's dragons, eggs and crops travel with it. The placement ghost is last.
+ * front); a building's dragons, eggs and crops travel with it. While it is being moved its own sprite gives way to the
+ * placement ghost, on whose cell the rest of its group is built. The ghost, what it carries and its arrow are last.
  */
 export function buildIslandModel(
   state: PlayerState | null, art: GameArtSet, catalog: Catalog, nowMs: number, view: IslandId, placing: Placing | null,
@@ -281,37 +358,60 @@ export function buildIslandModel(
   if (!state) return { objects, markers }
 
   const groups: { col: number; row: number; size: number; objects: IslandObject[] }[] = []
-  const add = (p: { col: number; row: number }, size: number, group: IslandObject[]) => groups.push({ col: p.col, row: p.row, size, objects: group })
+  const movedRef = placing?.what.kind === 'move' ? placing.what.target : null
+  const isMoved = (ref: MovableRef | undefined) => Boolean(ref && movedRef && sameRef(ref, movedRef))
+  /** Where a building stands for this picture: on the ghost's cell, on the island in view, while it is the one being moved. */
+  /** In Storage and not being placed from it: off the island (Storage rule S1). */
+  const gone = (ref: MovableRef): boolean => isStored(state, ref) && !isMoved(ref)
+  const standing = (ref: MovableRef, placement: Placement): Placement =>
+    placing && isMoved(ref) ? { island: view, col: placing.col, row: placing.row, facing: placing.facing } : placement
+  /** What the moved building holds, ridden on the ghost. */
+  const carried: IslandObject[] = []
+  /** A group's first object is its building, unless `ref` is the one being moved: the ghost stands in for that. */
+  const add = (p: { col: number; row: number }, size: number, group: IslandObject[], ref?: MovableRef) => {
+    if (isMoved(ref)) carried.push(...group.slice(1))
+    else groups.push({ col: p.col, row: p.row, size, objects: group })
+  }
   /** Common look of a building: mirror by facing, plus the construction tint and timer badge. */
   const look = (ref: BuildingRef, placement: Placement): Partial<IslandObject> => {
     const c = constructionFor(state, ref)
     return { ...flip(placement.facing), ...(c ? { tint: 'building' as const, badge: timerLabel(c.readyAtMs, nowMs) } : {}) }
   }
 
+  const owned = ownedPlots(state, view)
   for (const o of state.islands.obstacles) {
     if (o.island !== view) continue
     const size = OBSTACLES[o.kind].size
     const a = anchor(o.col, o.row, size)
     const c = state.constructions.find(x => x.kind === 'clear' && x.obstacleId === o.id)
+    // An obstacle on land not owned can't be cleared (U5): a tap opens the plot's buy panel instead.
+    const plot = plotOfTile(o.col, o.row)
+    const target: Target = plot !== null && !owned.includes(plot) ? { kind: 'plot', island: view, plot } : { kind: 'obstacle', id: o.id }
     add(o, size, [{
       id: `obstacle:${o.id}`, key: textureKey(`obstacle.${o.kind}`),
       sprite: art.obstacle[o.kind],
-      ...a, target: { kind: 'obstacle', id: o.id }, minTap: TAP_PX,
+      ...a, target, minTap: TAP_PX,
       ...(c ? { tint: 'building' as const, badge: timerLabel(c.readyAtMs, nowMs) } : {}),
     }])
     markers.obstacles.push(o.id)
   }
 
   for (const d of state.decorations) {
-    if (d.placement.island !== view) continue
-    const a = anchor(d.placement.col, d.placement.row, DECORATIONS[d.kind].size)
-    add(d.placement, DECORATIONS[d.kind].size, [{ id: `decoration:${d.id}`, ...decorationLook(art, d.kind), ...a, target: { kind: 'decoration', id: d.id }, ...flip(d.placement.facing) }])
+    const ref: MovableRef = { type: 'decoration', id: d.id }
+    if (gone(ref)) continue
+    const at = standing(ref, d.placement)
+    if (at.island !== view) continue
+    const a = anchor(at.col, at.row, DECORATIONS[d.kind].size)
+    add(at, DECORATIONS[d.kind].size, [{ id: `decoration:${d.id}`, ...decorationLook(art, d.kind), ...a, target: { kind: 'decoration', id: d.id }, ...flip(d.placement.facing) }], ref)
     markers.decorations.push(d.id)
   }
 
   for (const h of state.habitats) {
-    if (h.placement.island !== view) continue
-    const a = anchor(h.placement.col, h.placement.row, FOOTPRINT.habitat)
+    const ref: MovableRef = { type: 'habitat', id: h.id }
+    if (gone(ref)) continue
+    const at = standing(ref, h.placement)
+    if (at.island !== view) continue
+    const a = anchor(at.col, at.row, FOOTPRINT.habitat)
     const live = residents(state, h.id)
     const cap = habitatCap(h.element, h.level, preset)
     const gold = storedGold(h, live, catalog, nowMs, preset)
@@ -323,17 +423,27 @@ export function buildIslandModel(
     }]
     markers.habitats.push(h.id)
     live.forEach((d, slot) => {
-      group.push({ id: `dragon:${d.id}`, ...dragonLook(d.speciesId, d.level, art, catalog), ...dragonSpot(a, slot), target: { kind: 'dragon', id: d.id } })
+      const look = dragonLook(d.speciesId, d.level, art, catalog)
+      group.push({ id: `dragon:${d.id}`, ...look, ...dragonSpot(a, slot), scale: habitatDragonScale(look.sprite.w), target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
     })
-    // Residents back to front on the platform, after the platform itself.
+    if (!placing && upgradeReady(state, h, preset)) {
+      group.push({
+        id: `post:${h.id}`, key: textureKey('ui.island.upgradePost'), sprite: art.island.upgradePost, x: a.x + UPGRADE_POST.x, y: a.y + UPGRADE_POST.y,
+        scale: UPGRADE_POST.scale, target: { kind: 'habitat', id: h.id }, minTap: TAP_PX,
+      })
+    }
+    // Residents and the post back to front on the platform, after the platform itself.
     group.splice(1, group.length - 1, ...group.slice(1).sort((p, q) => p.y - q.y))
-    add(h.placement, FOOTPRINT.habitat, group)
+    add(at, FOOTPRINT.habitat, group, ref)
   }
 
   state.breeders.forEach((breeder, index) => {
-    if (breeder.placement.island !== view) return
-    const a = anchor(breeder.placement.col, breeder.placement.row, FOOTPRINT.breeder)
+    const ref: MovableRef = { type: 'breeder', index }
+    if (gone(ref)) return
+    const at = standing(ref, breeder.placement)
+    if (at.island !== view) return
+    const a = anchor(at.col, at.row, FOOTPRINT.breeder)
     const group: IslandObject[] = [{
       id: `breeder:${index}`, ...breederLook(art, breeder.kind, breeder.level), ...a,
       target: { kind: 'breeder', index }, ...look({ type: 'breeder', index }, breeder.placement),
@@ -341,47 +451,63 @@ export function buildIslandModel(
     if (breeder.egg) {
       group.push({ id: `egg:${index}`, ...eggLook(breeder.egg.speciesId, art, catalog), x: a.x, y: a.y - 9, scale: NEST_EGG_SCALE, target: { kind: 'breeder', index }, badge: eggBadge(state, breeder.egg.readyAtMs, nowMs) })
     }
-    add(breeder.placement, FOOTPRINT.breeder, group)
+    add(at, FOOTPRINT.breeder, group, ref)
     markers.breeders.push({ index, egg: breeder.egg !== null })
   })
 
-  if (state.roostPlacement && state.roostPlacement.island === view) {
-    const a = anchor(state.roostPlacement.col, state.roostPlacement.row, FOOTPRINT.roost)
-    add(state.roostPlacement, FOOTPRINT.roost, [{
+  const roostAt = state.roostPlacement && !gone({ type: 'roost' }) ? standing({ type: 'roost' }, state.roostPlacement) : null
+  if (state.roostPlacement && roostAt?.island === view) {
+    const a = anchor(roostAt.col, roostAt.row, FOOTPRINT.roost)
+    add(roostAt, FOOTPRINT.roost, [{
       id: 'roost', ...roostLook(art, state.roostTier), ...a, target: { kind: 'roost' }, ...look({ type: 'roost' }, state.roostPlacement),
-    }])
+    }], { type: 'roost' })
   }
 
-  if (state.hatcheryPlacement.island === view) {
-    const a = anchor(state.hatcheryPlacement.col, state.hatcheryPlacement.row, FOOTPRINT.hatchery)
+  const hatcheryAt = standing({ type: 'hatchery' }, state.hatcheryPlacement)
+  if (hatcheryAt.island === view) {
+    const a = anchor(hatcheryAt.col, hatcheryAt.row, FOOTPRINT.hatchery)
     const group: IslandObject[] = [{
       id: 'hatchery', ...hatcheryLook(art, state.hatcheryLevel), ...a,
       target: { kind: 'hatcheryBuilding' }, ...look({ type: 'hatchery' }, state.hatcheryPlacement),
     }]
     let spot = 0
+    // One bar, on the egg due soonest, like the one badge below: 16 px bars over eggs 9 px apart bury the nest. The panel lists each egg.
+    const barred = soonestHatching(state.hatchery, nowMs)
+    const eggScale = hatcheryEggScale(state.hatchery.length)
+    const eggs: IslandObject[] = []
     state.hatchery.forEach((egg, slot) => {
-      group.push({ id: `hatchery:${slot}`, ...eggLook(egg.speciesId, art, catalog), ...hatcherySpot(a, spot++), scale: HATCHERY_ITEM_SCALE, target: { kind: 'hatchery', slot } })
+      const progress = slot === barred ? hatchProgress(egg.readyAtMs, egg.speciesId, nowMs, catalog, preset) : undefined
+      const o: IslandObject = { id: `hatchery:${slot}`, ...eggLook(egg.speciesId, art, catalog), ...hatcheryNestSpot(a, spot++), scale: eggScale, target: { kind: 'hatchery', slot }, ...(progress === undefined ? {} : { progress }) }
+      eggs.push(o)
+      group.push(o)
       markers.hatchery.push({ slot })
     })
-    for (const d of state.dragons.filter(x => x.habitatId === null)) {
-      const at = hatcherySpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel, state.hatcheryFifthSlot) - 1))
-      group.push({ id: `dragon:${d.id}`, ...hatchlingLook(d.speciesId, art, catalog), ...at, scale: HATCHERY_ITEM_SCALE, target: { kind: 'dragon', id: d.id } })
+    for (const d of state.dragons.filter(x => x.habitatId === null && !x.stored)) {
+      const at = hatcheryNestSpot(a, Math.min(spot++, hatcherySlots(state.hatcheryLevel, state.hatcheryFifthSlot) - 1))
+      group.push({ id: `dragon:${d.id}`, ...hatchlingLook(d.speciesId, art, catalog), ...at, scale: NEST_EGG_HATCHERY_SCALE, target: { kind: 'dragon', id: d.id } })
       markers.dragons.push(d.id)
       markers.waiting.push({ id: d.id, noRoom: true })
     }
-    // One badge for the whole hatchery (per-egg badges pile up over its small niches); the panel lists each egg.
-    // A construction timer wins, then waiting hatchlings, then the soonest egg.
+    // What is in the nest, back to front, after the castle.
+    group.splice(1, group.length - 1, ...group.slice(1).sort((p, q) => p.y - q.y))
+    // One badge for the whole hatchery (per-egg badges pile up over its small nest); the panel lists each egg.
+    // A construction timer wins and stays on the castle, as does 'no room'; otherwise the timer sits over the soonest egg.
     if (!group[0]!.badge) {
-      const soonest = Math.min(...state.hatchery.map(e => e.readyAtMs))
-      const badge = markers.waiting.length > 0 ? 'no room' : state.hatchery.length > 0 ? timerLabel(soonest, nowMs) : undefined
-      if (badge) group[0]!.badge = badge
+      if (markers.waiting.length > 0) group[0]!.badge = 'no room'
+      else if (eggs.length > 0) {
+        const soonest = state.hatchery.reduce((best, e, i) => (e.readyAtMs < state.hatchery[best]!.readyAtMs ? i : best), 0)
+        eggs[soonest]!.badge = timerLabel(state.hatchery[soonest]!.readyAtMs, nowMs)
+      }
     }
-    add(state.hatcheryPlacement, FOOTPRINT.hatchery, group)
+    add(hatcheryAt, FOOTPRINT.hatchery, group, { type: 'hatchery' })
   }
 
   state.farms.forEach((plot, i) => {
-    if (plot.placement.island !== view) return
-    const a = anchor(plot.placement.col, plot.placement.row, FOOTPRINT.farm)
+    const ref: MovableRef = { type: 'farm', index: i }
+    if (gone(ref)) return
+    const at = standing(ref, plot.placement)
+    if (at.island !== view) return
+    const a = anchor(at.col, at.row, FOOTPRINT.farm)
     const group: IslandObject[] = [{
       id: `farm:${i}`, ...farmLook(art), ...a,
       target: { kind: 'farm', plot: i }, ...look({ type: 'farm', index: i }, plot.placement),
@@ -397,22 +523,15 @@ export function buildIslandModel(
       // A ripe crop sways when the art has the loop.
       const sway = fraction >= 1 ? art.building.cropSway[plot.crop] : undefined
       const look = sway ? { key: textureKey(`crop.${plot.crop}.sway`), sprite: sway } : { key: textureKey(`crop.${plot.crop}`), sprite, ...growth }
-      group.push({ id: `crop:${i}`, ...look, x: a.x, y: a.y - 10, target: { kind: 'farm', plot: i }, badge: nowMs >= plot.readyAtMs ? 'ripe' : timerLabel(plot.readyAtMs, nowMs) })
+      // A growing crop has a bar under its timer (UI rework Phase 4); a ripe one a tappable bubble.
+      group.push({
+        id: `crop:${i}`, ...look, x: a.x, y: a.y - 10, target: { kind: 'farm', plot: i }, badge: nowMs >= plot.readyAtMs ? 'ripe' : timerLabel(plot.readyAtMs, nowMs),
+        ...(fraction < 1 ? { progress: fraction } : {}),
+      })
     }
-    add(plot.placement, FOOTPRINT.farm, group)
+    add(at, FOOTPRINT.farm, group, ref)
     markers.farms.push({ plot: i, crop: plot.crop })
   })
-
-  const price = plotPrice(view, plotsBought(state, view))
-  for (const plot of signPlots(state, view)) {
-    const o = plotOrigin(plot)
-    // The sign stands on the plot's centre: depth-sorted as a 2x2 around it.
-    const mid = TILES_PER_PLOT / 2
-    add({ col: o.col + mid - 1, row: o.row + mid - 1 }, 2, [{
-      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellTop(o.col + mid, o.row + mid), target: { kind: 'plot', island: view, plot }, minTap: TAP_PX, boxAlways: true,
-    }])
-    markers.signs.push({ plot, price })
-  }
 
   // Stable sort: back to front in isometric depth, ties keep insertion order.
   // A building under construction gets the construction effect on its footprint's centre, drawn just after it.
@@ -425,13 +544,31 @@ export function buildIslandModel(
     }
   }
 
+  // Signs go on top of everything (a building next to them), just under the ghost. Each stands on the cell `signSpot` picks,
+  // clear of the obstacles' art. Each says what it is.
+  const price = plotPrice(view, plotsBought(state, view))
+  const hereObstacles = state.islands.obstacles.filter(o => o.island === view)
+  const hereBuildings = buildingBoxes(state, art, catalog, view)
+  for (const plot of offeredPlots(state, view)) {
+    const spot = signSpot(plot, hereObstacles, art, hereBuildings)
+    objects.push({
+      id: `sign:${plot}`, key: textureKey('island.sign'), sprite: art.island.sign, ...cellCentre(spot.col, spot.row), target: { kind: 'plot', island: view, plot }, scale: SIGN_SCALE, minTap: TAP_PX, boxAlways: true,
+      // No caption while placing: it would hide the Move arrow.
+      ...(!placing ? { caption: SIGN_CAPTION } : {}),
+    })
+    markers.signs.push({ plot, price, col: spot.col, row: spot.row })
+  }
+
   if (placing) {
     const placement: Placement = { island: view, col: placing.col, row: placing.row, facing: placing.facing }
     const legal = placementRuleError(state, placementSubject(placing.what), placement) === null
-    objects.push({
+    const target: Target = { kind: 'cell', col: placing.col, row: placing.row }
+    const ghost: IslandObject = {
       id: 'ghost', ...ghostLook(state, art, placing.what), ...anchor(placing.col, placing.row, placing.size),
-      target: { kind: 'cell', col: placing.col, row: placing.row }, tint: legal ? 'ok' : 'bad', ...flip(placing.facing),
-    })
+      target, ...(legal ? {} : { tint: 'bad' as const }), ...flip(placing.facing),
+    }
+    const top = cellTop(placing.col, placing.row)
+    objects.push(ghost, ...carried, { id: 'arrow', key: textureKey('ui.island.arrow'), sprite: art.island.arrow, x: top.x, y: top.y - ARROW_GAP, scale: ARROW_SCALE, target })
     markers.ghost = { legal, col: placing.col, row: placing.row, size: placing.size }
   }
   return { objects, markers }

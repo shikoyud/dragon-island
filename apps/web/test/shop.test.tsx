@@ -5,14 +5,15 @@ import { describe, expect, it, vi } from 'vitest'
 import { messageFor } from '../src/api/errors'
 import { createBridge } from '../src/game/bridge'
 import { FarmPanel } from '../src/panels/FarmPanel'
+import { UpgradeDialog } from '../src/panels/UpgradeDialog'
 import { HabitatPanel } from '../src/panels/HabitatPanel'
 import { BreedPanel } from '../src/panels/BreedPanel'
 import { HatcheryPanel } from '../src/panels/HatcheryPanel'
-import { ShopPanel } from '../src/panels/ShopPanel'
+import { categoryLevel, ShopPanel } from '../src/panels/ShopPanel'
 import { UpgradeSection } from '../src/panels/UpgradeSection'
 import { StartPlacingProvider } from '../src/state/startPlacing'
 import * as placing from '../src/state/placing'
-import { harness, TestHost } from './harness'
+import { harness, openInfo, TestHost } from './harness'
 import { withIsland } from './land'
 
 const base = newPlayer(0)
@@ -105,7 +106,7 @@ describe('ShopPanel Dragons section (buy a Basic)', () => {
     show({ ...base, level: 3, gold: 5_000, habitats: [...base.habitats, seaHab] })
     const dragons = screen.getByTestId('shop-dragons')
     expect(dragons.compareDocumentPosition(screen.getByTestId('shop-habitats')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(sea()).toHaveTextContent('Sea Basic · 5,000 gold')
+    expect(sea()).toHaveAccessibleName('Sea Basic · 5,000 gold')
     expect(sea()).toBeEnabled()
   })
 
@@ -283,27 +284,44 @@ describe('room on another island (hasLegalCell scans them all)', () => {
 })
 
 describe('ShopPanel tabs', () => {
-  it('has Build and Store tabs, Build first', async () => {
-    harness(base).wrap(<ShopPanel onPlace={vi.fn()} view="home" nowMs={0} />)
-    const tabs = screen.getAllByRole('tab')
-    expect(tabs.map(t => t.textContent)).toEqual(['Build', 'Store'])
-    expect(tabs[0]).toHaveAttribute('aria-selected', 'true')
+  it('opens on six category cards; a locked one shows its level (design Phase 5: shop-selected)', async () => {
+    harness({ ...base, level: 1 }).wrap(<ShopPanel start="home" onPlace={vi.fn()} view="home" nowMs={0} />)
+    const cards = within(screen.getByRole('list', { name: 'Shop categories' })).getAllByRole('button')
+    expect(cards.map(c => c.querySelector('.shop-category__head')?.textContent)).toEqual(['Dragons', 'Habitats', 'Buildings', 'Farms', 'Decorations', 'Store'])
+    expect(screen.queryByTestId('shop-habitats')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Habitats' }))
+    expect(screen.getByRole('region', { name: /^Habitats · \d+$/ })).toBeInTheDocument()
     expect(screen.getByTestId('shop-habitats')).toBeInTheDocument()
-    await userEvent.click(tabs[1]!)
-    expect(tabs[1]).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByTestId('shop-dragons')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByRole('list', { name: 'Shop categories' })).toBeInTheDocument()
+  })
+
+  it('locks a category below its level', () => {
+    harness({ ...base, level: 1 }).wrap(<ShopPanel start="home" onPlace={vi.fn()} view="home" nowMs={0} />)
+    const level = categoryLevel('buildings')
+    if (level > 1) expect(screen.getByRole('button', { name: `Buildings, level ${level}` })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Store' })).toBeEnabled()
+  })
+
+  it('the element filter narrows the list, and an empty filter says so', async () => {
+    harness({ ...base, level: 30, gold: 9_999_999 }).wrap(<ShopPanel start="dragons" onPlace={vi.fn()} view="home" nowMs={0} />)
+    expect(within(screen.getByTestId('shop-dragons')).getAllByRole('article').length).toBe(10)
+    await userEvent.click(screen.getByRole('button', { name: 'Category' }))
+    await userEvent.click(within(screen.getByRole('group', { name: 'Elements' })).getByRole('button', { name: 'Sea' }))
+    expect(within(screen.getByTestId('shop-dragons')).getAllByRole('article').map(a => a.getAttribute('aria-label'))).toEqual(['Sea Basic'])
+  })
+
+  it('opens on the Store category when asked', () => {
+    harness(base).wrap(<ShopPanel tab="store" onPlace={vi.fn()} view="home" nowMs={0} />)
+    expect(screen.getByRole('region', { name: 'Store' })).toBeInTheDocument()
     expect(screen.queryByTestId('shop-habitats')).toBeNull()
     expect(screen.getByRole('button', { name: /food pack/i })).toBeInTheDocument()
   })
 
-  it('opens on the Store tab when asked', () => {
-    harness(base).wrap(<ShopPanel tab="store" onPlace={vi.fn()} view="home" nowMs={0} />)
-    expect(screen.getByRole('tab', { name: 'Store' })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.queryByTestId('shop-habitats')).toBeNull()
-  })
-
-  it('opens on the Store tab from a shop dialog key with tab: store', () => {
+  it('opens on the Store from a shop dialog key with tab: store', () => {
     harness(base).wrap(<TestHost bridge={createBridge()} initial={{ kind: 'panel', id: 'shop', tab: 'store' }} />)
-    expect(screen.getByRole('tab', { name: 'Store' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('region', { name: 'Store' })).toBeInTheDocument()
   })
 })
 
@@ -369,7 +387,7 @@ describe('ShopPanel Store tab', () => {
     expect(aerie).toHaveTextContent('$5.00')
     await userEvent.click(aerie)
     expect(onPlace).toHaveBeenCalledWith({ kind: 'goldenAerie' }, 4)
-    expect(action).not.toHaveBeenCalled() // paid on Confirm, not here
+    expect(action).not.toHaveBeenCalled() // paid on OK, not here
   })
 
   it('hides the Golden Aerie row once the player owns one, and words the error', () => {
@@ -486,7 +504,7 @@ describe('Finish button and upgrades that keep working', () => {
   it('lets dragons move into a habitat that is only being upgraded', async () => {
     const waiting = { ...base, dragons: [...base.dragons, { id: 'd9', speciesId: 'terra', level: 1, feeds: 0, habitatId: null }], constructions: [{ kind: 'upgrade' as const, building: h1, readyAtMs: 99 }] }
     harness(waiting).wrap(<HabitatPanel habitatId="h1" nowMs={0} />)
-    expect(screen.getByRole('button', { name: /d9/ })).toBeEnabled()
+    expect(document.getElementById('move-d9-h1')).toBeEnabled()
   })
 
   it('plots under upgrade can be planted but unfinished ones cannot', () => {
@@ -503,12 +521,12 @@ describe('Finish button and upgrades that keep working', () => {
 describe('Hatchery and breeder upgrades', () => {
   it('has an upgrade section for the hatchery and for each breeder', () => {
     const { wrap } = harness({ ...base, level: 12, gold: 200_000 })
-    const hatchery = wrap(<HatcheryPanel nowMs={0} />)
+    const hatchery = wrap(<UpgradeDialog building={{ type: 'hatchery' }} nowMs={0} />)
     const hup = screen.getByRole('button', { name: /Upgrade to 2/ })
     expect(hup.textContent).toContain('2,000 gold · 10m')
     expect(hup).toBeEnabled()
     hatchery.unmount()
-    harness({ ...base, level: 12, gold: 200_000 }, 0, undefined, { launchAtMs: 0 }).wrap(<BreedPanel nowMs={0} />)
+    harness({ ...base, level: 12, gold: 200_000 }, 0, undefined, { launchAtMs: 0 }).wrap(<UpgradeDialog building={{ type: 'breeder', index: 0 }} nowMs={0} />)
     const bup = screen.getByRole('button', { name: /Upgrade to 2/ })
     expect(bup.textContent).toContain('150,000 gold · 10m')
     expect(bup).toBeEnabled()
@@ -516,17 +534,16 @@ describe('Hatchery and breeder upgrades', () => {
 })
 
 describe('PanelHost targets', () => {
-  it('maps a decoration target to Move, Turn and Remove', async () => {
+  it('maps a decoration Info to Turn and Remove (Move is on the row)', async () => {
     const bridge = createBridge()
     const deco = { id: 'c3', kind: 'flowerPatch' as const, placement: { island: 'home' as const, col: 7, row: 7, facing: 0 as const } }
     const { wrap, action } = harness({ ...base, decorations: [deco] })
     wrap(<TestHost bridge={bridge} />)
-    bridge.emit({ type: 'select', target: { kind: 'decoration', id: 'c3' } })
+    openInfo(bridge, { kind: 'decoration', id: 'c3' })
     await userEvent.click(await screen.findByRole('button', { name: /Remove · \+12 gold/ }))
     expect(action).not.toHaveBeenCalled() // first click only asks
     await userEvent.click(screen.getByRole('button', { name: /Confirm remove · \+12 gold/ }))
     expect(action).toHaveBeenCalledWith({ type: 'removeDecoration', id: 'c3' }, expect.any(String))
-    expect(screen.getByRole('button', { name: 'Move' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Turn' })).toBeInTheDocument()
   })
 
@@ -534,14 +551,14 @@ describe('PanelHost targets', () => {
     const bridge = createBridge()
     const { wrap } = harness(base)
     wrap(<TestHost bridge={bridge} />)
-    bridge.emit({ type: 'select', target: { kind: 'hatcheryBuilding' } })
+    openInfo(bridge, { kind: 'hatcheryBuilding' })
     expect(await screen.findByRole('region', { name: /hatchery/i })).toBeInTheDocument()
   })
 
-  it('opens the Shop as a named panel on its Build tab', () => {
+  it('opens the Shop as a named panel on its category cards', () => {
     const { wrap } = harness(base)
     wrap(<TestHost bridge={createBridge()} initial={{ kind: 'panel', id: 'shop' }} />)
-    expect(screen.getByTestId('shop-habitats')).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Shop categories' })).toBeInTheDocument()
   })
 })
 

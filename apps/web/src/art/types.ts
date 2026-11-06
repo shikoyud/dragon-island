@@ -44,7 +44,7 @@ export interface GameArtSet {
   }
   elementIcon: Record<Element, Sprite>
   ui: { panel: Sprite; button: Sprite; cursor: Sprite }
-  island: { base: Sprite; layers: Sprite[]; /** One locked ground cell. */ locked: Sprite; /** The sign on a plot for sale. */ sign: Sprite }
+  island: { base: Sprite; layers: Sprite[]; /** One locked ground cell. */ locked: Sprite; /** The sign on a plot for sale. */ sign: Sprite; /** `ui.island.arrow`: points at a building being placed. */ arrow: Sprite; /** `ui.island.upgradePost`: stands on a habitat with an upgrade open. */ upgradePost: Sprite }
   /** Base-building art; missing files draw footprint-sized boxes (16 px per cell). */
   obstacle: Record<ObstacleKind, Sprite>
   decoration: Record<DecorationId, Sprite>
@@ -59,11 +59,23 @@ export interface GameArtSet {
     island: Partial<Record<IslandId, { grass: Sprite[]; cliffSw: Sprite | null; cliffSe: Sprite | null }>>
     /** Optional mark drawn on the border cells of an owned plot (`ground.plotEdge`). */
     plotEdge: Sprite | null
+    /** The sky behind every island (`ground.sky`); null shows the camera's plain background. */
+    sky: Sprite | null
+    /** Clouds that drift behind the land (`ground.cloud.0..2`), the ones the manifest has. */
+    clouds: Sprite[]
+    /** Tile the cliff samples (`ground.rock`); null paints plain rock. */
+    rock: Sprite | null
+    /** Rocks round the rim (`ground.rim.0..3`), the ones the manifest has; empty draws grey polygons. */
+    rim: Sprite[]
+    /** A waterfall sheet (`ground.waterfall`); null draws a plain one. */
+    waterfall: Sprite | null
   }
   /** Battle stage art (docs/art/gdd-m5-art-list.md): each piece only when the manifest has it; the scene draws a colour fill, an ellipse and text without. */
   battle: {
     /** `battle.backdrop.<element>`, 360x420, the chapter's element. */
     backdrop: Partial<Record<Element, Sprite>>
+    /** `battle.wide.<element>`, 640x360: the landscape stage's backdrop (R98); the portrait one, cropped, stands in without it (R102). */
+    wide?: Partial<Record<Element, Sprite>>
     /** `ui.battle.platform`, 64x32, under each dragon. */
     platform: Sprite | null
     /** `fx.move.<element|physical>`, a one-shot over the target. */
@@ -82,10 +94,10 @@ export const SLOT_SIZES = {
   egg: { w: 32, h: 32 },
   hatchling: { w: 32, h: 32 },
   dragon: { w: 48, h: 48 },
-  habitat: { w: 80, h: 64 },
+  habitat: { w: 64, h: 64 },
   nexus: { w: 80, h: 64 },
   nest: { w: 32, h: 32 },
-  hatchery: { w: 64, h: 64 },
+  hatchery: { w: 80, h: 96 },
   farmPlot: { w: 32, h: 32 },
   crop: { w: 16, h: 16 },
   icon: { w: 16, h: 16 },
@@ -94,7 +106,9 @@ export const SLOT_SIZES = {
   cursor: { w: 8, h: 8 },
   island: { w: 480, h: 270 },
   locked: { w: 16, h: 16 },
-  sign: { w: 32, h: 32 },
+  sign: { w: 48, h: 48 },
+  arrow: { w: 32, h: 40 },
+  upgradePost: { w: 24, h: 32 },
   map: { w: 32, h: 32 },
   fxConstruction: { w: 32, h: 32 },
   fxHatch: { w: 48, h: 48 },

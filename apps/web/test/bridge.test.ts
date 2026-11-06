@@ -52,4 +52,14 @@ describe('bridge', () => {
       { type: 'view', view: 'isle2' }, { type: 'placing', placing: p }, { type: 'cell', col: 3, row: 4 }, { type: 'placing', placing: null },
     ])
   })
+
+  it('starts without a zoom, and setZoom goes to the scene hook when there is one', () => {
+    const bridge = createBridge()
+    expect(bridge.zoom).toBeNull()
+    expect(() => bridge.setZoom(2)).not.toThrow()
+    const hook = vi.fn()
+    bridge.zoomTo = hook
+    bridge.setZoom(3)
+    expect(hook).toHaveBeenCalledWith(3)
+  })
 })

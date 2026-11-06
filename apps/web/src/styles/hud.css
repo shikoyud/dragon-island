@@ -8,7 +8,7 @@
 
 /* The overlay takes no pointer events itself; only its controls do, so the island stays draggable between them. */
 .hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
-.hud button, .hud a, .hud-pill, .hud-shortcut, .placement-bar, .hud-xp, .map-list { pointer-events: auto; }
+.hud button, .hud a, .hud-pill, .hud-shortcut, .hud-xp, .map-list { pointer-events: auto; }
 .hud-icon { display: block; image-rendering: pixelated; flex: none; }
 .outlined, .hud-round__label, .hud-xp__text { text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink); }
 
@@ -91,6 +91,39 @@
 .hud-shortcut__timer { margin-left: auto; display: flex; gap: 2px; align-items: center; font: 10px var(--font-display); color: var(--text-muted); }
 .hud-shortcut__act { padding: 4px 8px; font-size: 10px; border-radius: 8px; }
 
+/* ---- zoom slider (right edge, vertically centred): plus, track, minus ---- */
+.zoom-slider {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: auto;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+/* A short screen (a phone on its side): the Map button sits at the top of the right edge, so the control starts under it instead of at the middle. */
+@media (max-height: 520px) {
+  .zoom-slider { top: 142px; transform: none; }
+}
+.zoom-slider__btn {
+  position: relative; width: 44px; height: 44px; padding: 0; display: grid; place-items: center; cursor: pointer;
+  border-radius: 10px; border: 2px solid var(--ink); background: var(--glass); color: var(--text); box-shadow: 0 3px 0 var(--ink);
+  font: 22px/1 var(--font-display);
+}
+.zoom-slider__btn .hud-mark { image-rendering: pixelated; }
+.zoom-slider__btn:has(.hud-mark) { background: none; border: 0; box-shadow: none; border-radius: 0; }
+.zoom-slider__btn .hud-mark + .zoom-slider__glyph { display: none; }
+.zoom-slider__btn:disabled { cursor: not-allowed; opacity: 0.5; filter: grayscale(1); }
+.zoom-slider__btn:focus-visible, .zoom-slider__track:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+/* A vertical range: the track runs top to bottom with the largest zoom at the top. On a short phone the track shrinks (to 48 px) so the control fits between the top and bottom HUD. */
+.zoom-slider__track {
+  -webkit-appearance: none; appearance: none; writing-mode: vertical-lr; direction: rtl; margin: 0; padding: 0;
+  width: 44px; height: clamp(48px, calc(100vh - 560px), 200px); background: transparent; cursor: pointer;
+}
+.zoom-slider__track::-webkit-slider-runnable-track { width: 10px; border-radius: 6px; background: var(--glass); border: 2px solid var(--ink); }
+.zoom-slider__track::-moz-range-track { width: 10px; border-radius: 6px; background: var(--glass); border: 2px solid var(--ink); }
+.zoom-slider__track::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 32px; height: 32px; margin-left: -13px; border-radius: 8px; image-rendering: pixelated;
+  background: var(--zoom-thumb, linear-gradient(var(--accent), var(--accent))) center / 100% 100% no-repeat; border: 2px solid var(--ink);
+}
+.zoom-slider__track::-moz-range-thumb { width: 28px; height: 28px; border-radius: 8px; image-rendering: pixelated; background: var(--zoom-thumb, var(--accent)) center / 100% 100% no-repeat; border: 2px solid var(--ink); }
+.zoom-slider[style*="--zoom-thumb"] .zoom-slider__track::-webkit-slider-thumb { border: 0; }
+
 /* ---- bottom ---- */
 .hud-bottom { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 0 8px max(8px, env(safe-area-inset-bottom)); }
 .hud-bar { display: flex; gap: 12px; justify-content: center; }
@@ -109,14 +142,43 @@
   font: 13px var(--font-display); letter-spacing: 0.5px; color: var(--accent);
   padding: 3px 10px; border-radius: 8px; background: var(--glass); border: 2px solid var(--ink); box-shadow: 0 2px 0 var(--ink);
 }
-.placement-bar {
-  display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 8px 12px; margin-bottom: 4px; border-radius: 12px;
-  background: var(--glass); border: 2px solid var(--ink); box-shadow: inset 0 0 0 1px var(--border), 0 3px 0 var(--ink);
-}
-.placement-bar .btn { min-height: 44px; min-width: 88px; padding: 8px 16px; font-size: 13px; border-radius: 8px; }
+.placement-bar { position: relative; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.placement-bar__row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.placement-bar__go { display: flex; gap: 12px; justify-content: center; align-items: flex-start; }
+.placement-bar .btn { min-height: 44px; padding: 6px 12px; font-size: 11px; border-radius: 8px; }
 .placement-bar .btn[aria-pressed="true"] { background: var(--accent); color: #1b1300; border-color: #b89a1a; box-shadow: inset 0 0 0 2px #fff3b0; }
 .placement-bar .btn[aria-pressed="true"]::before { content: "\2713\00a0"; }
-.placement-bar small { width: 100%; text-align: center; color: #ffb4a6; }
+/* Above the bar, out of its layout: the camera frames round the bar, and must not shift when this comes and goes. */
+.placement-bar__why {
+  position: absolute; bottom: 100%; margin-bottom: 4px; white-space: nowrap; padding: 2px 8px; border-radius: 8px;
+  color: #ffb4a6; background: var(--glass); border: 2px solid var(--ink); font: 12px var(--font-display);
+}
+.placement-go {
+  --plate: 56px; --face: #4caf50; --edge: #276a2b;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; width: calc(var(--plate) + 12px); padding: 0; cursor: pointer; background: none; border: 0; color: #fff;
+}
+.placement-go--cancel { --face: #e0433a; --edge: #8c1f19; }
+.placement-go__plate {
+  position: relative; display: grid; place-items: center; width: var(--plate); height: var(--plate); border-radius: 50%;
+  background: var(--face); border: 3px solid var(--ink); box-shadow: inset 0 -5px 0 var(--edge), inset 0 3px 0 rgba(255, 255, 255, 0.35), 0 3px 0 var(--ink);
+}
+.placement-go:active:not(:disabled) .placement-go__plate { transform: translateY(2px); }
+.placement-go:disabled { cursor: not-allowed; --face: #8a8e96; --edge: #5c6068; }
+.placement-go__label { font: 12px var(--font-display); letter-spacing: 0.5px; line-height: 1.1; }
+/* Block glyphs until the art: an X of two bars, a tick of a box's two sides. */
+.placement-go__glyph { position: relative; display: block; width: 40%; height: 40%; }
+.placement-go--cancel .placement-go__glyph::before, .placement-go--cancel .placement-go__glyph::after {
+  content: ""; position: absolute; left: -10%; right: -10%; top: 40%; height: 20%; background: #fff; box-shadow: 0 2px 0 var(--ink);
+}
+.placement-go--cancel .placement-go__glyph::before { transform: rotate(45deg); }
+.placement-go--cancel .placement-go__glyph::after { transform: rotate(-45deg); }
+.placement-go--ok .placement-go__glyph::before {
+  content: ""; position: absolute; left: 20%; top: -10%; width: 55%; height: 95%; box-sizing: border-box;
+  border: solid #fff; border-width: 0 calc(var(--plate) * 0.09) calc(var(--plate) * 0.09) 0; transform: rotate(40deg);
+}
+@media (min-width: 700px) and (min-height: 700px) {
+  .placement-go { --plate: 64px; }
+}
 
 /* ---- dialogs ---- */
 .hud-dialog-layer { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -140,10 +202,6 @@
 }
 .hud-dialog-layer--dock { pointer-events: none; align-items: flex-end; justify-content: flex-end; }
 .hud-dialog-layer--dock .hud-dialog { pointer-events: auto; width: min(400px, 100%); max-height: 70vh; }
-.panel header .btn--ghost[aria-label="Close"] {
-  width: 34px; height: 34px; padding: 0; border-radius: 50%; font: 18px/1 var(--font-display); color: #fff;
-  background: var(--danger); border: 2px solid var(--ink); box-shadow: inset 0 -3px 0 #8c2f14;
-}
 .hud-tabs { display: flex; gap: 4px; margin-bottom: -2px; }
 .hud-tab { min-height: 44px; font: 12px var(--font-display); padding: 8px 14px; cursor: pointer; color: var(--text); background: var(--bg-panel); border: 2px solid var(--border); border-bottom: 0; border-radius: 8px 8px 0 0; }
 .hud-tab[aria-selected="true"] { background: var(--accent); color: #1b1300; border-color: #b89a1a; }
@@ -196,11 +254,6 @@
 .skin-round .hud-round--small .hud-round__plate { width: 44px; height: 44px; }
 .skin-round .hud-round:active .hud-round__plate { box-shadow: none; }
 .skin-round-active .hud-round--active .hud-round__plate { background-image: var(--ui-round-active); box-shadow: none; }
-.skin-avatar .hud-avatar__badge {
-  width: 52px; height: 52px; border: 0; box-shadow: none; color: var(--text); image-rendering: pixelated;
-  background: var(--ui-avatar) center / 100% 100% no-repeat; padding-bottom: 6px;
-  text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink);
-}
 /* Pill, XP bar and tab art have empty rows above (and below) the frame: each is nine-sliced at 2x with the slice
    taking the empty rows plus the outline row, and border-image-outset pushing the empty rows outside the box, so
    the outline sits on the box edge at the same 2 px everywhere. */
@@ -215,10 +268,6 @@
   border-width: 2px 8px; border-image: var(--ui-xp) 2 4 2 4 fill / 4px 8px / 2px 0 stretch;
 }
 .skin-xp .hud-xp__fill { inset: 1px auto 1px -2px; opacity: 0.85; }
-.skin-close .panel header .btn--ghost[aria-label="Close"] {
-  width: 32px; height: 32px; color: transparent; border: 0; box-shadow: none; border-radius: 0; image-rendering: pixelated;
-  background: var(--ui-close) center / 100% 100% no-repeat;
-}
 .skin-tab .hud-tab {
   border: solid transparent; border-width: 2px 12px 0; border-radius: 0; background: none; image-rendering: pixelated;
   border-image: var(--ui-tab) 2 6 1 6 fill / 4px 12px 2px / 2px 0 0 stretch;
@@ -366,3 +415,142 @@
 .battle__crown, .battle__tier, .trials__mark { vertical-align: -3px; margin-right: 3px; image-rendering: pixelated; }
 .trials__card-art { flex: none; image-rendering: pixelated; }
 .hud-star { image-rendering: pixelated; }
+
+/* ==== UI rework Phase 3: the main HUD in the reference layout (docs/superpowers/plans/2026-11-02-ui-rework-phase3.md).
+   Top left player (level star over the avatar, Dragon Book counter, XP), top centre $DRIS / Gold / Food, top right
+   Settings and Map, left edge Goals, right edge zoom, bottom left Battle, bottom right Shop, bottom centre free. ==== */
+.hud .sr-only, .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.hud-top { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); padding-right: 64px; }
+.hud-top__spacer { min-width: 0; }
+.hud-player { display: flex; align-items: flex-start; gap: 6px; min-width: 0; pointer-events: none; }
+.hud-player button, .hud-player .hud-xp { pointer-events: auto; }
+.hud-avatar { position: relative; flex: none; width: 60px; height: 60px; }
+.hud-avatar__frame {
+  position: absolute; inset: 0; display: grid; place-items: center; image-rendering: pixelated;
+  background: #3a4a7a; border: 3px solid #9aa5b1; border-radius: 10px; box-shadow: 0 0 0 2px var(--ink), 0 3px 0 2px var(--ink);
+}
+.hud-avatar__frame > * { width: 40px; height: 40px; }
+.hud .hud-avatar__badge {
+  position: absolute; left: -8px; top: -8px; width: 34px; height: 34px; border: 0; border-radius: 0; box-shadow: none;
+  display: grid; place-items: center; padding-top: 3px; font: 13px var(--font-display); color: #fff;
+  background: #2f8fe0; clip-path: polygon(50% 0, 62% 34%, 100% 36%, 70% 58%, 80% 100%, 50% 78%, 20% 100%, 30% 58%, 0 36%, 38% 34%);
+  text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink);
+}
+.hud-player__side { display: grid; gap: 4px; min-width: 0; padding-top: 4px; }
+.hud .hud-xp { margin-left: 0; width: 150px; height: 16px; border-left: 2px solid var(--ink); border-radius: 8px; }
+.hud .hud-xp__text { padding-left: 8px; font-size: 8px; line-height: 12px; }
+.hud-book {
+  position: relative; display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 10px 0 2px; cursor: pointer; justify-self: start;
+  background: rgba(20, 22, 39, 0.82); border: 2px solid var(--ink); border-radius: 8px; color: #fff; font: 12px var(--font-display);
+}
+.hud-book .hud-icon { width: 28px; height: 28px; }
+.hud-book__new {
+  position: absolute; left: -6px; bottom: -6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px;
+  display: grid; place-items: center; font: 10px var(--font-display); background: #d8312a; border: 2px solid var(--ink);
+}
+.hud-book:focus-visible, .hud-round:focus-visible .hud-round__plate { outline: 3px solid #1f6feb; outline-offset: 2px; }
+.hud-pills { gap: 14px; flex-wrap: nowrap; }
+.hud-right { top: max(8px, env(safe-area-inset-top)); right: 10px; gap: 8px; }
+
+/* Round buttons in the kit's look: white plate, orange ring (ui.kit.round when the art exists). */
+.hud .hud-round__plate {
+  border-radius: 14px; background: #fbfaf6; border: 2px solid var(--ink);
+  box-shadow: inset 0 0 0 3px #e9962f, inset 0 0 0 5px #b86a1a, inset 0 -5px 0 5px #ddd8cc, 0 3px 0 var(--ink);
+}
+.hud .hud-round--active .hud-round__plate { background: #fff3b0; }
+.skin-kit-round .hud .hud-round__plate { background: var(--kit-round) center / 100% 100% no-repeat; border: 0; box-shadow: none; image-rendering: pixelated; }
+.skin-kit-round .hud .hud-round--active .hud-round__plate { filter: brightness(1.1) saturate(1.2); }
+.hud .hud-round__label { margin-top: -8px; position: relative; font-size: 11px; color: #fff; }
+
+/* Goals on the left edge with its Claim!/Start! bubble; the attention list stays under it until Phase 4's bubbles. */
+.hud-goals { position: absolute; left: 10px; top: 32%; display: flex; align-items: center; gap: 6px; }
+.hud-goals__bubble {
+  position: relative; padding: 6px 10px; font: 13px var(--font-display); color: #b8860b; pointer-events: none;
+  background: #fbfaf6; border: 2px solid var(--ink); border-radius: 10px; box-shadow: 0 3px 0 var(--ink);
+}
+.hud-goals__bubble::before {
+  content: ""; position: absolute; left: -9px; top: 50%; width: 8px; height: 12px; transform: translateY(-50%);
+  background: var(--ink); clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+.hud-goals__bubble--claim { color: #2f7d29; }
+.hud .hud-left { top: calc(32% + 92px); width: 210px; }
+
+/* Bottom corners: Battle left, Shop right. The centre band is the bottom slot (placement and, from Phase 4, the action row). */
+.hud-corners { position: absolute; inset: auto 0 0 0; height: 0; pointer-events: none; }
+.hud-corner { position: absolute; bottom: max(10px, env(safe-area-inset-bottom)); pointer-events: auto; }
+.hud-corner--left { left: 12px; }
+.hud-corner--right { right: 12px; }
+.hud-corners .hud-round__plate { width: 64px; height: 64px; }
+
+@media (min-width: 1280px) and (min-height: 800px) {
+  .hud-avatar { width: 84px; height: 84px; }
+  .hud-avatar__frame > * { width: 56px; height: 56px; }
+  .hud .hud-avatar__badge { width: 46px; height: 46px; font-size: 17px; left: -12px; top: -12px; }
+  .hud-book { height: 40px; font-size: 15px; }
+  .hud-book .hud-icon { width: 36px; height: 36px; }
+  .hud .hud-xp { width: 200px; height: 18px; }
+  .hud .hud-round__plate { width: 72px; height: 72px; }
+  .hud .hud-round--small .hud-round__plate { width: 56px; height: 56px; }
+  .hud-corners .hud-round__plate { width: 92px; height: 92px; }
+  .hud .hud-round__label { font-size: 15px; }
+  .hud-goals__bubble { font-size: 17px; padding: 8px 14px; }
+}
+/* A short screen (landscape phone): everything a step smaller, Goals higher so the attention list fits. */
+@media (max-height: 520px) {
+  .hud-avatar { width: 46px; height: 46px; }
+  .hud-avatar__frame > * { width: 32px; height: 32px; }
+  .hud .hud-avatar__badge { width: 28px; height: 28px; font-size: 11px; }
+  .hud .hud-xp { width: 110px; }
+  .hud-book { height: 26px; font-size: 10px; }
+  .hud-book .hud-icon { width: 22px; height: 22px; }
+  .hud-goals { top: 76px; }
+  .hud .hud-left { top: 136px; }
+  .hud .hud-round__plate { width: 46px; height: 46px; }
+  .hud .hud-round--small .hud-round__plate { width: 38px; height: 38px; }
+  .hud-corners .hud-round__plate { width: 52px; height: 52px; }
+  .hud .hud-round__label { font-size: 9px; }
+  .hud-pills { gap: 6px; }
+  .hud-pills .kit-resource__value { min-width: 56px; font-size: 11px; }
+}
+/* Portrait phones (until the rotate screen): pills drop to a second row. */
+@media (max-width: 699px) {
+  .hud-top { grid-template-columns: minmax(0, 1fr) auto; padding-right: 64px; }
+  .hud-pills { grid-column: 1 / -1; grid-row: 2; gap: 2px; justify-content: flex-start; }
+  .hud-pills .kit-resource__value { min-width: 40px; padding-right: 4px; font-size: 11px; }
+  .hud-pills .kit-resource__plus { width: 26px; height: 26px; }
+  .hud-goals { top: 132px; left: 6px; }
+  .hud .hud-left { top: 196px; }
+}
+.skin-level-star .hud .hud-avatar__badge { clip-path: none; background: var(--ui-level-star) center / 100% 100% no-repeat; image-rendering: pixelated; }
+.skin-avatar-frame .hud-avatar__frame { background: var(--ui-avatar-frame) center / 100% 100% no-repeat; border: 0; box-shadow: none; }
+
+/* ---- Phase 4: the selected thing's action row, bottom right beside Shop ---- */
+.action-bar { position: absolute; right: 96px; bottom: max(10px, env(safe-area-inset-bottom)); max-width: calc(100% - 200px); pointer-events: auto; }
+.action-bar__row { display: flex; flex-wrap: wrap-reverse; justify-content: flex-end; align-items: flex-end; gap: 6px 12px; margin: 0; padding: 0; list-style: none; }
+.action-bar__item { position: relative; display: flex; flex-direction: column; align-items: center; }
+.action-bar__name {
+  position: absolute; bottom: calc(100% + 6px); right: 0; padding: 4px 10px; white-space: nowrap;
+  font: 12px/1.1 var(--font-display); color: var(--kit-ink, #141627); background: #fbfaf6; border: 2px solid var(--kit-ink, #141627); border-radius: 6px;
+  box-shadow: 0 2px 0 var(--kit-ink, #141627);
+}
+.action-bar .kit-round__timer { margin-bottom: -4px; }
+@media (min-width: 1280px) and (min-height: 800px) {
+  .action-bar { right: 128px; }
+  .action-bar__row { gap: 8px 20px; }
+  .action-bar .kit-round { --plate: 76px; }
+  .action-bar .kit-round__label, .action-bar .kit-round__timer { font-size: 14px; }
+  .action-bar__name { font-size: 16px; }
+}
+@media (max-height: 520px) {
+  .action-bar { right: 76px; max-width: calc(100% - 160px); }
+  .action-bar__row { gap: 4px 20px; }
+  .action-bar .kit-round { --plate: 46px; }
+  .action-bar .kit-round__label, .action-bar .kit-round__timer { font-size: 9px; }
+}
+/* Portrait phone: the row sits over Shop, right-aligned, wrapping upward. */
+@media (max-width: 699px) {
+  .action-bar { right: 6px; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 80px); max-width: calc(100% - 12px); }
+  .action-bar .kit-round { --plate: 48px; }
+}
+.home-finder { display: flex; align-items: center; gap: 10px; }
+.home-finder .home-finder__text { position: static; white-space: normal; max-width: 260px; margin: 0; }

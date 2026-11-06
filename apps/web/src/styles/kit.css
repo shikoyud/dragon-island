@@ -1,0 +1,337 @@
+/* Pixel UI kit (docs/superpowers/plans/2026-11-02-ui-rework-phase2.md). Drawn in CSS: 2 px ink outlines, a light row on
+   top, a dark edge at the bottom, solid offsets, no blur. A piece switches to its ui.kit.* art when hud/skin.ts adds
+   its skin-kit-* class. */
+:root {
+  --kit-ink: #141627;
+  --kit-focus: #1f6feb;
+  --kit-cream: #f3ead2;
+  --kit-cream-hi: #fffaf0;
+  --kit-cream-lo: #c9bc9a;
+  --kit-steel: #6b6f7a;
+  --kit-wood: #b7793f;
+  --kit-wood-hi: #d79a5a;
+  --kit-wood-lo: #7a4a22;
+  --kit-text: #2a2233;
+  --kit-text-muted: #6a5f55;
+  --kit-short: #d8312a;
+  /* Square buttons are 16 px art at 2x, or 3x on big screens. */
+  --kit-square: 32px;
+  --kit-rim: 5px;
+}
+
+/* ---- pills ---- */
+.kit-pill {
+  --face: #3f8fe0; --hi: #8cc4ff; --edge: #1f4f8a; --fg: #fff;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 40px; min-width: 64px; padding: 4px 14px 7px; cursor: pointer;
+  font: 12px/1.1 var(--font-display); letter-spacing: 0.5px; color: var(--fg);
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+  background: var(--face); border: 2px solid var(--kit-ink); border-radius: 10px;
+  box-shadow: inset 0 2px 0 var(--hi), inset 0 -4px 0 var(--edge), 0 2px 0 var(--kit-ink);
+}
+.kit-pill--small { min-height: 32px; min-width: 0; padding: 2px 10px 5px; font-size: 10px; }
+.kit-pill--blue { --face: #3f8fe0; --hi: #8cc4ff; --edge: #1f4f8a; }
+.kit-pill--yellow { --face: #f2b928; --hi: #ffe58a; --edge: #a8720e; }
+.kit-pill--green { --face: #4cb050; --hi: #9de08f; --edge: #276a2b; }
+.kit-pill--purple { --face: #9a5ad8; --hi: #d2a8ff; --edge: #5a2e8c; }
+.kit-pill--grey { --face: #9aa0aa; --hi: #d0d4da; --edge: #5c6068; }
+.kit-pill--red { --face: #e0433a; --hi: #ff9a8a; --edge: #8c1f19; }
+.kit-pill:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 2px 0 var(--hi), inset 0 -2px 0 var(--edge); }
+.kit-pill:disabled { cursor: not-allowed; }
+.kit-pill-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.kit-why { display: block; font: 11px/1.2 var(--font-body); color: var(--text-muted); }
+
+/* ---- price ---- */
+.kit-price { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.kit-price .hud-icon { width: 20px; height: 20px; }
+.kit-price__n { font-family: var(--font-display); }
+.kit-price--short .kit-price__n { color: #ff6b5e; }
+:not(.kit-pill) > .kit-price--short .kit-price__n { color: var(--kit-short); }
+
+/* ---- close, back, help: one square sprite each ---- */
+.kit-square {
+  --face: #e0433a; --rim: #f59a2b; --edge: #8c1f19;
+  position: relative; flex: none; width: var(--kit-square); height: var(--kit-square); aspect-ratio: 1; padding: 0;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--face); border: 2px solid var(--kit-ink); border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--rim), inset 0 -4px 0 var(--edge), 0 2px 0 var(--kit-ink);
+}
+.kit-square--back { --face: #f08a24; --rim: #ffc37a; --edge: #9a4f0c; border-radius: 9px; }
+.kit-square--help { --face: #3f8fe0; --rim: #8cc4ff; --edge: #1f4f8a; border-radius: 50%; }
+.kit-square__glyph { display: block; width: 50%; height: 50%; filter: drop-shadow(0 1px 0 var(--kit-ink)); }
+.kit-square:active { transform: translateY(2px); }
+
+/* ---- focus: a blue ring that reads on cream and on the island ---- */
+.kit-pill:focus-visible, .kit-square:focus-visible, .kit-round:focus-visible, .kit-bubble:focus-visible, .kit-resource__plus:focus-visible {
+  outline: 3px solid var(--kit-focus); outline-offset: 2px;
+}
+
+/* ---- light dialog frame (ruling P2: the palette flips inside it, so old panel contents read dark on cream) ---- */
+.kit-frame, .kit-full {
+  --text: var(--kit-text); --text-muted: var(--kit-text-muted);
+  --bg-panel: #e6d9b8; --bg-panel-2: #fff6e0; --border: #a8997a; --accent: #b8860b;
+  color: var(--text);
+}
+.kit-frame {
+  position: relative; display: flex; flex-direction: column; min-height: 0; max-height: 100%;
+  margin-top: 18px; padding: 26px 6px 8px;
+  background: var(--kit-cream); border: var(--kit-rim) solid var(--kit-steel); border-radius: 14px;
+  outline: 2px solid var(--kit-ink);
+  /* Grey bevel: a light row along the rim's top and left, a dark one along its bottom and right, then the cream's own bevel. */
+  box-shadow: inset 2px 2px 0 #b9bdc6, inset -2px -2px 0 #464a55, inset 4px 4px 0 var(--kit-cream-hi), inset -4px -5px 0 var(--kit-cream-lo), 0 4px 0 2px var(--kit-ink);
+}
+.kit-frame__body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 8px 4px; }
+.kit-frame__close { position: absolute; top: calc(var(--kit-square) / -2); right: calc(var(--kit-square) / -3); z-index: 2; }
+
+/* The plank: a wooden board centred on the top edge, white outlined title. */
+.kit-plank-row {
+  position: absolute; top: -18px; left: 50%; transform: translateX(-50%); z-index: 1;
+  display: flex; align-items: center; max-width: calc(100% - 2 * var(--kit-square)); pointer-events: none;
+}
+.kit-plank {
+  margin: 0; min-width: 0; max-width: 100%; padding: 6px 18px 8px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font: 14px/1.1 var(--font-display); color: #fff; letter-spacing: 0.5px; text-transform: none;
+  text-shadow: 2px 0 0 var(--kit-ink), -2px 0 0 var(--kit-ink), 0 2px 0 var(--kit-ink), 0 -2px 0 var(--kit-ink);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 7px, rgba(0, 0, 0, 0.12) 7px 8px),
+    linear-gradient(var(--kit-wood-hi) 0 3px, var(--kit-wood) 3px calc(100% - 4px), var(--kit-wood-lo) calc(100% - 4px));
+  border: 2px solid var(--kit-ink); border-radius: 6px; box-shadow: 0 2px 0 var(--kit-ink);
+}
+.kit-badge {
+  flex: none; margin-left: -6px; min-width: 26px; padding: 3px 6px; text-align: center;
+  font: 11px/1 var(--font-display); color: #fff; background: #2a2f45; border: 2px solid var(--kit-ink); border-radius: 8px;
+}
+/* The dialog host: the frame's own body scrolls, so the plank and close stay on screen (review focus 2). */
+.hud-dialog:has(> .kit-frame) { display: flex; flex-direction: column; overflow: visible; }
+
+/* ---- full-screen frame ---- */
+.kit-full {
+  position: fixed; inset: 0; z-index: 25; display: flex; flex-direction: column;
+  padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  background: #6aa7c9;
+}
+.kit-full--wood { background: repeating-linear-gradient(180deg, #8a5a2e 0 22px, #6e4522 22px 24px); }
+.kit-full--parchment { background: #e8d6a8; }
+.kit-full__top { position: relative; display: flex; justify-content: flex-end; align-items: center; min-height: calc(var(--kit-square) + 12px); }
+.kit-full__top .kit-plank-row { top: 50%; transform: translate(-50%, -50%); }
+.kit-full__buttons { display: flex; gap: 8px; }
+.kit-full__body { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+
+/* ---- pixel scrollbar (review image-7): wooden track, chunky thumb ---- */
+.kit-scroll { scrollbar-width: auto; scrollbar-color: #8a5a2e #e0c89a; }
+.kit-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
+.kit-scroll::-webkit-scrollbar-track { background: #c79a62; border-left: 2px solid var(--kit-ink); box-shadow: inset 2px 0 0 #a87a44; }
+.kit-scroll::-webkit-scrollbar-thumb { background: #7a4a22; border: 2px solid var(--kit-ink); box-shadow: inset 2px 2px 0 #b7793f; }
+.kit-scroll::-webkit-scrollbar-button { display: none; height: 0; }
+.kit-scroll::-webkit-scrollbar-corner { background: transparent; }
+
+/* ---- round action button ---- */
+.kit-round {
+  position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 0; background: none; border: 0; cursor: pointer; color: #fff; --plate: 56px;
+}
+.kit-round__plate {
+  position: relative; display: grid; place-items: center; width: var(--plate); height: var(--plate);
+  background: #fbfaf6; border: 2px solid var(--kit-ink); border-radius: 16px;
+  box-shadow: inset 0 0 0 4px #e9962f, inset 0 0 0 6px #b86a1a, inset 0 -6px 0 6px #ddd8cc, 0 3px 0 var(--kit-ink);
+}
+.kit-round__plate > .hud-icon, .kit-round__plate > img, .kit-round__plate > svg { width: 60%; height: 60%; }
+.kit-round__label, .kit-round__timer {
+  font: 11px/1.1 var(--font-display); letter-spacing: 0.5px; white-space: nowrap;
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+}
+.kit-round__label { margin-top: -10px; position: relative; }
+.kit-round__badge {
+  position: absolute; left: -8px; top: 10px; transform: rotate(-14deg); padding: 2px 4px;
+  font: 9px/1 var(--font-display); color: #fff; background: #e8458b; border: 2px solid var(--kit-ink); border-radius: 4px;
+}
+.kit-round__lock {
+  position: absolute; left: -6px; top: -6px; width: 22px; height: 22px; padding: 4px; border-radius: 50%;
+  background: #4a4f5c; border: 2px solid var(--kit-ink);
+}
+.kit-round:active:not(:disabled) .kit-round__plate { transform: translateY(2px); }
+.kit-round:disabled { cursor: not-allowed; }
+.kit-round:disabled .kit-round__plate { filter: grayscale(1); opacity: 0.6; }
+@media (min-width: 1280px) and (min-height: 800px) { .kit-round { --plate: 84px; } .kit-round__label, .kit-round__timer { font-size: 15px; } }
+
+/* ---- ribbons and shields ---- */
+.kit-ribbon {
+  display: inline-block; width: 14px; height: 22px; background: var(--el, #888);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  box-shadow: inset 0 0 0 2px rgba(20, 22, 39, 0.75), inset 0 3px 0 rgba(255, 255, 255, 0.35);
+}
+.kit-shield {
+  --c: #8e9bb8; display: inline-grid; place-items: center; width: 22px; height: 26px;
+  font: 12px/1 var(--font-display); color: #fff; background: var(--c);
+  clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+  box-shadow: inset 0 0 0 2px rgba(20, 22, 39, 0.7);
+}
+.kit-shield--uncommon { --c: #4cb050; }
+.kit-shield--rare { --c: #3f8fe0; }
+.kit-shield--epic { --c: #9a5ad8; }
+.kit-shield--legendary { --c: #e0a020; }
+
+/* ---- card ---- */
+.kit-card {
+  display: flex; flex-direction: column; align-items: stretch; width: 168px; overflow: hidden;
+  background: #fbf3df; border: 2px solid var(--kit-ink); border-radius: 12px; box-shadow: inset 0 -4px 0 #e2d2ad, 0 3px 0 var(--kit-ink);
+}
+.kit-card__head {
+  padding: 8px 8px 6px; text-align: center;
+  background: radial-gradient(circle at 50% 100%, transparent 5px, rgba(255, 255, 255, 0.35) 6px 7px, transparent 8px) 0 0 / 12px 8px, #a9d98e;
+  border-bottom: 2px solid var(--kit-ink);
+}
+.kit-card__title {
+  margin: 0; font: 12px/1.15 var(--font-display); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+}
+.kit-card__marks { display: flex; justify-content: space-between; align-items: flex-start; padding: 0 8px; }
+.kit-card__ribbons { display: flex; gap: 2px; }
+.kit-card__art { display: grid; place-items: center; min-height: 72px; padding: 4px; image-rendering: pixelated; }
+.kit-card__foot { margin-top: auto; padding: 6px 8px 10px; display: grid; justify-items: center; }
+.kit-card--locked { filter: grayscale(1); background: #e4e4e4; }
+.kit-card--locked .kit-card__head { background-color: #b9bcc2; }
+.kit-card__locked { display: inline-flex; align-items: center; gap: 6px; font: 11px/1.2 var(--font-display); color: var(--kit-text); }
+.kit-card__lock { display: inline-block; width: 22px; height: 22px; padding: 4px; border-radius: 50%; background: #4a4f5c; border: 2px solid var(--kit-ink); }
+
+/* ---- resource pill ---- */
+.kit-resource { position: relative; display: inline-flex; align-items: center; height: 32px; padding-left: 18px; }
+.kit-resource__icon { position: absolute; left: 0; z-index: 1; display: grid; place-items: center; width: 32px; height: 32px; }
+.kit-resource__icon > * { width: 32px; height: 32px; }
+.kit-resource__value {
+  min-width: 72px; height: 26px; padding: 0 10px 0 20px; display: flex; align-items: center; justify-content: center;
+  font: 13px/1 var(--font-display); color: #fff; background: rgba(20, 22, 39, 0.82); border: 2px solid var(--kit-ink); border-radius: 6px 0 0 6px;
+}
+.kit-resource__plus {
+  width: 30px; height: 30px; margin-left: -2px; padding: 0; cursor: pointer; display: grid; place-items: center;
+  font: 18px/1 var(--font-display); color: #fff; background: #4cb050; border: 2px solid var(--kit-ink); border-radius: 6px;
+  box-shadow: inset 0 2px 0 #9de08f, inset 0 -3px 0 #276a2b;
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+}
+
+/* ---- progress bar ---- */
+.kit-bar {
+  position: relative; display: block; min-width: 64px; height: 16px; overflow: hidden;
+  background: #2a2f45; border: 2px solid var(--kit-ink); border-radius: 8px;
+}
+.kit-bar__fill { position: absolute; inset: 0 auto 0 0; background: #5cc04f; box-shadow: inset 0 2px 0 #a4ec8a, inset 0 -3px 0 #2f7d29; }
+.kit-bar__label {
+  position: relative; display: block; text-align: center; font: 10px/12px var(--font-display); color: #fff;
+  text-shadow: 1px 0 0 var(--kit-ink), -1px 0 0 var(--kit-ink), 0 1px 0 var(--kit-ink), 0 -1px 0 var(--kit-ink);
+}
+
+/* ---- bubble ---- */
+.kit-bubble {
+  position: relative; display: inline-grid; place-items: center; width: 44px; height: 40px; padding: 4px; cursor: pointer;
+  background: #fbfaf6; border: 2px solid var(--kit-ink); border-radius: 8px; box-shadow: inset 0 -3px 0 #ddd8cc;
+}
+.kit-bubble::after {
+  content: ""; position: absolute; left: 50%; bottom: -9px; width: 12px; height: 8px; transform: translateX(-50%);
+  background: var(--kit-ink); clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.kit-bubble::before {
+  content: ""; position: absolute; left: 50%; bottom: -5px; width: 8px; height: 5px; transform: translateX(-50%); z-index: 1;
+  background: #ddd8cc; clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.kit-bubble > * { width: 28px; height: 28px; }
+
+/* ---- tooltip and toast: small rounded panels in the body font (review image-9) ---- */
+.kit-tip-host { position: relative; display: inline-flex; }
+.kit-tip {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); z-index: 40; pointer-events: none;
+  width: max-content; max-width: 220px; padding: 4px 8px; opacity: 0; transition: opacity 0.1s;
+  font: 12px/1.3 var(--font-body); color: var(--kit-text); background: var(--kit-cream); border: 2px solid var(--kit-ink); border-radius: 6px;
+}
+.kit-tip-host:hover .kit-tip, .kit-tip-host:focus-within .kit-tip { opacity: 1; }
+.kit-toast {
+  justify-self: center; max-width: 480px; padding: 8px 14px;
+  font: 14px/1.3 var(--font-body); color: var(--kit-text);
+  background: var(--kit-cream); border: 2px solid var(--kit-ink); border-radius: 10px;
+  box-shadow: inset 0 0 0 2px var(--kit-cream-hi), 0 3px 0 var(--kit-ink);
+}
+.kit-toast--error { box-shadow: inset 0 0 0 3px #e0433a, 0 3px 0 var(--kit-ink); }
+
+/* ---- #/kit gallery ---- */
+.kit-gallery { min-height: 100%; overflow: auto; padding: 24px 16px; display: grid; gap: 28px; align-content: start; background: #6aa7c9; }
+.kit-gallery__row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.kit-gallery__row--dark { padding: 16px 10px 10px; background: #3f7a3a; border-radius: 10px; }
+.kit-gallery__frames { align-items: flex-start; }
+.kit-gallery__frames .hud-dialog { width: min(420px, 100%); }
+.kit-gallery__short { height: 220px; }
+
+/* ---- ui.kit.* art (docs/art/ui-rework-p2-art-list.md), applied per piece when the manifest has it (hud/skin.ts).
+   9-slices are drawn at 2x (insets from the art list, doubled), single sprites at the element's size, which is a whole
+   multiple of the art. The drawn look above stays for any piece without art. ---- */
+.skin-kit-frame .kit-frame {
+  background: none; outline: 0; box-shadow: 0 4px 0 rgba(20, 22, 39, 0.6); border-radius: 0; border: 24px solid transparent;
+  border-image: var(--kit-frame) 12 fill / 24px stretch; padding: 14px 0 0;
+}
+/* The plank straddles the frame's outer edge: the art's border is 24 px, the plank's half height about 18. */
+.skin-kit-frame .kit-plank-row { top: -42px; }
+.skin-kit-frame .kit-frame__close { top: calc(-24px - var(--kit-square) / 2); right: calc(-24px - var(--kit-square) / 3); }
+.skin-kit-plank .kit-plank { background: none; border: 12px solid transparent; border-width: 12px 16px 14px; border-radius: 0; box-shadow: none; padding: 0 12px; border-image: var(--kit-plank) 6 8 7 8 fill / 12px 16px 14px stretch; }
+.skin-kit-badge .kit-badge { background: none; border: 10px solid transparent; border-radius: 0; padding: 0 2px; border-image: var(--kit-badge) 5 fill / 10px stretch; }
+.skin-kit-close .kit-square--close, .skin-kit-back .kit-square--back, .skin-kit-help .kit-square--help {
+  border: 0; border-radius: 0; box-shadow: none; image-rendering: pixelated; background: center / 100% 100% no-repeat;
+}
+.skin-kit-close .kit-square--close { background-image: var(--kit-close); }
+.skin-kit-back .kit-square--back { background-image: var(--kit-back); }
+.skin-kit-help .kit-square--help { background-image: var(--kit-help); }
+.skin-kit-close .kit-square--close .kit-square__glyph, .skin-kit-back .kit-square--back .kit-square__glyph, .skin-kit-help .kit-square--help .kit-square__glyph { display: none; }
+/* Pill art: one 32x16 face per colour, nine-sliced at 2x; old .btn call sites pick up the same faces. */
+.skin-kit-pill-blue .kit-pill--blue, .skin-kit-pill-blue .btn:not(.btn--primary):not(.btn--danger):not(.btn--ghost):not(:disabled) { --pill: var(--kit-pill-blue); }
+.skin-kit-pill-yellow .kit-pill--yellow, .skin-kit-pill-yellow .btn--primary:not(:disabled) { --pill: var(--kit-pill-yellow); }
+.skin-kit-pill-green .kit-pill--green { --pill: var(--kit-pill-green); }
+.skin-kit-pill-purple .kit-pill--purple { --pill: var(--kit-pill-purple); }
+.skin-kit-pill-grey .kit-pill--grey, .skin-kit-pill-grey .btn:disabled, .skin-kit-pill-grey .btn--ghost { --pill: var(--kit-pill-grey); }
+.skin-kit-pill-red .kit-pill--red, .skin-kit-pill-red .btn--danger:not(:disabled) { --pill: var(--kit-pill-red); }
+:is(.skin-kit-pill-blue .kit-pill--blue, .skin-kit-pill-blue .btn:not(.btn--primary):not(.btn--danger):not(.btn--ghost):not(:disabled), .skin-kit-pill-yellow .kit-pill--yellow, .skin-kit-pill-yellow .btn--primary:not(:disabled), .skin-kit-pill-green .kit-pill--green, .skin-kit-pill-purple .kit-pill--purple, .skin-kit-pill-grey .kit-pill--grey, .skin-kit-pill-grey .btn:disabled, .skin-kit-pill-grey .btn--ghost, .skin-kit-pill-red .kit-pill--red, .skin-kit-pill-red .btn--danger:not(:disabled)) {
+  background: none; box-shadow: none; border-radius: 0; border: solid transparent; border-width: 10px 12px 12px; padding: 0 6px;
+  border-image: var(--pill) 5 6 6 6 fill / 10px 12px 12px stretch; image-rendering: pixelated;
+}
+.skin-kit-round .kit-round__plate { background: var(--kit-round) center / 100% 100% no-repeat; border: 0; border-radius: 0; box-shadow: none; image-rendering: pixelated; }
+.skin-kit-lock .kit-round__lock, .skin-kit-lock .kit-card__lock { background: var(--kit-lock) center / 100% 100% no-repeat; border: 0; padding: 0; image-rendering: pixelated; }
+.skin-kit-lock .kit-round__lock svg, .skin-kit-lock .kit-card__lock svg { display: none; }
+.skin-kit-card .kit-card { overflow: visible; background: none; border: 20px solid transparent; border-width: 32px 20px 20px; border-radius: 0; box-shadow: none; border-image: var(--kit-card) 16 10 10 10 fill / 32px 20px 20px stretch; }
+.skin-kit-card .kit-card__head { background: none; border: 0; margin-top: -28px; }
+.skin-kit-resource .kit-resource__value { background: none; border: 8px solid transparent; border-width: 8px 12px; border-radius: 0; border-image: var(--kit-resource) 4 6 fill / 8px 12px stretch; }
+.skin-kit-plus .kit-resource__plus { background: var(--kit-plus) center / 100% 100% no-repeat; border: 0; box-shadow: none; color: transparent; text-shadow: none; image-rendering: pixelated; width: 32px; height: 32px; }
+.skin-kit-scroll-track .kit-scroll::-webkit-scrollbar-track { background: var(--kit-scroll-track) 0 0 / 12px 16px repeat-y; border: 0; box-shadow: none; }
+.skin-kit-scroll-thumb .kit-scroll::-webkit-scrollbar-thumb { background: none; border: 6px solid transparent; border-width: 6px 0; box-shadow: none; border-image: var(--kit-scroll-thumb) 6 0 fill / 6px 0 stretch; }
+.skin-kit-bubble .kit-bubble { background: none; border: 16px solid transparent; border-radius: 0; box-shadow: none; padding: 0; border-image: var(--kit-bubble) 8 fill / 16px stretch; }
+.skin-kit-bubble-tail .kit-bubble::after { background: var(--kit-bubble-tail) center / 100% 100% no-repeat; clip-path: none; width: 24px; height: 16px; bottom: -28px; }
+.skin-kit-bubble-tail .kit-bubble::before { display: none; }
+.skin-kit-bar .kit-bar { background: none; border: 8px solid transparent; border-width: 8px 10px; border-radius: 0; overflow: visible; height: 24px; border-image: var(--kit-bar) 4 5 fill / 8px 10px stretch; }
+.skin-kit-bar .kit-bar__fill { inset: -4px auto -4px -6px; }
+.kit-ribbon--art, .kit-shield--art { background: center / 100% 100% no-repeat; clip-path: none; box-shadow: none; image-rendering: pixelated; }
+.kit-ribbon--art { width: 12px; height: 20px; }
+.kit-shield--art { width: 20px; height: 24px; padding-bottom: 4px; }
+
+/* A phone's dialog is a full-width sheet: the close button tucks inside the right edge instead of hanging off screen. */
+@media (max-width: 699px), (max-height: 520px) {
+  .hud-dialog-layer .kit-frame__close { right: 2px; }
+  .skin-kit-frame .hud-dialog-layer .kit-frame__close { right: -20px; }
+}
+
+/* A big screen gets the reference's proportions: a bigger plank, rim, pills and dialog (the 1920 shot read tiny). */
+@media (min-width: 1280px) and (min-height: 800px) {
+  :root { --kit-square: 48px; --kit-rim: 8px; }
+  .kit-plank { font-size: 22px; padding: 8px 28px 11px; }
+  .kit-badge { font-size: 14px; }
+  .kit-frame { padding-top: 34px; }
+  .kit-plank-row { top: -24px; }
+  .skin-kit-frame .kit-plank-row { top: -50px; }
+  .skin-kit-frame .kit-frame { padding-top: 20px; }
+  .kit-pill, .btn { font-size: 15px; line-height: 1.1; min-height: 52px; padding: 6px 18px 9px; }
+  .kit-frame .kit-frame__body { font-size: 16px; }
+  .kit-why { font-size: 13px; }
+  .kit-price .hud-icon { width: 28px; height: 28px; }
+  .kit-resource { height: 44px; padding-left: 26px; }
+  .kit-resource__icon { width: 44px; height: 44px; }
+  .kit-resource__icon > * { width: 44px; height: 44px; }
+  .kit-resource__value { height: 36px; min-width: 110px; font-size: 18px; padding-left: 26px; }
+  .kit-resource__plus { width: 40px; height: 40px; font-size: 24px; }
+  .hud-dialog:has(> .kit-frame) { width: min(760px, 100%); }
+}
