@@ -412,7 +412,7 @@ describe('M5 art keys', () => {
   const m5Rows = (a: typeof all) => artEntries(a).filter(r => /^art:(battle\.|fx\.(move|hit|crit|immune|ko|swap)|ui\.battle\.platform)/.test(r.key))
 
   it('a manifest with none of them has no battle art, requests nothing for it, and still draws every dragon', () => {
-    expect(none.battle).toEqual({ backdrop: {}, platform: null, moveFx: {}, fx: {} })
+    expect(none.battle).toEqual({ backdrop: {}, wide: {}, platform: null, moveFx: {}, fx: {} })
     expect(none.special).toEqual({ egg: {}, hatchling: {} })
     expect(m5Rows(none)).toEqual([])
     expect(Object.keys(none.hud).filter(k => /^(battle|trial)\.|^ui\.(battle|star|tier)/.test(k))).toEqual([])

@@ -173,7 +173,10 @@ describe('BattlePanel', () => {
     expect(plate('Yours').getByText(c.species.get('flame')!.name)).toBeInTheDocument()
     expect(plate('Yours').getByText('4,718 / 4,718')).toBeInTheDocument()
     expect(plate('Yours').getByRole('progressbar', { name: 'HP' })).toHaveAttribute('aria-valuenow', '100')
-    expect(plate('Enemy').getAllByRole('img', { name: /alive/ })).toHaveLength(2)
+    expect(within(screen.getByRole('group', { name: 'Enemy bench' })).getAllByRole('img', { name: /alive/ })).toHaveLength(2)
+    // Each plate carries the active dragon's portrait (R98).
+    expect(plate('Yours').getByTestId('sprite-still')).toBeInTheDocument()
+    expect(plate('Enemy').getByTestId('sprite-still')).toBeInTheDocument()
     // Never a raw id on the screen.
     expect(document.body.textContent).not.toMatch(/\bd1\b|\bnature\b/)
   })
@@ -186,16 +189,16 @@ describe('BattlePanel', () => {
     expect(cards[0]).toHaveTextContent('1x')
     expect(cards[1]).toHaveTextContent('Cinder Spit')
     expect(cards[1]).toHaveTextContent('2x')
-    expect(screen.getByRole('button', { name: 'Swap' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Swap Dragon' })).toBeEnabled()
     expect(screen.queryByRole('group', { name: /target/i })).toBeNull()
   })
 
   it('every battle button asks for a 44 px tap target', async () => {
     host(s8)
     for (const b of moveGroup().getAllByRole('button')) expect(b).toHaveClass('battle__move')
-    expect(screen.getByRole('button', { name: 'Swap' })).toHaveClass('battle__tap')
+    expect(screen.getByRole('button', { name: 'Swap Dragon' })).toHaveClass('battle__tap')
     expect(screen.getByRole('button', { name: /exit/i })).toHaveClass('battle__tap')
-    await userEvent.click(screen.getByRole('button', { name: 'Swap' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Swap Dragon' }))
     for (const b of within(screen.getByRole('group', { name: /^swap$/i })).getAllByRole('button')) expect(b).toHaveClass('battle__tap')
   })
 
@@ -227,14 +230,37 @@ describe('BattlePanel', () => {
     expect(move(/inferno crown/i)).toBeDisabled()
   })
 
+  it('your bench runs down the side as Swap buttons; one tap swaps and uses the turn (R101)', async () => {
+    host(s8, { ...offer, opponent: { ...bot, team: three('sea', 1) } })
+    const bench = within(screen.getByRole('group', { name: 'Your bench' }))
+    const buttons = bench.getAllByRole('button', { name: /^swap to /i })
+    expect(buttons).toHaveLength(2)
+    for (const b of buttons) expect(b).toHaveClass('battle__tap')
+    await pause()
+    await userEvent.click(buttons[0]!)
+    await waitFor(() => expect(screen.getByText('Turn 3 / 30')).toBeInTheDocument())
+  })
+
+  it('during a replacement, a bench portrait sends that dragon in (R101)', async () => {
+    host({ ...s8, dragons: dragons('flame', 1) }, { ...offer, opponent: { ...bot, team: three('sea', 40) } })
+    await userEvent.click(move(/strike/i))
+    await screen.findByRole('group', { name: /^replacement$/i })
+    const bench = within(screen.getByRole('group', { name: 'Your bench' }))
+    // The active dragon fell; both bench dragons still stand and may come in.
+    expect(bench.getAllByRole('button', { name: /^swap to /i }).filter(b => !(b as HTMLButtonElement).disabled)).toHaveLength(2)
+    await pause()
+    await userEvent.click(bench.getAllByRole('button', { name: /^swap to /i })[0]!)
+    await screen.findByRole('group', { name: /^move$/i })
+  })
+
   it('Swap opens the bench with a way back; choosing one uses the turn', async () => {
     host(s8, { ...offer, opponent: { ...bot, team: three('sea', 1) } })
-    await userEvent.click(screen.getByRole('button', { name: 'Swap' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Swap Dragon' }))
     const sheet = within(screen.getByRole('group', { name: /^swap$/i }))
     expect(sheet.getAllByRole('button', { name: /L20/ })).toHaveLength(2)
     await userEvent.click(sheet.getByRole('button', { name: /back/i }))
     expect(screen.getByRole('group', { name: /^move$/i })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Swap' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Swap Dragon' }))
     await pause()
     await userEvent.click(within(screen.getByRole('group', { name: /^swap$/i })).getAllByRole('button', { name: /L20/ })[0]!)
     await waitFor(() => expect(screen.getByText('Turn 3 / 30')).toBeInTheDocument())
@@ -273,7 +299,7 @@ describe('BattlePanel', () => {
     expect(plate('Yours').getByText('1,600 / 1,600')).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: /^replacement$/i })).toBeNull()
     expect(move(/strike/i)).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Swap' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Swap Dragon' })).toBeDisabled()
     await act(async () => { await vi.advanceTimersByTimeAsync(599) })
     expect(plate('Yours').getByText('1,600 / 1,600')).toBeInTheDocument()
     // The enemy's hit lands: HP follows the event. The replacement list waits until it has been seen.
@@ -347,7 +373,7 @@ describe('BattlePanel', () => {
 
   it('a double tap on Swap opens the bench and does not also pick from it', async () => {
     host(s8, { ...offer, opponent: { ...bot, team: three('sea', 40) } })
-    fireEvent.click(screen.getByRole('button', { name: 'Swap' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Swap Dragon' }))
     fireEvent.click(within(screen.getByRole('group', { name: /^swap$/i })).getAllByRole('button', { name: /L20/ })[0]!)
     expect(screen.getByRole('group', { name: /^swap$/i })).toBeInTheDocument()
     expect(screen.getByText('Turn 1 / 30')).toBeInTheDocument()
@@ -367,7 +393,7 @@ describe('BattlePanel', () => {
 
   it('Escape closes the Swap list first, then asks to abandon', async () => {
     host(s8)
-    await userEvent.click(screen.getByRole('button', { name: 'Swap' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Swap Dragon' }))
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(screen.queryByRole('group', { name: /^swap$/i })).toBeNull()
     expect(screen.queryByRole('alertdialog')).toBeNull()

@@ -438,27 +438,85 @@
   .lineup__opponents { gap: 8px; padding: 4px 8px; }
 }
 
-/* Battle (design, Phase 5: combat): your plate top left, the enemy's top right, VS and the turn between; the four moves in one
-   row along the bottom on a wide screen. The stage itself (and the camera that shares its box) is unchanged. */
-.battle__plate--attacker { left: 8px; right: auto; top: 52px; bottom: auto; }
-.battle__plate--defender { right: 8px; left: auto; top: 52px; }
-.battle__vs { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0; pointer-events: none; }
-.battle__vs-turn { padding: 2px 10px; font: 11px/1.2 var(--font-display); color: var(--kit-ink); background: #ffd84a; border: 2px solid var(--kit-ink); border-radius: 6px; }
-@media (min-width: 900px) {
-  .battle__moves { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .battle__controls:has(.battle__moves) { display: grid; grid-template-columns: 140px 1fr; grid-template-areas: "turn turn" "swap moves"; align-content: start; }
-  .battle__controls:has(.battle__moves) > .battle__turn { grid-area: turn; }
-  .battle__controls:has(.battle__moves) > .battle__moves { grid-area: moves; }
-  .battle__controls:has(.battle__moves) > .battle__swap { grid-area: swap; height: 100%; }
+/* Battle (R98, R101; combat.png's layout, our skin): the HUD lies over the whole viewport and the stage under it. Plates with
+   portraits in the top corners, VS and the turn between them, Exit at the far right; each bench down its edge; Swap Dragon and
+   the four moves in a bar along the bottom. */
+.battle--wide .battle__top {
+  position: absolute; top: max(6px, env(safe-area-inset-top)); left: 8px; right: 8px; display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: start; gap: 8px; pointer-events: none;
 }
-@media (max-width: 420px) {
-  .battle__vs { display: none; }
+.battle--wide .battle__plate {
+  position: static; width: auto; max-width: 340px; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px 4px;
+  pointer-events: auto; border-radius: 8px;
 }
-@media (min-width: 900px) {
-  .battle__controls:has(.battle__moves) { height: auto !important; }
+.battle--wide .battle__plate--attacker { justify-self: start; }
+.battle--wide .battle__plate--defender { justify-self: end; flex-direction: row-reverse; padding: 4px 4px 4px 6px; }
+.battle__portrait {
+  position: relative; flex: none; width: 52px; height: 52px; display: grid; place-items: center; overflow: hidden;
+  background: #fbfaf6; border: 2px solid var(--kit-ink); border-radius: 6px;
 }
-/* A short screen draws a small stage: the two plates share the top half and half, and VS steps aside. */
-@media (max-height: 600px) {
-  .battle__plate { width: calc(50% - 12px); }
-  .battle__vs { display: none; }
+.battle__portrait-level {
+  position: absolute; left: 3px; bottom: 0; font: 12px/1.2 var(--font-display); color: #fff;
+  text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink);
+}
+.battle__plate-body { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.battle--wide .battle__hp { position: relative; height: 18px; border-radius: 4px; }
+.battle--wide .battle__hp .battle__hp-text {
+  position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: #fff;
+  text-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 1px 0 var(--ink), 0 -1px 0 var(--ink);
+}
+.battle__mid { display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
+.battle--wide .battle__vs { position: static; transform: none; display: block; line-height: 0; }
+.battle__vs-turn { padding: 2px 10px; font: 11px/1.2 var(--font-display); color: var(--kit-ink); background: #ffd84a; border: 2px solid var(--kit-ink); border-radius: 6px; white-space: nowrap; }
+.battle--wide .battle__title { max-width: 220px; font-size: 10px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.battle--wide .battle__head-actions { display: flex; gap: 6px; pointer-events: auto; }
+.battle--wide .battle__exit { min-width: 44px; padding: 0 10px; font-size: 18px; color: #fff; background: #d9472f; border: 2px solid var(--kit-ink); border-radius: 10px; box-shadow: 0 2px 0 var(--kit-ink); }
+
+.battle__side { position: absolute; top: 50%; transform: translateY(-60%); display: grid; gap: 8px; pointer-events: none; }
+.battle__side--attacker { left: max(8px, env(safe-area-inset-left)); }
+.battle__side--defender { right: max(8px, env(safe-area-inset-right)); }
+.battle__bench-card {
+  position: relative; width: 60px; height: 60px; min-height: 60px; padding: 2px 2px 10px; display: grid; place-items: center; overflow: hidden;
+  background: #fbfaf6; border: 2px solid var(--kit-ink); border-radius: 8px; box-shadow: 0 2px 0 var(--kit-ink); pointer-events: auto;
+}
+button.battle__bench-card:not(:disabled):hover { background: #fff3c4; }
+.battle__bench-card--ko { opacity: 0.6; }
+.battle__side-hp { position: absolute; left: 4px; right: 4px; bottom: 3px; height: 5px; background: var(--bg); border: 1px solid var(--kit-ink); overflow: hidden; }
+
+.battle--wide .battle__line { top: 118px; bottom: auto; left: 50%; right: auto; width: min(56%, 520px); transform: translateX(-50%); }
+
+.battle--wide .battle__controls {
+  left: 0; right: 0; transform: none; width: auto; padding: 4px 12px max(6px, env(safe-area-inset-bottom));
+  border-left: 0; border-right: 0; border-radius: 0;
+}
+.battle--wide .battle__controls:has(.battle__moves) {
+  display: grid; grid-template-columns: minmax(120px, 180px) minmax(0, 1fr); grid-template-areas: "turn turn" "swap moves"; align-items: stretch; gap: 4px 10px;
+}
+.battle--wide .battle__controls:has(.battle__moves) > .battle__turn { grid-area: turn; }
+.battle--wide .battle__controls:has(.battle__moves) > .battle__moves { grid-area: moves; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.battle--wide .battle__controls:has(.battle__moves) > .battle__swap { grid-area: swap; height: 100%; }
+.battle--wide .battle__swap { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--kit-ink); background: #ffd84a; border-color: var(--kit-ink); }
+.battle--wide .battle__controls:not(:has(.battle__moves)) { left: 50%; right: auto; width: min(100%, 520px); transform: translateX(-50%); border: 2px solid var(--ink); border-bottom: 0; }
+/* A phone held upright: two rows of moves, Swap across the top of the bar. */
+@media (max-width: 600px) {
+  .battle--wide .battle__controls:has(.battle__moves) { grid-template-columns: 1fr; grid-template-areas: "turn" "swap" "moves"; }
+  .battle--wide .battle__controls:has(.battle__moves) > .battle__moves { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .battle--wide .battle__top { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .battle--wide .battle__mid { display: none; }
+  .battle--wide .battle__line { top: 76px; width: calc(100% - 24px); }
+}
+/* A short screen: the plates, benches and bar shrink to keep the dragons in sight. */
+@media (max-height: 500px) {
+  .battle__portrait { width: 44px; height: 44px; }
+  .battle--wide .battle__vs img, .battle--wide .battle__vs span { zoom: 0.75; }
+  .battle__bench-card { width: 52px; height: 52px; min-height: 52px; }
+  .battle--wide .battle__line { top: 86px; }
+  .battle--wide .battle__controls:has(.battle__moves) .battle__move { min-height: 44px; padding: 2px 6px; }
+  /* The turn shows under VS; the bar keeps to one row so it stays clear of the dragons' feet. */
+  .battle--wide .battle__controls:has(.battle__moves) { grid-template-areas: "swap moves"; padding-top: 6px; }
+  .battle--wide .battle__controls:has(.battle__moves) > .battle__turn { display: none; }
+}
+/* A big screen: the HUD grows with it, as the stage does (zoom 2 and up). */
+@media (min-width: 1280px) and (min-height: 720px) {
+  .battle--wide .battle__top, .battle__side, .battle--wide .battle__controls, .battle--wide .battle__line { zoom: 1.5; }
 }

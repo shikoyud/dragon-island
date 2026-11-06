@@ -1,3 +1,4 @@
+import { BATTLE_SPOT, battleStage } from '../src/game/layout'
 import { expect, test, type Page } from '@playwright/test'
 import { openPanel, resetPlayer, signIn, seaTeam } from './helpers'
 
@@ -46,10 +47,17 @@ test.describe('on a phone', () => {
     await expect(turn(page, 1)).toBeVisible()
     await expect(page.getByText('3★: 8 turns, no KOs')).toBeVisible()
     for (const b of await moves(page).all()) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44)
-    expect((await page.getByRole('button', { name: 'Swap' }).boundingBox())!.height).toBeGreaterThanOrEqual(44)
+    expect((await page.getByRole('button', { name: 'Swap Dragon' }).boundingBox())!.height).toBeGreaterThanOrEqual(44)
     // The whole screen fits with no scroll: the grid and Swap inside the viewport.
-    expect((await page.getByRole('button', { name: 'Swap' }).boundingBox())!.y + 44).toBeLessThanOrEqual(844)
+    expect((await page.getByRole('button', { name: 'Swap Dragon' }).boundingBox())!.y + 44).toBeLessThanOrEqual(844)
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(844)
+    // Landscape layout held upright (R98): both plates on screen side by side, both benches down the edges.
+    const yours = (await page.getByRole('group', { name: 'Yours' }).boundingBox())!
+    const enemy = (await page.getByRole('group', { name: 'Enemy', exact: true }).boundingBox())!
+    expect(yours.x + yours.width).toBeLessThanOrEqual(enemy.x)
+    expect(enemy.x + enemy.width).toBeLessThanOrEqual(390)
+    await expect(page.getByRole('group', { name: 'Your bench' }).getByRole('button')).toHaveCount(2)
+    await expect(page.getByRole('group', { name: 'Enemy bench' }).getByRole('img')).toHaveCount(2)
 
     // An attack: inputs off while it plays, then the turn has moved on by both sides. A weak dragon may fall to the reply.
     await moves(page).first().click()
@@ -68,7 +76,7 @@ test.describe('on a phone', () => {
     await expect(page.getByText(/Turn [3-9] \/ 30/)).toBeVisible()
 
     // A swap: the bench opens, Back returns, picking uses the turn.
-    const swap = page.getByRole('button', { name: 'Swap' })
+    const swap = page.getByRole('button', { name: 'Swap Dragon' })
     await expect(swap).toBeEnabled({ timeout: 10_000 })
     await swap.click()
     const bench = page.getByRole('group', { name: /^swap$/i })
@@ -131,7 +139,7 @@ test.describe('on a phone', () => {
 test.describe('on a desktop', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
-  test('PvP: the same column, centred; a real fight to its result, and a forfeit that states its cost', async ({ page, request }) => {
+  test('PvP: the landscape screen with the moves bar along the bottom; a real fight to its result, and a forfeit that states its cost', async ({ page, request }) => {
     page.on('pageerror', e => console.log('PAGEERROR', e.message))
     await signIn(page)
     await resetPlayer(request, { level: 8, trophies: 100, dragons: seaTeam(20), defenceTeam: ['d1', 'd2', 'd3'] })
@@ -146,9 +154,15 @@ test.describe('on a desktop', () => {
     }
 
     await arena()
-    const box = (await page.locator('.battle__controls').boundingBox())!
-    expect(box.x + box.width / 2).toBeCloseTo(720, 0)
-    expect(box.width).toBeLessThanOrEqual(480)
+    // The moves bar spans the bottom of the screen (R98), the four moves in one row, below both dragons' feet.
+    const bar = (await page.locator('.battle__controls').boundingBox())!
+    expect(bar.x).toBe(0)
+    expect(Math.round(bar.width)).toBe(1440)
+    expect(Math.round(bar.y + bar.height)).toBe(900)
+    const ys = await Promise.all((await moves(page).all()).map(async b => Math.round((await b.boundingBox())!.y)))
+    expect(new Set(ys).size).toBe(1)
+    const stage = battleStage(1440, 900)
+    expect(stage.y + BATTLE_SPOT.attacker.y * stage.zoom).toBeLessThanOrEqual(bar.y)
     await expect(page.getByText(/3★/)).toBeHidden()
 
     await playOut(page)
