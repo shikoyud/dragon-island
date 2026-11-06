@@ -74,6 +74,8 @@ export interface GameArtSet {
   battle: {
     /** `battle.backdrop.<element>`, 360x420, the chapter's element. */
     backdrop: Partial<Record<Element, Sprite>>
+    /** `battle.wide.<element>`, 640x360: the landscape stage's backdrop (R98); the portrait one, cropped, stands in without it (R102). */
+    wide?: Partial<Record<Element, Sprite>>
     /** `ui.battle.platform`, 64x32, under each dragon. */
     platform: Sprite | null
     /** `fx.move.<element|physical>`, a one-shot over the target. */

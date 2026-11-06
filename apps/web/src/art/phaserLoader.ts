@@ -59,6 +59,7 @@ export function artEntries(art: GameArtSet): Entry[] {
   // Battle stage art loads only when it exists, and a sheet that fails to load is simply absent (the scene draws its own look).
   const opt = (path: string, s: Sprite) => rows.push({ key: textureKey(path), sprite: s, slot: 'fx', element: 'light', optional: true })
   for (const [el, s] of Object.entries(art.battle.backdrop)) opt(`battle.backdrop.${el}`, s)
+  for (const [el, s] of Object.entries(art.battle.wide ?? {})) opt(`battle.wide.${el}`, s)
   if (art.battle.platform) opt('ui.battle.platform', art.battle.platform)
   for (const [m, s] of Object.entries(art.battle.moveFx)) opt(`fx.move.${m}`, s)
   for (const [n, s] of Object.entries(art.battle.fx)) opt(`fx.${n}`, s)

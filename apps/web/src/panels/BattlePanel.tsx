@@ -3,7 +3,7 @@ import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } fr
 import { messageFor } from '../api/errors'
 import type { Bridge } from '../game/bridge'
 import { battleLine, battleView, INPUT_GUARD_MS, pipState, turnLabel, type BattleView } from '../game/battleModel'
-import { BATTLE_CONTROLS_H, battleStage } from '../game/layout'
+import { battleStage } from '../game/layout'
 import { ArtMark } from '../hud/ArtMark'
 import { Icon } from '../hud/Icon'
 import { isFinalRefusal, moveCard, pvpForfeitCost, TRIAL_ABANDON_COST, useBattlePlayback, type BattleHook } from '../state/battle'
@@ -206,7 +206,6 @@ export const BattlePanel = memo(function BattlePanel({ battle, bridge, onClose }
   }
 
   const stageStyle: CSSProperties = { left: Math.max(0, box.x), top: box.y, width: Math.min(box.w, window.innerWidth), height: box.h }
-  const controlsStyle: CSSProperties = result ? {} : { height: BATTLE_CONTROLS_H }
 
   return (
     <section className="battle" aria-label="Battle">
@@ -225,7 +224,7 @@ export const BattlePanel = memo(function BattlePanel({ battle, bridge, onClose }
         <p className="battle__line" role="status" aria-label="Last move">{line}</p>
       </div>
 
-      <div className={`battle__controls${result ? ' battle__controls--result' : ''}`} style={{ ...controlsStyle, width: `min(100%, ${Math.min(box.w, WIDE_CONTROLS)}px)` }}>
+      <div className={`battle__controls${result ? ' battle__controls--result' : ''}`} style={{ width: `min(100%, ${Math.min(box.w, WIDE_CONTROLS)}px)` }}>
         <p className="battle__turn">
           <span>{turnLabel(view.turn, over && !busy)}</span>
           {trial && <span className="battle__goal">3★: {THREE_STAR_TURNS} turns, no KOs</span>}

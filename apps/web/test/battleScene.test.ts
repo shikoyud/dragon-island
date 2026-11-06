@@ -69,9 +69,9 @@ describe('BattleScene', () => {
     expect(foe.flipX).toBe(dragonFlip('defender', 1))
     expect([mine.x, mine.y]).toEqual([BATTLE_SPOT.attacker.x, BATTLE_SPOT.attacker.y])
     expect([foe.x, foe.y]).toEqual([BATTLE_SPOT.defender.x, BATTLE_SPOT.defender.y])
-    // Enemy upper right, yours lower left (R80).
+    // Side by side on one ground line, the enemy on the right (R98).
     expect(foe.x).toBeGreaterThan(mine.x)
-    expect(foe.y).toBeLessThan(mine.y)
+    expect(foe.y).toBe(mine.y)
   })
 
   it('fills the backdrop with the chapter element, a colour without art', async () => {
@@ -185,14 +185,25 @@ describe('BattleScene', () => {
     /** What the scene is showing with this texture, whatever the object. */
     const showing = (scene: BattleScene, key: string) => scene.children.list.filter(o => (o as Phaser.GameObjects.Sprite).texture?.key === `art:${key}` && (o as Phaser.GameObjects.Sprite).visible)
 
-    it('draws the chapter backdrop over the whole stage, and none without art', async () => {
+    it('draws the landscape backdrop over the whole stage, and none without art (R98)', async () => {
       const plain = await fight(three('flame', 20), three('sea', 1), [], { backdrop: 'flame' })
-      expect(showing(plain.scene, 'battle.backdrop.flame')).toHaveLength(0)
-      const { scene } = await fight(three('flame', 20), three('sea', 1), [], { backdrop: 'flame', art: withArt({ 'battle.backdrop.flame': e('bd.png', 360, 420) }) })
-      const [img] = showing(scene, 'battle.backdrop.flame') as Phaser.GameObjects.Image[]
+      expect(showing(plain.scene, 'battle.wide.flame')).toHaveLength(0)
+      const { scene } = await fight(three('flame', 20), three('sea', 1), [], { backdrop: 'flame', art: withArt({ 'battle.wide.flame': e('w.png', 640, 360), 'battle.backdrop.flame': e('bd.png', 360, 420) }) })
+      const [img] = showing(scene, 'battle.wide.flame') as Phaser.GameObjects.Image[]
       expect([img!.x, img!.y, img!.displayWidth, img!.displayHeight]).toEqual([0, 0, BATTLE.w, BATTLE.h])
+      expect(showing(scene, 'battle.backdrop.flame')).toHaveLength(0)
       // Behind the platforms and the dragons.
       expect(scene.children.list.indexOf(img!)).toBeLessThan(scene.children.list.indexOf(scene.dragon('attacker')))
+    })
+
+    it('without a landscape backdrop, the portrait one spans the stage width, its lower part showing (R102)', async () => {
+      const { scene } = await fight(three('flame', 20), three('sea', 1), [], { backdrop: 'flame', art: withArt({ 'battle.backdrop.flame': e('bd.png', 360, 420) }) })
+      const [img] = showing(scene, 'battle.backdrop.flame') as Phaser.GameObjects.Image[]
+      expect(img!.x).toBe(0)
+      expect(img!.displayWidth).toBe(BATTLE.w)
+      expect(img!.displayHeight / img!.displayWidth).toBeCloseTo(420 / 360, 2)
+      // Its bottom edge is the stage's: the ground the dragons stand on.
+      expect(img!.y + img!.displayHeight).toBe(BATTLE.h)
     })
 
     it('an Arena fight, or a chapter without its backdrop, keeps the colour fill', async () => {

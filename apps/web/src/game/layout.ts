@@ -9,22 +9,18 @@ export const ISO = { w: 16, h: 8 } as const
 const HW = ISO.w / 2
 const HH = ISO.h / 2
 
-/** The fixed portrait stage the battle scene draws on (R80); it is zoomed by whole numbers to fit above the controls. */
-export const BATTLE = { w: 360, h: 420 } as const
-/** The React controls under the stage: turn line, 2x2 moves, Swap. Fits 360x640 under the stage at zoom 1. */
-export const BATTLE_CONTROLS_H = 192
-/** Screen px between the stage's bottom edge and the controls. */
-export const BATTLE_STAGE_GAP = 8
-/** Where each active dragon's feet stand, in stage pixels: enemy upper right, yours lower left (R80). */
-export const BATTLE_SPOT = { attacker: { x: 96, y: 376 }, defender: { x: 264, y: 196 } } as const
-/** The React title row and Exit button over the stage's top (4 px down, a 44 px tap): nothing the scene floats there is legible. */
+/** The fixed landscape stage the battle scene draws on (R98, over R80); it is zoomed by whole numbers to fit the viewport. */
+export const BATTLE = { w: 640, h: 360 } as const
+/** Where each dragon's feet rest on the stage: side by side on one ground line, mirrored about the middle (R98). */
+export const BATTLE_SPOT = { attacker: { x: 200, y: 292 }, defender: { x: 440, y: 292 } } as const
+/** The plates' row over the stage's top: floating text never rises into it. */
 export const BATTLE_HEADER_H = 48
 /** Dragons draw at this scale on the stage, so a 48 px adult is 144 and a 32 px hatchling 96. */
 export const BATTLE_DRAGON_SCALE = 3
 /** The code-drawn platform under a dragon, until `battle.platform` has art. */
 export const BATTLE_PLATFORM = { w: 140, h: 36 } as const
 /** Stage y where the sky meets the ground of the code-drawn backdrop. */
-export const BATTLE_HORIZON_Y = 150
+export const BATTLE_HORIZON_Y = 170
 
 export interface Pos { x: number; y: number }
 export interface Box { x: number; y: number; w: number; h: number }
@@ -216,17 +212,15 @@ export function integerZoom(viewportW: number, viewportH: number): number {
 }
 
 /**
- * Where the stage sits on a screen: zoomed to fit the room above the controls, resting BATTLE_STAGE_GAP above them with the spare
- * room over it (so stage and controls read as one block), by whole pixels. React's plates
- * and the scene's camera both read this, so they agree. On a screen too short for both it pins to the top, and the controls,
- * anchored to the bottom, stay reachable over it.
+ * Where the stage sits on a screen (R98): zoomed by the largest whole number that fits the viewport and centred, by whole
+ * pixels. The HUD lies over it. React's overlay and the scene's camera both read this, so they agree; on a screen narrower
+ * than the stage (a phone held upright) the stage's sides are cropped evenly.
  */
 export function battleStage(viewportW: number, viewportH: number): Box & { zoom: number } {
-  const room = Math.max(0, viewportH - BATTLE_CONTROLS_H)
-  const zoom = integerZoom(viewportW, room)
+  const zoom = integerZoom(viewportW, viewportH)
   const w = BATTLE.w * zoom
   const h = BATTLE.h * zoom
-  return { zoom, x: Math.floor((viewportW - w) / 2), y: Math.max(0, room - h - BATTLE_STAGE_GAP), w, h }
+  return { zoom, x: Math.floor((viewportW - w) / 2), y: Math.floor((viewportH - h) / 2), w, h }
 }
 
 /** The world point the camera centres on to put the stage at `battleStage`'s box. */

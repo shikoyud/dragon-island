@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  anchor, BATTLE, BATTLE_CONTROLS_H, BATTLE_DRAGON_SCALE, BATTLE_SPOT, battleCamera, battleStage, cellCentre, cellTop, depthOrder, dragonSpot, footprintDiamond, hatcheryNestSpot, integerZoom,
+  anchor, BATTLE, BATTLE_DRAGON_SCALE, BATTLE_SPOT, battleCamera, battleStage, cellCentre, cellTop, depthOrder, dragonSpot, footprintDiamond, hatcheryNestSpot, integerZoom,
   captionPx, islandBox, ISO, pointerToCell,
 } from '../src/game/layout'
 
@@ -95,33 +95,20 @@ describe('isometric layout', () => {
     expect(hatcheryNestSpot(a, 9)).toEqual(spots[4]) // past the last, they share it
   })
 
-  it('fits the 360x420 portrait battle stage by whole-number zoom, never below 1', () => {
-    expect(BATTLE).toEqual({ w: 360, h: 420 })
-    expect(integerZoom(1920, 1080)).toBe(2)
-    expect(integerZoom(390, 600)).toBe(1)
-    expect(integerZoom(720, 840)).toBe(2)
-    expect(integerZoom(719, 840)).toBe(1)
+  it('fits the 640x360 landscape battle stage by whole-number zoom, never below 1 (R98)', () => {
+    expect(BATTLE).toEqual({ w: 640, h: 360 })
+    expect(integerZoom(1920, 1080)).toBe(3)
+    expect(integerZoom(1280, 720)).toBe(2)
+    expect(integerZoom(1279, 720)).toBe(1)
     expect(integerZoom(200, 200)).toBe(1)
   })
 
   describe('battleStage', () => {
-    it('rests the stage 8 px above the controls, spare room over it, by whole pixels, on the three screens that matter', () => {
-      expect(battleStage(390, 844)).toEqual({ zoom: 1, x: 15, y: 844 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
-      expect(battleStage(360, 640)).toEqual({ zoom: 1, x: 0, y: 640 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
-      expect(battleStage(1440, 900)).toEqual({ zoom: 1, x: 540, y: 900 - BATTLE_CONTROLS_H - 8 - 420, w: 360, h: 420 })
-    })
-    it('the stage and the controls together fit 360x640 with nothing covered', () => {
-      const s = battleStage(360, 640)
-      expect(s.y).toBeGreaterThanOrEqual(0)
-      expect(s.y + s.h).toBeLessThanOrEqual(640 - BATTLE_CONTROLS_H)
-    })
-    it('zooms only as far as the room above the controls allows', () => {
-      expect(battleStage(1920, 1080).zoom).toBe(2)
-      expect(battleStage(2560, 1440).zoom).toBe(2)
-      expect(battleStage(3840, 2160).zoom).toBe(4)
-    })
-    it('a short screen pins the stage to the top: the controls stay reachable over it', () => {
-      expect(battleStage(844, 390)).toMatchObject({ zoom: 1, y: 0 })
+    it('centres the stage on the viewport by whole pixels, on the screens that matter (R98)', () => {
+      expect(battleStage(1920, 1080)).toEqual({ zoom: 3, x: 0, y: 0, w: 1920, h: 1080 })
+      expect(battleStage(844, 390)).toEqual({ zoom: 1, x: 102, y: 15, w: 640, h: 360 })
+      expect(battleStage(390, 844)).toEqual({ zoom: 1, x: -125, y: 242, w: 640, h: 360 })
+      expect(battleStage(1440, 900)).toEqual({ zoom: 2, x: 80, y: 90, w: 1280, h: 720 })
     })
     it('the camera centre puts the stage where the box says', () => {
       for (const [w, h] of [[390, 844], [360, 640], [1440, 900], [1920, 1080]] as const) {
@@ -132,16 +119,16 @@ describe('isometric layout', () => {
         expect((0 - cam.y) * box.zoom + h / 2).toBe(box.y)
       }
     })
-    it('the dragons stand on the stage, the enemy upper right and yours lower left', () => {
-      const scale = BATTLE_DRAGON_SCALE
-      const halfAdult = (48 * scale) / 2
+    it('the dragons stand side by side on one ground line, facing each other (R98)', () => {
+      const halfAdult = (48 * BATTLE_DRAGON_SCALE) / 2
       for (const side of ['attacker', 'defender'] as const) {
         expect(BATTLE_SPOT[side].x - halfAdult).toBeGreaterThanOrEqual(0)
         expect(BATTLE_SPOT[side].x + halfAdult).toBeLessThanOrEqual(BATTLE.w)
         expect(BATTLE_SPOT[side].y).toBeLessThanOrEqual(BATTLE.h)
       }
       expect(BATTLE_SPOT.defender.x).toBeGreaterThan(BATTLE_SPOT.attacker.x)
-      expect(BATTLE_SPOT.defender.y).toBeLessThan(BATTLE_SPOT.attacker.y)
+      expect(BATTLE_SPOT.defender.y).toBe(BATTLE_SPOT.attacker.y)
+      expect(BATTLE_SPOT.attacker.x + BATTLE_SPOT.defender.x).toBe(BATTLE.w)
     })
   })
 })

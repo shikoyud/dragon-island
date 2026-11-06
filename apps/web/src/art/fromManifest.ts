@@ -89,6 +89,7 @@ export function artSetFromManifest(version: string, manifest: Manifest, catalog:
     },
     battle: {
       backdrop: Object.fromEntries(ELEMENTS.flatMap(el => { const s = present(`battle.backdrop.${el}`); return s ? [[el, s]] : [] })),
+      wide: Object.fromEntries(ELEMENTS.flatMap(el => { const s = present(`battle.wide.${el}`); return s ? [[el, s]] : [] })),
       platform: present('ui.battle.platform'),
       moveFx: Object.fromEntries([...ELEMENTS, 'physical'].flatMap(m => { const s = present(`fx.move.${m}`); return s ? [[m, s]] : [] })),
       fx: Object.fromEntries(BATTLE_FX.flatMap(n => { const s = present(`fx.${n}`); return s ? [[n, s]] : [] })),
