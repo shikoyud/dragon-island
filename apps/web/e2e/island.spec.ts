@@ -82,10 +82,13 @@ for (const [w, h] of [[1920, 1080], [844, 390]] as const) {
     await page.waitForTimeout(300)
     const free = () => page.evaluate(() => { const b = window.__bridge as unknown as { insets: { top: number; bottom: number } }; return b.insets })
     const opening = await page.evaluate(() => (window.__bridge as unknown as { zoom: { zoom: number } }).zoom.zoom)
-    if (w === 1920) expect(opening).toBe(4)
+    // A big screen opens zoomed out on the archipelago (R99); a short one on Home's land.
+    if (w === 1920) expect(opening).toBe(1)
     else expect(opening).toBeGreaterThanOrEqual(2)
     for (const zoom of [opening, 1, 3]) {
       await page.evaluate(z => (window.__bridge as unknown as { zoomTo: (z: number) => void }).zoomTo(z), zoom)
+      // Zoomed about the screen's middle, which opened between Home and Ember Reach (R99): bring Home back to it.
+      await page.evaluate(() => (window.__bridge as unknown as { setView: (id: string) => void }).setView('home'))
       await page.waitForTimeout(200)
       const { top, bottom } = await free()
       // A label the HUD leaves in the open: at a close zoom the others may be under the HUD or off screen.

@@ -4,7 +4,7 @@ import { isSheet, playOneShot, playOrStill, textureKey } from '../../art/phaserL
 import { FALLBACK_ART } from '../../art/slots'
 import type { GameArtSet, Sprite } from '../../art/types'
 import type { Bridge, Placing, Target } from '../bridge'
-import { archipelagoOpening, fromIsland, isOpenIsland, ISLAND_AT, islandUnder, landCentre, lockedIslandObject, nearestIsland, toIsland, worldBounds } from '../archipelago'
+import { archipelagoOpening, opensZoomedOut, fromIsland, isOpenIsland, ISLAND_AT, LOCKED_FOOT_Y, islandUnder, landCentre, lockedIslandObject, nearestIsland, toIsland, worldBounds } from '../archipelago'
 import {
   clampView, groundCell, landPlots, offeredPlotAt, openingView, panBy, revealPan, screenToWorld, worldToScreen, zoomAt, zoomRange, type View,
 } from '../camera'
@@ -173,6 +173,14 @@ export class IslandScene extends Phaser.Scene {
     this.bridge.cellToScreen = cellToScreen
     this.bridge.focusCell = focusCell
     const signCell = (plot: number) => this.isle(this.bridge.view).current.signs.find(s => s.plot === plot) ?? null
+    // A locked island's caption hangs 2 world px under its picture's foot, `captionPx` tall on screen.
+    const islandToScreen = (id: IslandId) => {
+      if (isOpenIsland(this.bridge.state, id)) return this.toScreen(landCentre(this.bridge.state, id))
+      const foot = this.toScreen(fromIsland(id, { x: 0, y: LOCKED_FOOT_Y }))
+      const zoom = this.view?.zoom ?? 1
+      return { x: foot.x, y: foot.y + 2 * zoom + captionPx(zoom) / 2 + 1 }
+    }
+    this.bridge.islandToScreen = islandToScreen
     this.bridge.signCell = signCell
     const zoomTo = (zoom: number) => this.zoomTo(zoom)
     this.bridge.zoomTo = zoomTo
@@ -200,6 +208,7 @@ export class IslandScene extends Phaser.Scene {
       if (this.bridge.cellToScreen === cellToScreen) this.bridge.cellToScreen = null
       if (this.bridge.focusCell === focusCell) this.bridge.focusCell = null
       if (this.bridge.signCell === signCell) this.bridge.signCell = null
+      if (this.bridge.islandToScreen === islandToScreen) this.bridge.islandToScreen = null
       if (this.bridge.zoomTo === zoomTo) { this.bridge.zoomTo = null; this.bridge.zoom = null }
       this.scale.off(Phaser.Scale.Events.RESIZE, onResize)
       renderer?.off?.(Phaser.Renderer.Events.RESTORE_WEBGL, onRestore)
@@ -282,10 +291,18 @@ export class IslandScene extends Phaser.Scene {
     return { x: b.x, y: b.y - top / zoom, w: b.w, h: b.h + (top + bottom) / zoom }
   }
 
-  /** The opening view (R99): zoomed out on the view island and the next in the chain, centred in the band the HUD leaves free. */
+  /**
+   * The opening view, centred in the band the HUD leaves free. A big screen opens zoomed out on the view island and the next in
+   * the chain, so every island shows at once (R99); a phone opens on the view island's land at the zoom that fits it (R58).
+   */
   private opening(): View {
     const { top, bottom } = this.bridge.insets
-    const v = archipelagoOpening(this.bridge.state, this.bridge.view)
+    const band = this.scale.height - top - bottom
+    const id = this.bridge.view
+    const land = openingView(this.bridge.state, id, this.scale.width, Math.max(1, band))
+    const v = opensZoomedOut(this.scale.width, band)
+      ? archipelagoOpening(this.bridge.state, id)
+      : { cx: land.cx + ISLAND_AT[id].x, cy: land.cy + ISLAND_AT[id].y, zoom: land.zoom }
     // The free band's middle sits (top - bottom) / 2 below the screen's: look that much higher in the world.
     return { ...v, cy: v.cy + (bottom - top) / 2 / v.zoom }
   }

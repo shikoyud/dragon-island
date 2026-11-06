@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openInfo, openPanel, openShop, openUpgrade, resetPlayer, selectTarget, signIn } from './helpers'
+import { openInfo, openShop, openUpgrade, resetPlayer, selectTarget, signIn } from './helpers'
 
 /**
  * The Phaser canvas is not pixel-clicked: with the test wallet the app exposes its bridge as `window.__bridge`,
@@ -13,7 +13,7 @@ type TestBridge = {
 const bridge = <T>(page: Page, fn: (b: TestBridge) => T) =>
   page.evaluate(`(${fn.toString()})(window.__bridge)`) as Promise<T>
 
-test('builds, skips, upgrades, moves and turns a building, and the map shows Ember Reach locked', async ({ page, request }) => {
+test('builds, skips, upgrades, moves and turns a building, and the Islands list shows Ember Reach locked', async ({ page, request }) => {
   await signIn(page)
   // Gold for a plot and an upgrade, level 5, and game balance for the paid skips.
   await resetPlayer(request, { gold: 50_000, level: 5, xp: 0 }, { tokenWei: (100n * 10n ** 18n).toString() })
@@ -63,8 +63,7 @@ test('builds, skips, upgrades, moves and turns a building, and the map shows Emb
   await page.getByRole('region', { name: /terra habitat level/i }).getByRole('button', { name: /^turn$/i }).click()
   await expect.poll(() => bridge(page, b => b.state!.habitats.find(h => h.id === 'h1')!.placement.facing)).toBe(1)
 
-  // The island map: at level 5 every Bridge is still shut, each with its reason.
-  await openPanel(page, 'Map')
+  // The Islands list (the keyboard's way to the islands, R99): at level 5 every Bridge is still shut, each with its reason.
   const islands = page.getByRole('navigation', { name: 'Islands' })
   await islands.getByRole('button', { name: /Ember Reach/ }).focus()
   await page.keyboard.press('Enter')

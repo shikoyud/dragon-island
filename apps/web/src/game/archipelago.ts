@@ -93,7 +93,7 @@ export function islandLabel(s: PlayerState, id: IslandId): string {
 }
 
 /** A locked island's picture stands with its foot this far down its own diamond (whose middle is y = 128). */
-const LOCKED_FOOT_Y = 320
+export const LOCKED_FOOT_Y = 320
 /** The greyed floating-island art draws at this scale: 128 x 96 becomes about the size of an island. */
 export const LOCKED_SCALE = 4
 
@@ -108,8 +108,15 @@ export function lockedIslandObject(s: PlayerState, art: GameArtSet, id: IslandId
   }
 }
 
-/** The zoom the island scene opens at (R99): the smallest, so the archipelago shows at once; a pinch or the slider comes closer. */
+/** The zoom the island scene opens at on a big screen (R99): the smallest, so the archipelago shows at once. */
 export const OPENING_ZOOM = 1
+/**
+ * The least screen width and free band (height less the HUD) at which the scene opens zoomed out. A smaller screen (a phone)
+ * opens on the view island's land at the zoom that fits it (R58): at zoom 1 its buildings are too small to read and to tap.
+ */
+export const ZOOMED_OUT_SCREEN = { w: 1200, band: 700 } as const
+
+export const opensZoomedOut = (screenW: number, band: number): boolean => screenW >= ZOOMED_OUT_SCREEN.w && band >= ZOOMED_OUT_SCREEN.band
 
 /**
  * Where the island scene opens (R99): at `OPENING_ZOOM`, midway between the view island's land and the next island in the
@@ -117,6 +124,7 @@ export const OPENING_ZOOM = 1
  * free band; the scene shifts it for the HUD.
  */
 export function archipelagoOpening(s: PlayerState | null, view: IslandId): { cx: number; cy: number; zoom: number } {
+  // Only used where the band is at least ZOOMED_OUT_BAND tall; IslandScene picks.
   const i = ISLAND_ORDER.indexOf(view)
   const other = ISLAND_ORDER[i + 1] ?? ISLAND_ORDER[i - 1]!
   const a = landCentre(s, view)

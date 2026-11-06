@@ -1,6 +1,6 @@
 import { applyAction, createRng, ISLAND_ORDER, ISLANDS, LAUNCH_CATALOG, newPlayer, type PlayerState } from '@wyrmhaven/game-core'
 import { describe, expect, it } from 'vitest'
-import { archipelagoOpening, ISLAND_AT, islandFrame, islandUnder, landCentre as islandLandCentre, lockedLabel, nearestIsland, worldBounds } from '../src/game/archipelago'
+import { archipelagoOpening, ISLAND_AT, opensZoomedOut, islandFrame, islandUnder, landCentre as islandLandCentre, lockedLabel, nearestIsland, worldBounds } from '../src/game/archipelago'
 import { landBox } from '../src/game/camera'
 import { boxesOverlap } from '../src/game/layout'
 
@@ -79,5 +79,14 @@ describe('the opening view (R99)', () => {
     const v = archipelagoOpening(fresh, 'isle6')
     const isle5 = islandFrame('isle5')
     expect(Math.abs(isle5.x + isle5.w / 2 - v.cx)).toBeLessThan(1920 / 2)
+  })
+})
+
+describe('opensZoomedOut (R99)', () => {
+  it('a desktop opens on the archipelago; a phone either way up, or a short window, on its land', () => {
+    expect(opensZoomedOut(1920, 900)).toBe(true)
+    expect(opensZoomedOut(390, 700)).toBe(false)
+    expect(opensZoomedOut(844, 250)).toBe(false)
+    expect(opensZoomedOut(1280, 560)).toBe(false)
   })
 })

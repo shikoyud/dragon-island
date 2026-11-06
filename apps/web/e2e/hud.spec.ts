@@ -49,7 +49,7 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       await expect(res.getByLabel('Food', { exact: true })).toHaveText('50')
       // Phase 3 layout: Battle bottom left, Shop bottom right, Goals on the left edge, Book counter top left, no Finals clock.
       const boxOf = async (name: string) => (await page.getByRole('button', { name, exact: true }).boundingBox())!
-      for (const b of ['Battle', 'Shop', 'Goals', 'Dragon Book', 'Settings', 'Map']) {
+      for (const b of ['Battle', 'Shop', 'Goals', 'Dragon Book', 'Settings']) {
         await expect(page.getByRole('button', { name: b, exact: true })).toBeVisible()
         expect((await boxOf(b)).height, b).toBeGreaterThanOrEqual(26)
       }
@@ -60,14 +60,15 @@ for (const size of [{ name: 'desktop', width: 1280, height: 720 }, { name: 'phon
       expect((await boxOf('Goals')).x).toBeLessThan(80)
       for (const b of ['Breed', 'Wings', 'Inbox', 'Quests']) await expect(page.getByRole('button', { name: b, exact: true })).toHaveCount(0)
       await expect(page.getByRole('timer', { name: 'Terminal countdown' })).toHaveCount(0)
-      // No two HUD controls overlap.
-      const controls = await page.locator('.hud button:visible, .hud .kit-resource:visible').evaluateAll(els => els.filter(e => !e.closest('.kit-resource') || e.classList.contains('kit-resource')).map(e => { const r = e.getBoundingClientRect(); return { n: e.getAttribute('aria-label') ?? e.className, x: r.x, y: r.y, w: r.width, h: r.height } }))
+      // No two HUD controls overlap (the Islands list stays out of sight until focused).
+      const controls = await page.locator('.hud button:visible, .hud .kit-resource:visible').evaluateAll(els => els.filter(e => !e.closest('.map-list') && (!e.closest('.kit-resource') || e.classList.contains('kit-resource'))).map(e => { const r = e.getBoundingClientRect(); return { n: e.getAttribute('aria-label') ?? e.className, x: r.x, y: r.y, w: r.width, h: r.height } }))
       for (const a of controls) for (const b of controls) {
         if (a === b) continue
         const hit = a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1 && a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1
         expect(hit, `${a.n} overlaps ${b.n}`).toBe(false)
       }
-      await expect(page.getByRole('navigation', { name: 'Island menu' }).getByRole('button', { name: 'Map', exact: true })).toBeVisible()
+      // Every island is on the island itself (R99): no Map button.
+      await expect(page.getByRole('button', { name: 'Map', exact: true })).toHaveCount(0)
       for (const b of ['Hoard', 'Season', 'Ranks', 'Referral']) await expect(page.getByRole('button', { name: b, exact: true })).toHaveCount(0)
       await expect(page.getByRole('complementary', { name: 'Needs attention' })).toHaveCount(0)
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0)
@@ -216,7 +217,7 @@ test.describe('zoom slider on a landscape phone', () => {
   const inside = (b: Rect) => b.x >= 0 && b.y >= 0 && b.x + b.width <= 844 && b.y + b.height <= 390
   const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
 
-  test('stays on screen, clear of the Map button, the menu and the Move bar; plus zooms the camera', async ({ page, request }) => {
+  test('stays on screen, clear of the island menu, the main menu and the Move bar; plus zooms the camera', async ({ page, request }) => {
     await signIn(page)
     await resetPlayer(request, { gold: 50_000, level: 6 })
     await page.reload()
@@ -231,8 +232,8 @@ test.describe('zoom slider on a landscape phone', () => {
       expect(b.width).toBeGreaterThanOrEqual(44)
       expect(b.height).toBeGreaterThanOrEqual(44)
     }
-    const map = (await page.getByRole('navigation', { name: 'Island menu' }).boundingBox())!
-    expect(overlaps(box, map)).toBe(false)
+    const menu = (await page.getByRole('navigation', { name: 'Island menu' }).boundingBox())!
+    expect(overlaps(box, menu)).toBe(false)
     for (const name of ['Battle', 'Shop']) {
       const b = (await page.getByRole('navigation', { name: 'Main menu' }).getByRole('button', { name, exact: true }).boundingBox())!
       expect(overlaps(box, b), name).toBe(false)
